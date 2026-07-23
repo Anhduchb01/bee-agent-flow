@@ -1,7 +1,8 @@
-description = "Start spec-driven development — write a structured specification before writing code"
+---
+description: Start spec-driven development — write a structured specification before writing code
+---
 
-prompt = """
-Invoke the spec-driven-development skill.
+Invoke the agent-skills:spec-driven-development skill.
 
 Begin by understanding what the user wants to build. Ask clarifying questions about:
 1. The objective and target users
@@ -12,4 +13,3 @@ Begin by understanding what the user wants to build. Ask clarifying questions ab
 Then generate a structured spec covering all six core areas: objective, commands, project structure, code style, testing strategy, and boundaries.
 
 Save the spec as SPEC.md in the project root and confirm with the user before proceeding.
-"""

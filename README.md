@@ -21,7 +21,7 @@ template-vibecode/
     ├── AGENTS.md                   # Full tech stack + conventions (read this first)
     ├── backend/BACKEND_GUIDE.md    # Backend rules of engagement for agents
     ├── frontend/FRONTEND_GUIDE.md  # Frontend rules of engagement for agents
-    ├── commands/                   # Slash commands (*.toml)
+    ├── commands/                   # Slash commands (*.md)
     └── skills/                     # Reusable agent skills (*/SKILL.md)
 ```
 
@@ -48,7 +48,7 @@ Defined in [`.claude/commands/`](.claude/commands/). Type them in Claude Code to
 | Command | What it does | Backing skill |
 | --- | --- | --- |
 | `/spec` | Write a structured specification before writing code | `spec-driven-development` |
-| `/planning` | Break work into small verifiable tasks with acceptance criteria + dependency order → `tasks/plan.md`, `tasks/todo.md` | `planning-and-task-breakdown` |
+| `/plan` | Break work into small verifiable tasks with acceptance criteria + dependency order → `tasks/plan.md`, `tasks/todo.md` | `planning-and-task-breakdown` |
 | `/build` | Implement the next pending task (TDD: RED → GREEN → verify → commit), then stop | `incremental-implementation` + `test-driven-development` |
 | `/build auto` | Plan + build the whole spec in one approved autonomous pass (one commit per task) | same as above |
 | `/test` | TDD for features; **Prove-It** pattern for bug fixes (reproduce → fix → regress) | `test-driven-development` |
@@ -60,7 +60,7 @@ Defined in [`.claude/commands/`](.claude/commands/). Type them in Claude Code to
 ### Recommended flow
 
 ```
-/spec  →  /planning  →  /build (loop)  →  /test  →  /review  →  /ship
+/spec  →  /plan  →  /build (loop)  →  /test  →  /review  →  /ship
                                               ↘  /code-simplify  /webperf  (as needed)
 ```
 
@@ -124,7 +124,7 @@ Reusable capability packs in [`.claude/skills/`](.claude/skills/). Claude auto-i
 1. **Read** [`.claude/AGENTS.md`](.claude/AGENTS.md) to absorb the stack and rules.
 2. **Scaffold** `backend/` and `frontend/` per their guides.
 3. **Write the PRD:** copy [`docs/PRD_TEMPLATE.md`](docs/PRD_TEMPLATE.md) → `docs/PRD_<feature>.md` and fill it in.
-4. **Kick off a feature:** run `/spec` (turns the PRD into a technical spec), then `/planning`.
+4. **Kick off a feature:** run `/spec` (turns the PRD into a technical spec), then `/plan`.
 5. **Build:** loop `/build` (or `/build auto` after approving the plan).
 6. **Verify & ship:** `/test` → `/review` → `/ship`.
 

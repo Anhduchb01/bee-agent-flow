@@ -1,7 +1,8 @@
-description = "Break work into small verifiable tasks with acceptance criteria and dependency ordering"
+---
+description: Break work into small verifiable tasks with acceptance criteria and dependency ordering
+---
 
-prompt = """
-Invoke the planning-and-task-breakdown skill.
+Invoke the agent-skills:planning-and-task-breakdown skill.
 
 Read the existing spec (SPEC.md or equivalent) and the relevant codebase sections. Then:
 
@@ -13,4 +14,3 @@ Read the existing spec (SPEC.md or equivalent) and the relevant codebase section
 6. Present the plan for human review
 
 Save the plan to tasks/plan.md and task list to tasks/todo.md.
-"""

@@ -1,7 +1,8 @@
-description = "Conduct a five-axis code review — correctness, readability, architecture, security, performance"
+---
+description: Conduct a five-axis code review — correctness, readability, architecture, security, performance
+---
 
-prompt = """
-Invoke the code-review-and-quality skill.
+Invoke the agent-skills:code-review-and-quality skill.
 
 Review the current changes (staged or recent commits) across all five axes:
 
@@ -13,4 +14,3 @@ Review the current changes (staged or recent commits) across all five axes:
 
 Categorize findings as Critical, Important, or Suggestion.
 Output a structured review with specific file:line references and fix recommendations.
-"""
