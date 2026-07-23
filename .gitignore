@@ -1,0 +1,79 @@
+# ─────────────────────────────────────────────
+# Secrets & environment
+# ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ─────────────────────────────────────────────
+# Python / FastAPI backend
+# ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.eggs/
+celerybeat-schedule
+celerybeat.pid
+
+# ─────────────────────────────────────────────
+# Node / Next.js frontend
+# ─────────────────────────────────────────────
+node_modules/
+.next/
+out/
+.turbo/
+.vercel/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─────────────────────────────────────────────
+# Infra / Docker
+# ─────────────────────────────────────────────
+*.tfstate
+*.tfstate.*
+.terraform/
+docker-compose.override.yml
+
+# ─────────────────────────────────────────────
+# Editors & OS
+# ─────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ─────────────────────────────────────────────
+# Logs & temp
+# ─────────────────────────────────────────────
+*.log
+logs/
+tmp/
+temp/
+
+# ─────────────────────────────────────────────
+# Claude Code local state (keep shared config, ignore local)
+# ─────────────────────────────────────────────
+.claude/settings.local.json
