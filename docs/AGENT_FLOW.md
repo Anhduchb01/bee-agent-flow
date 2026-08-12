@@ -358,7 +358,7 @@ Cloudflare Access không phải tuỳ chọn. Không có nó, preview env của 
 
 ### Giới hạn tài nguyên
 
-Mỗi preview là một stack đầy đủ (Next + FastAPI + Postgres + Redis) ≈ **1,5GB RAM**. Ba preview song song ≈ 5GB, chưa tính runner đang build.
+Mỗi preview là một stack đầy đủ (web + API + DB + cache) ≈ **1,5GB RAM**. Ba preview song song ≈ 5GB, chưa tính runner đang build.
 
 - Trần **3 preview** cùng lúc, `preview.sh` từ chối cái thứ 4
 - Teardown tự động khi PR đóng (`docker compose down -v` — có `-v` để xoá volume Postgres)
@@ -467,7 +467,7 @@ Câu hỏi "có nên dùng Letta / MemGPT / codebase-memory không" chỉ trả 
 
 Bốn lý do, xếp theo mức độ nghiêm trọng:
 
-**1. Memory poisoning không quan sát được.** Một ghi nhớ sai — "dự án này dùng Redux" trong khi đã chuyển sang Zustand — sẽ tồn tại vĩnh viễn và bẻ lệch **mọi task sau đó**, mà không ai review, không ai thấy. Với memory dạng file trong git, sai một dòng thì `git blame` ra ngay và revert trong 5 giây.
+**1. Memory poisoning không quan sát được.** Một ghi nhớ sai — "API trả về snake_case" trong khi dự án đã đổi sang camelCase từ ba tháng trước — sẽ tồn tại vĩnh viễn và bẻ lệch **mọi task sau đó**, mà không ai review, không ai thấy. Với memory dạng file trong git, sai một dòng thì `git blame` ra ngay và revert trong 5 giây.
 
 **2. Nó tạo ra nguồn sự thật thứ hai**, mâu thuẫn trực tiếp với nguyên tắc ở §1. Khi vector store và `AGENTS.md` nói khác nhau, không có cơ chế nào phân xử.
 

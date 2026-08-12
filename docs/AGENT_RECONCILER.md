@@ -537,7 +537,7 @@ Gộp hai câu này vào một danh sách là hỏng cả hai. Nên chia **hai v
 │  cần chú ý  (chỉ hiện khi có)                          │
 │  đang chạy  (mọi repo — đây là bức tranh chiếm slot)   │
 ├── VÙNG 2 · thẻ theo repo ──────────────────────────────┤
-│  ┌ omnilogin ┐ ┌ shop ┐ ┌ blog ┐                       │
+│  ┌ myapp ┐ ┌ shop ┐ ┌ blog ┐                       │
 │  │ hàng đợi  │ │ ...  │ │ ...  │                       │
 │  │ gần đây   │ │      │ │      │                       │
 │  └───────────┘ └──────┘ └──────┘                       │
@@ -573,11 +573,11 @@ Mỗi item trong hàng đợi phải nói rõ **vì sao nó chờ**:
   "today":     { "tasks": 7, "turns": 214, "duration_s": 7860 },
   "attention": [ { "repo": "shop", "number": 33,
                    "reason": "needs-human — thất bại 2 lần" } ],
-  "running":   [ { "id": "omnilogin-42", "repo": "omnilogin", "number": 42,
+  "running":   [ { "id": "myapp-42", "repo": "myapp", "number": 42,
                    "rule": "07-build", "title": "Thêm filter cho danh sách profile",
                    "elapsed_s": 712, "turns": 34 } ],
   "repos": [
-    { "slug": "omnilogin", "full": "org/omnilogin",
+    { "slug": "myapp", "full": "org/myapp",
       "enabled": true, "paused": false,
       "running": 2, "wip": { "open_prs": 2, "max": 3 },
       "queue":  [ { "number": 44, "rule": "07-build", "title": "Export CSV",
@@ -793,7 +793,7 @@ Cái đầu tiên là nghiêm trọng nhất: nó phá luôn cơ chế khoá, v�
 ### 15.2. Định danh: `<slug>-<số>`
 
 ```
-bee-task@omnilogin-42.service
+bee-task@myapp-42.service
 bee-task@shop-42.service
 ```
 
@@ -805,7 +805,7 @@ Slug lấy từ tên repo, chỉ chữ thường + số + gạch ngang. Nếu t�
 /etc/bee/
 ├── bee.env          # toàn cục: slot, timeout, MinIO, Cloudflare
 └── repos.d/
-    ├── omnilogin.env     # REPO=org/omnilogin, REVIEWERS_PM=…, ENABLED=1
+    ├── myapp.env     # REPO=org/myapp, REVIEWERS_PM=…, ENABLED=1
     └── shop.env
 ```
 
@@ -849,7 +849,7 @@ MAX_EVIDENCE_SLOTS=1     # vẫn là 1, lý do ở §2.3
 
 ### 15.6. Preview & dashboard
 
-Hostname thành `<slug>-<pr>.yourdomain.com` — vẫn một cấp subdomain nên Universal SSL miễn phí vẫn phủ ([AGENT_FLOW §7](AGENT_FLOW.md#7-preview-environment)). Caddy đổi từ `{labels.2}` tách chuỗi thành: `omnilogin-58` → container `omnilogin-58-frontend`. Không phải sửa Caddyfile mỗi lần thêm repo.
+Hostname thành `<slug>-<pr>.yourdomain.com` — vẫn một cấp subdomain nên Universal SSL miễn phí vẫn phủ ([AGENT_FLOW §7](AGENT_FLOW.md#7-preview-environment)). Caddy đổi từ `{labels.2}` tách chuỗi thành: `myapp-58` → container `myapp-58-frontend`. Không phải sửa Caddyfile mỗi lần thêm repo.
 
 `status.json` thêm trường `repo` cho mỗi dòng; dashboard nhóm theo repo hoặc thêm một cột.
 
@@ -906,7 +906,7 @@ Nó làm:
 [ ] sudo -u bee-orch -H gh auth login
 [ ] cloudflared tunnel login && tunnel create
 [ ] điền /etc/bee/bee.env (MinIO, tunnel id)
-[ ] be repo add org/omnilogin
+[ ] be repo add org/myapp
 [ ] be doctor
 ```
 
@@ -914,10 +914,10 @@ Nó làm:
 
 ```bash
 be doctor                  # kiểm tra toàn bộ, in PASS/FAIL
-be repo add org/omnilogin  # clone bare, tạo repos.d/*.env, sync label, index GitNexus
+be repo add org/myapp  # clone bare, tạo repos.d/*.env, sync label, index GitNexus
 be repo list | disable <slug>
 be status                  # như dashboard, dạng text
-be logs omnilogin-42       # journalctl -u bee-task@omnilogin-42
+be logs myapp-42       # journalctl -u bee-task@myapp-42
 be pause | resume
 be dry-run                 # chạy reconcile ở chế độ chỉ in, không làm
 ```

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-# Secrets & environment
+# Secrets
 # ─────────────────────────────────────────────
 .env
 .env.*
@@ -7,73 +7,29 @@
 *.pem
 *.key
 
-# ─────────────────────────────────────────────
-# Python / FastAPI backend
-# ─────────────────────────────────────────────
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-.venv/
-env/
-ENV/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-dist/
-build/
-*.egg-info/
-.eggs/
-celerybeat-schedule
-celerybeat.pid
+# Cấu hình thật của reconciler — chỉ .example được commit.
+/infra/reconciler/config/*.env
+!/infra/reconciler/config/*.env.example
 
 # ─────────────────────────────────────────────
-# Node / Next.js frontend
+# Sản phẩm sinh ra khi chạy
 # ─────────────────────────────────────────────
-node_modules/
-.next/
-out/
-.turbo/
-.vercel/
-coverage/
-*.tsbuildinfo
-next-env.d.ts
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+test-results/
+playwright-report/
+*.webm
+*.mp4
+*.log
+
+# Nhật ký từng task của agent — sinh trên máy chạy, không commit.
+/docs/agent-log/
 
 # ─────────────────────────────────────────────
-# Infra / Docker
+# Hệ điều hành & editor
 # ─────────────────────────────────────────────
-*.tfstate
-*.tfstate.*
-.terraform/
-docker-compose.override.yml
-
-# ─────────────────────────────────────────────
-# Editors & OS
-# ─────────────────────────────────────────────
-.vscode/*
-!.vscode/extensions.json
-.idea/
-*.swp
 .DS_Store
 Thumbs.db
-
-# ─────────────────────────────────────────────
-# Logs & temp
-# ─────────────────────────────────────────────
-*.log
-logs/
-tmp/
-temp/
-
-# ─────────────────────────────────────────────
-# Claude Code local state (keep shared config, ignore local)
-# ─────────────────────────────────────────────
-.claude/settings.local.json
+*.swp
+*~
+.idea/
+.vscode/*
+!.vscode/settings.json

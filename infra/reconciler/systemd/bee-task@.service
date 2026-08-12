@@ -1,10 +1,10 @@
-# Template unit. %i = <repo-slug>-<số>, ví dụ bee-task@omnilogin-42.service
+# Template unit. %i = <repo-slug>-<số>, ví dụ bee-task@myapp-42.service
 #
 # Đặt tên theo item cho không ba thứ:
 #   1. KHOÁ    — systemd từ chối start một unit đang active, nên không thể chạy
 #                trùng cùng một issue. Không cần PID file, không lo PID mồ côi.
 #   2. LIỆT KÊ — systemctl list-units 'bee-task@*' là danh sách đang chạy.
-#   3. LOG     — journalctl -u bee-task@omnilogin-42 đã tách sẵn theo task.
+#   3. LOG     — journalctl -u bee-task@myapp-42 đã tách sẵn theo task.
 #
 # GitHub đánh số chung cho issue và PR nên #42 hoặc là issue hoặc là PR, không
 # bao giờ cả hai — nhờ vậy khoá này không nhập nhằng.

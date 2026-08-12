@@ -1,7 +1,7 @@
 # bash completion cho be / bee — cài vào /etc/bash_completion.d/be
 #
 # Tab điền được cả tên repo lẫn id task đang chạy, nên bạn không phải nhớ
-# "omnilogin-42" hay gõ lại nó.
+# "myapp-42" hay gõ lại nó.
 
 _bee() {
   local cur prev cmds

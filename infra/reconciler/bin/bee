@@ -293,7 +293,7 @@ ${C_BOLD}be${C_RESET} 🐝 — điều phối agent      ${C_DIM}(gõ \`bee\` c�
 
   ${C_BOLD}be dr${C_RESET}  ${C_DIM}· doctor${C_RESET}         kiểm tra toàn bộ, gồm cả ranh giới bảo mật
   ${C_BOLD}be dry${C_RESET} ${C_DIM}· dry-run${C_RESET}        xem nó ĐỊNH làm gì, không làm gì cả
-  ${C_BOLD}be lg${C_RESET} <id> ${C_DIM}· logs${C_RESET}       log một task, ví dụ: be lg omnilogin-42
+  ${C_BOLD}be lg${C_RESET} <id> ${C_DIM}· logs${C_RESET}       log một task, ví dụ: be lg myapp-42
   ${C_BOLD}be p${C_RESET} | ${C_BOLD}be r${C_RESET} ${C_DIM}· pause/resume${C_RESET}  kill switch phía máy
 
   ${C_BOLD}be ra${C_RESET} org/name ${C_DIM}· repo add${C_RESET}

@@ -99,7 +99,7 @@ số cùng lúc.
 
 ```bash
 be status              # đang chạy gì, hàng đợi, lý do chờ
-be logs omnilogin-42   # journalctl của một task
+be logs myapp-42   # journalctl của một task
 be pause               # dừng ngay; task đang chạy vẫn chạy nốt
 be repo list
 ```

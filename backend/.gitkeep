@@ -1,4 +1,0 @@
-# backend/
-
-FastAPI (Python 3.12) backend lives here.
-Scaffold following .claude/backend/BACKEND_GUIDE.md — layers: Route → Service → Repository → Database.

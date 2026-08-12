@@ -6,49 +6,32 @@ Gồm hai phần dùng được độc lập:
 
 | Phần | Là gì |
 |---|---|
-| **Template cho Claude Code** | Bộ **slash command**, **agent skill**, **agent guide** và cấu trúc thư mục điền-là-chạy. Dùng ngay trên máy bạn. |
+| **Template cho Claude Code** | Bộ **slash command** và **agent skill** — copy `.claude/` vào repo của bạn là dùng được ngay. |
 | **`bee` — reconciler** | Điều phối agent chạy tự động trên một máy Ubuntu: GitHub là nguồn sự thật, agent tự nhận issue, mở PR kèm bằng chứng. Xem [`docs/AGENT_FLOW.md`](docs/AGENT_FLOW.md) và [`infra/reconciler/`](infra/reconciler/). |
 
-Stack tham chiếu: backend **FastAPI (Python 3.12)** + frontend **Next.js 14 (App Router)** + xác thực **Native JWT**. Chi tiết đầy đủ nằm ở [`.claude/AGENTS.md`](.claude/AGENTS.md).
+**Không gắn với stack nào.** Skill và slash command ở đây nói về *cách làm việc* — spec trước khi code, test dẫn dắt, bằng chứng trước khi merge — nên dùng được với Python, TypeScript, Go hay bất cứ thứ gì. Quy ước riêng của từng dự án thì nằm trong chính repo đó (`AGENTS.md` / `CLAUDE.md` của nó), không nằm ở đây.
 
 ---
- 
+
 ## 📂 Cấu trúc thư mục
 
 ```
 bee-agent-flow/
 ├── README.md                  # ← Bạn đang ở đây
 │
-├── backend/                   # Backend FastAPI      → .claude/backend/BACKEND_GUIDE.md
-├── frontend/                  # Frontend Next.js     → .claude/frontend/FRONTEND_GUIDE.md
-├── docs/                      # Spec, ADR, tài liệu dự án (gồm PRD_TEMPLATE.md)
-│   ├── AGENT_FLOW.md          #   ↳ kiến trúc hệ thống agent tự động
-│   ├── AGENT_RECONCILER.md    #   ↳ thiết kế điều phối chi tiết
-│   └── agent-flow.html        #   ↳ bản trực quan, mở bằng trình duyệt
+├── docs/
+│   ├── AGENT_FLOW.md          # Kiến trúc hệ thống agent tự động
+│   ├── AGENT_RECONCILER.md    # Thiết kế điều phối chi tiết
+│   ├── agent-flow.html        # Bản trực quan, mở bằng trình duyệt
+│   └── PRD_TEMPLATE.md        # Mẫu PRD để bắt đầu một tính năng
+│
 ├── infra/
 │   └── reconciler/            # `bee` — cài lên máy Ubuntu, điều phối agent
 │
 └── .claude/
-    ├── AGENTS.md                   # Toàn bộ tech stack + quy ước (đọc file này trước)
-    ├── backend/BACKEND_GUIDE.md    # Quy tắc làm việc backend cho agent
-    ├── frontend/FRONTEND_GUIDE.md  # Quy tắc làm việc frontend cho agent
-    ├── commands/                   # Slash command (*.md)
-    └── skills/                     # Agent skill tái sử dụng (*/SKILL.md)
+    ├── commands/              # Slash command (*.md)
+    └── skills/                # Agent skill tái sử dụng (*/SKILL.md)
 ```
-
-> `backend/`, `frontend/`, `docs/`, và `infra/` ban đầu là các thư mục placeholder rỗng — hãy dựng khung (scaffold) theo các guide tương ứng.
-
----
-
-## 🧭 Các tài liệu cốt lõi
-
-| File | Mục đích | Đối tượng |
-| --- | --- | --- |
-| [`.claude/AGENTS.md`](.claude/AGENTS.md) | Toàn bộ tech stack, kiến trúc, quy tắc xuyên suốt | Mọi agent, mọi task |
-| [`.claude/backend/BACKEND_GUIDE.md`](.claude/backend/BACKEND_GUIDE.md) | Kiến trúc backend, auth, DB, Celery, bảo mật | Task backend |
-| [`.claude/frontend/FRONTEND_GUIDE.md`](.claude/frontend/FRONTEND_GUIDE.md) | Quy ước Next.js, state, form, styling | Task frontend |
-
-**Nguyên tắc vàng:** luôn đọc `AGENTS.md` + `*_GUIDE.md` liên quan trước khi viết code.
 
 ---
 
@@ -133,12 +116,16 @@ Các gói năng lực tái sử dụng trong [`.claude/skills/`](.claude/skills/
 
 ## 🏁 Bắt đầu (Getting Started)
 
-1. **Đọc** [`.claude/AGENTS.md`](.claude/AGENTS.md) để nắm stack và quy tắc.
-2. **Dựng khung** `backend/` và `frontend/` theo guide tương ứng.
-3. **Viết PRD:** copy [`docs/PRD_TEMPLATE.md`](docs/PRD_TEMPLATE.md) → `docs/PRD_<tinh-nang>.md` rồi điền vào.
-4. **Khởi động một tính năng:** chạy `/spec` (biến PRD thành spec kỹ thuật), rồi `/plan`.
-5. **Build:** lặp `/build` (hoặc `/build auto` sau khi đã duyệt plan).
-6. **Kiểm tra & ship:** `/test` → `/review` → `/ship`.
+**Dùng template trong dự án của bạn** — copy `.claude/` vào repo đích:
+
+1. **Viết PRD:** copy [`docs/PRD_TEMPLATE.md`](docs/PRD_TEMPLATE.md) → `docs/PRD_<tinh-nang>.md` rồi điền vào.
+2. **Khởi động một tính năng:** chạy `/spec` (biến PRD thành spec kỹ thuật), rồi `/plan`.
+3. **Build:** lặp `/build` (hoặc `/build auto` sau khi đã duyệt plan).
+4. **Kiểm tra & ship:** `/test` → `/review` → `/ship`.
+
+> Quy ước riêng của dự án — layering, thư viện được phép dùng, những gì đã thử và fail — viết vào `AGENTS.md` (hoặc `CLAUDE.md`) **của chính repo đó**. Template này cố ý không mang theo stack nào.
+
+**Chạy `bee` để agent tự làm** — xem mục dưới.
 
 ---
 
@@ -160,7 +147,7 @@ be doctor && be dry-run && be resume
 | `bee -w` | theo dõi liên tục trong terminal |
 | `be doctor` | kiểm tra toàn bộ, gồm cả các ranh giới bảo mật |
 | `be dry-run` | xem nó **định** làm gì mà chưa làm gì |
-| `be logs omnilogin-42` | log của một task |
+| `be logs myapp-42` | log của một task |
 | `be pause` | kill switch |
 
 Vòng đời một task: PM tạo issue → agent chấm độ rõ của spec → người duyệt → agent build và mở draft PR → CI + E2E quay video → PM xem video, Techlead soi diff → cả hai approve → người bấm merge. **Agent không bao giờ được merge**, và không cầm credential nào để push thẳng `main`.
@@ -169,12 +156,10 @@ Chi tiết: [`docs/AGENT_FLOW.md`](docs/AGENT_FLOW.md) · [`docs/AGENT_RECONCILE
 
 ---
 
-## 🧱 Tech Stack (tổng quan nhanh)
+## 🧱 `bee` chạy trên gì
 
-**Backend** — Python 3.12 · FastAPI · SQLAlchemy 2.0 (async) · Alembic · Pydantic v2 · Celery · RabbitMQ · Redis · PostgreSQL · Native JWT (Argon2) · S3/MinIO
+Chỉ phần điều phối mới có stack cố định, và nó cố ý mỏng: **bash + systemd + `gh` + `jq`**, cộng Docker để dựng service test và Playwright để quay bằng chứng.
 
-**Frontend** — Next.js 14 (App Router) · TypeScript · Tailwind · Shadcn UI · Framer Motion · TanStack React Query · Zustand · React Hook Form + Zod · NextAuth
+Không framework, không runtime, không cơ sở dữ liệu — kể cả dashboard cũng chỉ là một file `status.json` tĩnh do reconciler ghi ra. Chọn vậy vì thứ này phải sống sót qua reboot, mất điện và những đêm không ai trông; càng ít bộ phận chuyển động thì càng ít thứ hỏng lúc 2 giờ sáng.
 
-**Infra** — Docker / Docker Compose · `.env` + pydantic-settings · công cụ agent Claude Code
-
-Chi tiết đầy đủ và các quy tắc xuyên suốt → [`.claude/AGENTS.md`](.claude/AGENTS.md).
+Dự án mà `bee` quản thì dùng stack gì cũng được — nó chỉ đọc issue, chạy `scripts/ci.sh` của repo đó, và đọc `infra/docker-compose.test.yml` nếu có.
