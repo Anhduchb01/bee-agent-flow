@@ -1,21 +1,32 @@
-# 🚀 template-vibecode
+# 🐝 bee-agent-flow
 
-Một **template vibecode cho Claude Code** dành cho các dự án full-stack. Template cung cấp sẵn bộ **slash command**, **agent skill**, **agent guide**, và một **cấu trúc thư mục** điền-là-chạy, giúp AI agent đi từ ý tưởng → spec → plan → build → review → ship theo một bộ quy ước nhất quán.
+Nền tảng để AI agent tự chạy vòng đời phát triển phần mềm — từ ý tưởng → spec → plan → build → review → ship — theo một bộ quy ước nhất quán.
+
+Gồm hai phần dùng được độc lập:
+
+| Phần | Là gì |
+|---|---|
+| **Template cho Claude Code** | Bộ **slash command**, **agent skill**, **agent guide** và cấu trúc thư mục điền-là-chạy. Dùng ngay trên máy bạn. |
+| **`bee` — reconciler** | Điều phối agent chạy tự động trên một máy Ubuntu: GitHub là nguồn sự thật, agent tự nhận issue, mở PR kèm bằng chứng. Xem [`docs/AGENT_FLOW.md`](docs/AGENT_FLOW.md) và [`infra/reconciler/`](infra/reconciler/). |
 
 Stack tham chiếu: backend **FastAPI (Python 3.12)** + frontend **Next.js 14 (App Router)** + xác thực **Native JWT**. Chi tiết đầy đủ nằm ở [`.claude/AGENTS.md`](.claude/AGENTS.md).
 
 ---
-
+ 
 ## 📂 Cấu trúc thư mục
 
 ```
-template-vibecode/
+bee-agent-flow/
 ├── README.md                  # ← Bạn đang ở đây
 │
 ├── backend/                   # Backend FastAPI      → .claude/backend/BACKEND_GUIDE.md
 ├── frontend/                  # Frontend Next.js     → .claude/frontend/FRONTEND_GUIDE.md
 ├── docs/                      # Spec, ADR, tài liệu dự án (gồm PRD_TEMPLATE.md)
-├── infra/                     # Cấu hình Docker / IaC / deploy
+│   ├── AGENT_FLOW.md          #   ↳ kiến trúc hệ thống agent tự động
+│   ├── AGENT_RECONCILER.md    #   ↳ thiết kế điều phối chi tiết
+│   └── agent-flow.html        #   ↳ bản trực quan, mở bằng trình duyệt
+├── infra/
+│   └── reconciler/            # `bee` — cài lên máy Ubuntu, điều phối agent
 │
 └── .claude/
     ├── AGENTS.md                   # Toàn bộ tech stack + quy ước (đọc file này trước)
@@ -91,6 +102,7 @@ Các gói năng lực tái sử dụng trong [`.claude/skills/`](.claude/skills/
 - `api-and-interface-design` — ranh giới API/module ổn định
 - `frontend-ui-engineering` — UI production, có accessibility
 - `browser-testing-with-devtools` — kiểm thử trên trình duyệt thật (Chrome DevTools MCP)
+- `e2e-evidence-capture` — chạy E2E có quay video, xanh mới đẩy MinIO + gắn khối bằng chứng vào PR
 - `documentation-and-adrs` — ghi lại các quyết định
 - `observability-and-instrumentation` — logging/metrics/tracing
 - `deprecation-and-migration` — gỡ bỏ & migrate an toàn
@@ -127,6 +139,33 @@ Các gói năng lực tái sử dụng trong [`.claude/skills/`](.claude/skills/
 4. **Khởi động một tính năng:** chạy `/spec` (biến PRD thành spec kỹ thuật), rồi `/plan`.
 5. **Build:** lặp `/build` (hoặc `/build auto` sau khi đã duyệt plan).
 6. **Kiểm tra & ship:** `/test` → `/review` → `/ship`.
+
+---
+
+## 🐝 `bee` — chạy agent tự động
+
+Phần trên là bạn ngồi gõ slash command. Phần này là để agent tự làm, không cần ai ngồi trước máy.
+
+Một tiến trình trên máy Ubuntu, cứ **30 giây** đối chiếu trạng thái trên GitHub với thực tế rồi làm **đúng một việc** để kéo hai bên về gần nhau. Không GitHub Actions, không webhook — hàng đợi chính là label trên issue, nên máy tắt ba tiếng cũng không mất việc nào.
+
+```bash
+sudo ./infra/reconciler/install.sh
+be repo add org/ten-repo
+be doctor && be dry-run && be resume
+```
+
+| Lệnh | |
+|---|---|
+| `bee` | trạng thái — gõ trống là ra ngay |
+| `bee -w` | theo dõi liên tục trong terminal |
+| `be doctor` | kiểm tra toàn bộ, gồm cả các ranh giới bảo mật |
+| `be dry-run` | xem nó **định** làm gì mà chưa làm gì |
+| `be logs omnilogin-42` | log của một task |
+| `be pause` | kill switch |
+
+Vòng đời một task: PM tạo issue → agent chấm độ rõ của spec → người duyệt → agent build và mở draft PR → CI + E2E quay video → PM xem video, Techlead soi diff → cả hai approve → người bấm merge. **Agent không bao giờ được merge**, và không cầm credential nào để push thẳng `main`.
+
+Chi tiết: [`docs/AGENT_FLOW.md`](docs/AGENT_FLOW.md) · [`docs/AGENT_RECONCILER.md`](docs/AGENT_RECONCILER.md) · [`infra/reconciler/`](infra/reconciler/)
 
 ---
 

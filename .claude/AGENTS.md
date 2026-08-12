@@ -6,7 +6,7 @@
 
 ## 1. Project Overview
 
-**OmniLogin** — a production-grade full-stack application built with a **vibecode template** (Claude Code skills + slash commands + agent guides).
+**OmniLogin** — a production-grade full-stack application built with the **bee-agent-flow template** (Claude Code skills + slash commands + agent guides).
 
 - **Domain:** Headless browser automation (OmniChromium/Patchright), profile management, proxy handling, and Native JWT authentication.
 - **Architecture:** Clean layered architecture on the backend, feature-sliced design on the frontend.
@@ -15,7 +15,7 @@
 ### Repository Layout
 
 ```
-template-vibecode/
+bee-agent-flow/
 ├── README.md                 # Human-facing template guide
 ├── backend/                  # FastAPI backend (see .claude/backend/BACKEND_GUIDE.md)
 ├── frontend/                 # Next.js frontend (see .claude/frontend/FRONTEND_GUIDE.md)
