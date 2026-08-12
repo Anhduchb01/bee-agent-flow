@@ -1,0 +1,10 @@
+[Unit]
+Description=bee — kiểm heartbeat mỗi 5 phút
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=5min
+Unit=bee-heartbeat.service
+
+[Install]
+WantedBy=timers.target

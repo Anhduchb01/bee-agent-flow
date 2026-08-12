@@ -1,0 +1,324 @@
+#!/usr/bin/env bash
+#
+# be 🐝 — CLI vận hành. Gõ `be` không tham số để xem trạng thái.
+
+set -euo pipefail
+
+LIB="${BEE_PREFIX:-/opt/bee}/lib"
+source "$LIB/common.sh"; source "$LIB/config.sh"
+source "$LIB/github.sh"; source "$LIB/state.sh"
+
+# ---------------------------------------------------------------------------
+# doctor
+# ---------------------------------------------------------------------------
+DOC_FAIL=0
+ck()   { printf '  %s✓%s %s\n' "$C_GREEN"  "$C_RESET" "$*"; }
+cx()   { printf '  %s✗%s %s\n' "$C_RED"    "$C_RESET" "$*"; DOC_FAIL=1; }
+cw()   { printf '  %s!%s %s\n' "$C_YELLOW" "$C_RESET" "$*"; }
+sect() { printf '\n%s%s%s\n' "$C_BOLD" "$*" "$C_RESET"; }
+
+cmd_doctor() {
+  load_global_config
+
+  sect "Công cụ"
+  local t
+  for t in git jq gh docker node claude mc ffmpeg; do
+    if command -v "$t" >/dev/null 2>&1; then ck "$t"
+    elif [[ "$t" == "claude" ]]; then cw "$t — chỉ cần dưới user $AGENT_USER, kiểm ở dưới"
+    elif [[ "$t" == "mc" || "$t" == "ffmpeg" ]]; then cw "$t — chưa có, cần cho bằng chứng (M3)"
+    else cx "$t — thiếu"; fi
+  done
+
+  sect "User & ranh giới quyền"
+  id -u "$ORCH_USER"  >/dev/null 2>&1 && ck "user $ORCH_USER"  || cx "thiếu user $ORCH_USER"
+  id -u "$AGENT_USER" >/dev/null 2>&1 && ck "user $AGENT_USER" || cx "thiếu user $AGENT_USER"
+
+  # Thuộc group docker = tương đương root: docker run -v /:/host đọc được mọi thứ.
+  # Nếu agent lọt vào đây thì toàn bộ thiết kế hai user sụp trong một dòng lệnh.
+  if id -nG "$AGENT_USER" 2>/dev/null | grep -qw docker; then
+    cx "NGUY HIỂM: $AGENT_USER thuộc group docker — tương đương quyền root"
+  else
+    ck "$AGENT_USER KHÔNG thuộc group docker"
+  fi
+  id -nG "$ORCH_USER" 2>/dev/null | grep -qw docker \
+    && ck "$ORCH_USER thuộc group docker" || cw "$ORCH_USER chưa vào group docker — CI sẽ không dựng được service"
+
+  # Kiểm chứ đừng đoán: đây là thứ nếu sai thì không có dấu hiệu nào cả.
+  if sudo -u "$AGENT_USER" -H env 2>/dev/null | grep -qiE '(gh_token|github_token|_key=|_secret)'; then
+    cx "NGUY HIỂM: môi trường của $AGENT_USER có chứa token/secret"
+  else
+    ck "$AGENT_USER không thấy token nào trong môi trường"
+  fi
+
+  sudo -u "$AGENT_USER" -n true 2>/dev/null \
+    && cx "NGUY HIỂM: $AGENT_USER có quyền sudo" \
+    || ck "$AGENT_USER không có sudo"
+
+  if [[ -f /etc/sudoers.d/bee ]]; then
+    visudo -cf /etc/sudoers.d/bee >/dev/null 2>&1 \
+      && ck "sudoers hợp lệ" || cx "sudoers sai cú pháp"
+    [[ $(grep -c . /etc/sudoers.d/bee) -le 3 ]] \
+      && ck "sudoers hẹp (chỉ agent-exec.sh)" || cw "sudoers có nhiều dòng hơn dự kiến — soát lại"
+  else
+    cx "thiếu /etc/sudoers.d/bee"
+  fi
+
+  sect "Thư mục"
+  local d
+  for d in "$BEE_SRV/repos" "$BEE_SRV/work" "$BEE_SRV/state" \
+           "$BEE_SRV/public" "$BEE_ETC/repos.d" "$BEE_PREFIX/bin"; do
+    [[ -d "$d" ]] && ck "$d" || cx "thiếu $d"
+  done
+  [[ -f "$BEE_ETC/orch.env" ]] && {
+    [[ "$(stat -c %a "$BEE_ETC/orch.env")" == "600" ]] \
+      && ck "orch.env quyền 600" || cx "orch.env phải là 600 (đang $(stat -c %a "$BEE_ETC/orch.env"))"
+  } || cw "chưa có orch.env — chưa cấu hình GH_TOKEN"
+
+  sect "Đăng nhập"
+  sudo -u "$AGENT_USER" -H bash -lc 'command -v claude >/dev/null && claude -p "ok" --max-turns 1' \
+       >/dev/null 2>&1 \
+    && ck "claude đã đăng nhập dưới $AGENT_USER" \
+    || cx "claude chưa sẵn sàng dưới $AGENT_USER — chạy: sudo -u $AGENT_USER -H claude"
+  sudo -u "$ORCH_USER" -H gh auth status >/dev/null 2>&1 \
+    && ck "gh đã đăng nhập dưới $ORCH_USER" \
+    || cx "gh chưa đăng nhập — chạy: sudo -u $ORCH_USER -H gh auth login"
+
+  sect "systemd"
+  systemctl list-unit-files bee-reconcile.timer >/dev/null 2>&1 \
+    && ck "unit đã cài" || cx "chưa cài systemd unit"
+  systemctl is-active --quiet bee-reconcile.timer \
+    && ck "timer đang chạy" || cw "timer chưa chạy — be resume"
+  systemctl list-unit-files 'bee-task@.service' >/dev/null 2>&1 \
+    && ck "template unit bee-task@" || cx "thiếu template unit"
+
+  sect "Trạng thái"
+  [[ -f "$BEE_ETC/PAUSE" ]] && cw "ĐANG TẠM DỪNG (/etc/bee/PAUSE)" || ck "không bị tạm dừng"
+  local age; age=$(heartbeat_age_s)
+  if (( age > HEARTBEAT_STALE_S )); then
+    cx "heartbeat cũ $(human_dur "$age") — reconciler có thể đã chết im lặng"
+  else
+    ck "heartbeat $(human_dur "$age") trước"
+  fi
+  printf '  %s·%s slot build %s/%s · evidence %s/%s\n' "$C_DIM" "$C_RESET" \
+         "$(running_in_pool build)" "$MAX_BUILD_SLOTS" \
+         "$(running_in_pool evidence)" "$MAX_EVIDENCE_SLOTS"
+
+  sect "Repo"
+  local n=0 slug
+  for slug in $(enabled_repos); do
+    n=$((n+1))
+    ( load_repo_config "$slug"
+      [[ -d "$REPO_GIT" ]] && ck "$slug → $REPO_FULL" || cx "$slug: thiếu bare clone $REPO_GIT" )
+  done
+  (( n )) || cw "chưa có repo nào — be repo add org/name"
+
+  sect "Máy"
+  systemctl is-enabled sleep.target >/dev/null 2>&1 \
+    && cw "sleep.target chưa bị mask — máy có thể ngủ và treo job" \
+    || ck "sleep/hibernate đã bị mask"
+  local home; home=$(eval echo "~${SUDO_USER:-$USER}")
+  if [[ -d "$home" && "$(stat -c %a "$home")" != "700" ]]; then
+    cw "$home quyền $(stat -c %a "$home") — agent có thể đọc được. chmod 700 $home"
+  else
+    ck "thư mục home đã khoá"
+  fi
+
+  printf '\n'
+  (( DOC_FAIL )) && { printf '%sCÓ LỖI CẦN SỬA%s\n' "$C_RED" "$C_RESET"; return 1; }
+  printf '%sTất cả đều ổn%s\n' "$C_GREEN" "$C_RESET"
+}
+
+# ---------------------------------------------------------------------------
+cmd_status() {
+  local f="$BEE_SRV/public/status.json"
+  [[ -f "$f" ]] || die "chưa có status.json — reconciler chưa chạy lần nào"
+  jq -r '
+    "heartbeat: \(.heartbeat)   chế độ: \(.mode)",
+    "slot: build \(.slots.build.used)/\(.slots.build.max) · evidence \(.slots.evidence.used)/\(.slots.evidence.max)",
+    "",
+    "ĐANG CHẠY",
+    (if (.running|length)==0 then "  (trống)" else
+      (.running[] | "  \(.id)  \(.rule)  \(.elapsed_s)s") end),
+    "",
+    (.repos[] |
+      "REPO \(.slug)\(if .paused then "  [TẠM DỪNG]" else "" end)  · \(.running) chạy",
+      (if (.queue|length)==0 then "  hàng đợi: (trống)" else
+        (.queue[] | "  ⏳ #\(.number) \(.title) — \(.wait_reason)") end),
+      (.recent[]? | "  ✓ #\(.number) \(.rule) \(.result) \(.duration_s)s")
+    )' "$f"
+}
+
+cmd_dry_run() { BEE_DRY_RUN=1 "$BEE_PREFIX/bin/reconcile.sh" --dry-run; }
+
+cmd_pause()  { sudo touch "$BEE_ETC/PAUSE"; warn "đã tạm dừng — task đang chạy vẫn chạy nốt"; }
+cmd_resume() { sudo rm -f "$BEE_ETC/PAUSE"; sudo systemctl start bee-reconcile.timer; info "đã tiếp tục"; }
+
+cmd_logs() {
+  local id="${1:?cần <slug>-<số>}"
+  journalctl -u "bee-task@$(systemd-escape "$id").service" -n 200 -f --no-pager
+}
+
+# ---------------------------------------------------------------------------
+cmd_repo() {
+  local sub="${1:-list}"; shift || true
+  case "$sub" in
+    add)     repo_add "${1:?cần org/name}" ;;
+    list)    repo_list ;;
+    enable)  repo_toggle "${1:?cần slug}" 1 ;;
+    disable) repo_toggle "${1:?cần slug}" 0 ;;
+    remove)  repo_remove "${1:?cần slug}" ;;
+    *) die "be repo <add|list|enable|disable|remove>" ;;
+  esac
+}
+
+repo_add() {
+  local full="$1" slug; slug=$(slugify "$full")
+  local envf="$BEE_ETC/repos.d/$slug.env" git="$BEE_SRV/repos/$slug.git"
+
+  [[ -f "$envf" ]] && die "repo đã có: $slug"
+
+  info "clone bare $full → $git"
+  sudo -u "$ORCH_USER" git clone --bare "https://github.com/$full.git" "$git"
+  sudo -u "$ORCH_USER" git --git-dir="$git" remote set-head origin --auto
+
+  sudo tee "$envf" >/dev/null <<EOF
+# $full
+REPO=$full
+ENABLED=1
+
+# Dùng cho commit status bee/approvals — cách nhau bằng dấu cách.
+REVIEWERS_PM=""
+REVIEWERS_TL=""
+
+# Trần PR agent mở cùng lúc. Đây là giới hạn ở KHẢ NĂNG REVIEW CỦA NGƯỜI,
+# không phải ở phần cứng — tăng slot không giải quyết được nghẽn ở đây.
+REPO_MAX_WIP=3
+EOF
+  sudo chmod 644 "$envf"
+
+  info "đồng bộ label"
+  repo_sync_labels "$full"
+
+  printf '\n%sĐã thêm %s%s\n' "$C_GREEN" "$slug" "$C_RESET"
+  printf 'Sửa %s để điền REVIEWERS_PM / REVIEWERS_TL.\n' "$envf"
+}
+
+repo_sync_labels() {
+  local repo="$1" spec
+  while IFS='|' read -r name color desc; do
+    [[ -z "$name" ]] && continue
+    sudo -u "$ORCH_USER" gh label create "$name" --repo "$repo" \
+         --color "$color" --description "$desc" --force >/dev/null 2>&1 || true
+  done <<'EOF'
+agent:eligible|0E8A16|Agent được phép nhận task này (opt-in, người gắn)
+agent:build|1D76DB|Kích hoạt agent build
+agent:running|FBCA04|Agent đang xử lý
+agent:built|C5DEF5|PR do agent tạo — dùng để đếm WIP
+needs-human|B60205|Cần người can thiệp, agent đã dừng
+priority:high|D93F0B|Ưu tiên — chen lên đầu hàng đợi
+preview:on|5319E7|Dựng preview environment cho PR này
+status:ready-for-spec|BFD4F2|Chờ agent chấm độ rõ của spec
+status:spec-review|BFD4F2|Chờ người duyệt spec
+EOF
+}
+
+repo_list() {
+  local slug f
+  shopt -s nullglob
+  for f in "$BEE_ETC/repos.d"/*.env; do
+    slug=$(basename "$f" .env)
+    ( load_repo_config "$slug"
+      printf '%-16s %-32s %s  %s chạy\n' "$slug" "$REPO_FULL" \
+             "$([[ "$REPO_ENABLED" == 1 ]] && echo 'bật ' || echo 'TẮT ')" \
+             "$(running_in_repo "$slug")" )
+  done
+  shopt -u nullglob
+}
+
+repo_toggle() {
+  local f="$BEE_ETC/repos.d/$1.env"
+  [[ -f "$f" ]] || die "không có repo: $1"
+  sudo sed -i -E "s/^ENABLED=.*/ENABLED=$2/" "$f"
+  info "$1 → ENABLED=$2"
+}
+
+repo_remove() {
+  local slug="$1"
+  running_in_repo "$slug" | grep -qv '^0$' && die "$slug đang có task chạy — đợi xong đã"
+  sudo rm -f "$BEE_ETC/repos.d/$slug.env"
+  sudo rm -rf "$BEE_SRV/repos/$slug.git"
+  warn "đã gỡ $slug (giữ lại state và log)"
+}
+
+# ---------------------------------------------------------------------------
+cmd_uninstall() {
+  printf 'Sẽ gỡ: systemd unit, sudoers, /opt/bee, user %s và %s.\n' "$ORCH_USER" "$AGENT_USER"
+  printf 'GIỮ LẠI: %s (state, log, bare clone).\n' "$BEE_SRV"
+  read -r -p "Chắc chưa? gõ 'yes': " a
+  [[ "$a" == "yes" ]] || { warn "huỷ"; return 0; }
+
+  sudo systemctl disable --now bee-reconcile.timer bee-heartbeat.timer 2>/dev/null || true
+  sudo systemctl stop 'bee-task@*' 2>/dev/null || true
+  sudo rm -f /etc/systemd/system/bee-*.{service,timer} /etc/systemd/system/bee.slice
+  sudo systemctl daemon-reload
+  sudo rm -f /etc/sudoers.d/bee /usr/local/bin/be /usr/local/bin/bee /etc/bash_completion.d/be
+  sudo rm -rf "$BEE_PREFIX"
+  sudo userdel "$AGENT_USER" 2>/dev/null || true
+  sudo userdel "$ORCH_USER"  2>/dev/null || true
+  info "đã gỡ. $BEE_SRV vẫn còn nguyên."
+}
+
+# Theo dõi liên tục ngay trong terminal. Tiện hơn mở dashboard khi đang ngồi
+# trước máy — và nó dùng đúng status.json mà dashboard dùng, nên hai bên không
+# bao giờ nói khác nhau.
+cmd_watch() {
+  local interval="${1:-2}"
+  trap 'printf "\n"; exit 0' INT
+  while :; do
+    printf '\033[H\033[2J'                       # về góc trên, xoá màn
+    printf '%s🐝 be%s · %s · Ctrl-C để thoát\n\n' \
+           "$C_BOLD" "$C_RESET" "$(date '+%H:%M:%S')"
+    cmd_status 2>/dev/null || warn "chưa có status.json"
+    sleep "$interval"
+  done
+}
+
+# ---------------------------------------------------------------------------
+usage() {
+  cat <<EOF
+${C_BOLD}be${C_RESET} 🐝 — điều phối agent      ${C_DIM}(gõ \`bee\` cũng được, cùng một lệnh)${C_RESET}
+
+  ${C_BOLD}be${C_RESET}                       trạng thái — gõ trống là ra ngay
+  ${C_BOLD}be -w${C_RESET} [giây]             theo dõi liên tục, mặc định 2s
+
+  ${C_BOLD}be dr${C_RESET}  ${C_DIM}· doctor${C_RESET}         kiểm tra toàn bộ, gồm cả ranh giới bảo mật
+  ${C_BOLD}be dry${C_RESET} ${C_DIM}· dry-run${C_RESET}        xem nó ĐỊNH làm gì, không làm gì cả
+  ${C_BOLD}be lg${C_RESET} <id> ${C_DIM}· logs${C_RESET}       log một task, ví dụ: be lg omnilogin-42
+  ${C_BOLD}be p${C_RESET} | ${C_BOLD}be r${C_RESET} ${C_DIM}· pause/resume${C_RESET}  kill switch phía máy
+
+  ${C_BOLD}be ra${C_RESET} org/name ${C_DIM}· repo add${C_RESET}
+  ${C_BOLD}be repo${C_RESET} list | enable | disable | remove <slug>
+
+  ${C_BOLD}be uninstall${C_RESET}             gỡ hệ thống, giữ lại state và log
+
+Kill switch còn một tầng nữa nằm phía repo: tạo file .agent/PAUSE trên nhánh
+main qua giao diện web GitHub — không cần SSH, và lưu vết ai dừng lúc nào.
+EOF
+}
+
+case "${1:-}" in
+  ''|st|status)     shift || true
+                    [[ "${1:-}" == "-w" || "${1:-}" == "--watch" ]] \
+                      && { shift; cmd_watch "$@"; } || cmd_status ;;
+  -w|--watch)       shift; cmd_watch "$@" ;;
+  dr|doctor)        shift; cmd_doctor "$@" ;;
+  dry|dry-run)      shift; cmd_dry_run "$@" ;;
+  lg|logs)          shift; cmd_logs "$@" ;;
+  ra)               shift; cmd_repo add "$@" ;;
+  repo)             shift; cmd_repo "$@" ;;
+  p|pause)          shift || true; cmd_pause ;;
+  r|resume)         shift || true; cmd_resume ;;
+  uninstall)        shift; cmd_uninstall ;;
+  -h|--help|help)   usage ;;
+  *) die "lệnh không biết: $1  (bee --help)" ;;
+esac

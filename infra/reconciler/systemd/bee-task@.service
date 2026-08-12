@@ -1,0 +1,35 @@
+# Template unit. %i = <repo-slug>-<số>, ví dụ bee-task@omnilogin-42.service
+#
+# Đặt tên theo item cho không ba thứ:
+#   1. KHOÁ    — systemd từ chối start một unit đang active, nên không thể chạy
+#                trùng cùng một issue. Không cần PID file, không lo PID mồ côi.
+#   2. LIỆT KÊ — systemctl list-units 'bee-task@*' là danh sách đang chạy.
+#   3. LOG     — journalctl -u bee-task@omnilogin-42 đã tách sẵn theo task.
+#
+# GitHub đánh số chung cho issue và PR nên #42 hoặc là issue hoặc là PR, không
+# bao giờ cả hai — nhờ vậy khoá này không nhập nhằng.
+
+[Unit]
+Description=bee task %i
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=bee-orch
+Group=bee
+EnvironmentFile=/etc/bee/orch.env
+EnvironmentFile=-/etc/bee/bee.env
+Environment=LANG=C.UTF-8 LC_ALL=C.UTF-8
+ExecStart=/opt/bee/bin/worker.sh %i
+
+TimeoutStartSec=45min
+Slice=bee.slice
+
+# sudo cần setuid — không được đặt NoNewPrivileges=yes, nếu không việc chuyển
+# sang bee-agent sẽ fail và toàn bộ ranh giới token trở nên vô dụng.
+NoNewPrivileges=no
+
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=no
+ReadWritePaths=/srv/bee

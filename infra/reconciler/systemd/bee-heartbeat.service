@@ -1,0 +1,16 @@
+[Unit]
+Description=bee — cảnh báo khi reconciler chết im lặng
+
+[Service]
+Type=oneshot
+User=bee-orch
+Group=bee
+EnvironmentFile=-/etc/bee/bee.env
+Environment=LANG=C.UTF-8 LC_ALL=C.UTF-8
+
+# Đây là canh gác cho chế độ hỏng nguy hiểm nhất của phương án reconciler:
+# nó chết mà KHÔNG có job đỏ nào để nhìn thấy — chỉ đơn giản là không có gì xảy
+# ra, và bạn có thể mất nửa ngày mới nhận ra.
+ExecStart=/opt/bee/bin/heartbeat-check.sh
+
+Slice=bee.slice
