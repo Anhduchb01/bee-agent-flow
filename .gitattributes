@@ -1,0 +1,17 @@
+# Ép LF cho mọi file text.
+#
+# Lý do không phải sở thích: toàn bộ infra/reconciler là shell script và
+# systemd unit chạy trên Ubuntu. Một file lọt CRLF sẽ fail bằng
+# "bad interpreter: /usr/bin/env bash^M" — thông báo lỗi không hề gợi ý
+# nguyên nhân, và người sửa sẽ mất hàng giờ tìm nhầm chỗ.
+#
+# Repo này được sửa từ Windows nên rủi ro là thật, không lý thuyết.
+* text=auto eol=lf
+
+# Nhị phân — đừng đụng vào.
+*.png  binary
+*.jpg  binary
+*.webm binary
+*.mp4  binary
+*.gif  binary
+*.ico  binary
