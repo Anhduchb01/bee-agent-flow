@@ -14,11 +14,11 @@ nối vào dữ liệu thật (B, cần cả hai).
 - [x] 🤖 **W3** Đăng nhập · người ngoài allowlist thấy trống · token không lộ ra client
 - [x] 🤖 **W4** Sức khoẻ hệ thống · heartbeat cũ báo đỏ · JSON hỏng không crash
 - [x] 🤖 **W5** Hộp thư "đang chờ bạn" — màn hình chính
-- [ ] 🤖 **W6** Trang task — issue + PR thành một trang
-- [ ] 🤖 **W7** Tạo task theo hợp đồng 5 mục
-- [ ] 🤖 **W8** Chat vào task — không spinner vô tận
-- [ ] 🤖 **W9** Xem bằng chứng — **chặn path traversal ngay từ đầu**
-- [ ] 🤖 **W10** PM duyệt · không có nút merge ở bất kỳ đâu
+- [x] 🤖 **W6** Trang task — issue + PR thành một trang
+- [x] 🤖 **W7** Tạo task theo hợp đồng 5 mục
+- [x] 🤖 **W8** Chat vào task — không spinner vô tận
+- [x] 🤖 **W9** Xem bằng chứng — **chặn path traversal ngay từ đầu**
+- [x] 🤖 **W10** PM duyệt · không có nút merge ở bất kỳ đâu
 - [ ] 🤖 **W11** Slack — gộp, không spam, không bắn lại
 - [ ] 🧑 **W12** Bạn duyệt giao diện qua đủ 5 cảnh dữ liệu
 
