@@ -7,6 +7,12 @@ export interface Stat {
   /** Dòng nhỏ dưới con số. Dùng để trả lời "con số này nghĩa là gì". */
   hint?: string;
   tone?: Tone;
+  /**
+   * `chu` cho giá trị là chữ ("Chờ duyệt PR"). Chữ đặt ở cỡ 24px mono sẽ vỡ
+   * dòng và đọc như mã, nên nó dùng chữ sans nhỏ hơn — vẫn là dòng nổi bật
+   * nhất của ô, chỉ không giả vờ mình là một con số.
+   */
+  kind?: "so" | "chu";
 }
 
 /**
@@ -43,7 +49,14 @@ export function StatGrid({ stats, className }: { stats: Stat[]; className?: stri
           <dt className="eyebrow">{s.label}</dt>
           <dd className="flex items-center gap-2">
             {s.tone ? <StatusDot tone={s.tone} /> : null}
-            <span className="font-mono text-2xl leading-none tabular-nums tracking-title text-foreground">
+            <span
+              className={cn(
+                "text-foreground",
+                s.kind === "chu"
+                  ? "text-base leading-tight font-medium tracking-title"
+                  : "font-mono text-2xl leading-none tabular-nums tracking-title",
+              )}
+            >
               {s.value}
             </span>
           </dd>

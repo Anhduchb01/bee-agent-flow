@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Eyebrow } from "@/components/eyebrow";
+import { StatGrid } from "@/components/stat-grid";
+import { STAGE_LABEL, STAGE_TONE, stageOf } from "@/features/project";
 import {
   ChatBox,
   EvidenceViewer,
@@ -10,6 +12,7 @@ import {
   TaskBody,
   TaskStatus,
   TaskTimeline,
+  thongKeTask,
 } from "@/features/task";
 import { getActor } from "@/lib/auth";
 
@@ -51,6 +54,15 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
         </h1>
         <TaskActions task={task} actor={actor} />
       </header>
+
+      <StatGrid
+        stats={thongKeTask({
+          task,
+          stageLabel: STAGE_LABEL[stageOf(task)],
+          stageTone: STAGE_TONE[stageOf(task)],
+          evidence,
+        })}
+      />
 
       <TaskStatus task={task} dangChay={dangChay} />
 

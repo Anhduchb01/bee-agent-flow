@@ -72,11 +72,15 @@ test("PM duyệt PR → approve mang tên PM, trạng thái đổi", async ({ pa
   await dangNhap(page, "pm-linh");
   await page.goto("/t/myapp/40");
 
-  await expect(page.getByText("chưa ai duyệt")).toBeVisible();
+  // Dải thống kê là chỗ đọc nhanh; khối trạng thái bên dưới lặp lại có chủ ý,
+  // nên assertion phải chỉ đúng một trong hai chứ không được mơ hồ.
+  const thongKe = page.locator("dl");
+  await expect(thongKe).toContainText("chưa ai duyệt");
+
   await page.getByRole("button", { name: "Duyệt PR" }).click();
 
   await expect(page.getByText("Đã duyệt — merge trên GitHub")).toBeVisible();
-  await expect(page.getByText("Nguyễn Thị Linh").last()).toBeVisible();
+  await expect(thongKe).toContainText("Nguyễn Thị Linh");
   // Duyệt xong thì nút biến mất — không duyệt hai lần.
   await expect(page.getByRole("button", { name: "Duyệt PR" })).toHaveCount(0);
 });

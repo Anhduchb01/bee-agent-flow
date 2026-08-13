@@ -7,3 +7,4 @@ export { TaskBody } from "./components/task-body";
 export { TaskStatus } from "./components/task-status";
 export { TaskTimeline } from "./components/task-timeline";
 export { parseTaskBody } from "./lib/parse-body";
+export { thongKeTask } from "./lib/stats";

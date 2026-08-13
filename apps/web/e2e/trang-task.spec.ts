@@ -14,6 +14,10 @@ test("issue và PR liên kết hiện thành một trang", async ({ page }) => {
   await expect(page.getByText("Acceptance Criteria")).toBeVisible();
   await expect(page.getByText("Given danh sách đơn").first()).toBeVisible();
 
+  // Dải bốn con số trả lời trước khi phải đọc hợp đồng.
+  await expect(page.getByText("Giai đoạn")).toBeVisible();
+  await expect(page.getByText("Chờ duyệt PR")).toBeVisible();
+
   // Phần PR, trên cùng một trang.
   await expect(page.getByRole("link", { name: "#45 trên GitHub" })).toHaveAttribute(
     "href",

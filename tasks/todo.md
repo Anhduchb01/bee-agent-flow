@@ -20,6 +20,10 @@ nối vào dữ liệu thật (B, cần cả hai).
 - [x] 🤖 **W9** Xem bằng chứng — **chặn path traversal ngay từ đầu**
 - [x] 🤖 **W10** PM duyệt · không có nút merge ở bất kỳ đâu
 - [x] 🤖 **W11** Slack — gộp, không spam, không bắn lại
+- [x] 🤖 **W13** Design system Geist (Vercel) — [`docs/design/vercel-geist.md`](../docs/design/vercel-geist.md)
+- [x] 🤖 **W14** Bảng việc có bộ lọc từng cột · dải thống kê mọi màn
+- [x] 🤖 **W15** Dự án: thêm dự án · danh sách task · hai kiểu xem bảng/kanban
+- [x] 🤖 **W16** Tạo task bằng modal trong chi tiết dự án
 - [ ] 🧑 **W12** Bạn duyệt giao diện qua đủ 5 cảnh dữ liệu
 
 > **✅ Checkpoint A** — demo được cho cả đội mà không cần máy Ubuntu nào
