@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth";
 
 const NAV = [
-  { href: "/", label: "Hộp thư" },
+  { href: "/", label: "Việc của bạn" },
   { href: "/du-an", label: "Dự án" },
-  { href: "/task-moi", label: "Task mới" },
 ] as const;
 
 export function AppHeader({

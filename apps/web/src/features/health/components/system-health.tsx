@@ -7,16 +7,13 @@ import type { Health } from "../lib/derive";
  * Dải sức khoẻ hệ thống. Thuần trình bày — mọi quyết định nằm ở `deriveHealth`,
  * nên chúng test được mà không phải dựng DOM.
  *
- * Màu ở đây chỉ sống trong một chấm 6px và một đường viền 1px. Geist cấm đổ màu
- * accent lên bề mặt rộng; phân biệt được "reconciler chết" với "đang chạy" thì
- * lại là thông tin quan trọng nhất app này nói được. Chấm và viền là liều lượng
- * nhỏ nhất còn đọc được.
+ * **Khi mọi thứ bình thường nó co lại thành một dòng.** Chiếm bốn ô số ở đầu
+ * mọi màn hình để nói "không có gì xảy ra" là lấy mất chỗ của thông tin thật.
+ * Nó chỉ nở ra thành một thẻ khi có chuyện — và lúc đó thì nó *nên* to.
+ *
+ * Màu ở đây chỉ sống trong một chấm 6px và một đường viền 1px.
  */
-const TONE: Record<Health["level"], Tone> = {
-  ok: "ok",
-  warn: "warn",
-  down: "down",
-};
+const TONE: Record<Health["level"], Tone> = { ok: "ok", warn: "warn", down: "down" };
 
 const VIEN: Record<Health["level"], string> = {
   ok: "border-border",
@@ -24,16 +21,33 @@ const VIEN: Record<Health["level"], string> = {
   down: "border-destructive/40",
 };
 
-function Con({ nhan, gia }: { nhan: string; gia: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="eyebrow">{nhan}</span>
-      <span className="font-mono text-sm tabular-nums text-foreground">{gia}</span>
-    </div>
-  );
+function tomTatMay(health: Health): string | null {
+  if (!health.slots) return null;
+  return [
+    `build ${health.slots.build.used}/${health.slots.build.max}`,
+    `bằng chứng ${health.slots.evidence.used}/${health.slots.evidence.max}`,
+    `hàng đợi ${health.queued}`,
+  ].join(" · ");
 }
 
 export function SystemHealth({ health }: { health: Health }) {
+  const tomTat = tomTatMay(health);
+
+  if (health.level === "ok") {
+    return (
+      <section
+        aria-label="Sức khoẻ hệ thống"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+      >
+        <StatusDot tone="ok" />
+        <span className="text-body">{health.headline}</span>
+        {tomTat ? (
+          <span className="font-mono text-xs text-muted-foreground">{tomTat}</span>
+        ) : null}
+      </section>
+    );
+  }
+
   return (
     <section
       aria-label="Sức khoẻ hệ thống"
@@ -52,23 +66,12 @@ export function SystemHealth({ health }: { health: Health }) {
           </p>
           <p className="mt-1 text-sm text-body">{health.detail}</p>
 
-          {health.slots ? (
-            <div className="mt-4 flex flex-wrap gap-x-10 gap-y-3">
-              <Con
-                nhan="Slot build"
-                gia={`${health.slots.build.used}/${health.slots.build.max}`}
-              />
-              <Con
-                nhan="Slot bằng chứng"
-                gia={`${health.slots.evidence.used}/${health.slots.evidence.max}`}
-              />
-              <Con nhan="Đang chạy" gia={String(health.running)} />
-              <Con nhan="Hàng đợi" gia={String(health.queued)} />
-            </div>
+          {tomTat ? (
+            <p className="mt-3 font-mono text-xs text-muted-foreground">{tomTat}</p>
           ) : null}
 
           {health.dropped > 0 ? (
-            <p className="mt-4 text-xs text-muted-foreground">
+            <p className="mt-3 text-xs text-muted-foreground">
               {health.dropped} mục trong status.json sai hình dạng và đã bị bỏ qua. Kiểu
               trong <code>lib/bee/types.ts</code> có thể đã lệch với reconciler.
             </p>

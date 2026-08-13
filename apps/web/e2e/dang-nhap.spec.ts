@@ -13,7 +13,7 @@ test("người trong allowlist thấy tên mình", async ({ page }) => {
   await dangNhap(page, "pm-linh");
 
   await expect(page.getByRole("banner").getByText("Nguyễn Thị Linh")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Hộp thư" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Việc của bạn" })).toBeVisible();
 });
 
 test("techlead vào được và hiện đúng vai trò", async ({ page }) => {
@@ -36,7 +36,7 @@ test("người ngoài allowlist đăng nhập được nhưng không thấy dữ
   await expect(page.getByText("nguoi-la")).toBeVisible();
 
   // Không một mảnh dữ liệu nào của hệ thống lọt ra.
-  await expect(page.getByRole("link", { name: "Hộp thư" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Việc của bạn" })).toHaveCount(0);
   await expect(page.getByText("myapp")).toHaveCount(0);
   await expect(page.getByText("Nguyễn Thị Linh")).toHaveCount(0);
 });

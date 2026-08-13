@@ -1,10 +1,11 @@
 import { PageTitle } from "@/components/page-title";
+import { StatGrid } from "@/components/stat-grid";
 import { deriveHealth, SystemHealth } from "@/features/health";
-import { InboxList, loadInbox } from "@/features/inbox";
+import { loadInbox, TaskTable, thongKeViec } from "@/features/inbox";
 import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
 
-export default async function HopThuPage() {
+export default async function ViecCuaBanPage() {
   const actor = await getActor();
   if (!actor) return null;
 
@@ -12,9 +13,9 @@ export default async function HopThuPage() {
   const health = deriveHealth(statusRead);
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6">
       <PageTitle
-        title="Đang chờ bạn"
+        title="Việc của bạn"
         hint={
           items.length === 0
             ? "Không có việc nào đang chặn ở bạn."
@@ -22,7 +23,8 @@ export default async function HopThuPage() {
         }
       />
       <SystemHealth health={health} />
-      <InboxList items={items} />
+      <StatGrid stats={thongKeViec(items)} />
+      <TaskTable items={items} />
     </main>
   );
 }
