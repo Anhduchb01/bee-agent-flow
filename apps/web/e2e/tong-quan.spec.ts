@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 test("bốn khối, đúng thứ tự đã duyệt", async ({ page }) => {
   const main = page.getByRole("main");
-  for (const ten of ["Claude", "Machine is working", "Projects", "Last seven days"]) {
+  for (const ten of ["Claude", "Machine activity", "Projects", "Last seven days"]) {
     await expect(main.getByText(ten, { exact: true })).toBeVisible();
   }
 
@@ -30,7 +30,7 @@ test("hạn mức hiện thanh phần trăm và đồng hồ tới cửa sổ m�
 });
 
 test("máy đang làm nói được việc gì, không chỉ số hiệu", async ({ page }) => {
-  const khoi = page.getByRole("main").getByText("Machine is working").locator("../..");
+  const khoi = page.getByRole("main").getByText("Machine activity").locator("../..");
   await expect(khoi).toContainText("myapp#42");
   await expect(khoi).toContainText("Add a notification settings page");
   await expect(khoi).toContainText("07-build");

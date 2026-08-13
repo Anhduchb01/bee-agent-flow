@@ -37,7 +37,7 @@ export function RunningPanel({
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b bg-muted/30 px-5 py-3.5">
-        <CardTitle className="text-base tracking-title">Machine is working</CardTitle>
+        <CardTitle className="text-base tracking-title">Machine activity</CardTitle>
         <CardDescription className="font-mono">
           {slotDung}/{slotToiDa} build slots · {hangDoi} queued
         </CardDescription>
