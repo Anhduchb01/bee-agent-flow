@@ -24,7 +24,10 @@ nối vào dữ liệu thật (B, cần cả hai).
 - [x] 🤖 **W14** Bảng việc có bộ lọc từng cột · dải thống kê mọi màn
 - [x] 🤖 **W15** Dự án: thêm dự án · danh sách task · hai kiểu xem bảng/kanban
 - [x] 🤖 **W16** Tạo task bằng modal trong chi tiết dự án
+- [x] 🤖 **W17** Giao diện chuyển hết sang tiếng Anh · vá lệch tên năm mục hợp đồng
 - [ ] 🧑 **W12** Bạn duyệt giao diện qua đủ 5 cảnh dữ liệu
+      → ảnh đã chụp sẵn 44 tấm qua 9 cảnh, xem trang duyệt (link trong hội thoại).
+      Chụp lại bằng `CHUP_ANH=<thư mục> pnpm exec playwright test chup-anh`.
 
 > **✅ Checkpoint A** — demo được cho cả đội mà không cần máy Ubuntu nào
 
