@@ -74,7 +74,7 @@ test("issue thiếu mục thì báo hợp đồng chưa đủ", async ({ page })
 test("không có thao tác merge nào ở bất kỳ đâu", async ({ page }) => {
   await dangNhap(page, "pm-linh");
 
-  for (const url of ["/", "/du-an", "/p/myapp", "/p/myapp?view=kanban", "/t/myapp/40", "/t/shop/30"]) {
+  for (const url of ["/", "/viec", "/du-an", "/p/myapp", "/p/myapp?view=kanban", "/t/myapp/40", "/t/shop/30"]) {
     await page.goto(url);
     await expect(page.getByRole("button", { name: /merge|gộp nhánh/i })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /^merge/i })).toHaveCount(0);

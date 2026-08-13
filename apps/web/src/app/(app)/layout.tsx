@@ -2,28 +2,32 @@ import { redirect } from "next/navigation";
 
 import { PageTitle } from "@/components/page-title";
 import { Button } from "@/components/ui/button";
-import { auth, signOut } from "@/lib/auth";
-
-import { AppHeader } from "./_components/app-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { deriveHealth } from "@/features/health";
+import { loadInbox } from "@/features/inbox";
+import { loadProjects } from "@/features/project";
+import { AppSidebar, type DuAnTrongSidebar } from "@/features/shell";
+import { auth, getActor, signOut } from "@/lib/auth";
+import { getBee } from "@/lib/bee";
 
 /**
- * Cổng chung của mọi màn hình có dữ liệu.
+ * Cổng chung của mọi màn hình có dữ liệu, và là nơi dựng vỏ sidebar.
  *
  * Người ngoài allowlist **đăng nhập thành công** — đó là hành vi đúng, không
- * phải lỗi — nhưng không có màn hình dữ liệu nào được dựng cho họ. Chặn ở đây
- * chứ không phải ở từng trang, và mỗi route handler vẫn tự kiểm lại bằng
- * `getActor()` vì layout không chạy trước route handler.
+ * phải lỗi — nhưng không có màn hình dữ liệu nào được dựng cho họ, và cũng
+ * không có sidebar: sidebar chứa tên dự án, tức đã là dữ liệu.
  */
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await auth();
   if (!session?.login) redirect("/dang-nhap");
 
-  if (!session.allowed) {
-    async function raNgoai() {
-      "use server";
-      await signOut({ redirectTo: "/dang-nhap" });
-    }
+  async function raNgoai() {
+    "use server";
+    await signOut({ redirectTo: "/dang-nhap" });
+  }
 
+  if (!session.allowed) {
     return (
       <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-6 py-24">
         <PageTitle
@@ -42,14 +46,40 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     );
   }
 
+  const actor = await getActor();
+  const [projects, items, statusRead] = await Promise.all([
+    loadProjects(),
+    actor ? loadInbox(actor) : Promise.resolve([]),
+    getBee().readStatus(),
+  ]);
+  const health = deriveHealth(statusRead);
+
+  const duAn: DuAnTrongSidebar[] = projects.map((p) => ({
+    slug: p.slug,
+    dangChay: p.running.length,
+    tone: p.repo === null ? "idle" : p.repo.paused ? "warn" : p.running.length > 0 ? "agent" : "ok",
+  }));
+
   return (
-    <div className="flex min-h-full flex-col">
-      <AppHeader
-        displayName={session.displayName}
-        login={session.login}
-        role={session.role}
-      />
-      {children}
-    </div>
+    <TooltipProvider>
+      <SidebarProvider>
+        <AppSidebar
+          displayName={session.displayName}
+          login={session.login}
+          role={session.role}
+          soViecChoBan={items.length}
+          duAn={duAn}
+          sucKhoe={{
+            tone: health.level === "ok" ? "ok" : health.level === "warn" ? "warn" : "down",
+            headline: health.headline,
+            detail: health.slots
+              ? `build ${health.slots.build.used}/${health.slots.build.max} · hàng đợi ${health.queued}`
+              : null,
+          }}
+          dangXuat={raNgoai}
+        />
+        <SidebarInset>{children}</SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   );
 }

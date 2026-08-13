@@ -1,6 +1,7 @@
-import { PageTitle } from "@/components/page-title";
 import { StatGrid } from "@/components/stat-grid";
 import { AddProjectDialog, loadProjects, ProjectCard, thongKeDuAn } from "@/features/project";
+import { PageHeader } from "@/features/shell";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { getActor } from "@/lib/auth";
 
 export default async function DuAnPage() {
@@ -10,29 +11,31 @@ export default async function DuAnPage() {
   const projects = await loadProjects();
 
   return (
-    <main className="mx-auto flex w-full max-w-[88rem] flex-col gap-6 px-4 py-10 sm:px-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageTitle title="Dự án" hint="Một dự án là một repo." />
+    <>
+      <PageHeader title="Dự án" meta={<span className="text-xs text-muted-foreground">Một dự án là một repo</span>}>
         <AddProjectDialog />
+      </PageHeader>
+
+      <div className="flex flex-col gap-6 p-4 sm:p-6">
+        <StatGrid stats={thongKeDuAn(projects)} />
+
+        {projects.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>Chưa có dự án nào</EmptyTitle>
+              <EmptyDescription>
+                Bấm Thêm dự án ở trên, rồi chạy <code>be repo add &lt;org/repo&gt;</code> trên máy agent.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {projects.map((p) => (
+              <ProjectCard key={p.slug} project={p} />
+            ))}
+          </ul>
+        )}
       </div>
-
-      <StatGrid stats={thongKeDuAn(projects)} />
-
-      {projects.length === 0 ? (
-        <div className="rounded-card border border-dashed border-border bg-card px-6 py-14 text-center">
-          <p className="text-sm font-medium tracking-title text-foreground">Chưa có dự án nào</p>
-          <p className="mt-1.5 text-sm text-body">
-            Bấm <span className="text-foreground">Thêm dự án</span> ở trên, rồi chạy{" "}
-            <code>be repo add &lt;org/repo&gt;</code> trên máy agent.
-          </p>
-        </div>
-      ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {projects.map((p) => (
-            <ProjectCard key={p.slug} project={p} />
-          ))}
-        </ul>
-      )}
-    </main>
+    </>
   );
 }

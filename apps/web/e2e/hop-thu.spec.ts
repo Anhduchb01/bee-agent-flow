@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-import { dangNhap } from "./helpers";
+import { vaoViec } from "./helpers";
 
 test("PM thấy việc đang chặn mình, xếp chờ lâu nhất lên đầu", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await vaoViec(page, "pm-linh");
 
   const bang = page.getByRole("group", { name: "Việc đang chờ bạn" });
   await expect(bang).toBeVisible();
@@ -18,7 +18,7 @@ test("PM thấy việc đang chặn mình, xếp chờ lâu nhất lên đầu",
 });
 
 test("việc gộp theo dự án, dự án có việc thối rữa lâu nhất lên đầu", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await vaoViec(page, "pm-linh");
 
   const nhom = page.getByRole("group", { name: "Việc đang chờ bạn" }).getByRole("region");
   await expect(nhom.first()).toHaveAccessibleName("Dự án blog");
@@ -32,7 +32,7 @@ test("việc gộp theo dự án, dự án có việc thối rữa lâu nhất l
 });
 
 test("TL thấy danh sách khác PM", async ({ page }) => {
-  await dangNhap(page, "tl-duc");
+  await vaoViec(page, "tl-duc");
 
   const bang = page.getByRole("group", { name: "Việc đang chờ bạn" });
   await expect(bang).toContainText("Agent hỏi ngược");
@@ -40,7 +40,7 @@ test("TL thấy danh sách khác PM", async ({ page }) => {
 });
 
 test("dải thống kê nói được bốn con số đầu ngày", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await vaoViec(page, "pm-linh");
 
   await expect(page.getByText("Cần người", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Chờ bạn duyệt")).toBeVisible();
@@ -49,8 +49,10 @@ test("dải thống kê nói được bốn con số đầu ngày", async ({ pag
 
 // Bình thường thì nó là một dòng. Chiếm bốn ô số ở đầu màn hình để nói "không
 // có gì xảy ra" là lấy mất chỗ của thông tin thật.
+// Khối đầy đủ sống ở Tổng quan; sidebar chỉ mang bản tóm tắt một dòng.
 test("sức khoẻ hệ thống co lại một dòng khi mọi thứ bình thường", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await vaoViec(page, "pm-linh");
+  await page.goto("/");
 
   const health = page.getByRole("region", { name: "Sức khoẻ hệ thống" });
   await expect(health).toContainText("Hệ thống đang chạy");
@@ -60,7 +62,7 @@ test("sức khoẻ hệ thống co lại một dòng khi mọi thứ bình thư�
 
 test.describe("bộ lọc trên từng cột", () => {
   test.beforeEach(async ({ page }) => {
-    await dangNhap(page, "pm-linh");
+    await vaoViec(page, "pm-linh");
   });
 
   test("lọc theo loại việc", async ({ page }) => {

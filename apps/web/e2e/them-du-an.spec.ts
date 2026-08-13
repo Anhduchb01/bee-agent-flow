@@ -25,7 +25,7 @@ test.describe("thêm dự án", () => {
     await page.getByRole("dialog").getByRole("button", { name: "Thêm dự án" }).click();
 
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "khach-hang" })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("link", { name: "khach-hang" })).toBeVisible();
     // Reconciler chưa biết nó — và đó là sự thật cần nói ra, không phải chi tiết cần giấu.
     await expect(page.getByText("reconciler chưa biết dự án này").first()).toBeVisible();
   });
@@ -48,7 +48,7 @@ test.describe("thêm dự án", () => {
   test("dự án mới vào được và tạo task được ngay", async ({ page }) => {
     await page.getByLabel("org/repo").fill("org/kho-hang");
     await page.getByRole("dialog").getByRole("button", { name: "Thêm dự án" }).click();
-    await page.getByRole("link", { name: "kho-hang" }).click();
+    await page.getByRole("main").getByRole("link", { name: "kho-hang" }).click();
 
     await expect(page).toHaveURL(/\/p\/kho-hang/);
     await expect(page.getByText("Chưa có task nào")).toBeVisible();

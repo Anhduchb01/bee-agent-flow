@@ -4,7 +4,7 @@ import { dangNhap } from "./helpers";
 
 test("danh sách dự án có dải thống kê", async ({ page }) => {
   await dangNhap(page, "pm-linh");
-  await page.getByRole("link", { name: "Dự án" }).click();
+  await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Thêm dự án" }).click();
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Dự án");
   await expect(page.getByText("Agent đang làm").first()).toBeVisible();

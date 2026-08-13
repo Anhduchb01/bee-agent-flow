@@ -30,7 +30,7 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
   const { task, timeline, evidence, evidenceCu, dangChay } = view;
 
   return (
-    <main className="mx-auto w-full max-w-[88rem] px-4 py-10 sm:px-6">
+    <div className="p-4 sm:p-6">
       <div className="flex max-w-3xl flex-col gap-10">
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-muted-foreground">
@@ -91,6 +91,6 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
         />
       </section>
       </div>
-    </main>
+    </div>
   );
 }
