@@ -1,0 +1,1305 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kiến trúc bee</title>
+
+<style>
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+  img, svg { max-width: 100%; }
+</style>
+
+<style>
+  /* ==========================================================================
+     Token — kế thừa hệ màu của docs/design/agent-flow.html để hai tài liệu đọc như
+     một. Hai màu orch/agent KHÔNG phải trang trí: chúng là ranh giới UID, thứ
+     mà toàn bộ thiết kế này xoay quanh. Thêm một màu thứ ba cho hành động của
+     con người, vì "ai quyết định cái gì" là một trục của kiến trúc.
+     ========================================================================== */
+  :root {
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+    --ground:   #EDEFEC;
+    --surface:  #FBFCFA;
+    --surface-2:#E3E6E1;
+    --ink:      #1A1F23;
+    --ink-2:    #5A6570;
+    --ink-3:    #8B949D;
+    --line:     #C6CBC4;
+    --line-2:   #D8DCD5;
+
+    --orch:     #14655F;
+    --orch-bg:  #DDEAE8;
+    --agent:    #A8401B;
+    --agent-bg: #F3E1D9;
+    --human:    #574A8C;
+    --human-bg: #E4E0F0;
+
+    --ok:       #2C6E49;
+    --warn:     #8A6A12;
+    --bad:      #A32B2B;
+
+    --measure: 68ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #14171A;
+      --surface:  #1C2024;
+      --surface-2:#252A2F;
+      --ink:      #E4E7E4;
+      --ink-2:    #9AA4AC;
+      --ink-3:    #6E7A83;
+      --line:     #363C42;
+      --line-2:   #2B3136;
+
+      --orch:     #58B5AC;
+      --orch-bg:  #17322F;
+      --agent:    #E08356;
+      --agent-bg: #38211A;
+      --human:    #A79AD8;
+      --human-bg: #262238;
+
+      --ok:       #6FBF8E;
+      --warn:     #D9B24C;
+      --bad:      #E5776F;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:   #14171A;
+    --surface:  #1C2024;
+    --surface-2:#252A2F;
+    --ink:      #E4E7E4;
+    --ink-2:    #9AA4AC;
+    --ink-3:    #6E7A83;
+    --line:     #363C42;
+    --line-2:   #2B3136;
+
+    --orch:     #58B5AC;
+    --orch-bg:  #17322F;
+    --agent:    #E08356;
+    --agent-bg: #38211A;
+    --human:    #A79AD8;
+    --human-bg: #262238;
+
+    --ok:       #6FBF8E;
+    --warn:     #D9B24C;
+    --bad:      #E5776F;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    padding: 0 24px 120px;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  .col  { max-width: var(--measure); }
+
+  /* --- Đầu trang ---------------------------------------------------------- */
+  header.top {
+    padding: 72px 0 40px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 56px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 20px;
+  }
+  h1 {
+    font-size: clamp(38px, 6.2vw, 62px);
+    line-height: 1.02;
+    letter-spacing: -0.032em;
+    font-weight: 620;
+    margin: 0 0 24px;
+    text-wrap: balance;
+  }
+  h1 .bee { color: var(--orch); }
+  .lead {
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    margin: 0;
+    max-width: var(--measure);
+    text-wrap: pretty;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-top: 32px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+
+  /* --- Mục ---------------------------------------------------------------- */
+  section { margin-bottom: 72px; }
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line-2);
+  }
+  .view {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    white-space: nowrap;
+    padding-top: 7px;
+  }
+  h2 {
+    font-size: clamp(24px, 3.2vw, 31px);
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 620;
+    letter-spacing: -0.008em;
+    margin: 40px 0 12px;
+  }
+  p { margin: 0 0 16px; max-width: var(--measure); text-wrap: pretty; }
+  ul, ol { max-width: var(--measure); margin: 0 0 16px; padding-left: 22px; }
+  li { margin-bottom: 7px; }
+  strong { font-weight: 620; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.875em;
+    background: var(--surface-2);
+    padding: 0.1em 0.36em;
+    border-radius: 3px;
+  }
+  a { color: var(--orch); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--orch); outline-offset: 3px; border-radius: 2px; }
+
+  /* --- Bất biến ----------------------------------------------------------- */
+  .inv { display: grid; gap: 14px; margin: 28px 0 8px; }
+  .inv-item {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--orch);
+    border-radius: 5px;
+    padding: 16px 20px;
+  }
+  .inv-n {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--orch);
+    line-height: 1.3;
+  }
+  .inv-item p { margin: 0; }
+  .inv-item p + p { margin-top: 8px; color: var(--ink-2); font-size: 15px; }
+  .inv-item b { font-size: 17px; letter-spacing: -0.01em; }
+
+  /* --- Hình --------------------------------------------------------------- */
+  figure {
+    margin: 32px 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 26px 26px 20px;
+    overflow-x: auto;
+  }
+  figure svg { display: block; width: 100%; height: auto; min-width: 620px; }
+  figcaption {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line-2);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    min-width: 620px;
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  /* SVG dùng class của trang để đổi màu theo theme — presentation attribute
+     không nhận var(), nên mọi màu phải đi qua CSS. */
+  .n      { fill: var(--surface); stroke: var(--line); stroke-width: 1.4; }
+  .n-orch { fill: var(--orch-bg);  stroke: var(--orch);  stroke-width: 1.4; }
+  .n-agnt { fill: var(--agent-bg); stroke: var(--agent); stroke-width: 1.4; }
+  .n-hum  { fill: var(--human-bg); stroke: var(--human); stroke-width: 1.4; }
+  .n-gh   { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.4; }
+  .zone   { fill: none; stroke: var(--ink-3); stroke-width: 1.2; stroke-dasharray: 6 5; }
+  .zone-o { fill: var(--orch-bg);  opacity: 0.34; stroke: none; }
+  .zone-a { fill: var(--agent-bg); opacity: 0.4;  stroke: none; }
+
+  .t   { fill: var(--ink);   font-family: var(--sans); font-size: 13px; font-weight: 550; }
+  .tm  { fill: var(--ink);   font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .ts  { fill: var(--ink-2); font-family: var(--sans); font-size: 11.5px; }
+  .tsm { fill: var(--ink-2); font-family: var(--mono); font-size: 11px; }
+  .tz  { fill: var(--ink-3); font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; }
+  .to  { fill: var(--orch);  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; }
+  .ta  { fill: var(--agent); font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; }
+  .th  { fill: var(--human); font-family: var(--mono); font-size: 11px; font-weight: 600; }
+
+  .ln     { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
+  .ln-o   { stroke: var(--orch);  stroke-width: 1.5; fill: none; }
+  .ln-a   { stroke: var(--agent); stroke-width: 1.5; fill: none; }
+  .ln-d   { stroke: var(--ink-3); stroke-width: 1.3; fill: none; stroke-dasharray: 5 4; }
+  .mk     { fill: var(--ink-2); }
+  .mk-o   { fill: var(--orch); }
+  .mk-a   { fill: var(--agent); }
+  .rule-x { stroke: var(--bad); stroke-width: 1.8; fill: none; }
+
+  /* --- Bảng --------------------------------------------------------------- */
+  .table-wrap { overflow-x: auto; margin: 24px 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 560px;
+    font-size: 14.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line-2);
+    vertical-align: top;
+  }
+  thead th {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+    border-bottom: 1px solid var(--line);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td code { background: none; padding: 0; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+
+  /* --- Callout ------------------------------------------------------------ */
+  .note {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ink-3);
+    border-radius: 5px;
+    padding: 16px 20px;
+    margin: 24px 0;
+    max-width: var(--measure);
+  }
+  .note.warn { border-left-color: var(--warn); }
+  .note.bad  { border-left-color: var(--bad); }
+  .note p:last-child { margin-bottom: 0; }
+  .note-h {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 8px;
+  }
+  .note.warn .note-h { color: var(--warn); }
+  .note.bad  .note-h { color: var(--bad); }
+
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin: 20px 0;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  /* --- Chip trạng thái ---------------------------------------------------- */
+  .chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .chip.ok   { color: var(--ok); }
+  .chip.part { color: var(--warn); }
+  .chip.no   { color: var(--bad); }
+
+  /* --- Chú giải màu ------------------------------------------------------- */
+  .key { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 0 0 4px; padding: 0; list-style: none; }
+  .key li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); margin: 0; }
+  .key .sw { width: 13px; height: 13px; border-radius: 3px; border: 1.4px solid; flex: none; }
+  .sw.o { background: var(--orch-bg);  border-color: var(--orch); }
+  .sw.a { background: var(--agent-bg); border-color: var(--agent); }
+  .sw.h { background: var(--human-bg); border-color: var(--human); }
+  .sw.g { background: var(--surface-2); border-color: var(--line); }
+
+  footer.end {
+    border-top: 1px solid var(--line);
+    padding-top: 24px;
+    font-size: 13.5px;
+    color: var(--ink-3);
+    max-width: var(--measure);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">bee-agent-flow · tài liệu kiến trúc</p>
+  <h1>Kiến trúc <span class="bee">bee</span></h1>
+  <p class="lead">
+    Một tiến trình trên một máy Ubuntu để agent tự chạy vòng đời phát triển phần
+    mềm. Không GitHub Actions, không webhook, không cơ sở dữ liệu. Tài liệu này
+    mô tả hệ thống như một khối — bản đồ trước, rồi phóng to từng góc — chứ không
+    lập luận lại từng lựa chọn.
+  </p>
+  <div class="meta">
+    <span><b>Phạm vi</b> apps/reconciler</span>
+    <span><b>Nền</b> bash · systemd · gh · jq</span>
+    <span><b>Chu kỳ</b> 30 giây</span>
+    <span><b>Lý lẽ</b> design/agent-flow · design/reconciler</span>
+  </div>
+</header>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Bất biến</span><h2>Ba câu quyết định phần còn lại</h2></div>
+
+  <p class="col">
+    Gần như mọi chi tiết trong tài liệu này là hệ quả của ba câu dưới đây. Khi
+    phân vân "tại sao lại làm thế", câu trả lời hầu như luôn nằm ở một trong ba.
+  </p>
+
+  <div class="inv col">
+    <div class="inv-item">
+      <span class="inv-n">1</span>
+      <div>
+        <p><b>GitHub là nguồn sự thật. Đĩa chỉ là cache.</b></p>
+        <p>Hàng đợi chính là label trên issue. Xoá sạch <code>/srv/bee/state</code>
+        không làm sai kết quả, chỉ làm hệ thống phải tính lại. Nhờ vậy máy tắt ba
+        tiếng không mất việc nào, và chạy lại một hành động là vô hại.</p>
+      </div>
+    </div>
+    <div class="inv-item">
+      <span class="inv-n">2</span>
+      <div>
+        <p><b>Tiến trình cầm credential không đọc nội dung không tin cậy.</b></p>
+        <p>Agent đọc tiêu đề issue, comment PR, thông báo lỗi của thư viện — toàn
+        đầu vào có thể bị chèn chỉ dẫn. Nên nó chạy dưới một UID khác, không có
+        token, không có sudo, không có docker. Ranh giới do kernel giữ, không do
+        prompt giữ.</p>
+      </div>
+    </div>
+    <div class="inv-item">
+      <span class="inv-n">3</span>
+      <div>
+        <p><b>Mỗi tick làm đúng một việc, và mọi việc đều idempotent.</b></p>
+        <p>Bị <code>kill -9</code> giữa chừng thì tick sau tự hiểu mình đang ở đâu
+        chỉ bằng cách nhìn GitHub và đĩa. Không có trạng thái nào sống trong bộ
+        nhớ tiến trình để mà lệch.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Bản đồ</span><h2>Toàn bộ hệ thống trong một hình</h2></div>
+
+  <p class="col">
+    Đây là hình duy nhất cần nhớ. Mọi mục sau chỉ là phóng to một góc của nó.
+  </p>
+
+  <ul class="key">
+    <li><span class="sw o"></span> <code>bee-orch</code> — cầm GH_TOKEN, thuộc group docker</li>
+    <li><span class="sw a"></span> <code>bee-agent</code> — cầm login Claude, không gì khác</li>
+    <li><span class="sw g"></span> ngoài máy / trên đĩa</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 980 600" role="img"
+         aria-label="Bản đồ hệ thống: GitHub ở ngoài, máy Ubuntu ở giữa chia làm hai vùng UID bee-orch và bee-agent, đĩa ở bên phải">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon class="mk" points="0,1 10,5 0,9"></polygon>
+        </marker>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon class="mk-o" points="0,1 10,5 0,9"></polygon>
+        </marker>
+        <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon class="mk-a" points="0,1 10,5 0,9"></polygon>
+        </marker>
+      </defs>
+
+      <!-- vùng máy -->
+      <rect class="zone" x="212" y="24" width="530" height="556" rx="10"></rect>
+      <text class="tz" x="228" y="46">MÁY UBUNTU</text>
+
+      <rect class="zone-o" x="224" y="58" width="506" height="330" rx="8"></rect>
+      <rect class="zone-a" x="224" y="404" width="506" height="164" rx="8"></rect>
+
+      <text class="to" x="240" y="78">USER bee-orch</text>
+      <text class="ta" x="240" y="424">USER bee-agent</text>
+
+      <!-- GitHub -->
+      <rect class="n-gh" x="20" y="120" width="164" height="190" rx="7"></rect>
+      <text class="t"   x="36" y="146">GitHub</text>
+      <text class="tsm" x="36" y="168">issue + label</text>
+      <text class="tsm" x="36" y="186">pull request</text>
+      <text class="tsm" x="36" y="204">review comment</text>
+      <text class="tsm" x="36" y="222">commit status</text>
+      <text class="tsm" x="36" y="240">.agent/PAUSE</text>
+      <text class="ts"  x="36" y="272">NGUỒN SỰ THẬT</text>
+      <text class="ts"  x="36" y="290">— và hàng đợi</text>
+
+      <!-- người -->
+      <rect class="n-hum" x="20" y="372" width="164" height="86" rx="7"></rect>
+      <text class="t"   x="36" y="398">Người</text>
+      <text class="tsm" x="36" y="419">PM · Techlead</text>
+      <text class="tsm" x="36" y="439">gắn label · merge</text>
+
+      <!-- timer -->
+      <rect class="n" x="248" y="92" width="196" height="42" rx="6"></rect>
+      <text class="tm" x="264" y="118">bee-reconcile.timer</text>
+
+      <!-- dispatcher -->
+      <rect class="n" x="248" y="160" width="196" height="60" rx="6"></rect>
+      <text class="tm" x="264" y="182">reconcile.sh</text>
+      <text class="tsm" x="264" y="202">dispatcher · luôn &lt; 5s</text>
+
+      <!-- rules -->
+      <rect class="n" x="490" y="160" width="222" height="60" rx="6"></rect>
+      <text class="tm"  x="506" y="182">rules/NN-*.sh</text>
+      <text class="tsm" x="506" y="202">9 rule · bash thuần, không LLM</text>
+
+      <!-- unit -->
+      <rect class="n" x="248" y="246" width="196" height="42" rx="6"></rect>
+      <text class="tm" x="264" y="272">bee-task@&lt;slug&gt;-&lt;n&gt;</text>
+
+      <!-- worker -->
+      <rect class="n" x="248" y="314" width="196" height="60" rx="6"></rect>
+      <text class="tm"  x="264" y="336">worker.sh</text>
+      <text class="tsm" x="264" y="356">việc dài · tối đa 45 phút</text>
+
+      <!-- docker -->
+      <rect class="n" x="490" y="314" width="222" height="60" rx="6"></rect>
+      <text class="tm"  x="506" y="336">docker compose</text>
+      <text class="tsm" x="506" y="356">Postgres · Redis · MinIO</text>
+
+      <!-- agent-exec -->
+      <rect class="n-agnt" x="248" y="446" width="196" height="42" rx="6"></rect>
+      <text class="tm" x="264" y="472">agent-exec.sh</text>
+
+      <!-- claude -->
+      <rect class="n-agnt" x="248" y="506" width="196" height="46" rx="6"></rect>
+      <text class="tm"  x="264" y="528">claude -p</text>
+      <text class="tsm" x="264" y="545">--max-turns 80 · 30m</text>
+
+      <!-- worktree -->
+      <rect class="n" x="490" y="446" width="222" height="106" rx="6"></rect>
+      <text class="tm"  x="506" y="470">worktree</text>
+      <text class="tsm" x="506" y="490">/srv/bee/work/&lt;id&gt;</text>
+      <text class="tsm" x="506" y="510">code + .env.test</text>
+      <text class="tsm" x="506" y="534">group bee · cả hai ghi được</text>
+
+      <!-- đĩa -->
+      <rect class="n-gh" x="778" y="92" width="182" height="150" rx="7"></rect>
+      <text class="t"   x="794" y="118">/etc/bee</text>
+      <text class="tsm" x="794" y="140">orch.env  0600 root</text>
+      <text class="tsm" x="794" y="158">bee.env   slot, timeout</text>
+      <text class="tsm" x="794" y="176">repos.d/*.env</text>
+      <text class="tsm" x="794" y="194">PAUSE</text>
+      <text class="ts"  x="794" y="222">agent không đọc được</text>
+
+      <rect class="n-gh" x="778" y="266" width="182" height="150" rx="7"></rect>
+      <text class="t"   x="794" y="292">/srv/bee</text>
+      <text class="tsm" x="794" y="314">repos/&lt;slug&gt;.git</text>
+      <text class="tsm" x="794" y="332">state/&lt;id&gt;/claim.json</text>
+      <text class="tsm" x="794" y="350">state/heartbeat</text>
+      <text class="tsm" x="794" y="368">public/status.json</text>
+      <text class="ts"  x="794" y="396">CACHE — vứt được</text>
+
+      <!-- mũi tên -->
+      <path class="ln-d" d="M346 134 L346 158" marker-end="url(#a1)"></path>
+      <text class="tsm" x="356" y="152">30s</text>
+
+      <path class="ln" d="M184 196 L242 190" marker-end="url(#a1)"></path>
+      <path class="ln" d="M242 178 L184 172" marker-end="url(#a1)"></path>
+      <text class="tsm" x="24" y="112">đọc trạng thái mỗi 30s</text>
+
+      <path class="ln" d="M444 190 L484 190" marker-end="url(#a1)"></path>
+      <text class="tsm" x="452" y="182">nạp</text>
+
+      <path class="ln-o" d="M346 220 L346 244" marker-end="url(#a2)"></path>
+      <text class="tsm" x="356" y="238">systemctl start · 1 việc/tick</text>
+
+      <path class="ln-o" d="M346 288 L346 312" marker-end="url(#a2)"></path>
+
+      <path class="ln" d="M444 344 L484 344" marker-end="url(#a1)"></path>
+      <text class="tsm" x="452" y="306">worker dựng hạ tầng test</text>
+
+      <path class="ln" d="M712 344 C 754 344 754 300 774 300" marker-end="url(#a1)"></path>
+
+      <path class="ln-a" d="M346 374 L346 444" marker-end="url(#a3)"></path>
+      <text class="tsm" x="356" y="398">sudo -u bee-agent</text>
+      <text class="tsm" x="356" y="416">env_reset dọn môi trường</text>
+
+      <path class="ln-a" d="M346 488 L346 504" marker-end="url(#a3)"></path>
+
+      <path class="ln-a" d="M444 476 L484 476" marker-end="url(#a3)"></path>
+      <text class="tsm" x="450" y="436">sửa code</text>
+
+      <path class="ln-o" d="M601 444 L601 392" marker-end="url(#a2)"></path>
+      <text class="tsm" x="610" y="418">orch commit &amp; push</text>
+
+      <path class="ln-o" d="M248 330 C 150 330 150 250 182 236" marker-end="url(#a2)"></path>
+      <text class="tsm" x="24" y="332">push · PR · comment</text>
+      <text class="tsm" x="24" y="350">commit status</text>
+
+      <path class="ln" d="M184 412 C 210 412 200 300 182 268" marker-end="url(#a1)"></path>
+
+      <path class="ln-d" d="M444 178 C 620 120 700 140 774 148" marker-end="url(#a1)"></path>
+      <path class="ln-d" d="M444 200 C 640 260 700 300 774 320" marker-end="url(#a1)"></path>
+      <text class="tsm" x="496" y="258">ghi status.json + heartbeat</text>
+    </svg>
+    <figcaption>
+      <b>Một hàng rào duy nhất chạy ngang giữa hình.</b> Mọi thứ phía trên chạy
+      dưới <code>bee-orch</code>: nó nói chuyện với GitHub, dựng Docker, đẩy code.
+      Mọi thứ phía dưới chạy dưới <code>bee-agent</code>: nó chỉ nhìn thấy một
+      worktree và một file prompt. Đường duy nhất đi qua hàng rào là một lệnh
+      <code>sudo</code> tới đúng một file thực thi.
+    </figcaption>
+  </figure>
+
+  <p class="col">
+    Ba thứ không xuất hiện trong hình, và đó là chủ ý: <strong>không có
+    webhook</strong> (hệ thống hỏi GitHub chứ không chờ GitHub gọi),
+    <strong>không có cơ sở dữ liệu</strong> (trạng thái là label + file), và
+    <strong>không có backend cho dashboard</strong> (reconciler ghi
+    <code>status.json</code>, một web server tĩnh phục vụ nó).
+  </p>
+</section>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Điều khiển</span><h2>Một tick, từ đầu đến cuối</h2></div>
+
+  <p class="col">
+    Vòng lặp chạy 2.880 lần mỗi ngày và tuyệt đại đa số lần không có việc gì.
+    Nên nó phải rẻ, và phải luôn kết thúc nhanh — <code>TimeoutStartSec=120</code>
+    ở service là một cái bẫy cố ý: nhét việc dài vào dispatcher thì systemd giết
+    nó và bug lộ ra ngay thay vì âm ỉ hai tuần.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 980 330" role="img"
+         aria-label="Luồng một tick: kiểm tra PAUSE, quét rule theo repo, xếp hạng, lọc ba điều kiện dispatch, giao một việc rồi thoát">
+      <defs>
+        <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon class="mk" points="0,1 10,5 0,9"></polygon>
+        </marker>
+        <marker id="b2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon class="mk-o" points="0,1 10,5 0,9"></polygon>
+        </marker>
+      </defs>
+
+      <rect class="n" x="14" y="30" width="142" height="52" rx="6"></rect>
+      <text class="tm"  x="28" y="52">PAUSE?</text>
+      <text class="tsm" x="28" y="70">/etc/bee · .agent/</text>
+
+      <rect class="n" x="174" y="30" width="176" height="52" rx="6"></rect>
+      <text class="tm"  x="188" y="52">quét</text>
+      <text class="tsm" x="188" y="70">9 rule × N repo</text>
+
+      <rect class="n" x="380" y="30" width="176" height="52" rx="6"></rect>
+      <text class="tm"  x="394" y="52">xếp hạng</text>
+      <text class="tsm" x="394" y="70">rule → gấp → tải → số</text>
+
+      <rect class="n" x="586" y="30" width="186" height="52" rx="6"></rect>
+      <text class="tm"  x="600" y="52">lọc — ba vế</text>
+      <text class="tsm" x="600" y="70">phải đúng cả ba</text>
+
+      <rect class="n-orch" x="802" y="30" width="164" height="52" rx="6"></rect>
+      <text class="tm"  x="816" y="52">giao 1 việc</text>
+      <text class="tsm" x="816" y="70">rồi thoát</text>
+
+      <path class="ln" d="M156 56 L168 56" marker-end="url(#b1)"></path>
+      <path class="ln" d="M350 56 L374 56" marker-end="url(#b1)"></path>
+      <path class="ln" d="M556 56 L580 56" marker-end="url(#b1)"></path>
+      <path class="ln-o" d="M772 56 L796 56" marker-end="url(#b2)"></path>
+
+      <!-- ba vế -->
+      <rect class="n" x="586" y="128" width="186" height="106" rx="6"></rect>
+      <text class="tsm" x="600" y="150">1 · pool đích còn slot</text>
+      <text class="tsm" x="600" y="172">2 · repo chưa chạm trần</text>
+      <text class="tsm" x="600" y="194">3 · item chưa có unit</text>
+      <text class="ts"  x="600" y="220">thiếu một vế → xét item sau</text>
+      <path class="ln-d" d="M679 82 L679 126" marker-end="url(#b1)"></path>
+
+      <!-- hàng đợi -->
+      <rect class="n" x="380" y="152" width="176" height="82" rx="6"></rect>
+      <text class="tm"  x="394" y="176">hàng đợi</text>
+      <text class="tsm" x="394" y="196">+ wait_reason</text>
+      <text class="ts"  x="394" y="218">"chờ slot build 3/3"</text>
+      <path class="ln" d="M584 180 L562 180" marker-end="url(#b1)"></path>
+
+      <!-- thoát -->
+      <rect class="n" x="802" y="152" width="164" height="82" rx="6"></rect>
+      <text class="tm"  x="816" y="176">status.json</text>
+      <text class="tm"  x="816" y="198">heartbeat</text>
+      <text class="ts"  x="816" y="220">mọi tick đều ghi</text>
+      <path class="ln" d="M884 82 L884 150" marker-end="url(#b1)"></path>
+
+      <!-- inline -->
+      <rect class="n" x="174" y="152" width="176" height="82" rx="6"></rect>
+      <text class="tm"  x="188" y="176">rule inline</text>
+      <text class="tsm" x="188" y="196">chạy ngay, tối đa 3</text>
+      <text class="ts"  x="188" y="218">chỉ 1 lời gọi API</text>
+      <path class="ln-d" d="M262 82 L262 150" marker-end="url(#b1)"></path>
+
+      <text class="tz" x="14" y="290">MỘT TICK &lt; 5 GIÂY · KỂ CẢ KHI 3 WORKER ĐANG CHẠY</text>
+      <path class="ln-d" d="M14 300 L966 300"></path>
+    </svg>
+    <figcaption>
+      <b>Điều kiện giao việc là ba vế, không phải một.</b> Rule khớp nhưng pool
+      hết slot thì item đó bị bỏ qua — và các rule sau nó <em>vẫn được xét</em>.
+      Nếu chỉ "gặp rule khớp thì dừng", một hàng đợi build đầy sẽ chặn luôn việc
+      chạy bằng chứng, dù hai việc dùng tài nguyên khác nhau.
+    </figcaption>
+  </figure>
+
+  <h3>Thứ tự chọn việc</h3>
+  <p class="col">
+    Danh sách rule <code>01</code> → <code>09</code> chính là thứ tự ưu tiên, và
+    nó mã hoá một chính sách duy nhất: <strong>gỡ chặn người trước, nhận việc mới
+    sau</strong>. Trong cùng một rule, ba khoá sắp xếp:
+  </p>
+
+  <div class="table-wrap col">
+    <table>
+      <thead><tr><th>Khoá</th><th>Là gì</th><th>Vì sao</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td><code>priority:high</code></td><td>Cửa thoát duy nhất cho người, gắn tay khi thật cần</td></tr>
+        <tr><td class="num">2</td><td>Số slot repo đó đang chiếm</td><td>Repo đang chiếm 2 slot tự xếp sau repo đang chiếm 0 — tự cân bằng, không cần state round-robin</td></tr>
+        <tr><td class="num">3</td><td>Số issue tăng dần</td><td>Có sẵn, không tốn API, và không item nào bị đói vĩnh viễn</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="col">
+    Không có khoá thứ tư, và không có LLM ở bất kỳ chỗ nào trong đường quyết định
+    này. Cùng một trạng thái luôn cho ra cùng một quyết định — đó là thứ làm hệ
+    thống debug được.
+  </p>
+</section>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Vòng đời</span><h2>Một task đi từ ý tưởng tới merge</h2></div>
+
+  <p class="col">
+    Chín rule không phải chín tính năng rời rạc — chúng là các chặng của một
+    đường ray. Hình dưới là đường ray đó, tô màu theo <em>ai</em> làm mỗi chặng.
+  </p>
+
+  <ul class="key">
+    <li><span class="sw h"></span> người quyết định</li>
+    <li><span class="sw o"></span> script, không gọi model</li>
+    <li><span class="sw a"></span> agent gọi model</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 980 400" role="img"
+         aria-label="Vòng đời một task: người mở cổng ở đầu và cuối, máy làm việc ở giữa, qua các rule 08, 07, 03, 04, 05, 02">
+      <defs>
+        <marker id="c1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon class="mk" points="0,1 10,5 0,9"></polygon>
+        </marker>
+      </defs>
+
+      <!-- hàng 1 -->
+      <rect class="n-hum" x="14" y="40" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="28" y="64">PM mở issue</text>
+      <text class="tsm" x="28" y="84">hợp đồng 5 mục</text>
+
+      <rect class="n-hum" x="182" y="40" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="196" y="64">ready-for-spec</text>
+      <text class="tsm" x="196" y="84">label do người gắn</text>
+
+      <rect class="n-agnt" x="350" y="40" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="364" y="64">rule 08 · spec</text>
+      <text class="tsm" x="364" y="84">chỉ đọc + comment</text>
+
+      <rect class="n-hum" x="518" y="40" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="532" y="64">duyệt spec</text>
+      <text class="tsm" x="532" y="84">chốt chặn rẻ nhất</text>
+
+      <rect class="n-hum" x="686" y="40" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="700" y="64">eligible + build</text>
+      <text class="tsm" x="700" y="84">mặc định KHÔNG bật</text>
+
+      <rect class="n-agnt" x="854" y="40" width="112" height="62" rx="6"></rect>
+      <text class="tm"  x="868" y="64">rule 07</text>
+      <text class="tsm" x="868" y="84">build → PR</text>
+
+      <path class="ln" d="M154 71 L176 71" marker-end="url(#c1)"></path>
+      <path class="ln" d="M322 71 L344 71" marker-end="url(#c1)"></path>
+      <path class="ln" d="M490 71 L512 71" marker-end="url(#c1)"></path>
+      <path class="ln" d="M658 71 L680 71" marker-end="url(#c1)"></path>
+      <path class="ln" d="M826 71 L848 71" marker-end="url(#c1)"></path>
+
+      <!-- nối xuống hàng 2 -->
+      <path class="ln" d="M910 102 C 910 140 60 130 84 172" marker-end="url(#c1)"></path>
+
+      <!-- hàng 2 -->
+      <rect class="n-orch" x="14" y="188" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="28" y="212">rule 03 · CI</text>
+      <text class="tsm" x="28" y="232">status bee/test</text>
+
+      <rect class="n-agnt" x="182" y="188" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="196" y="212">rule 04</text>
+      <text class="tsm" x="196" y="232">E2E + video</text>
+
+      <rect class="n-orch" x="350" y="188" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="364" y="212">rule 05</text>
+      <text class="tsm" x="364" y="232">đếm approve</text>
+
+      <rect class="n-hum" x="518" y="188" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="532" y="212">TL soi diff</text>
+      <text class="tsm" x="532" y="232">PM xem video</text>
+
+      <rect class="n-agnt" x="686" y="188" width="140" height="62" rx="6"></rect>
+      <text class="tm"  x="700" y="212">rule 02</text>
+      <text class="tsm" x="700" y="232">sửa theo @claude</text>
+
+      <rect class="n-hum" x="854" y="188" width="112" height="62" rx="6"></rect>
+      <text class="tm"  x="868" y="212">merge</text>
+      <text class="tsm" x="868" y="232">chỉ người</text>
+
+      <path class="ln" d="M154 219 L176 219" marker-end="url(#c1)"></path>
+      <path class="ln" d="M322 219 L344 219" marker-end="url(#c1)"></path>
+      <path class="ln" d="M490 219 L512 219" marker-end="url(#c1)"></path>
+      <path class="ln" d="M658 219 L680 219" marker-end="url(#c1)"></path>
+      <path class="ln" d="M826 219 L848 219" marker-end="url(#c1)"></path>
+
+      <!-- vòng lặp review -->
+      <path class="ln-d" d="M756 250 C 756 290 300 290 252 254" marker-end="url(#c1)"></path>
+      <text class="tsm" x="430" y="292">sửa xong → CI + bằng chứng chạy lại từ đầu</text>
+
+      <!-- rule nền -->
+      <rect class="n" x="14" y="322" width="952" height="56" rx="6"></rect>
+      <text class="tm"  x="28" y="344">Chạy nền, không thuộc đường ray</text>
+      <text class="tsm" x="28" y="364">rule 01 dọn xác sau mất điện · rule 09 index lại khi main có commit mới · rule 06 preview env, opt-in bằng label</text>
+    </svg>
+    <figcaption>
+      <b>Người mở cổng, máy chạy giữa hai cổng.</b> Mọi ô tím là một quyết định
+      của con người, và chúng nằm ở đúng ba chỗ đắt nhất: spec có đủ rõ không,
+      task này có được giao máy không, và code này có được vào <code>main</code>
+      không. Agent không bao giờ tự đi qua một ô tím.
+    </figcaption>
+  </figure>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Rule</th><th>Khớp khi</th><th>Vai trò xử lý</th><th>Bể</th><th>Gọi model</th></tr></thead>
+      <tbody>
+        <tr><td><code>01</code> recover</td><td>issue có <code>agent:running</code> mà unit không active</td><td>—</td><td>build</td><td>không</td></tr>
+        <tr><td><code>02</code> review</td><td>PR có review comment <code>@claude</code> chưa xử lý</td><td>Review-fixer</td><td>build</td><td><b>có</b></td></tr>
+        <tr><td><code>03</code> CI</td><td>head SHA chưa có status <code>bee/test</code></td><td>—</td><td>evidence</td><td>không</td></tr>
+        <tr><td><code>04</code> evidence</td><td>PR xanh nhưng bằng chứng thiếu hoặc gắn SHA cũ</td><td>Evidence runner</td><td>evidence</td><td><b>có</b></td></tr>
+        <tr><td><code>05</code> approvals</td><td>số approve đổi</td><td>—</td><td>inline</td><td>không</td></tr>
+        <tr><td><code>06</code> preview</td><td>PR có <code>preview:on</code></td><td>—</td><td>build</td><td>không</td></tr>
+        <tr><td><code>07</code> build</td><td><code>agent:build</code> + <code>agent:eligible</code>, WIP chưa đầy</td><td>Builder</td><td>build</td><td><b>có</b></td></tr>
+        <tr><td><code>08</code> spec</td><td>issue có <code>status:ready-for-spec</code></td><td>Spec gatekeeper</td><td>build</td><td><b>có</b></td></tr>
+        <tr><td><code>09</code> reindex</td><td><code>main</code> có commit mới kể từ lần index cuối</td><td>—</td><td>build</td><td>không</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="col">
+    Chỉ 4 trong 9 rule gọi model. Đẩy commit status, đếm approve, dựng compose —
+    không có gì để "suy nghĩ" ở đó, và mỗi lời gọi model là một lần tốn quota
+    cộng một lần thêm tính bất định. <strong>Việc nào viết được bằng bash thì
+    viết bằng bash.</strong>
+  </p>
+
+  <p class="col">
+    Ánh xạ rule ↔ vai trò là 1:1 và cố định, nên không có thuật toán phân công
+    nào cả: một PR có comment chưa xử lý <em>chỉ có thể</em> do Review-fixer làm.
+    Bốn vai trò khác nhau ở prompt (<code>apps/reconciler/prompts/</code>) và ở
+    tool được phép dùng, không khác nhau ở danh tính hệ điều hành — cả bốn đều
+    chạy dưới cùng một <code>bee-agent</code>.
+  </p>
+</section>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Tin cậy</span><h2>Ranh giới, và ba đường đã bịt</h2></div>
+
+  <p class="col">
+    Agent chạy với <code>--dangerously-skip-permissions</code>. Điều đó chấp nhận
+    được <em>chỉ vì</em> nó không có gì đáng lấy trong tay. Toàn bộ ranh giới nằm
+    ở một dòng sudoers, và giá trị của nó nằm ở những gì <em>không</em> đi qua
+    được.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 980 340" role="img"
+         aria-label="Ranh giới hai user: bee-orch giữ token và docker, bee-agent giữ login Claude, nối nhau bằng đúng một lệnh sudo; ba đường leo thang bị chặn">
+      <defs>
+        <marker id="d1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon class="mk" points="0,1 10,5 0,9"></polygon>
+        </marker>
+      </defs>
+
+      <rect class="n-orch" x="14" y="30" width="290" height="200" rx="7"></rect>
+      <text class="to"  x="32" y="56">bee-orch</text>
+      <text class="tsm" x="32" y="84">✓ GH_TOKEN</text>
+      <text class="tsm" x="32" y="106">✓ group docker  (≈ root)</text>
+      <text class="tsm" x="32" y="128">✓ git push, gh api</text>
+      <text class="tsm" x="32" y="150">✓ đọc /etc/bee/orch.env</text>
+      <text class="tsm" x="32" y="176">✗ login Claude Code</text>
+      <text class="ts"  x="32" y="208">đọc issue? có — nhưng không suy luận trên nó</text>
+
+      <rect class="n-agnt" x="676" y="30" width="290" height="200" rx="7"></rect>
+      <text class="ta"  x="694" y="56">bee-agent</text>
+      <text class="tsm" x="694" y="84">✓ login Claude Code</text>
+      <text class="tsm" x="694" y="106">✓ ghi worktree</text>
+      <text class="tsm" x="694" y="128">✗ token, sudo, docker</text>
+      <text class="tsm" x="694" y="150">✗ đọc /etc/bee</text>
+      <text class="tsm" x="694" y="176">✗ đọc /home của bạn</text>
+      <text class="ts"  x="694" y="208">đọc nội dung không tin cậy — nhưng tay trắng</text>
+
+      <!-- cửa -->
+      <rect class="n" x="352" y="86" width="276" height="88" rx="6"></rect>
+      <text class="tm"  x="368" y="110">sudo -u bee-agent</text>
+      <text class="tsm" x="368" y="132">agent-exec.sh — đúng một file</text>
+      <text class="ts"  x="368" y="156">env_reset dọn sạch môi trường</text>
+
+      <path class="ln" d="M304 130 L346 130" marker-end="url(#d1)"></path>
+      <path class="ln" d="M628 130 L670 130" marker-end="url(#d1)"></path>
+
+      <text class="tz" x="352" y="72">CỬA DUY NHẤT</text>
+
+      <!-- ba đường bịt -->
+      <rect class="n" x="14" y="256" width="304" height="64" rx="6"></rect>
+      <text class="tm"  x="30" y="278">agent vào group docker</text>
+      <text class="tsm" x="30" y="300">docker run -v /:/host → đọc token</text>
+      <path class="rule-x" d="M280 262 L308 314"></path>
+      <path class="rule-x" d="M308 262 L280 314"></path>
+
+      <rect class="n" x="338" y="256" width="304" height="64" rx="6"></rect>
+      <text class="tm"  x="354" y="278">orch chạy file agent viết</text>
+      <text class="tsm" x="354" y="300">compose/script lấy từ origin/HEAD</text>
+      <path class="rule-x" d="M604 262 L632 314"></path>
+      <path class="rule-x" d="M632 262 L604 314"></path>
+
+      <rect class="n" x="662" y="256" width="304" height="64" rx="6"></rect>
+      <text class="tm"  x="678" y="278">token qua biến môi trường</text>
+      <text class="tsm" x="678" y="300">cùng UID đọc /proc/pid/environ</text>
+      <path class="rule-x" d="M928 262 L956 314"></path>
+      <path class="rule-x" d="M956 262 L928 314"></path>
+    </svg>
+    <figcaption>
+      <b>Ba đường leo thang, cả ba đều im lặng nếu quên bịt.</b> Mỗi đường vẫn
+      để hệ thống chạy bình thường — chỉ là ranh giới đã biến mất mà không có
+      dấu hiệu nào. Đó là lý do <code>be doctor</code> kiểm lại cả ba mỗi lần
+      chạy thay vì tin vào việc đã cấu hình đúng một lần.
+    </figcaption>
+  </figure>
+
+  <div class="note bad">
+    <p class="note-h">Đường thứ hai là đường dễ mở lại nhất</p>
+    <p>
+      Agent sửa được <em>mọi</em> file trong worktree, kể cả
+      <code>docker-compose.test.yml</code> và các script trong
+      <code>.claude/skills/</code>. Nếu orch chạy một file lấy từ worktree, agent
+      vừa thoát ra quyền root bằng đúng con đường mà việc cấm docker group vừa
+      bịt. Vì vậy mọi file orch <em>thực thi</em> đều phải lấy bằng
+      <code>git show origin/HEAD:&lt;path&gt;</code>.
+    </p>
+    <p>
+      Hệ quả vận hành: task cần thêm service mới phải tách làm hai PR — một PR
+      sửa compose file cho người duyệt, rồi mới tới PR tính năng. Đây là ma sát
+      có chủ đích.
+    </p>
+  </div>
+
+  <h3>Agent lấy database ở đâu khi không có Docker</h3>
+  <p class="col">
+    Tách "dựng hạ tầng" khỏi "dùng hạ tầng". Worker (dưới orch) chạy
+    <code>docker compose up</code> với cổng động, đọc cổng vừa được cấp, ghi
+    <code>.env.test</code> vào worktree, rồi mới gọi agent. Agent chỉ mở kết nối
+    TCP tới <code>localhost:&lt;PORT&gt;</code> — không cần Docker. Ứng dụng và
+    Playwright là tiến trình thường.
+  </p>
+  <p class="col">
+    Mọi giá trị trong <code>.env.test</code> đều là thứ không đáng ăn cắp: tài
+    khoản của một container sống 20 phút rồi bị <code>down -v</code> xoá sạch.
+    Secret thật nằm ở <code>/etc/bee/</code>, nơi agent không đọc được.
+  </p>
+</section>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Trạng thái</span><h2>Ai giữ sự thật, ai chỉ giữ bản sao</h2></div>
+
+  <figure>
+    <svg viewBox="0 0 980 316" role="img"
+         aria-label="Ba nơi giữ trạng thái: GitHub là sự thật, đĩa là cache, systemd là khoá; rule 01 dọn khi hai bên lệch">
+      <defs>
+        <marker id="e1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon class="mk" points="0,1 10,5 0,9"></polygon>
+        </marker>
+      </defs>
+
+      <rect class="n-gh" x="14" y="26" width="300" height="150" rx="7"></rect>
+      <text class="t"   x="32" y="52">GitHub</text>
+      <text class="tz"  x="32" y="72">SỰ THẬT</text>
+      <text class="tsm" x="32" y="98">label · PR · commit status</text>
+      <text class="tsm" x="32" y="120">lịch sử ai gắn gì, lúc nào</text>
+      <text class="ts"  x="32" y="152">sống sót mất điện, reboot, cài lại máy</text>
+
+      <rect class="n" x="340" y="26" width="300" height="150" rx="7"></rect>
+      <text class="t"   x="358" y="52">/srv/bee/state</text>
+      <text class="tz"  x="358" y="72">CACHE</text>
+      <text class="tsm" x="358" y="98">claim.json · session_id · attempt</text>
+      <text class="tsm" x="358" y="120">scan cache · heartbeat</text>
+      <text class="ts"  x="358" y="152">xoá sạch cũng không sai kết quả</text>
+
+      <rect class="n" x="666" y="26" width="300" height="150" rx="7"></rect>
+      <text class="t"   x="684" y="52">systemd</text>
+      <text class="tz"  x="684" y="72">KHOÁ</text>
+      <text class="tsm" x="684" y="98">bee-task@&lt;id&gt; active?</text>
+      <text class="tsm" x="684" y="120">unit trùng bị từ chối start</text>
+      <text class="ts"  x="684" y="152">biến mất đúng lúc tiến trình chết</text>
+
+      <!-- rule 01 -->
+      <rect class="n-orch" x="200" y="222" width="580" height="76" rx="6"></rect>
+      <text class="tm"  x="218" y="246">rule 01 — điều kiện phát hiện xác</text>
+      <text class="tsm" x="218" y="268">GitHub nói agent:running   ∧   systemd nói unit không active</text>
+      <text class="tsm" x="218" y="286">→ dọn worktree, tăng bộ đếm, trả lại hàng đợi</text>
+
+      <path class="ln" d="M164 176 C 164 200 200 208 260 220" marker-end="url(#e1)"></path>
+      <path class="ln" d="M816 176 C 816 200 780 208 720 220" marker-end="url(#e1)"></path>
+    </svg>
+    <figcaption>
+      <b>Khoá không nằm trong file nào.</b> Nó là việc systemd từ chối start một
+      template unit đang active. Nhờ vậy không cần PID file, không cần lo PID mồ
+      côi bị hệ điều hành cấp lại — và khi tiến trình chết, khoá tự biến mất đúng
+      lúc, đúng cách.
+    </figcaption>
+  </figure>
+
+  <p class="col">
+    <strong>Khi mất điện giữa lúc agent đang chạy:</strong> cache mất, khoá mất,
+    sự thật còn nguyên. Tick đầu tiên sau khi bật máy thấy issue mang
+    <code>agent:running</code> mà không có unit nào — đó là toàn bộ điều kiện
+    phát hiện. Nó dọn worktree, tăng bộ đếm lần thử, và trả issue về hàng đợi.
+    Hai lần gián đoạn liên tiếp thì gắn <code>needs-human</code> và dừng hẳn:
+    hai lần hỏng liên tiếp gần như luôn là task có vấn đề chứ không phải máy có
+    vấn đề.
+  </p>
+
+  <p class="col">
+    <code>session_id</code> là món duy nhất trong cache đáng tiếc khi mất. Nó cho
+    phép <code>claude --resume</code> ở vòng review sau, để agent nhớ được
+    <em>vì sao</em> nó đã quyết định như vậy thay vì đọc lại diff từ đầu.
+  </p>
+</section>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Sức chứa</span><h2>Hai bể slot, và trần thật nằm ở chỗ khác</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Trần</th><th>Mặc định</th><th>Giới hạn cái gì</th><th>Vì sao con số đó</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>MAX_BUILD_SLOTS</code></td><td class="num">3</td>
+          <td>Rule 02, 07, 08 — agent sửa code</td>
+          <td>Chủ yếu chờ I/O và chờ model, CPU nhàn</td>
+        </tr>
+        <tr>
+          <td><code>MAX_EVIDENCE_SLOTS</code></td><td class="num">1</td>
+          <td>Rule 03, 04 — CI và E2E quay video</td>
+          <td><b>Cố ý không song song.</b> Ba Playwright cùng lúc làm nhau timeout, và bằng chứng flaky tệ hơn bằng chứng chậm</td>
+        </tr>
+        <tr>
+          <td><code>MAX_PER_REPO</code></td><td class="num">2</td>
+          <td>Một repo chiếm tối đa bao nhiêu slot build</td>
+          <td>Một repo bận không được làm repo khác chết đói</td>
+        </tr>
+        <tr>
+          <td><code>MAX_WIP</code></td><td class="num">3</td>
+          <td>Số PR agent mở cùng lúc, đặt theo từng repo</td>
+          <td>Trần <em>khác bản chất</em>: giới hạn bởi khả năng review của người, không phải phần cứng</td>
+        </tr>
+        <tr>
+          <td><code>--max-turns</code></td><td class="num">80</td>
+          <td>Độ dài một lần chạy agent</td>
+          <td>Giới hạn thi hành được duy nhất — không có cách chặn cứng theo tiền</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <p class="note-h">Ở mức 32GB, RAM không còn là ràng buộc</p>
+    <p>
+      Ngân sách bộ nhớ cam kết khoảng 17,5GB, còn dư 14GB. Nhưng ba agent song
+      song đốt hạn mức thuê bao nhanh gấp ba, nên bạn sẽ chạm rate limit từ rất
+      lâu trước khi chạm trần bộ nhớ. Thấy rate limit giữa ngày thì
+      <strong>giảm</strong> số slot, không phải nâng máy.
+    </p>
+    <p>
+      Cùng lý do đó: thêm repo không thêm năng lực, nó chia nhỏ năng lực sẵn có.
+      Hai đến ba repo hoạt động cùng lúc là hợp lý.
+    </p>
+  </div>
+
+  <p class="col">
+    Một <code>bee.slice</code> bọc toàn bộ tiến trình của hệ thống với
+    <code>MemoryHigh=20G</code>, <code>MemoryMax=24G</code>,
+    <code>CPUWeight=50</code>. Phiên tương tác của bạn mặc định có
+    <code>CPUWeight=100</code>, nên bạn luôn được ưu tiên trên chính cái máy đó —
+    và khi chạm trần, biểu hiện là agent chậm lại chứ không phải bị OOM kill giữa
+    chừng để lại worktree bẩn.
+  </p>
+</section>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Hỏng</span><h2>Mỗi kiểu hỏng có đúng một cơ chế bắt</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Hỏng</th><th>Bắt bằng</th><th>Phục hồi</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Reconciler chết im lặng</b><br><span style="color:var(--ink-3)">không có job đỏ để nhìn — chỉ là không có gì xảy ra</span></td>
+          <td>Heartbeat mỗi tick + một timer riêng kiểm tra</td>
+          <td>Cảnh báo khi quá 10 phút không đổi</td>
+        </tr>
+        <tr>
+          <td>Mất điện giữa lúc agent chạy</td>
+          <td><code>agent:running</code> ∧ ¬unit active</td>
+          <td>Rule 01 dọn trong 1 tick</td>
+        </tr>
+        <tr>
+          <td>Task hỏng lặp lại</td>
+          <td>Bộ đếm <code>attempt</code>, sống lâu hơn claim</td>
+          <td><code>needs-human</code> sau 2 lần, không thử lần 3</td>
+        </tr>
+        <tr>
+          <td>Việc dài lọt vào dispatcher</td>
+          <td><code>TimeoutStartSec=120</code></td>
+          <td>systemd giết tick — bug lộ ngay thay vì âm ỉ</td>
+        </tr>
+        <tr>
+          <td>Hai worker trên cùng một item</td>
+          <td>Template unit theo <code>&lt;slug&gt;-&lt;số&gt;</code></td>
+          <td>systemd từ chối start, không cần code gì</td>
+        </tr>
+        <tr>
+          <td>Hai tick chồng nhau</td>
+          <td><code>OnUnitInactiveSec=30s</code> đếm từ lúc tick trước kết thúc</td>
+          <td>Không thể xảy ra — không cần flock</td>
+        </tr>
+        <tr>
+          <td>Cạn rate limit GitHub</td>
+          <td>Gate theo <code>updatedAt</code> trước khi gọi API chi tiết</td>
+          <td>Phần lớn PR không đổi giữa hai tick nên lưu lượng nghỉ gần bằng 0</td>
+        </tr>
+        <tr>
+          <td>E2E flaky vì máy bận</td>
+          <td>Suite đỏ → script từ chối publish</td>
+          <td>Không bao giờ có bằng chứng giả; cái giá là chạy lại</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="col">
+    Hàng đầu tiên là chế độ hỏng nguy hiểm nhất của cả kiến trúc này. Với GitHub
+    Actions bạn thấy một job đỏ; ở đây, reconciler chết chỉ đơn giản là
+    <em>không có gì xảy ra cả</em>. Đó cũng là lý do dashboard phải là file tĩnh
+    do một web server khác phục vụ: reconciler chết thì trang vẫn lên, và
+    heartbeat cũ 10 phút hiện thành báo động đỏ.
+  </p>
+
+  <h3>Kill switch hai tầng</h3>
+  <ul class="col">
+    <li><code>/etc/bee/PAUSE</code> — dừng ngay, dùng khi bạn đang ngồi trước máy.</li>
+    <li><code>.agent/PAUSE</code> trên <code>main</code> của từng repo — PM tạo
+      qua web GitHub trong 10 giây, không cần SSH, và lưu vết trong lịch sử git:
+      ai dừng, lúc nào, vì sao. Đọc từ bare clone local nên không tốn lượt API.</li>
+  </ul>
+  <p class="col">
+    Tầng thứ hai quan trọng hơn vẻ ngoài của nó: người phát hiện agent đang làm
+    bậy thường không phải người có SSH. Và vì file nằm <em>trong</em> repo, tạm
+    dừng là theo từng repo chứ không phải toàn hệ thống.
+  </p>
+</section>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Triển khai</span><h2>Cái gì nằm ở đâu trên máy</h2></div>
+
+<pre><code>/opt/bee/                      cài bởi install.sh, chỉ root ghi
+├── bin/reconcile.sh           dispatcher   ← bee-reconcile.service
+├── bin/worker.sh              việc dài     ← bee-task@&lt;id&gt;.service
+├── bin/agent-exec.sh          ← tiến trình DUY NHẤT chạy dưới bee-agent
+├── bin/heartbeat-check.sh     ← bee-heartbeat.service
+├── rules/NN-*.sh              tên file = thứ tự ưu tiên
+├── lib/{common,config,github,state}.sh
+└── prompts/{build,spec,review-fix,evidence}.md
+
+/etc/bee/
+├── orch.env                   GH_TOKEN, MinIO   root:root 0600
+├── bee.env                    slot, timeout     đọc được
+├── repos.d/&lt;slug&gt;.env         REPO, REVIEWERS_PM, REVIEWERS_TL
+└── PAUSE                      tồn tại = dừng
+
+/srv/bee/                      group bee, setgid
+├── repos/&lt;slug&gt;.git           bare clone mỗi repo
+├── work/&lt;slug&gt;-&lt;n&gt;/           worktree, cả hai user ghi được
+├── state/&lt;slug&gt;-&lt;n&gt;/          claim.json, run.jsonl, session_id
+└── public/status.json         dashboard đọc file này
+
+/usr/local/bin/be              CLI (bee là symlink cùng file)</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Unit</th><th>Kiểu</th><th>Chốt</th><th>Vai trò</th></tr></thead>
+      <tbody>
+        <tr><td><code>bee-reconcile.timer</code></td><td>timer</td><td><code>OnUnitInactiveSec=30s</code></td><td>Nhịp — đếm từ lúc tick trước xong</td></tr>
+        <tr><td><code>bee-reconcile.service</code></td><td>oneshot</td><td><code>TimeoutStartSec=120</code></td><td>Dispatcher, luôn nhanh</td></tr>
+        <tr><td><code>bee-task@.service</code></td><td>template</td><td><code>TimeoutStartSec=45min</code></td><td>Khoá + liệt kê + tách log, cả ba miễn phí</td></tr>
+        <tr><td><code>bee-heartbeat.timer</code></td><td>timer</td><td>—</td><td>Bắt chế độ hỏng nguy hiểm nhất</td></tr>
+        <tr><td><code>bee.slice</code></td><td>slice</td><td><code>MemoryMax=24G</code></td><td>Giữ chỗ để bạn vẫn dùng được máy</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="col">
+    Cài bằng <code>sudo ./apps/reconciler/install.sh</code> — idempotent, chạy
+    lại vô hại. Xong thì hệ thống <strong>nằm im</strong>: installer tạo sẵn
+    <code>/etc/bee/PAUSE</code>, và in ra checklist năm việc bắt buộc phải có
+    người (login Claude dưới <code>bee-agent</code>, <code>gh auth</code> dưới
+    <code>bee-orch</code>, điền token, thêm repo, chạy <code>be doctor</code>).
+  </p>
+</section>
+
+<!-- ====================================================================== -->
+<section>
+  <div class="sec-head"><span class="view">Hiện trạng</span><h2>Đã dựng tới đâu</h2></div>
+
+  <p class="col">
+    Mốc theo năng lực, không theo lịch. Mỗi mốc phải chạy thật trước khi sang
+    mốc sau.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Mốc</th><th>Nội dung</th><th>Code</th><th>Đã nghiệm thu</th></tr></thead>
+      <tbody>
+        <tr><td><b>M0</b></td><td>Khung chạy khô — hai user, sudoers, template unit, <code>be doctor</code>, <code>be dry-run</code></td>
+            <td><span class="chip ok">đủ</span></td><td><span class="chip no">chưa — cần thao tác trên máy thật</span></td></tr>
+        <tr><td><b>M1</b></td><td>Rule 07 — issue → worktree → agent → draft PR</td>
+            <td><span class="chip ok">đủ</span></td><td><span class="chip no">chưa chạy</span></td></tr>
+        <tr><td><b>M2</b></td><td>Rule 01 + 03 + dashboard chỉ đọc</td>
+            <td><span class="chip ok">đủ</span></td><td><span class="chip no">chưa chạy</span></td></tr>
+        <tr><td><b>M3</b></td><td>Rule 04 + 05 — bằng chứng và cổng duyệt</td>
+            <td><span class="chip ok">đủ</span></td><td><span class="chip part">có rig, chưa chạy máy thật</span></td></tr>
+        <tr><td><b>M4</b></td><td>Rule 02 — vòng feedback, nối session bằng <code>--resume</code></td>
+            <td><span class="chip ok">đủ</span></td><td><span class="chip no">chưa chạy</span></td></tr>
+        <tr><td><b>M5</b></td><td>Rule 08 + 09 + cảnh báo heartbeat</td>
+            <td><span class="chip ok">đủ</span></td><td><span class="chip no">chưa chạy</span></td></tr>
+        <tr><td><b>M6</b></td><td>Rule 06 — preview env, opt-in</td>
+            <td><span class="chip no">mới có phần scan</span></td><td>—</td></tr>
+        <tr><td><b>M7</b></td><td>Widget UI feedback với <code>file:line</code></td>
+            <td><span class="chip no">chưa bắt đầu</span></td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note bad">
+    <p class="note-h">Ba lỗi im lặng đã tìm ra và vá</p>
+    <p>
+      <b>1 · <code>origin/HEAD</code> chưa từng phân giải được.</b>
+      <code>git clone --bare</code> không đặt <code>remote.origin.fetch</code> và
+      không tạo <code>refs/remotes/origin/*</code>, nên
+      <code>remote set-head --auto</code> fail thẳng. Hệ quả: không worktree nào
+      tạo được, compose file không đọc được — và
+      <code>.agent/PAUSE</code>, kill switch phía GitHub, <em>chưa bao giờ</em>
+      được nhìn thấy. <code>be doctor</code> giờ kiểm lại điều này.
+    </p>
+    <p>
+      <b>2 · <code>.env.test</code> lọt vào mọi PR.</b>
+      <code>git add -A</code> quét luôn file cổng động do orch sinh ra. Giờ
+      <code>testenv_down</code> dọn nó — file nào orch tạo thì orch xoá.
+    </p>
+    <p>
+      <b>3 · Rule 04 chạy lại vô hạn.</b> Bộ đếm lần thử dùng chung với rule 01
+      bị <code>worktree_push_and_report</code> reset ngay trước khi kịp tăng, nên
+      không bao giờ chạm ngưỡng — mỗi vòng lặp là một lần gọi model cộng một lần
+      chạy E2E. Giờ rule 04 dùng bộ đếm riêng.
+    </p>
+  </div>
+
+  <p class="col">
+    Cả ba đều thuộc cùng một họ: <strong>hệ thống vẫn chạy, chỉ là không làm gì
+    cả</strong> — hoặc làm sai một cách không để lại dấu vết. Đó là cái giá của
+    việc chọn reconciler thay vì Actions, và là lý do <code>be doctor</code> phải
+    kiểm chứ đừng đoán.
+  </p>
+
+  <p class="col">
+    <strong>M0 là mốc quan trọng nhất và chưa ai chạy.</strong> Nếu bỏ qua nó,
+    lúc agent ra kết quả sai bạn sẽ không phân biệt được lỗi ở prompt hay ở hạ
+    tầng của chính mình — debug hai ẩn số cùng lúc.
+  </p>
+</section>
+
+<footer class="end">
+  <p>
+    Tài liệu này mô tả <em>hệ thống</em>. Phần lập luận vì sao chọn từng phương
+    án nằm ở <code>docs/design/agent-flow.md</code> và
+    <code>docs/design/reconciler.md</code>; mã nguồn ở
+    <code>apps/reconciler/</code>. Khi ba nguồn lệch nhau, mã nguồn đúng.
+  </p>
+</footer>
+
+</div>
+</body>
+</html>

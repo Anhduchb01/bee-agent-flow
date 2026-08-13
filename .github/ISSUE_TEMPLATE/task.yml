@@ -1,0 +1,76 @@
+name: Task cho agent
+description: Một đơn vị công việc agent có thể nhận. Không có hợp đồng thì không chạy.
+title: "[task] "
+labels: ["status:draft"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Năm mục dưới đây đều **bắt buộc**. Thiếu một mục là spec gatekeeper sẽ
+        hỏi ngược lại và task nằm chờ thêm một vòng — điền đủ ngay từ đầu rẻ hơn.
+
+        Điền xong thì gắn label `status:ready-for-spec` để agent chấm độ rõ.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Mục tiêu
+      description: Một câu, nhìn từ phía người dùng. Đây là thứ agent bám vào khi phải chọn giữa hai cách làm.
+      placeholder: Người dùng lọc được danh sách đơn hàng theo trạng thái để tìm đơn cần xử lý mà không phải cuộn hết trang.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: |
+        Dạng Given/When/Then, mỗi tiêu chí một checkbox. Đây sẽ trở thành test
+        case và tên file E2E — nên phải **kiểm chứng được**. Tránh "hợp lý",
+        "mượt", "nhanh": chúng không viết thành assertion được.
+      value: |
+        - [ ] Given …, When …, Then …
+        - [ ] Given …, When …, Then …
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Ràng buộc kỹ thuật
+      description: File/module được phép đụng, API contract phải giữ nguyên, thư viện bắt buộc hoặc bị cấm, yêu cầu về dữ liệu/migration.
+      placeholder: |
+        - Chỉ đụng module đơn hàng; không sửa module thanh toán.
+        - Giữ nguyên response shape của GET /orders — client mobile đang dùng.
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Quan trọng ngang AC — đây là thứ chặn agent nở scope. Ghi cả những thứ "trông có vẻ nên làm luôn".
+      placeholder: |
+        - Không làm phân trang (sẽ có issue riêng).
+        - Không refactor bảng danh sách hiện tại.
+    validations:
+      required: true
+
+  - type: textarea
+    id: ui-reference
+    attributes:
+      label: UI Reference
+      description: Link Figma, screenshot, hoặc mô tả. Task không có UI thì ghi rõ "không có UI".
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Trước khi gắn agent:eligible
+      description: |
+        `agent:eligible` là cờ opt-in. Người gắn nó chịu trách nhiệm rằng task
+        này phù hợp để giao máy.
+      options:
+        - label: AC ở trên viết thành test được, không cần đoán thêm.
+        - label: Task này không đụng tới secret, quyền, hay hạ tầng CI/CD.
