@@ -12,7 +12,7 @@ test("trên điện thoại: đọc được hộp thư, không tràn ngang", as
   await vaoViec(page, "pm-linh");
 
   // Sức khoẻ hệ thống giờ sống ở Tổng quan và ở chân sidebar, không ở đây.
-  await expect(page.getByRole("group", { name: "Việc đang chờ bạn" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Việc đang chờ bạn" })).toBeVisible();
 
   const tran = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,

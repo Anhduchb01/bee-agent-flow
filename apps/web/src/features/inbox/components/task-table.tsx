@@ -4,8 +4,19 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { StatusDot, type Tone } from "@/components/status-dot";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { daCho } from "@/lib/duration";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +40,7 @@ const TONE: Record<InboxKind, Tone> = {
   "cho-phep-nhan-task": "warn",
 };
 
-/** Ô chọn trong hàng lọc: `<select>` thật, nên bàn phím và mobile hoạt động sẵn. */
+/** `<select>` thật, nên bàn phím và bàn phím ảo trên điện thoại hoạt động sẵn. */
 function OChon({
   label,
   value,
@@ -46,14 +57,12 @@ function OChon({
       aria-label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-8 w-full rounded-control border border-border bg-card px-2 text-xs text-body"
+      className="h-8 w-full rounded-control border bg-background px-2 text-xs font-normal text-body"
     >
       {children}
     </select>
   );
 }
-
-const COT = "grid grid-cols-[11rem_1fr_8.5rem_9rem] items-center gap-4 px-5";
 
 export function TaskTable({ items }: { items: InboxItem[] }) {
   const [boLoc, setBoLoc] = useState<BoLoc>(BO_LOC_RONG);
@@ -68,177 +77,196 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-x-auto">
-        <div className="min-w-[48rem] overflow-hidden rounded-card border border-border bg-card">
-          {/* Tiêu đề cột — chữ thường, xám, để nó lùi lại sau dữ liệu */}
-          <div className={cn(COT, "border-b border-border py-2.5")}>
-            <span className="text-xs text-muted-foreground">Loại</span>
-            <span className="text-xs text-muted-foreground">Tiêu đề</span>
-            <span className="text-xs text-muted-foreground">Đã chờ</span>
-            <span className="text-right text-xs text-muted-foreground">Hành động</span>
-          </div>
+      <Card className="overflow-hidden py-0">
+        {/* Bảng có tên, và MỖI DỰ ÁN một <tbody> có tên: một <tbody> chung thì
+            hàng đầu nhóm và hàng dữ liệu cùng là `row`, và không truy vấn nào
+            phân biệt được chúng — cho cả trình đọc màn hình lẫn cho test. */}
+        <Table aria-label="Việc đang chờ bạn">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-44">Loại</TableHead>
+              <TableHead>Tiêu đề</TableHead>
+              <TableHead className="w-36">Đã chờ</TableHead>
+              <TableHead className="w-40 text-right">Hành động</TableHead>
+            </TableRow>
 
-          {/* Hàng lọc — mỗi cột lọc bằng đúng thứ nó hiển thị */}
-          <div className={cn(COT, "border-b border-border bg-muted/40 py-2")}>
-            <OChon
-              label="Lọc theo loại"
-              value={boLoc.loai}
-              onChange={(v) => dat("loai", v as BoLoc["loai"])}
-            >
-              <option value="tat-ca">Mọi loại</option>
-              {loai.map((k) => (
-                <option key={k} value={k}>
-                  {KIND_LABEL[k]}
-                </option>
-              ))}
-            </OChon>
-
-            <div className="flex items-center gap-3">
-              <Input
-                aria-label="Tìm trong tiêu đề"
-                placeholder="Tìm tiêu đề hoặc myapp#42 — gõ không dấu cũng được"
-                value={boLoc.tim}
-                onChange={(e) => dat("tim", e.target.value)}
-                className="h-8 text-xs"
-              />
-              <div className="w-32 shrink-0">
-                <OChon label="Lọc theo dự án" value={boLoc.duAn} onChange={(v) => dat("duAn", v)}>
-                  <option value="tat-ca">Mọi dự án</option>
-                  {duAn.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
+            {/* Hàng lọc nằm ngay dưới tiêu đề: mỗi cột lọc bằng đúng thứ nó
+                hiển thị, nên không phải nhớ bộ lọc nào ứng với cột nào. */}
+            <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableHead className="py-2">
+                <OChon
+                  label="Lọc theo loại"
+                  value={boLoc.loai}
+                  onChange={(v) => dat("loai", v as BoLoc["loai"])}
+                >
+                  <option value="tat-ca">Mọi loại</option>
+                  {loai.map((k) => (
+                    <option key={k} value={k}>
+                      {KIND_LABEL[k]}
                     </option>
                   ))}
                 </OChon>
-              </div>
-            </div>
+              </TableHead>
 
-            <OChon
-              label="Lọc theo thời gian đã chờ"
-              value={String(boLoc.choLauHonS)}
-              onChange={(v) => dat("choLauHonS", Number(v))}
-            >
-              {NGUONG_CHO.map((n) => (
-                <option key={n.value} value={n.value}>
-                  {n.label}
-                </option>
-              ))}
-            </OChon>
+              <TableHead className="py-2">
+                <div className="flex items-center gap-3">
+                  <Input
+                    aria-label="Tìm trong tiêu đề"
+                    placeholder="Tìm tiêu đề hoặc myapp#42 — gõ không dấu cũng được"
+                    value={boLoc.tim}
+                    onChange={(e) => dat("tim", e.target.value)}
+                    className="h-8 text-xs font-normal"
+                  />
+                  <div className="w-36 shrink-0">
+                    <OChon
+                      label="Lọc theo dự án"
+                      value={boLoc.duAn}
+                      onChange={(v) => dat("duAn", v)}
+                    >
+                      <option value="tat-ca">Mọi dự án</option>
+                      {duAn.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </OChon>
+                  </div>
+                </div>
+              </TableHead>
 
-            <label className="flex items-center justify-end gap-2 text-xs text-body">
-              <input
-                type="checkbox"
-                checked={boLoc.uuTien}
-                onChange={(e) => dat("uuTien", e.target.checked)}
-                className="size-4 rounded-control border-border accent-foreground"
-              />
-              Chỉ ưu tiên
-            </label>
-          </div>
+              <TableHead className="py-2">
+                <OChon
+                  label="Lọc theo thời gian đã chờ"
+                  value={String(boLoc.choLauHonS)}
+                  onChange={(v) => dat("choLauHonS", Number(v))}
+                >
+                  {NGUONG_CHO.map((n) => (
+                    <option key={n.value} value={n.value}>
+                      {n.label}
+                    </option>
+                  ))}
+                </OChon>
+              </TableHead>
+
+              <TableHead className="py-2">
+                <label className="flex items-center justify-end gap-2 text-xs font-normal text-body">
+                  <input
+                    type="checkbox"
+                    checked={boLoc.uuTien}
+                    onChange={(e) => dat("uuTien", e.target.checked)}
+                    className="size-4 rounded-control border-border accent-foreground"
+                  />
+                  Chỉ ưu tiên
+                </label>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
 
           {hien.length === 0 ? (
-            <p className="px-5 py-12 text-center text-sm text-body">
-              {dangLoc
-                ? "Không có việc nào khớp bộ lọc."
-                : "Không có gì chờ bạn. Mọi thứ đang ở phía máy."}
-            </p>
+            <TableBody>
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={4} className="p-0">
+                  <Empty className="border-0">
+                    <EmptyHeader>
+                      <EmptyTitle>
+                        {dangLoc ? "Không có việc nào khớp bộ lọc" : "Không có gì chờ bạn"}
+                      </EmptyTitle>
+                      <EmptyDescription>
+                        {dangLoc
+                          ? "Nới bộ lọc, hoặc bỏ lọc để xem lại đủ danh sách."
+                          : "Mọi thứ đang ở phía máy. Bạn sẽ nhận thông báo khi có việc cần quyết."}
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
+                </TableCell>
+              </TableRow>
+            </TableBody>
           ) : (
-            /* Nhóm các khối, không phải danh sách lồng danh sách: đầu nhóm và
-               hàng dữ liệu cùng là `listitem` thì mọi truy vấn theo vai trò đều
-               nhập nhằng — cho cả trình đọc màn hình lẫn cho test. */
-            <div role="group" aria-label="Việc đang chờ bạn">
-              {nhom.map((g) => (
-                <section key={g.slug} aria-label={`Dự án ${g.slug}`}>
-                  {/*
-                   * Đầu nhóm dính khi cuộn: đọc tới dòng thứ mười của một dự án
-                   * mà không còn thấy tên nó thì việc gộp coi như chưa làm.
-                   */}
-                  <div
-                    className={cn(
-                      COT,
-                      "sticky top-0 z-[1] border-b border-border bg-muted/60 py-2 backdrop-blur",
-                    )}
-                  >
-                    <Link
-                      href={`/p/${g.slug}`}
-                      className="font-mono text-xs font-medium text-foreground underline-offset-4 hover:underline"
-                    >
-                      {g.slug}
-                    </Link>
-                    <span className="text-xs text-muted-foreground">
-                      {g.items.length} việc · lâu nhất {daCho(g.choLauNhatS).replace("đã chờ ", "")}
-                    </span>
-                    <span />
-                    <span />
-                  </div>
-
-                  <ul aria-label={`Việc của ${g.slug}`}>
-                    {g.items.map((i) => (
-                      <li
-                        key={i.key}
-                        className={cn(COT, "border-b border-border py-3 last:border-b-0")}
+            nhom.map((g) => (
+              <TableBody key={g.slug} aria-label={`Dự án ${g.slug}`}>
+                {/* Đầu nhóm dính khi cuộn: đọc tới dòng thứ mười của một dự án
+                    mà không còn thấy tên nó thì việc gộp coi như chưa làm. */}
+                <TableRow className="sticky top-0 z-[1] bg-muted/60 backdrop-blur hover:bg-muted/60">
+                  <TableCell colSpan={4} className="py-2">
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/p/${g.slug}`}
+                        className="font-mono text-xs font-medium text-foreground underline-offset-4 hover:underline"
                       >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <StatusDot tone={TONE[i.kind]} />
-                          <span className="truncate text-xs text-body">{KIND_LABEL[i.kind]}</span>
-                        </span>
+                        {g.slug}
+                      </Link>
+                      <span className="text-xs text-muted-foreground">
+                        {g.items.length} việc · lâu nhất{" "}
+                        {daCho(g.choLauNhatS).replace("đã chờ ", "")}
+                      </span>
+                    </div>
+                  </TableCell>
+                </TableRow>
 
-                        <span className="flex min-w-0 items-center gap-2.5">
-                          <Link
-                            href={`/t/${i.slug}/${i.number}`}
-                            className="truncate text-sm font-medium tracking-title text-foreground underline-offset-4 hover:underline"
-                          >
-                            {i.title}
-                          </Link>
-                          <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                            {i.slug}#{i.number}
-                          </span>
-                          {i.priority ? (
-                            <span className="shrink-0 rounded-pill border border-border px-2 text-xs text-body">
-                              ưu tiên
-                            </span>
-                          ) : null}
-                        </span>
+                {g.items.map((i) => (
+                  <TableRow key={i.key}>
+                    <TableCell>
+                      <span className="flex items-center gap-2">
+                        <StatusDot tone={TONE[i.kind]} />
+                        <span className="truncate text-xs text-body">{KIND_LABEL[i.kind]}</span>
+                      </span>
+                    </TableCell>
 
-                        <time
-                          dateTime={i.waitingSince}
-                          className="font-mono text-xs whitespace-nowrap tabular-nums text-muted-foreground"
+                    <TableCell>
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <Link
+                          href={`/t/${i.slug}/${i.number}`}
+                          className="truncate font-medium tracking-title text-foreground underline-offset-4 hover:underline"
                         >
-                          {daCho(i.waitingS)}
-                        </time>
-
-                        <span className="flex items-center justify-end gap-2">
-                          {i.prUrl ? (
-                            <a
-                              href={i.prUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-mono text-xs text-link underline underline-offset-4"
-                            >
-                              #{i.prNumber}
-                            </a>
-                          ) : null}
-                          <Link
-                            href={`/t/${i.slug}/${i.number}`}
-                            className={cn(
-                              buttonVariants({
-                                size: "sm",
-                                variant: i.action.kind === "mo-task" ? "outline" : "default",
-                              }),
-                            )}
-                          >
-                            {i.action.label}
-                          </Link>
+                          {i.title}
+                        </Link>
+                        <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                          {i.slug}#{i.number}
                         </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
+                        {i.priority ? (
+                          <Badge variant="outline" className="shrink-0">
+                            ưu tiên
+                          </Badge>
+                        ) : null}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className="font-mono text-xs whitespace-nowrap tabular-nums text-muted-foreground">
+                      <time dateTime={i.waitingSince}>{daCho(i.waitingS)}</time>
+                    </TableCell>
+
+                    <TableCell>
+                      <span className="flex items-center justify-end gap-2">
+                        {i.prUrl ? (
+                          <a
+                            href={i.prUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-xs text-link underline underline-offset-4"
+                          >
+                            #{i.prNumber}
+                          </a>
+                        ) : null}
+                        <Link
+                          href={`/t/${i.slug}/${i.number}`}
+                          className={cn(
+                            buttonVariants({
+                              size: "sm",
+                              variant: i.action.kind === "mo-task" ? "outline" : "default",
+                            }),
+                          )}
+                        >
+                          {i.action.label}
+                        </Link>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            ))
           )}
-        </div>
-      </div>
+        </Table>
+      </Card>
 
       {dangLoc ? (
         <div className="flex items-center gap-3 text-xs text-muted-foreground">

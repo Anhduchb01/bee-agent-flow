@@ -1,4 +1,5 @@
 import { StatusDot, type Tone } from "@/components/status-dot";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export interface Stat {
@@ -27,12 +28,8 @@ export interface Stat {
  */
 export function StatGrid({ stats, className }: { stats: Stat[]; className?: string }) {
   return (
-    <dl
-      className={cn(
-        "grid grid-cols-2 overflow-hidden rounded-card border border-border bg-card sm:grid-cols-4",
-        className,
-      )}
-    >
+    <Card className={cn("overflow-hidden py-0", className)}>
+      <dl className="grid grid-cols-2 sm:grid-cols-4">
       {stats.map((s, i) => (
         <div
           key={s.label}
@@ -40,10 +37,10 @@ export function StatGrid({ stats, className }: { stats: Stat[]; className?: stri
             "flex flex-col gap-1.5 px-5 py-4",
             // Đường kẻ vẽ bằng viền của chính ô, không bằng `divide-x`: ở lưới
             // 2 cột trên điện thoại, `divide-x` kẻ nhầm cả những chỗ xuống dòng.
-            i % 2 === 1 && "border-l border-border",
-            i >= 2 && "border-t border-border",
+            i % 2 === 1 && "border-l",
+            i >= 2 && "border-t",
             "sm:border-t-0",
-            i > 0 && "sm:border-l sm:border-border",
+            i > 0 && "sm:border-l",
           )}
         >
           <dt className="eyebrow">{s.label}</dt>
@@ -63,6 +60,7 @@ export function StatGrid({ stats, className }: { stats: Stat[]; className?: stri
           {s.hint ? <p className="text-xs text-muted-foreground">{s.hint}</p> : null}
         </div>
       ))}
-    </dl>
+      </dl>
+    </Card>
   );
 }
