@@ -47,16 +47,16 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
       return {
         ...NOTHING,
         level: "warn",
-        headline: "Chưa có dữ liệu từ reconciler",
+        headline: "No data from the reconciler yet",
         detail:
-          "Không tìm thấy status.json. Bình thường ngay sau khi cài, khi reconciler chưa chạy tick nào.",
+          "status.json not found. Normal right after install, before the reconciler has run a tick.",
       };
     }
     return {
       ...NOTHING,
       level: "down",
-      headline: "Không đọc được trạng thái hệ thống",
-      detail: `${read.reason === "malformed" ? "status.json sai định dạng" : "không mở được status.json"} · ${read.detail}`,
+      headline: "Cannot read system status",
+      detail: `${read.reason === "malformed" ? "status.json is malformed" : "cannot open status.json"} · ${read.detail}`,
     };
   }
 
@@ -81,11 +81,11 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
     return {
       ...shared,
       level: "down",
-      headline: "Reconciler có thể đã chết",
+      headline: "The reconciler may be dead",
       detail:
         ageS === null
-          ? "Heartbeat không đọc được — mọi con số dưới đây là của lần ghi cuối, không phải hiện tại."
-          : `Tick gần nhất cách đây ${Math.round(ageS / 60)} phút, quá ngưỡng ${STALE_AFTER_S / 60} phút. Mọi con số dưới đây là cũ.`,
+          ? "Heartbeat is unreadable — every number below is from the last write, not from now."
+          : `Last tick was ${Math.round(ageS / 60)} minutes ago, past the ${STALE_AFTER_S / 60}-minute threshold. Every number below is stale.`,
     };
   }
 
@@ -93,8 +93,8 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
     return {
       ...shared,
       level: "warn",
-      headline: "Toàn hệ thống đang tạm dừng",
-      detail: "Kill switch đang bật — reconciler vẫn sống nhưng không giao việc nào.",
+      headline: "The whole system is paused",
+      detail: "Kill switch is on — the reconciler is alive but hands out no work.",
     };
   }
 
@@ -102,18 +102,18 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
     return {
       ...shared,
       level: "warn",
-      headline: `${pausedRepos.length} dự án đang tạm dừng`,
-      detail: `${pausedRepos.join(", ")} — có .agent/PAUSE trên nhánh mặc định.`,
+      headline: `${pausedRepos.length} project(s) paused`,
+      detail: `${pausedRepos.join(", ")} — .agent/PAUSE is present on the default branch.`,
     };
   }
 
   return {
     ...shared,
     level: "ok",
-    headline: "Hệ thống đang chạy",
+    headline: "System is running",
     detail:
       status.repos.length === 0
-        ? "Chưa có dự án nào. Thêm bằng `be repo add <org/repo>` trên máy agent."
-        : `${status.repos.length} dự án · tick gần nhất ${ageS ?? 0}s trước.`,
+        ? "No projects yet. Add one with `be repo add <org/repo>` on the agent machine."
+        : `${status.repos.length} project(s) · last tick ${ageS ?? 0}s ago.`,
   };
 }

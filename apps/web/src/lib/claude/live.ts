@@ -31,7 +31,7 @@ export function createLiveClaudeSource(): ClaudeSource {
   return {
     read: () => {
       throw new Error(
-        "CLAUDE_SOURCE=live chưa cài đặt (pha B). Cần reconciler giữ lại usage trước — xem lib/claude/live.ts.",
+        "CLAUDE_SOURCE=live is not implemented yet (phase B). The reconciler must keep `usage` first — see lib/claude/live.ts.",
       );
     },
   };

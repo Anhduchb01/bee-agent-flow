@@ -12,8 +12,8 @@ import { khoangThoiGian } from "@/lib/duration";
 import { cn } from "@/lib/utils";
 
 const CUA_SO: Record<HanMuc["cuaSo"], string> = {
-  five_hour: "Hạn mức 5 giờ",
-  weekly: "Hạn mức tuần",
+  five_hour: "5-hour limit",
+  weekly: "Weekly limit",
 };
 
 const TRANG_THAI: Record<HanMuc["trangThai"], Tone> = {
@@ -67,7 +67,7 @@ function ThanhHanMuc({ hanMuc, now }: { hanMuc: HanMuc; now: number }) {
           {hanMuc.phanTram === null ? "—" : `${hanMuc.phanTram}%`}
         </span>
         <span className="text-xs text-muted-foreground">
-          cửa sổ mới sau {khoangThoiGian(conLai)}
+          new window in {khoangThoiGian(conLai)}
         </span>
       </div>
 
@@ -112,22 +112,22 @@ export function ClaudePanel({ snapshot, now }: { snapshot: ClaudeSnapshot; now: 
           </O>
         ))}
 
-        <O nhan="Token hôm nay" className="border-t">
+        <O nhan="Tokens today" className="border-t">
           <span className="font-mono text-2xl leading-none tabular-nums tracking-title text-foreground">
             {(mucDung.token / 1_000_000).toFixed(2)}
             <span className="text-sm"> M</span>
           </span>
           <span className="text-xs text-muted-foreground">
-            {Math.round(mucDung.tiLeCache * 100)}% đọc từ cache · {mucDung.soLanChay} lần chạy
+            {Math.round(mucDung.tiLeCache * 100)}% read from cache · {mucDung.soLanChay} runs
           </span>
         </O>
 
-        <O nhan="Chi phí hôm nay" className="border-t sm:border-l">
+        <O nhan="Cost today" className="border-t sm:border-l">
           <span className="font-mono text-2xl leading-none tabular-nums tracking-title text-foreground">
             ${mucDung.chiPhiHomNay.toFixed(2)}
           </span>
           <span className="text-xs text-muted-foreground">
-            bảy ngày: ${mucDung.chiPhiBayNgay.toFixed(2)}
+            seven days: ${mucDung.chiPhiBayNgay.toFixed(2)}
           </span>
         </O>
       </CardContent>

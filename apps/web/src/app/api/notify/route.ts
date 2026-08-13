@@ -14,10 +14,10 @@ export async function POST(req: Request) {
   const isLive = process.env.GITHUB_SOURCE === "live";
 
   if (isLive && !secret) {
-    return Response.json({ error: "NOTIFY_SECRET chưa cấu hình" }, { status: 503 });
+    return Response.json({ error: "NOTIFY_SECRET is not configured" }, { status: 503 });
   }
   if (secret && req.headers.get("x-bee-notify") !== secret) {
-    return Response.json({ error: "không có quyền" }, { status: 401 });
+    return Response.json({ error: "forbidden" }, { status: 401 });
   }
 
   const ketQua = await chayThongBao();

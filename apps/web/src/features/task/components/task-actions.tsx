@@ -36,7 +36,7 @@ export function TaskActions({ task, actor }: { task: GhTask; actor: Actor }) {
         setKetQua(await fn());
         router.refresh();
       } catch (e) {
-        setKetQua({ ok: false, message: e instanceof Error ? e.message : "Không làm được." });
+        setKetQua({ ok: false, message: e instanceof Error ? e.message : "Could not do that." });
       }
     });
   }
@@ -44,13 +44,13 @@ export function TaskActions({ task, actor }: { task: GhTask; actor: Actor }) {
   const nut: { label: string; run: () => Promise<KetQua> }[] = [];
 
   if (labels.has("status:spec-review") && actor.role === "pm") {
-    nut.push({ label: "Duyệt spec", run: () => duyetSpec(task.slug, task.number) });
+    nut.push({ label: "Approve spec", run: () => duyetSpec(task.slug, task.number) });
   }
   if (labels.has("agent:build") && !labels.has("agent:eligible")) {
     nut.push({ label: "Giao cho agent", run: () => giaoChoAgent(task.slug, task.number) });
   }
   if (task.pull && !task.pull.draft && testXanh && !daDuyet) {
-    nut.push({ label: "Duyệt PR", run: () => duyetPR(task.slug, task.number) });
+    nut.push({ label: "Approve PR", run: () => duyetPR(task.slug, task.number) });
   }
 
   if (nut.length === 0 && !ketQua) return null;

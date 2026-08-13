@@ -24,7 +24,7 @@ export function createFixtureBeeSource(): BeeSource {
       // lo phần "chưa có repo nào", còn đây là phần "chưa có status.json nào" —
       // hai chuyện khác nhau, và cả hai đều xảy ra thật ngay sau install.sh.
       if (want === "chua-co-file") {
-        return { ok: false, reason: "missing", detail: "status.json chưa tồn tại" };
+        return { ok: false, reason: "missing", detail: "status.json does not exist" };
       }
       if (want === "json-hong") {
         return parseStatus('{"heartbeat": "2026-08-1');

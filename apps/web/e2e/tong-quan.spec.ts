@@ -8,50 +8,50 @@ test.beforeEach(async ({ page }) => {
 
 test("bốn khối, đúng thứ tự đã duyệt", async ({ page }) => {
   const main = page.getByRole("main");
-  for (const ten of ["Claude", "Máy đang làm", "Dự án", "Bảy ngày qua"]) {
+  for (const ten of ["Claude", "Machine is working", "Projects", "Last seven days"]) {
     await expect(main.getByText(ten, { exact: true })).toBeVisible();
   }
 
   // Hai khối bị bỏ vì lặp lại màn "Việc của bạn".
-  await expect(main.getByText("Cần bạn ngay")).toHaveCount(0);
-  await expect(main.getByText("Chặn lâu nhất")).toHaveCount(0);
+  await expect(main.getByText("Needs you now")).toHaveCount(0);
+  await expect(main.getByText("Longest blocked")).toHaveCount(0);
 });
 
 test("hạn mức hiện thanh phần trăm và đồng hồ tới cửa sổ mới", async ({ page }) => {
-  const nam = page.getByRole("progressbar", { name: "Hạn mức 5 giờ" });
+  const nam = page.getByRole("progressbar", { name: "5-hour limit" });
   await expect(nam).toBeVisible();
   await expect(nam).toHaveAttribute("aria-valuenow", "38");
 
-  await expect(page.getByRole("progressbar", { name: "Hạn mức tuần" })).toHaveAttribute(
+  await expect(page.getByRole("progressbar", { name: "Weekly limit" })).toHaveAttribute(
     "aria-valuenow",
     "81",
   );
-  await expect(page.getByText(/cửa sổ mới sau/).first()).toBeVisible();
+  await expect(page.getByText(/new window in/).first()).toBeVisible();
 });
 
 test("máy đang làm nói được việc gì, không chỉ số hiệu", async ({ page }) => {
-  const khoi = page.getByRole("main").getByText("Máy đang làm").locator("../..");
+  const khoi = page.getByRole("main").getByText("Machine is working").locator("../..");
   await expect(khoi).toContainText("myapp#42");
-  await expect(khoi).toContainText("Thêm trang cài đặt thông báo");
+  await expect(khoi).toContainText("Add a notification settings page");
   await expect(khoi).toContainText("07-build");
 });
 
 // Đây là toàn bộ lý do khối "Dự án" tồn tại: hai dự án khác hẳn nhau mà một cột
 // "tổng số task" không phân biệt được.
 test("mỗi dự án một thanh chia theo giai đoạn, trên trục chung", async ({ page }) => {
-  const khoi = page.getByRole("main").getByText("Dự án", { exact: true }).locator("../..");
+  const khoi = page.getByRole("main").getByText("Projects", { exact: true }).locator("../..");
 
   // Tên dự án là nhãn trục, và cả sáu giai đoạn có mặt trong chú giải.
   for (const ten of ["myapp", "shop", "blog"]) {
     await expect(khoi.getByText(ten, { exact: true })).toBeVisible();
   }
-  for (const ten of ["Cần người", "Agent đang làm", "Chờ duyệt PR"]) {
+  for (const ten of ["Needs human", "Agent working", "PR review"]) {
     await expect(khoi.getByText(ten, { exact: true })).toBeVisible();
   }
 });
 
 test("biểu đồ bảy ngày dựng đủ bảy cột và gọi tên xu hướng", async ({ page }) => {
-  await expect(page.getByText("Bảy ngày qua")).toBeVisible();
-  await expect(page.getByText(/lần chạy thất bại|lần chạy xong/)).toBeVisible();
-  await expect(page.getByText("Hôm nay", { exact: true })).toBeVisible();
+  await expect(page.getByText("Last seven days")).toBeVisible();
+  await expect(page.getByText(/runs failed today|runs finished today/)).toBeVisible();
+  await expect(page.getByText("Today", { exact: true })).toBeVisible();
 });

@@ -36,13 +36,13 @@ export function ProjectCard({ project }: { project: ProjectView }) {
           {project.repo?.paused ? (
             <span className="flex items-center gap-1.5 text-xs font-normal text-body">
               <StatusDot tone="warn" />
-              tạm dừng
+              paused
             </span>
           ) : null}
           {project.repo === null ? (
             <span className="flex items-center gap-1.5 text-xs font-normal text-body">
               <StatusDot tone="idle" />
-              reconciler chưa biết dự án này
+              reconciler does not know this project
             </span>
           ) : null}
         </CardTitle>
@@ -51,10 +51,10 @@ export function ProjectCard({ project }: { project: ProjectView }) {
 
       <CardContent>
         <dl className="flex flex-wrap gap-x-8 gap-y-3">
-          <So nhan="Đang chạy" gia={`${project.running.length}/${project.repo?.wip.max ?? "?"}`} />
-          <So nhan="Hàng đợi" gia={String(queue)} />
-          <So nhan="Task mở" gia={String(project.tasks.length)} />
-          <So nhan="PR mở" gia={String(project.prs.length)} />
+          <So nhan="Running" gia={`${project.running.length}/${project.repo?.wip.max ?? "?"}`} />
+          <So nhan="Queued" gia={String(queue)} />
+          <So nhan="Open tasks" gia={String(project.tasks.length)} />
+          <So nhan="Open PRs" gia={String(project.prs.length)} />
         </dl>
       </CardContent>
       </Card>

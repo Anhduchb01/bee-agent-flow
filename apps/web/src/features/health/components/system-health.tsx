@@ -25,8 +25,8 @@ function tomTatMay(health: Health): string | null {
   if (!health.slots) return null;
   return [
     `build ${health.slots.build.used}/${health.slots.build.max}`,
-    `bằng chứng ${health.slots.evidence.used}/${health.slots.evidence.max}`,
-    `hàng đợi ${health.queued}`,
+    `evidence ${health.slots.evidence.used}/${health.slots.evidence.max}`,
+    `${health.queued} queued`,
   ].join(" · ");
 }
 
@@ -36,7 +36,7 @@ export function SystemHealth({ health }: { health: Health }) {
   if (health.level === "ok") {
     return (
       <section
-        aria-label="Sức khoẻ hệ thống"
+        aria-label="System health"
         className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
       >
         <StatusDot tone="ok" />
@@ -50,7 +50,7 @@ export function SystemHealth({ health }: { health: Health }) {
 
   return (
     <section
-      aria-label="Sức khoẻ hệ thống"
+      aria-label="System health"
       className={cn("rounded-card border bg-card px-5 py-4", VIEN[health.level])}
     >
       <div className="flex items-start gap-2.5">
@@ -72,8 +72,8 @@ export function SystemHealth({ health }: { health: Health }) {
 
           {health.dropped > 0 ? (
             <p className="mt-3 text-xs text-muted-foreground">
-              {health.dropped} mục trong status.json sai hình dạng và đã bị bỏ qua. Kiểu
-              trong <code>lib/bee/types.ts</code> có thể đã lệch với reconciler.
+              {health.dropped} entries in status.json had the wrong shape and were dropped. The
+              types in <code>lib/bee/types.ts</code> may have drifted from the reconciler.
             </p>
           ) : null}
         </div>

@@ -25,7 +25,7 @@ test("lượt đầu bắn một tin gộp, có link mở thẳng vào task", as
   expect(pm.keys.length).toBeGreaterThan(1);
   // Nhiều mục → một tin duy nhất cho người đó.
   expect(body.gui.filter((g: { login: string }) => g.login === "pm-linh")).toHaveLength(1);
-  expect(pm.text).toContain("việc đang chờ bạn");
+  expect(pm.text).toContain("items waiting on you");
   expect(pm.text).toMatch(/→ \S+\/t\/\w+\/\d+/);
 });
 
@@ -35,5 +35,5 @@ test("gọi lại ngay sau đó thì không bắn lại", async ({ request }) =>
 
   const body = await res.json();
   expect(body.gui).toEqual([]);
-  expect(Object.values(body.boQua).join(" ")).toMatch(/gộp vào lượt sau|không có mục nào mới/);
+  expect(Object.values(body.boQua).join(" ")).toMatch(/batching into the next round|nothing new/);
 });

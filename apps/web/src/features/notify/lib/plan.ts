@@ -85,15 +85,15 @@ export function lenKeHoach({
     const moi = n.items.filter((i) => !(i.key in cu.daBao));
 
     if (moi.length === 0) {
-      boQua[n.login] = "không có mục nào mới";
+      boQua[n.login] = "nothing new";
       continue;
     }
     if (giay(cu.thaoTacCuoi, now) < IM_LANG_SAU_THAO_TAC_S) {
-      boQua[n.login] = "vừa thao tác trong app";
+      boQua[n.login] = "just acted in the app";
       continue;
     }
     if (giay(cu.lanCuoi, now) < GAP_S) {
-      boQua[n.login] = "vừa gửi tin, gộp vào lượt sau";
+      boQua[n.login] = "messaged recently, batching into the next round";
       continue;
     }
 
@@ -103,7 +103,7 @@ export function lenKeHoach({
     const dau =
       sap.length === 1
         ? dongTin(sap[0], goc)
-        : `🐝 ${sap.length} việc đang chờ bạn\n\n${sap.map((i) => dongTin(i, goc)).join("\n\n")}`;
+        : `🐝 ${sap.length} items waiting on you\n\n${sap.map((i) => dongTin(i, goc)).join("\n\n")}`;
 
     tin.push({ login: n.login, text: dau, keys: sap.map((i) => i.key) });
 

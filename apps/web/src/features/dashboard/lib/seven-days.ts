@@ -3,14 +3,14 @@ import type { BeeRecentRun } from "@/lib/bee/types";
 export interface NgayChay {
   /** `YYYY-MM-DD` theo giờ địa phương. */
   ngay: string;
-  /** Nhãn ngắn trên trục: T2…CN, hoặc "Hôm nay". */
+  /** Nhãn ngắn trên trục: Mon…Sun, hoặc "Today". */
   nhan: string;
   xong: number;
   loi: number;
   tong: number;
 }
 
-const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const THU = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function khoaNgay(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -49,7 +49,7 @@ export function bayNgayQua(runs: BeeRecentRun[], now: Date = new Date()): NgayCh
     const o = dem.get(key) ?? { xong: 0, loi: 0 };
     out.push({
       ngay: key,
-      nhan: i === 0 ? "Hôm nay" : THU[d.getDay()],
+      nhan: i === 0 ? "Today" : THU[d.getDay()],
       xong: o.xong,
       loi: o.loi,
       tong: o.xong + o.loi,
@@ -66,13 +66,13 @@ export function tomTatBayNgay(days: NgayChay[]): string | null {
   const loiTruoc = truoc.reduce((n, d) => n + d.loi, 0);
 
   if (!homNay || (homNay.tong === 0 && tongTruoc === 0)) return null;
-  if (homNay.tong === 0) return "Hôm nay chưa có lần chạy nào.";
+  if (homNay.tong === 0) return "No runs today yet.";
 
   const tiLeHomNay = homNay.loi / homNay.tong;
   const tiLeTruoc = tongTruoc === 0 ? 0 : loiTruoc / tongTruoc;
 
   if (homNay.loi > 0 && tiLeHomNay > tiLeTruoc * 2) {
-    return `Hôm nay ${homNay.loi}/${homNay.tong} lần chạy thất bại — cao hơn hẳn sáu ngày trước.`;
+    return `${homNay.loi} of ${homNay.tong} runs failed today — sharply higher than the six days before.`;
   }
-  return `Hôm nay ${homNay.xong}/${homNay.tong} lần chạy xong.`;
+  return `${homNay.xong} of ${homNay.tong} runs finished today.`;
 }

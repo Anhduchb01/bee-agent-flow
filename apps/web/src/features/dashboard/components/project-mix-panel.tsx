@@ -64,9 +64,9 @@ export function ProjectMixPanel({ duAn }: { duAn: HonHopDuAn[] }) {
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b bg-muted/30 px-5 py-3.5">
-        <CardTitle className="text-base tracking-title">Dự án</CardTitle>
+        <CardTitle className="text-base tracking-title">Projects</CardTitle>
         <CardDescription>
-          Chiều dài thanh là khối lượng, màu là giai đoạn. Bấm để mở dự án.
+          Bar length is workload, colour is stage. Click to open a project.
         </CardDescription>
       </CardHeader>
 
@@ -74,8 +74,8 @@ export function ProjectMixPanel({ duAn }: { duAn: HonHopDuAn[] }) {
         {data.length === 0 ? (
           <Empty className="border-0">
             <EmptyHeader>
-              <EmptyTitle>Chưa có task nào đang mở</EmptyTitle>
-              <EmptyDescription>Tạo task đầu tiên từ trang dự án.</EmptyDescription>
+              <EmptyTitle>No open tasks</EmptyTitle>
+              <EmptyDescription>Create the first one from a project page.</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (

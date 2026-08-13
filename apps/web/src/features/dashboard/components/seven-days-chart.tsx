@@ -38,8 +38,8 @@ const CAU_HINH = {
   // Xanh nước biển, không phải xanh điện: `--link` (#0070f3) rực và kéo mắt
   // như một cái link bấm được. `--link-deep` (#0761d1) trầm hơn, để khối đỏ
   // giữ nguyên vai trò tín hiệu duy nhất của biểu đồ.
-  xong: { label: "Chạy xong", color: "var(--link-deep)" },
-  loi: { label: "Thất bại", color: "var(--destructive)" },
+  xong: { label: "Finished", color: "var(--link-deep)" },
+  loi: { label: "Failed", color: "var(--destructive)" },
 } satisfies ChartConfig;
 
 /**
@@ -52,7 +52,7 @@ export function SevenDaysChart({ days, tomTat }: { days: NgayChay[]; tomTat: str
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b bg-muted/30 px-5 py-3.5">
-        <CardTitle className="text-base tracking-title">Bảy ngày qua</CardTitle>
+        <CardTitle className="text-base tracking-title">Last seven days</CardTitle>
         {tomTat ? <CardDescription>{tomTat}</CardDescription> : null}
       </CardHeader>
 
@@ -60,9 +60,9 @@ export function SevenDaysChart({ days, tomTat }: { days: NgayChay[]; tomTat: str
         {days.every((d) => d.tong === 0) ? (
           <Empty className="border-0">
             <EmptyHeader>
-              <EmptyTitle>Chưa có lần chạy nào</EmptyTitle>
+              <EmptyTitle>No runs yet</EmptyTitle>
               <EmptyDescription>
-                Bảy ngày qua máy chưa chạy rule nào. Thêm dự án và mở kill switch để bắt đầu.
+                No rule has run in the last seven days. Add a project and lift the kill switch to start.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

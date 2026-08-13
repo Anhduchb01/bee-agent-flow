@@ -12,8 +12,8 @@ export default async function ViecCuaBanPage() {
   return (
     <>
       <PageHeader
-        title="Việc của bạn"
-        meta={<span className="font-mono text-xs text-muted-foreground">{items.length} việc</span>}
+        title="Your work"
+        meta={<span className="font-mono text-xs text-muted-foreground">{items.length} items</span>}
       />
       <div className="flex flex-col gap-6 p-4 sm:p-6">
         <StatGrid stats={thongKeViec(items)} />

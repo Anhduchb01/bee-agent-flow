@@ -23,10 +23,10 @@ export const BO_LOC_RONG: BoLoc = {
 };
 
 export const NGUONG_CHO = [
-  { value: 0, label: "Mọi lúc" },
-  { value: 3600, label: "Quá 1 giờ" },
-  { value: 4 * 3600, label: "Quá 4 giờ" },
-  { value: 24 * 3600, label: "Quá 1 ngày" },
+  { value: 0, label: "Any wait" },
+  { value: 3600, label: "Over 1 hour" },
+  { value: 4 * 3600, label: "Over 4 hours" },
+  { value: 24 * 3600, label: "Over 1 day" },
 ] as const;
 
 /** Bỏ dấu để "loc don" tìm được "lọc đơn" — người ta gõ không dấu khi vội. */

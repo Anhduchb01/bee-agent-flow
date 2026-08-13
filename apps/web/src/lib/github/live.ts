@@ -17,7 +17,7 @@ import type { GithubSource } from "./types";
 export function createLiveGithubSource(): GithubSource {
   const notYet = (): never => {
     throw new Error(
-      "GITHUB_SOURCE=live chưa cài đặt (pha B). Đặt GITHUB_SOURCE=fixture để chạy trên dữ liệu mẫu.",
+      "GITHUB_SOURCE=live is not implemented yet (phase B). Set GITHUB_SOURCE=fixture to run on sample data.",
     );
   };
 

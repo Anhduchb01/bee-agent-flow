@@ -7,19 +7,19 @@ test("issue và PR liên kết hiện thành một trang", async ({ page }) => {
   await page.goto("/t/myapp/40");
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Lọc đơn hàng theo trạng thái",
+    "Filter orders by status",
   );
 
   // Phần issue.
   await expect(page.getByText("Acceptance Criteria")).toBeVisible();
-  await expect(page.getByText("Given danh sách đơn").first()).toBeVisible();
+  await expect(page.getByText("Given the orders list").first()).toBeVisible();
 
   // Dải bốn con số trả lời trước khi phải đọc hợp đồng.
-  await expect(page.getByText("Giai đoạn")).toBeVisible();
-  await expect(page.getByText("Chờ duyệt PR")).toBeVisible();
+  await expect(page.getByText("Stage")).toBeVisible();
+  await expect(page.getByText("PR review")).toBeVisible();
 
   // Phần PR, trên cùng một trang.
-  await expect(page.getByRole("link", { name: "#45 trên GitHub" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "#45 on GitHub" })).toHaveAttribute(
     "href",
     "https://github.com/org/myapp/pull/45",
   );
@@ -33,7 +33,7 @@ test("dòng thời gian xen kẽ theo thứ tự thật", async ({ page }) => {
 
   // Không khẳng định số lượng: bài test chat ghi thêm comment vào chính task
   // này, và store fixture sống suốt cả lượt chạy. Thứ tự mới là điều đang kiểm.
-  const items = page.getByRole("list", { name: "Dòng thời gian" }).getByRole("listitem");
+  const items = page.getByRole("list", { name: "Timeline" }).getByRole("listitem");
   await expect(items.nth(0)).toContainText("Phạm Đức");
   await expect(items.nth(1)).toContainText("bee (agent)");
   await expect(items.nth(1)).toContainText("agent");
@@ -57,14 +57,14 @@ test("task chưa có bằng chứng thì nói rõ, không để trống", async 
   await dangNhap(page, "pm-linh");
   await page.goto("/t/myapp/38");
 
-  await expect(page.getByText("Chưa có bằng chứng cho commit này")).toBeVisible();
+  await expect(page.getByText("No evidence for this commit yet")).toBeVisible();
 });
 
 test("issue thiếu mục thì báo hợp đồng chưa đủ", async ({ page }) => {
   await dangNhap(page, "pm-linh");
   await page.goto("/t/shop/33");
 
-  await expect(page.getByText("Hợp đồng chưa đủ")).toBeVisible();
+  await expect(page.getByText("Incomplete contract")).toBeVisible();
   await expect(page.getByText("Acceptance Criteria")).toBeVisible();
 });
 
@@ -76,7 +76,7 @@ test("không có thao tác merge nào ở bất kỳ đâu", async ({ page }) =>
 
   for (const url of ["/", "/viec", "/du-an", "/p/myapp", "/p/myapp?view=kanban", "/t/myapp/40", "/t/shop/30"]) {
     await page.goto(url);
-    await expect(page.getByRole("button", { name: /merge|gộp nhánh/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /merge/i })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /^merge/i })).toHaveCount(0);
     await expect(page.locator("form[action*='merge']")).toHaveCount(0);
   }

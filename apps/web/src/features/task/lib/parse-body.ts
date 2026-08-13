@@ -7,9 +7,9 @@
  * được giữ nguyên và hiện ra dưới dạng văn bản, chứ không biến mất.
  */
 export const MUC = [
-  "Mục tiêu",
+  "Goal",
   "Acceptance Criteria",
-  "Ràng buộc kỹ thuật",
+  "Technical constraints",
   "Out of scope",
   "UI Reference",
 ] as const;

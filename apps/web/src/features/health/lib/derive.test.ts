@@ -15,9 +15,9 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
     const h = deriveHealth(read("reconciler-chet"), NOW);
 
     expect(h.level).toBe("down");
-    expect(h.headline).toContain("có thể đã chết");
-    expect(h.detail).toContain("35 phút");
-    expect(h.detail).toContain("cũ");
+    expect(h.headline).toContain("may be dead");
+    expect(h.detail).toContain("35 minutes");
+    expect(h.detail).toContain("stale");
   });
 
   it("heartbeat 30 phút → vẫn là đỏ (ngưỡng 10 phút)", () => {
@@ -48,7 +48,7 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
     const h = deriveHealth({ ok: false, reason: "missing", detail: "chưa tồn tại" }, NOW);
 
     expect(h.level).toBe("warn");
-    expect(h.headline).toContain("Chưa có dữ liệu");
+    expect(h.headline).toContain("No data from the reconciler");
     expect(h.slots).toBeNull();
   });
 
@@ -57,8 +57,8 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
     const h = deriveHealth(parseStatus("{hỏng"), NOW);
 
     expect(h.level).toBe("down");
-    expect(h.headline).toContain("Không đọc được");
-    expect(h.detail).toContain("sai định dạng");
+    expect(h.headline).toContain("Cannot read system status");
+    expect(h.detail).toContain("malformed");
   });
 });
 
@@ -99,7 +99,7 @@ describe("deriveHealth — slot và hàng đợi", () => {
     const h = deriveHealth(read("vua-cai"), NOW);
 
     expect(h.level).toBe("warn");
-    expect(h.headline).toContain("tạm dừng");
+    expect(h.headline).toContain("paused");
   });
 
   it("chưa có repo nào thì nói bước tiếp theo thay vì hiện số 0", () => {

@@ -72,25 +72,25 @@ export function CreateTaskDialog({ slug }: { slug: string }) {
 
   return (
     <Dialog open={mo} onOpenChange={setMo}>
-      <DialogTrigger render={<Button>Tạo task</Button>} />
+      <DialogTrigger render={<Button>New task</Button>} />
       <DialogContent className="max-h-[85vh] gap-0 overflow-y-auto sm:max-w-2xl">
         <form action={gui} noValidate className="flex flex-col gap-6">
           <DialogHeader>
-            <DialogTitle>Task mới trong {slug}</DialogTitle>
+            <DialogTitle>New task in {slug}</DialogTitle>
             <DialogDescription>
-              Năm mục dưới đây đều bắt buộc. Điền đủ ngay từ đầu rẻ hơn một vòng hỏi ngược
-              từ spec gatekeeper.
+              All five sections below are required. Filling them in now is cheaper than a
+              round-trip with the spec gatekeeper.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="title" className="eyebrow">
-              Tiêu đề
+              Title
             </Label>
             <Input
               id="title"
               name="title"
-              placeholder="Thêm bộ lọc trạng thái cho danh sách đơn"
+              placeholder="Add a status filter to the orders list"
             />
             <Loi message={errors.title} />
           </div>
@@ -115,13 +115,13 @@ export function CreateTaskDialog({ slug }: { slug: string }) {
 
           <DialogFooter className="sticky bottom-0 -mx-4 border-t border-border bg-popover px-4 py-3">
             <p className="mr-auto text-xs text-muted-foreground">
-              Issue mang tên bạn, gắn <code>status:ready-for-spec</code>.
+              The issue is created under your name, labelled <code>status:ready-for-spec</code>.
             </p>
             <Button type="button" variant="outline" onClick={() => setMo(false)}>
-              Huỷ
+              Cancel
             </Button>
             <Button type="submit" disabled={dangGui}>
-              {dangGui ? "Đang tạo…" : "Tạo task"}
+              {dangGui ? "Creating…" : "Create task"}
             </Button>
           </DialogFooter>
         </form>

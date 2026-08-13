@@ -22,11 +22,11 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const actor = await getActor();
-  if (!actor) return new Response("không có quyền", { status: 401 });
+  if (!actor) return new Response("forbidden", { status: 401 });
 
   const { path } = await params;
   const file = await getBee().readEvidenceFile(path ?? []);
-  if (!file) return new Response("không có file này", { status: 404 });
+  if (!file) return new Response("no such file", { status: 404 });
 
   return new Response(new Uint8Array(file.bytes), {
     headers: {

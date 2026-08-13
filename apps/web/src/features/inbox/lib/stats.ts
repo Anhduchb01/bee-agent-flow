@@ -19,25 +19,25 @@ export function thongKeViec(items: InboxItem[]): Stat[] {
 
   return [
     {
-      label: "Cần người",
+      label: "Needs human",
       value: String(canNguoi),
-      hint: canNguoi > 0 ? "agent đã dừng, chờ bạn gỡ" : "không có gì kẹt",
+      hint: canNguoi > 0 ? "agent stopped, waiting on you" : "nothing stuck",
       tone: canNguoi > 0 ? "down" : undefined,
     },
     {
-      label: "Chờ bạn duyệt",
+      label: "Awaiting your review",
       value: String(dem("duyet-pr", "duyet-spec")),
-      hint: "spec và pull request",
+      hint: "specs and pull requests",
     },
     {
-      label: "Chờ bạn giao",
+      label: "Awaiting your go-ahead",
       value: String(dem("cho-phep-nhan-task", "agent-hoi-nguoc")),
-      hint: "cho phép nhận, hoặc trả lời agent",
+      hint: "allow pick-up, or reply to the agent",
     },
     {
-      label: "Chờ lâu nhất",
+      label: "Longest wait",
       value: items.length === 0 ? "—" : khoangThoiGian(lauNhat),
-      hint: items.length === 0 ? "hộp thư trống" : `trên tổng ${items.length} việc`,
+      hint: items.length === 0 ? "inbox empty" : `out of ${items.length} items`,
       tone: lauNhat > 24 * 3600 ? "warn" : undefined,
     },
   ];

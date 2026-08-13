@@ -23,7 +23,7 @@ describe("đọc", () => {
   it("gộp issue và PR liên kết thành một task", async () => {
     const task = await gh.getTask("myapp", 40);
 
-    expect(task?.title).toBe("Lọc đơn hàng theo trạng thái");
+    expect(task?.title).toBe("Filter orders by status");
     expect(task?.pull?.number).toBe(45);
     expect(task?.pull?.head_sha).toBe("9f3c1ab");
     expect(task?.pull?.checks).toContainEqual({ name: "bee/test", conclusion: "success" });
@@ -90,9 +90,9 @@ describe("ghi", () => {
     expect(created.labels).toEqual(["status:ready-for-spec"]);
     // Năm mục phải nằm nguyên trong body — đây là hợp đồng rule 08 đọc.
     for (const heading of [
-      "### Mục tiêu",
+      "### Goal",
       "### Acceptance Criteria",
-      "### Ràng buộc kỹ thuật",
+      "### Technical constraints",
       "### Out of scope",
       "### UI Reference",
     ]) {
@@ -135,7 +135,7 @@ describe("ghi", () => {
   });
 
   it("từ chối approve task chưa có PR", async () => {
-    await expect(gh.approve("myapp", 38, pm)).rejects.toThrow(/chưa có PR/);
+    await expect(gh.approve("myapp", 38, pm)).rejects.toThrow(/has no PR/);
   });
 
   it("gắn và gỡ nhãn", async () => {

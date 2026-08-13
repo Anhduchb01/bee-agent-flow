@@ -7,7 +7,7 @@ import { expect, type Page } from "@playwright/test";
 export async function dangNhap(page: Page, login: string): Promise<void> {
   await page.goto("/dang-nhap");
   await page.getByLabel("GitHub login").fill(login);
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
+  await page.getByRole("button", { name: "Sign in" }).click();
   // Chờ RỜI KHỎI trang đăng nhập, không chờ một heading xuất hiện: trang đăng
   // nhập cũng có <h1> ("bee"), nên khẳng định theo heading đúng ngay lập tức và
   // helper trả về trước khi điều hướng xong — cả suite chạy đua với router.

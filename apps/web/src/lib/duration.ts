@@ -13,10 +13,10 @@ export function khoangThoiGian(seconds: number): string {
   const m = Math.floor((s % 3600) / 60);
   if (h < 24) return `${h}h${String(m).padStart(2, "0")}m`;
 
-  return `${Math.floor(h / 24)} ngày ${h % 24}h`;
+  return `${Math.floor(h / 24)}d ${h % 24}h`;
 }
 
-/** Dạng "đã chờ 3h20m" — cụm dùng nhiều nhất trong hộp thư. */
+/** Dạng "waited 3h20m" — cụm dùng nhiều nhất trong hộp thư. */
 export function daCho(seconds: number): string {
-  return `đã chờ ${khoangThoiGian(seconds)}`;
+  return `waited ${khoangThoiGian(seconds)}`;
 }

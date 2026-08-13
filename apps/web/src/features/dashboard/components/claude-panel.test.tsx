@@ -56,12 +56,12 @@ describe("ClaudePanel", () => {
   it("thanh đổi màu theo mức, không theo ý thích", () => {
     render(<ClaudePanel snapshot={snapshot([38, 97])} now={NOW} />);
 
-    expect(screen.getByLabelText("Hạn mức 5 giờ")).toHaveClass(
+    expect(screen.getByLabelText("5-hour limit")).toHaveClass(
       "[&_[data-slot=progress-indicator]]:bg-link",
     );
     // 97% vượt ngưỡng 95 nên đỏ, dù `trangThai` mới chỉ là "warning": con số
     // thật đáng tin hơn nhãn mà nguồn tự dán cho mình.
-    expect(screen.getByLabelText("Hạn mức tuần")).toHaveClass(
+    expect(screen.getByLabelText("Weekly limit")).toHaveClass(
       "[&_[data-slot=progress-indicator]]:bg-destructive",
     );
   });

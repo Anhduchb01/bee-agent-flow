@@ -19,7 +19,7 @@ function muc(over: Partial<InboxItem> = {}): InboxItem {
     priority: false,
     prNumber: null,
     prUrl: null,
-    action: { kind: "duyet-spec", label: "Duyệt spec" },
+    action: { kind: "duyet-spec", label: "Review spec" },
     ...over,
   };
 }
@@ -43,7 +43,7 @@ describe("một mục mới", () => {
     expect(tin[0].login).toBe("pm-linh");
     expect(tin[0].text).toBe(
       [
-        "🐝 #44 duyệt spec · myapp",
+        "🐝 #44 review spec · myapp",
         '   "Thêm filter cho danh sách đơn hàng"',
         `   → ${GOC}/t/myapp/44`,
       ].join("\n"),
@@ -64,7 +64,7 @@ describe("gộp, không spam", () => {
     ]);
 
     expect(tin).toHaveLength(1);
-    expect(tin[0].text).toContain("3 việc đang chờ bạn");
+    expect(tin[0].text).toContain("3 items waiting on you");
     expect(tin[0].keys).toEqual(["shop#12", "myapp#44", "blog#9"]);
   });
 
@@ -84,7 +84,7 @@ describe("gộp, không spam", () => {
 
     const { tin, boQua } = chay([muc()], state);
     expect(tin).toHaveLength(0);
-    expect(boQua["pm-linh"]).toContain("gộp vào lượt sau");
+    expect(boQua["pm-linh"]).toContain("batching into the next round");
   });
 
   it("qua cửa sổ gộp thì gửi tiếp", () => {
@@ -104,7 +104,7 @@ describe("không bắn lại", () => {
 
     const { tin, boQua } = chay([muc()], state);
     expect(tin).toHaveLength(0);
-    expect(boQua["pm-linh"]).toContain("không có mục nào mới");
+    expect(boQua["pm-linh"]).toContain("nothing new");
   });
 
   it("chỉ mục chưa báo mới vào tin", () => {
@@ -144,7 +144,7 @@ describe("người đang ngồi trong app", () => {
 
     const { tin, boQua } = chay([muc()], state);
     expect(tin).toHaveLength(0);
-    expect(boQua["pm-linh"]).toContain("vừa thao tác");
+    expect(boQua["pm-linh"]).toContain("just acted");
   });
 
   it("không đánh dấu đã báo khi bỏ qua, nên lượt sau vẫn báo", () => {

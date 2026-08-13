@@ -169,8 +169,8 @@ describe("chỉ hiện mục đang chặn người đang đăng nhập", () => {
   });
 
   it("PM được nút Duyệt, TL được đường sang GitHub", () => {
-    expect(chay(pm).find((i) => i.kind === "duyet-pr")?.action.label).toBe("Duyệt");
-    expect(chay(tl).find((i) => i.kind === "duyet-pr")?.action.label).toBe("Xem PR");
+    expect(chay(pm).find((i) => i.kind === "duyet-pr")?.action.label).toBe("Approve");
+    expect(chay(tl).find((i) => i.kind === "duyet-pr")?.action.label).toBe("View PR");
   });
 
   it("người đã approve rồi thì PR đó rời khỏi hộp thư của họ", () => {

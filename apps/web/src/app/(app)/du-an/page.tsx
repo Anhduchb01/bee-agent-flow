@@ -12,7 +12,7 @@ export default async function DuAnPage() {
 
   return (
     <>
-      <PageHeader title="Dự án" meta={<span className="text-xs text-muted-foreground">Một dự án là một repo</span>}>
+      <PageHeader title="Projects" meta={<span className="text-xs text-muted-foreground">One project is one repo</span>}>
         <AddProjectDialog />
       </PageHeader>
 
@@ -22,9 +22,9 @@ export default async function DuAnPage() {
         {projects.length === 0 ? (
           <Empty>
             <EmptyHeader>
-              <EmptyTitle>Chưa có dự án nào</EmptyTitle>
+              <EmptyTitle>No projects yet</EmptyTitle>
               <EmptyDescription>
-                Bấm Thêm dự án ở trên, rồi chạy <code>be repo add &lt;org/repo&gt;</code> trên máy agent.
+                Hit Add project above, then run <code>be repo add &lt;org/repo&gt;</code> on the agent machine.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

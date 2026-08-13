@@ -37,9 +37,9 @@ export function RunningPanel({
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b bg-muted/30 px-5 py-3.5">
-        <CardTitle className="text-base tracking-title">Máy đang làm</CardTitle>
+        <CardTitle className="text-base tracking-title">Machine is working</CardTitle>
         <CardDescription className="font-mono">
-          {slotDung}/{slotToiDa} slot build · hàng đợi {hangDoi}
+          {slotDung}/{slotToiDa} build slots · {hangDoi} queued
         </CardDescription>
       </CardHeader>
 
@@ -47,11 +47,11 @@ export function RunningPanel({
         {dangChay.length === 0 ? (
           <Empty className="border-0">
             <EmptyHeader>
-              <EmptyTitle>Máy đang rảnh</EmptyTitle>
+              <EmptyTitle>Machine is idle</EmptyTitle>
               <EmptyDescription>
                 {hangDoi > 0
-                  ? `${hangDoi} việc đang chờ tick tiếp theo.`
-                  : "Không có việc nào khớp rule ở tick vừa rồi."}
+                  ? `${hangDoi} items waiting for the next tick.`
+                  : "Nothing matched a rule on the last tick."}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

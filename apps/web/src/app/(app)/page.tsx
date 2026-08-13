@@ -18,7 +18,7 @@ export default async function TongQuanPage() {
 
   return (
     <>
-      <PageHeader title="Tổng quan" />
+      <PageHeader title="Overview" />
 
       <div className="flex flex-col gap-6 p-4 sm:p-6">
         <SystemHealth health={health} />

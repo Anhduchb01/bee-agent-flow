@@ -23,11 +23,11 @@ export const SCENE_IDS = [
 export type SceneId = (typeof SCENE_IDS)[number];
 
 export const SCENE_LABELS: Record<SceneId, string> = {
-  "binh-thuong": "Bình thường",
-  "day-tai": "Đầy tải",
-  "co-su-co": "Có sự cố",
-  "reconciler-chet": "Reconciler chết",
-  "vua-cai": "Vừa cài xong",
+  "binh-thuong": "Normal",
+  "day-tai": "Under load",
+  "co-su-co": "Something wrong",
+  "reconciler-chet": "Reconciler dead",
+  "vua-cai": "Freshly installed",
 };
 
 const SCENES: Record<SceneId, unknown> = {

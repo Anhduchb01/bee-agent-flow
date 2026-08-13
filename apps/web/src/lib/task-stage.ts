@@ -42,12 +42,12 @@ export const STAGES: Stage[] = [
 ];
 
 export const STAGE_LABEL: Record<Stage, string> = {
-  nhap: "Nháp",
-  "cho-spec": "Chờ chấm spec",
-  "cho-giao": "Chờ giao cho agent",
-  "agent-lam": "Agent đang làm",
-  "cho-duyet": "Chờ duyệt PR",
-  "can-nguoi": "Cần người",
+  nhap: "Draft",
+  "cho-spec": "Spec review",
+  "cho-giao": "Ready to assign",
+  "agent-lam": "Agent working",
+  "cho-duyet": "PR review",
+  "can-nguoi": "Needs human",
 };
 
 export const STAGE_TONE: Record<Stage, Tone> = {
@@ -61,12 +61,12 @@ export const STAGE_TONE: Record<Stage, Tone> = {
 
 /** Một câu trả lời cho "đang chờ gì" — hiện dưới tên cột, không phải chú thích. */
 export const STAGE_HINT: Record<Stage, string> = {
-  nhap: "PM đang viết, agent chưa nhìn tới",
-  "cho-spec": "rule 08 chấm độ rõ, rồi người duyệt",
-  "cho-giao": "spec đã duyệt, chờ ai đó gắn agent:eligible",
-  "agent-lam": "đang chạy hoặc nằm hàng đợi của máy",
-  "cho-duyet": "PR mở, chờ người duyệt và merge trên GitHub",
-  "can-nguoi": "agent đã dừng, cần người gỡ",
+  nhap: "PM still writing, agent hasn't looked",
+  "cho-spec": "rule 08 scores clarity, then a human approves",
+  "cho-giao": "spec approved, waiting for someone to add agent:eligible",
+  "agent-lam": "running, or queued on the machine",
+  "cho-duyet": "PR open, waiting for review and merge on GitHub",
+  "can-nguoi": "agent stopped, needs a human to unblock",
 };
 
 export function stageOf(task: GhTask): Stage {

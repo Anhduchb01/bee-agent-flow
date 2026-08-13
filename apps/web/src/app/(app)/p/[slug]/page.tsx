@@ -40,13 +40,13 @@ export default async function DuAnChiTietPage({
             {project.repo?.paused ? (
               <span className="flex items-center gap-1.5">
                 <StatusDot tone="warn" />
-                <span className="text-xs text-body">tạm dừng bằng .agent/PAUSE</span>
+                <span className="text-xs text-body">paused by .agent/PAUSE</span>
               </span>
             ) : null}
             {project.repo === null ? (
               <span className="flex items-center gap-1.5">
                 <StatusDot tone="idle" />
-                <span className="text-xs text-body">reconciler chưa biết dự án này</span>
+                <span className="text-xs text-body">reconciler does not know this project</span>
               </span>
             ) : null}
           </>
@@ -72,7 +72,7 @@ export default async function DuAnChiTietPage({
       </section>
 
       <section className="flex flex-col gap-4 border-t border-border pt-8">
-        <Eyebrow>Hàng đợi của máy</Eyebrow>
+        <Eyebrow>Machine queue</Eyebrow>
         <QueueList items={project.repo?.queue ?? []} slug={slug} />
       </section>
       </div>

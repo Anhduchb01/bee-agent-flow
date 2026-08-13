@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { daCho } from "@/lib/duration";
+import { daCho, khoangThoiGian } from "@/lib/duration";
 import { cn } from "@/lib/utils";
 
 import { KIND_LABEL, type InboxItem, type InboxKind } from "../lib/derive";
@@ -81,13 +81,13 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
         {/* Bảng có tên, và MỖI DỰ ÁN một <tbody> có tên: một <tbody> chung thì
             hàng đầu nhóm và hàng dữ liệu cùng là `row`, và không truy vấn nào
             phân biệt được chúng — cho cả trình đọc màn hình lẫn cho test. */}
-        <Table aria-label="Việc đang chờ bạn">
+        <Table aria-label="Work waiting on you">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-44">Loại</TableHead>
-              <TableHead>Tiêu đề</TableHead>
-              <TableHead className="w-36">Đã chờ</TableHead>
-              <TableHead className="w-40 text-right">Hành động</TableHead>
+              <TableHead className="w-44">Kind</TableHead>
+              <TableHead>Title</TableHead>
+              <TableHead className="w-36">Waited</TableHead>
+              <TableHead className="w-40 text-right">Action</TableHead>
             </TableRow>
 
             {/* Hàng lọc nằm ngay dưới tiêu đề: mỗi cột lọc bằng đúng thứ nó
@@ -95,11 +95,11 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
             <TableRow className="bg-muted/30 hover:bg-muted/30">
               <TableHead className="py-2">
                 <OChon
-                  label="Lọc theo loại"
+                  label="Filter by kind"
                   value={boLoc.loai}
                   onChange={(v) => dat("loai", v as BoLoc["loai"])}
                 >
-                  <option value="tat-ca">Mọi loại</option>
+                  <option value="tat-ca">All kinds</option>
                   {loai.map((k) => (
                     <option key={k} value={k}>
                       {KIND_LABEL[k]}
@@ -111,19 +111,19 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
               <TableHead className="py-2">
                 <div className="flex items-center gap-3">
                   <Input
-                    aria-label="Tìm trong tiêu đề"
-                    placeholder="Tìm tiêu đề hoặc myapp#42 — gõ không dấu cũng được"
+                    aria-label="Search titles"
+                    placeholder="Search a title or myapp#42"
                     value={boLoc.tim}
                     onChange={(e) => dat("tim", e.target.value)}
                     className="h-8 text-xs font-normal"
                   />
                   <div className="w-36 shrink-0">
                     <OChon
-                      label="Lọc theo dự án"
+                      label="Filter by project"
                       value={boLoc.duAn}
                       onChange={(v) => dat("duAn", v)}
                     >
-                      <option value="tat-ca">Mọi dự án</option>
+                      <option value="tat-ca">All projects</option>
                       {duAn.map((s) => (
                         <option key={s} value={s}>
                           {s}
@@ -136,7 +136,7 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
 
               <TableHead className="py-2">
                 <OChon
-                  label="Lọc theo thời gian đã chờ"
+                  label="Filter by time waited"
                   value={String(boLoc.choLauHonS)}
                   onChange={(v) => dat("choLauHonS", Number(v))}
                 >
@@ -156,7 +156,7 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
                     onChange={(e) => dat("uuTien", e.target.checked)}
                     className="size-4 rounded-control border-border accent-foreground"
                   />
-                  Chỉ ưu tiên
+                  Priority only
                 </label>
               </TableHead>
             </TableRow>
@@ -169,12 +169,12 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
                   <Empty className="border-0">
                     <EmptyHeader>
                       <EmptyTitle>
-                        {dangLoc ? "Không có việc nào khớp bộ lọc" : "Không có gì chờ bạn"}
+                        {dangLoc ? "Nothing matches these filters" : "Nothing waiting on you"}
                       </EmptyTitle>
                       <EmptyDescription>
                         {dangLoc
-                          ? "Nới bộ lọc, hoặc bỏ lọc để xem lại đủ danh sách."
-                          : "Mọi thứ đang ở phía máy. Bạn sẽ nhận thông báo khi có việc cần quyết."}
+                          ? "Loosen a filter, or clear them to see the full list again."
+                          : "Everything is on the machine's side. You will be notified when a decision is needed."}
                       </EmptyDescription>
                     </EmptyHeader>
                   </Empty>
@@ -183,7 +183,7 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
             </TableBody>
           ) : (
             nhom.map((g) => (
-              <TableBody key={g.slug} aria-label={`Dự án ${g.slug}`}>
+              <TableBody key={g.slug} aria-label={`Project ${g.slug}`}>
                 {/* Đầu nhóm dính khi cuộn: đọc tới dòng thứ mười của một dự án
                     mà không còn thấy tên nó thì việc gộp coi như chưa làm. */}
                 <TableRow className="sticky top-0 z-[1] bg-muted/60 backdrop-blur hover:bg-muted/60">
@@ -196,8 +196,7 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
                         {g.slug}
                       </Link>
                       <span className="text-xs text-muted-foreground">
-                        {g.items.length} việc · lâu nhất{" "}
-                        {daCho(g.choLauNhatS).replace("đã chờ ", "")}
+                        {g.items.length} items · longest {khoangThoiGian(g.choLauNhatS)}
                       </span>
                     </div>
                   </TableCell>
@@ -225,7 +224,7 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
                         </span>
                         {i.priority ? (
                           <Badge variant="outline" className="shrink-0">
-                            ưu tiên
+                            priority
                           </Badge>
                         ) : null}
                       </span>
@@ -271,10 +270,10 @@ export function TaskTable({ items }: { items: InboxItem[] }) {
       {dangLoc ? (
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>
-            Hiện {hien.length}/{items.length} việc
+            Showing {hien.length} of {items.length}
           </span>
           <Button variant="ghost" size="sm" onClick={() => setBoLoc(BO_LOC_RONG)}>
-            Bỏ lọc
+            Clear filters
           </Button>
         </div>
       ) : null}

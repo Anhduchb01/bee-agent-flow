@@ -11,11 +11,11 @@ import type { BeeQueueItem } from "@/lib/bee/types";
  */
 export function QueueList({ items, slug }: { items: BeeQueueItem[]; slug: string }) {
   if (items.length === 0) {
-    return <p className="text-sm text-body">Không có gì đang chờ slot.</p>;
+    return <p className="text-sm text-body">Nothing is waiting for a slot.</p>;
   }
 
   return (
-    <ul aria-label="Hàng đợi" className="overflow-hidden rounded-card border border-border bg-card">
+    <ul aria-label="Queue" className="overflow-hidden rounded-card border border-border bg-card">
       {items.map((q) => (
         <li key={`${q.number}-${q.rule}`} className="flex flex-col gap-1.5 border-b border-border px-5 py-3.5 last:border-b-0">
           <div className="flex flex-wrap items-center gap-2">

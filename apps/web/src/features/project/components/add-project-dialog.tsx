@@ -41,12 +41,12 @@ export function AddProjectDialog() {
 
   return (
     <Dialog open={mo} onOpenChange={setMo}>
-      <DialogTrigger render={<Button>Thêm dự án</Button>} />
+      <DialogTrigger render={<Button>Add project</Button>} />
       <DialogContent className="sm:max-w-lg">
         <form action={gui} className="flex flex-col gap-6">
           <DialogHeader>
-            <DialogTitle>Thêm dự án</DialogTitle>
-            <DialogDescription>Một dự án là một repo trên GitHub.</DialogDescription>
+            <DialogTitle>Add project</DialogTitle>
+            <DialogDescription>One project is one GitHub repository.</DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-2">
@@ -72,11 +72,11 @@ export function AddProjectDialog() {
           {/* Nói trước điều sẽ xảy ra, thay vì để người dùng tự phát hiện là
               máy chưa động tĩnh gì. */}
           <div className="rounded-card border border-border bg-muted/40 px-4 py-3">
-            <p className="eyebrow">Còn một bước trên máy agent</p>
+            <p className="eyebrow">One more step on the agent machine</p>
             <p className="mt-1.5 text-sm text-body">
-              App không chạy được lệnh trên máy — nó không có sudo và không giữ token
-              orchestrator. Sau khi thêm ở đây, chạy lệnh sau trên Ubuntu để reconciler
-              bắt đầu theo dõi:
+              The app cannot run commands on the machine — it has no sudo and holds no
+              orchestrator token. After adding it here, run this on the Ubuntu box so the
+              reconciler starts watching:
             </p>
             <code className="mt-2 block rounded-control border border-border bg-card px-2.5 py-1.5 text-xs text-foreground">
               be repo add {full.trim() || "org/repo"}
@@ -85,10 +85,10 @@ export function AddProjectDialog() {
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setMo(false)}>
-              Huỷ
+              Cancel
             </Button>
             <Button type="submit" disabled={dangChay}>
-              {dangChay ? "Đang thêm…" : "Thêm dự án"}
+              {dangChay ? "Adding…" : "Add project"}
             </Button>
           </DialogFooter>
         </form>

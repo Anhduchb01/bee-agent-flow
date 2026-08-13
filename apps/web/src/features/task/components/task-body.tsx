@@ -19,11 +19,11 @@ export function TaskBody({ body }: { body: string }) {
           <StatusDot tone="warn" className="mt-1.5" />
           <div>
             <p className="text-sm font-medium tracking-title text-foreground">
-              Hợp đồng chưa đủ
+              Incomplete contract
             </p>
             <p className="mt-1 text-sm text-body">
-              Thiếu {parsed.missing.length} mục bắt buộc: {parsed.missing.join(" · ")}. Spec
-              gatekeeper sẽ hỏi ngược và task nằm chờ thêm một vòng.
+              Missing {parsed.missing.length} required section(s): {parsed.missing.join(" · ")}. The
+              spec gatekeeper will ask back and the task waits another round.
             </p>
           </div>
         </div>
@@ -47,7 +47,7 @@ export function TaskBody({ body }: { body: string }) {
                   >
                     {ac.done ? "✓" : ""}
                   </span>
-                  <span className="sr-only">{ac.done ? "đã xong:" : "chưa xong:"}</span>
+                  <span className="sr-only">{ac.done ? "done:" : "not done:"}</span>
                   <span className={ac.done ? "text-faint line-through" : "text-body"}>
                     {ac.text}
                   </span>

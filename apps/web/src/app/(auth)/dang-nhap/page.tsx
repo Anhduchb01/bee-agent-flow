@@ -68,14 +68,14 @@ export default async function DangNhapPage({
             bee
           </h1>
           <p className="text-sm text-body">
-            Nơi PM và Techlead làm việc với agent. Đăng nhập bằng tài khoản GitHub của bạn.
+            Where PM and Techlead work with the agent. Sign in with your GitHub account.
           </p>
         </div>
 
         {isLive ? (
           <form action={vaoBangGithub}>
             <Button type="submit" className="w-full">
-              Tiếp tục với GitHub
+              Continue with GitHub
             </Button>
           </form>
         ) : (
@@ -87,10 +87,10 @@ export default async function DangNhapPage({
               GitHub login
             </Label>
             <Input id="login" name="login" defaultValue="pm-linh" autoComplete="off" required />
-            <Button type="submit">Đăng nhập</Button>
+            <Button type="submit">Sign in</Button>
             <p className="text-xs text-muted-foreground">
-              Bản chạy trên dữ liệu mẫu. <code>pm-linh</code> và <code>tl-duc</code> có quyền;
-              gõ tên khác để xem một người ngoài allowlist nhìn thấy gì.
+              Running on sample data. <code>pm-linh</code> and <code>tl-duc</code> are allowed;
+              type any other name to see what someone off the allowlist sees.
             </p>
           </form>
         )}

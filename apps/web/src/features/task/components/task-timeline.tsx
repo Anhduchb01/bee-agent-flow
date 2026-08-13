@@ -14,13 +14,13 @@ export function TaskTimeline({ comments }: { comments: GhComment[] }) {
   if (comments.length === 0) {
     return (
       <p className="text-sm text-body">
-        Chưa có trao đổi nào. Agent sẽ ghi kết quả vào đây ở tick sau.
+        No conversation yet. The agent writes its results here on the next tick.
       </p>
     );
   }
 
   return (
-    <ol aria-label="Dòng thời gian" className="flex flex-col gap-6">
+    <ol aria-label="Timeline" className="flex flex-col gap-6">
       {[...comments]
         .sort((a, b) => a.created_at.localeCompare(b.created_at))
         .map((c) => (
@@ -35,7 +35,7 @@ export function TaskTimeline({ comments }: { comments: GhComment[] }) {
                   <span className="eyebrow">agent</span>
                 </span>
               ) : null}
-              {c.kind === "review" ? <span className="eyebrow">trên diff</span> : null}
+              {c.kind === "review" ? <span className="eyebrow">on the diff</span> : null}
               <time dateTime={c.created_at} className="text-xs text-muted-foreground">
                 {new Date(c.created_at).toLocaleString("vi-VN", {
                   dateStyle: "short",

@@ -45,12 +45,12 @@ export function EvidenceViewer({
     return (
       <div className="rounded-card border border-dashed border-border bg-card px-6 py-10 text-center">
         <p className="text-sm font-medium tracking-title text-foreground">
-          Chưa có bằng chứng cho commit này
+          No evidence for this commit yet
         </p>
         <p className="mt-1.5 text-sm text-body">
           {cu.length > 0
-            ? `Có bằng chứng của ${cu.length} commit cũ hơn, nhưng chúng chứng minh cho một bản code không còn tồn tại.`
-            : "Rule 04 sẽ dựng khi bee/test xanh và có slot bằng chứng."}
+            ? `There is evidence from ${cu.length} older commit(s), but it proves a version of the code that no longer exists.`
+            : "Rule 04 will build it once bee/test is green and an evidence slot is free."}
         </p>
       </div>
     );
@@ -68,7 +68,7 @@ export function EvidenceViewer({
         {evidence.sha === headSha ? (
           <span className="flex items-center gap-1.5">
             <StatusDot tone="ok" />
-            <span className="eyebrow">khớp head của PR</span>
+            <span className="eyebrow">matches the PR head</span>
           </span>
         ) : null}
       </div>

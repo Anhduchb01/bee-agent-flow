@@ -16,9 +16,9 @@ function tuoi(iso: string, now: number): string {
 function KhongCoTask() {
   return (
     <div className="rounded-card border border-dashed border-border bg-card px-6 py-12 text-center">
-      <p className="text-sm font-medium tracking-title text-foreground">Chưa có task nào</p>
+      <p className="text-sm font-medium tracking-title text-foreground">No tasks yet</p>
       <p className="mt-1.5 text-sm text-body">
-        Bấm <span className="text-foreground">Tạo task</span> ở trên để viết task đầu tiên.
+        Hit <span className="text-foreground">New task</span> above to write the first one.
       </p>
     </div>
   );
@@ -43,13 +43,13 @@ export function ProjectTaskTable({
     <div className="overflow-x-auto">
       <div className="min-w-[44rem] overflow-hidden rounded-card border border-border bg-card">
         <div className={cn(COT, "border-b border-border py-2.5")}>
-          <span className="eyebrow">Giai đoạn</span>
-          <span className="eyebrow">Số</span>
-          <span className="eyebrow">Tiêu đề</span>
-          <span className="eyebrow text-right">Cập nhật</span>
+          <span className="eyebrow">Stage</span>
+          <span className="eyebrow">No.</span>
+          <span className="eyebrow">Title</span>
+          <span className="eyebrow text-right">Updated</span>
         </div>
 
-        <ul aria-label="Task của dự án">
+        <ul aria-label="Project tasks">
           {sap.map((t) => {
             const stage = stageOf(t);
             return (
@@ -80,7 +80,7 @@ export function ProjectTaskTable({
                   ) : null}
                   {t.labels.includes("priority:high") ? (
                     <span className="eyebrow shrink-0 rounded-pill border border-border px-1.5">
-                      ưu tiên
+                      priority
                     </span>
                   ) : null}
                 </span>
@@ -89,7 +89,7 @@ export function ProjectTaskTable({
                   dateTime={t.updated_at}
                   className="text-right font-mono text-xs tabular-nums text-muted-foreground"
                 >
-                  {tuoi(t.updated_at, now)} trước
+                  {tuoi(t.updated_at, now)} ago
                 </time>
               </li>
             );
@@ -128,7 +128,7 @@ export function ProjectKanban({
     <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0">
       <div
         role="group"
-        aria-label="Bảng kanban"
+        aria-label="Kanban board"
         className="grid min-w-max grid-flow-col auto-cols-[15rem] gap-4 lg:min-w-0 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-6"
       >
         {cot.map((c) => (
@@ -153,7 +153,7 @@ export function ProjectKanban({
             <ul className="flex flex-col gap-2">
               {c.tasks.length === 0 ? (
                 <li className="rounded-card border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-                  trống
+                  empty
                 </li>
               ) : (
                 c.tasks.map((t) => (
@@ -166,7 +166,7 @@ export function ProjectKanban({
                         <span className="font-mono text-xs text-muted-foreground">#{t.number}</span>
                         {t.labels.includes("priority:high") ? (
                           <span className="eyebrow rounded-pill border border-border px-1.5">
-                            ưu tiên
+                            priority
                           </span>
                         ) : null}
                         <time
@@ -182,7 +182,7 @@ export function ProjectKanban({
                       {t.pull ? (
                         <p className="font-mono text-xs text-muted-foreground">
                           PR #{t.pull.number}
-                          {t.pull.draft ? " · nháp" : ""}
+                          {t.pull.draft ? " · draft" : ""}
                         </p>
                       ) : null}
                     </Link>

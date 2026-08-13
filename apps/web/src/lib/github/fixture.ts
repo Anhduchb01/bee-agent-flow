@@ -55,11 +55,11 @@ export function createFixtureGithubSource(): GithubSource {
       const s = store();
       const sach = full.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "");
       if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(sach)) {
-        throw new Error("Tên repo phải có dạng org/repo.");
+        throw new Error("Repository name must look like org/repo.");
       }
       const slug = sach.split("/")[1];
       if (s.repos.some((r) => r.slug === slug)) {
-        throw new Error(`Đã có dự án tên ${slug}.`);
+        throw new Error(`A project named ${slug} already exists.`);
       }
 
       const repo: GhRepo = { slug, full: sach };
@@ -94,7 +94,7 @@ export function createFixtureGithubSource(): GithubSource {
         number: num,
         title: input.title,
         body: [
-          "### Mục tiêu",
+          "### Goal",
           "",
           input.goal,
           "",
@@ -102,7 +102,7 @@ export function createFixtureGithubSource(): GithubSource {
           "",
           input.acceptance,
           "",
-          "### Ràng buộc kỹ thuật",
+          "### Technical constraints",
           "",
           input.constraints,
           "",
@@ -148,7 +148,7 @@ export function createFixtureGithubSource(): GithubSource {
     async addLabel(slug, num, label: GhLabel): Promise<GhTask> {
       const s = store();
       const task = find(s, slug, num);
-      if (!task) throw new Error(`không có task ${slug}#${num}`);
+      if (!task) throw new Error(`no task ${slug}#${num}`);
       if (!task.labels.includes(label)) task.labels.push(label);
       touch(task);
       return clone(task);
@@ -157,7 +157,7 @@ export function createFixtureGithubSource(): GithubSource {
     async removeLabel(slug, num, label: GhLabel): Promise<GhTask> {
       const s = store();
       const task = find(s, slug, num);
-      if (!task) throw new Error(`không có task ${slug}#${num}`);
+      if (!task) throw new Error(`no task ${slug}#${num}`);
       task.labels = task.labels.filter((l) => l !== label);
       touch(task);
       return clone(task);
@@ -166,8 +166,8 @@ export function createFixtureGithubSource(): GithubSource {
     async approve(slug, num, actor): Promise<GhTask> {
       const s = store();
       const task = find(s, slug, num);
-      if (!task) throw new Error(`không có task ${slug}#${num}`);
-      if (!task.pull) throw new Error(`${slug}#${num} chưa có PR để duyệt`);
+      if (!task) throw new Error(`no task ${slug}#${num}`);
+      if (!task.pull) throw new Error(`${slug}#${num} has no PR to approve`);
 
       task.pull.reviews = [
         ...task.pull.reviews.filter((r) => r.author.login !== actor.login),

@@ -18,7 +18,7 @@ export interface KetQua {
  */
 async function nguoiBam() {
   const actor = await getActor();
-  if (!actor) throw new Error("Bạn không có quyền làm việc này.");
+  if (!actor) throw new Error("You are not allowed to do this.");
   // Người vừa bấm gì đó đang nhìn thẳng vào app; đừng bắn Slack cho họ ngay sau đó.
   await ghiThaoTac(actor.login);
   return actor;
@@ -39,25 +39,25 @@ function lamMoi(slug: string, num: number) {
 export async function guiComment(slug: string, num: number, body: string): Promise<KetQua> {
   const actor = await nguoiBam();
   const noiDung = body.trim();
-  if (!noiDung) return { ok: false, message: "Chưa có nội dung." };
+  if (!noiDung) return { ok: false, message: "Nothing to send." };
 
   const co = /@claude\b/i.test(noiDung);
   await getGithub().addComment(slug, num, co ? noiDung : `@claude ${noiDung}`, actor);
   lamMoi(slug, num);
 
-  return { ok: true, message: "Đã gửi" };
+  return { ok: true, message: "Sent" };
 }
 
 /** PM duyệt spec: gỡ `status:spec-review`, gắn `agent:build`. */
 export async function duyetSpec(slug: string, num: number): Promise<KetQua> {
   const actor = await nguoiBam();
-  if (actor.role !== "pm") return { ok: false, message: "Chỉ PM duyệt spec." };
+  if (actor.role !== "pm") return { ok: false, message: "Only a PM can approve a spec." };
 
   await getGithub().removeLabel(slug, num, "status:spec-review", actor);
   await getGithub().addLabel(slug, num, "agent:build", actor);
   lamMoi(slug, num);
 
-  return { ok: true, message: "Đã duyệt spec — còn một bước nữa là giao cho agent" };
+  return { ok: true, message: "Spec approved — one step left: assign it to the agent" };
 }
 
 /**
@@ -71,7 +71,7 @@ export async function giaoChoAgent(slug: string, num: number): Promise<KetQua> {
   await getGithub().addLabel(slug, num, "agent:eligible", actor);
   lamMoi(slug, num);
 
-  return { ok: true, message: "Đã giao — agent sẽ nhận ở tick sau nếu còn slot" };
+  return { ok: true, message: "Assigned — the agent picks it up next tick if a slot is free" };
 }
 
 /**
@@ -87,5 +87,5 @@ export async function duyetPR(slug: string, num: number): Promise<KetQua> {
   await getGithub().approve(slug, num, actor);
   lamMoi(slug, num);
 
-  return { ok: true, message: "Đã duyệt — merge trên GitHub" };
+  return { ok: true, message: "Approved — merge it on GitHub" };
 }

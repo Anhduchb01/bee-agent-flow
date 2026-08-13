@@ -19,7 +19,7 @@ export type KetQuaTao =
  */
 export async function taoTask(raw: Record<string, string>): Promise<KetQuaTao> {
   const actor = await getActor();
-  if (!actor) return { ok: false, errors: { slug: "Bạn không có quyền tạo task." } };
+  if (!actor) return { ok: false, errors: { slug: "You are not allowed to create tasks." } };
 
   const parsed = taskFormSchema.safeParse(raw);
   if (!parsed.success) {

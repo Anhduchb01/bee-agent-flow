@@ -4,9 +4,9 @@ import type { GhTask } from "@/lib/github/types";
 
 const CHECK: Record<string, { label: string; tone: Stat["tone"] }> = {
   success: { label: "Xanh", tone: "ok" },
-  failure: { label: "Đỏ", tone: "down" },
-  pending: { label: "Đang chạy", tone: "warn" },
-  neutral: { label: "Không kết luận", tone: "idle" },
+  failure: { label: "Red", tone: "down" },
+  pending: { label: "Running", tone: "warn" },
+  neutral: { label: "Inconclusive", tone: "idle" },
 };
 
 /**
@@ -32,27 +32,27 @@ export function thongKeTask({
   const approvals = task.pull?.reviews.filter((r) => r.state === "APPROVED") ?? [];
 
   return [
-    { label: "Giai đoạn", value: stageLabel, tone: stageTone, kind: "chu" },
+    { label: "Stage", value: stageLabel, tone: stageTone, kind: "chu" },
     {
       label: "bee/test",
-      value: task.pull ? (CHECK[test?.conclusion ?? ""]?.label ?? "Chưa chạy") : "Chưa có PR",
+      value: task.pull ? (CHECK[test?.conclusion ?? ""]?.label ?? "Not run") : "No PR yet",
       tone: task.pull ? CHECK[test?.conclusion ?? ""]?.tone : undefined,
-      hint: task.pull ? `PR #${task.pull.number}` : "agent chưa dựng",
+      hint: task.pull ? `PR #${task.pull.number}` : "agent has not built it",
       kind: "chu",
     },
     {
-      label: "Đã duyệt",
+      label: "Approved",
       value: String(approvals.length),
       hint:
         approvals.length === 0
-          ? "chưa ai duyệt"
+          ? "nobody has approved"
           : approvals.map((r) => r.author.name).join(", "),
       tone: approvals.length > 0 ? "ok" : undefined,
     },
     {
-      label: "Bằng chứng",
+      label: "Evidence",
       value: evidence ? String(evidence.files.length) : "0",
-      hint: evidence ? `khớp ${evidence.sha}` : "chưa có cho commit này",
+      hint: evidence ? `matches ${evidence.sha}` : "none for this commit",
       tone: evidence ? "ok" : undefined,
     },
   ];

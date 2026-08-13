@@ -33,7 +33,7 @@ describe("bayNgayQua", () => {
   it("ngày cuối là hôm nay, và được gọi tên", () => {
     const days = bayNgayQua([], NOW);
 
-    expect(days.at(-1)?.nhan).toBe("Hôm nay");
+    expect(days.at(-1)?.nhan).toBe("Today");
     expect(days.at(-1)?.ngay).toBe("2026-08-13");
     expect(days[0].ngay).toBe("2026-08-07");
   });
@@ -67,13 +67,13 @@ describe("bayNgayQua", () => {
   it("nhãn thứ đúng theo lịch", () => {
     // 13/8/2026 là Thứ 5 → sáu ngày trước là Thứ 6 tuần trước.
     expect(bayNgayQua([], NOW).map((d) => d.nhan)).toEqual([
-      "T6",
-      "T7",
-      "CN",
-      "T2",
-      "T3",
-      "T4",
-      "Hôm nay",
+      "Fri",
+      "Sat",
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Today",
     ]);
   });
 });
@@ -82,8 +82,8 @@ describe("tomTatBayNgay", () => {
   it("gọi tên khi hôm nay tệ hơn hẳn", () => {
     const days = bayNgayQua([...chay(0, "ok", 7), ...chay(0, "fail", 6), ...chay(3, "ok", 12)], NOW);
 
-    expect(tomTatBayNgay(days)).toContain("6/13 lần chạy thất bại");
-    expect(tomTatBayNgay(days)).toContain("cao hơn hẳn");
+    expect(tomTatBayNgay(days)).toContain("6 of 13 runs failed today");
+    expect(tomTatBayNgay(days)).toContain("sharply higher");
   });
 
   it("không kêu khi tỉ lệ lỗi hôm nay giống mọi hôm", () => {
@@ -92,11 +92,11 @@ describe("tomTatBayNgay", () => {
       NOW,
     );
 
-    expect(tomTatBayNgay(days)).toBe("Hôm nay 9/10 lần chạy xong.");
+    expect(tomTatBayNgay(days)).toBe("9 of 10 runs finished today.");
   });
 
   it("nói rõ khi hôm nay chưa chạy gì", () => {
-    expect(tomTatBayNgay(bayNgayQua(chay(2, "ok", 4), NOW))).toBe("Hôm nay chưa có lần chạy nào.");
+    expect(tomTatBayNgay(bayNgayQua(chay(2, "ok", 4), NOW))).toBe("No runs today yet.");
   });
 
   it("bảy ngày không có gì thì không có câu nào để nói", () => {

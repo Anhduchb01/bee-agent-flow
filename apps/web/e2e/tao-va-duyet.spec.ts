@@ -14,16 +14,16 @@ const HOP_LE = {
 /** Mở modal tạo task từ chi tiết dự án — không còn màn hình riêng. */
 async function moModalTaoTask(page: import("@playwright/test").Page, slug = "myapp") {
   await page.goto(`/p/${slug}`);
-  await page.getByRole("button", { name: "Tạo task" }).click();
+  await page.getByRole("button", { name: "New task" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
 }
 
 async function dienForm(page: import("@playwright/test").Page, bo: Partial<typeof HOP_LE> = {}) {
   const gia = { ...HOP_LE, ...bo };
-  await page.getByLabel("Tiêu đề").fill(gia.title);
-  await page.getByLabel("Mục tiêu").fill(gia.goal);
+  await page.getByLabel("Title").fill(gia.title);
+  await page.getByLabel("Goal").fill(gia.goal);
   await page.getByLabel("Acceptance Criteria").fill(gia.acceptance);
-  await page.getByLabel("Ràng buộc kỹ thuật").fill(gia.constraints);
+  await page.getByLabel("Technical constraints").fill(gia.constraints);
   await page.getByLabel("Out of scope").fill(gia.out_of_scope);
   await page.getByLabel("UI Reference").fill(gia.ui_reference);
 }
@@ -34,7 +34,7 @@ test("form không cho bỏ qua mục bắt buộc nào", async ({ page }) => {
   await moModalTaoTask(page);
 
   await dienForm(page, { out_of_scope: "" });
-  await page.getByRole("dialog").getByRole("button", { name: "Tạo task" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Create task" }).click();
 
   await expect(page.locator("form").getByRole("alert")).toContainText("Out of scope");
   // Modal vẫn mở: không đá người dùng ra khỏi thứ họ đang gõ dở.
@@ -46,7 +46,7 @@ test("AC phải là checkbox, không phải văn xuôi", async ({ page }) => {
   await moModalTaoTask(page);
 
   await dienForm(page, { acceptance: "Tìm được đơn theo mã và kết quả chính xác." });
-  await page.getByRole("dialog").getByRole("button", { name: "Tạo task" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Create task" }).click();
 
   await expect(page.locator("form").getByRole("alert")).toContainText("checkbox");
 });
@@ -56,12 +56,12 @@ test("tạo task → issue mới mang tên người tạo, gắn status:ready-fo
   await moModalTaoTask(page);
 
   await dienForm(page);
-  await page.getByRole("dialog").getByRole("button", { name: "Tạo task" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Create task" }).click();
 
   // Dự án lấy từ chỗ đang đứng, không phải từ một ô chọn lặp lại điều đó.
   await expect(page).toHaveURL(/\/t\/myapp\/\d+/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(HOP_LE.title);
-  await expect(page.getByText("Nguyễn Thị Linh mở")).toBeVisible();
+  await expect(page.getByText("opened by Nguyễn Thị Linh")).toBeVisible();
   await expect(page.getByText("status:ready-for-spec")).toBeVisible();
   // Cả năm mục nằm nguyên trong body — đây là hợp đồng rule 08 đọc.
   await expect(page.getByText("Out of scope")).toBeVisible();
@@ -75,23 +75,23 @@ test("PM duyệt PR → approve mang tên PM, trạng thái đổi", async ({ pa
   // Dải thống kê là chỗ đọc nhanh; khối trạng thái bên dưới lặp lại có chủ ý,
   // nên assertion phải chỉ đúng một trong hai chứ không được mơ hồ.
   const thongKe = page.locator("dl");
-  await expect(thongKe).toContainText("chưa ai duyệt");
+  await expect(thongKe).toContainText("nobody has approved");
 
-  await page.getByRole("button", { name: "Duyệt PR" }).click();
+  await page.getByRole("button", { name: "Approve PR" }).click();
 
-  await expect(page.getByText("Đã duyệt — merge trên GitHub")).toBeVisible();
+  await expect(page.getByText("Approved — merge it on GitHub")).toBeVisible();
   await expect(thongKe).toContainText("Nguyễn Thị Linh");
   // Duyệt xong thì nút biến mất — không duyệt hai lần.
-  await expect(page.getByRole("button", { name: "Duyệt PR" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Approve PR" })).toHaveCount(0);
 });
 
 test("PM duyệt spec → nhãn chuyển sang agent:build", async ({ page }) => {
   await dangNhap(page, "pm-linh");
   await page.goto("/t/shop/12");
 
-  await page.getByRole("button", { name: "Duyệt spec" }).click();
+  await page.getByRole("button", { name: "Approve spec" }).click();
 
-  await expect(page.getByText("Đã duyệt spec")).toBeVisible();
+  await expect(page.getByText("Spec approved")).toBeVisible();
   await expect(page.getByText("agent:build")).toBeVisible();
   await expect(page.getByText("status:spec-review")).toHaveCount(0);
 });
@@ -100,7 +100,7 @@ test("TL không duyệt được spec", async ({ page }) => {
   await dangNhap(page, "tl-duc");
   await page.goto("/t/myapp/38");
 
-  await expect(page.getByRole("button", { name: "Duyệt spec" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Approve spec" })).toHaveCount(0);
 });
 
 test("giao cho agent gắn agent:eligible", async ({ page }) => {
@@ -109,7 +109,7 @@ test("giao cho agent gắn agent:eligible", async ({ page }) => {
 
   await page.getByRole("button", { name: "Giao cho agent" }).click();
 
-  await expect(page.getByText("Đã giao")).toBeVisible();
+  await expect(page.getByText("Assigned")).toBeVisible();
   await expect(page.getByText("agent:eligible")).toBeVisible();
 });
 
@@ -117,14 +117,14 @@ test("chat vào task → comment mang tên người gửi, không có spinner v�
   await dangNhap(page, "tl-duc");
   await page.goto("/t/myapp/49");
 
-  await expect(page.getByText("Agent nhìn thấy ở tick sau")).toBeVisible();
+  await expect(page.getByText("The agent sees it on the next tick")).toBeVisible();
 
-  await page.getByLabel("Nói tiếp với agent").fill("Ghi vào audit_events nhé.");
-  await page.getByRole("button", { name: "Gửi" }).click();
+  await page.getByLabel("Continue with the agent").fill("Write it to audit_events.");
+  await page.getByRole("button", { name: "Send" }).click();
 
-  await expect(page.getByText("đã gửi · chờ tick tiếp theo")).toBeVisible();
+  await expect(page.getByText("sent · waiting for the next tick")).toBeVisible();
 
-  const items = page.getByRole("list", { name: "Dòng thời gian" }).getByRole("listitem");
+  const items = page.getByRole("list", { name: "Timeline" }).getByRole("listitem");
   await expect(items).toHaveCount(3);
   await expect(items.last()).toContainText("Phạm Đức");
   await expect(items.last()).toContainText("audit_events");

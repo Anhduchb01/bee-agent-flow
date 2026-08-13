@@ -88,9 +88,9 @@ export function AppSidebar({
             không ai biết nó tồn tại. Chưa nối — xem tasks/todo.md. */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton disabled tooltip="Tìm nhanh (sắp có)">
+            <SidebarMenuButton disabled tooltip="Quick search (coming soon)">
               <SearchIcon />
-              <span>Tìm nhanh…</span>
+              <span>Quick search…</span>
               <SidebarMenuBadge className="font-mono">⌘K</SidebarMenuBadge>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -100,28 +100,28 @@ export function AppSidebar({
       <SidebarContent>
         {/* Sidebar của shadcn chỉ dựng <div>. Bọc lại thành landmark điều hướng
             để trình đọc màn hình nhảy thẳng vào được. */}
-        <nav aria-label="Điều hướng chính" className="contents">
+        <nav aria-label="Main navigation" className="contents">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={pathname === "/"}
-                  tooltip="Tổng quan"
+                  tooltip="Overview"
                   render={<Link href="/" />}
                 >
                   <CircleGaugeIcon />
-                  <span>Tổng quan</span>
+                  <span>Overview</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={pathname === "/viec"}
-                  tooltip="Việc của bạn"
+                  tooltip="Your work"
                   render={<Link href="/viec" />}
                 >
                   <InboxIcon />
-                  <span>Việc của bạn</span>
+                  <span>Your work</span>
                 </SidebarMenuButton>
                 {soViecChoBan > 0 ? (
                   <SidebarMenuBadge>{soViecChoBan}</SidebarMenuBadge>
@@ -132,8 +132,8 @@ export function AppSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Dự án</SidebarGroupLabel>
-          <SidebarGroupAction title="Thêm dự án" render={<Link href="/du-an" />}>
+          <SidebarGroupLabel>Projects</SidebarGroupLabel>
+          <SidebarGroupAction title="Add project" render={<Link href="/du-an" />}>
             <PlusIcon />
           </SidebarGroupAction>
           <SidebarGroupContent>
@@ -173,7 +173,7 @@ export function AppSidebar({
         <form action={dangXuat}>
           <Button type="submit" variant="ghost" size="sm" className="w-full justify-start">
             <LogOutIcon data-icon="inline-start" />
-            <span className="group-data-[collapsible=icon]:hidden">Thoát</span>
+            <span className="group-data-[collapsible=icon]:hidden">Sign out</span>
           </Button>
         </form>
       </SidebarFooter>

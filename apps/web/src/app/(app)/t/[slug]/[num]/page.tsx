@@ -42,10 +42,10 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
           </Link>
           <span className="font-mono">#{task.number}</span>
           <span>·</span>
-          <span>{task.author.name} mở</span>
+          <span>opened by {task.author.name}</span>
           {task.labels.includes("priority:high") ? (
             <span className="eyebrow rounded-pill border border-border px-2 py-0.5">
-              ưu tiên
+              priority
             </span>
           ) : null}
         </div>
@@ -67,12 +67,12 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
       <TaskStatus task={task} dangChay={dangChay} />
 
       <section className="flex flex-col gap-5 border-t border-border pt-9">
-        <Eyebrow>Hợp đồng</Eyebrow>
+        <Eyebrow>Contract</Eyebrow>
         <TaskBody body={task.body} />
       </section>
 
       <section className="flex flex-col gap-5 border-t border-border pt-9">
-        <Eyebrow>Bằng chứng</Eyebrow>
+        <Eyebrow>Evidence</Eyebrow>
         <EvidenceViewer
           evidence={evidence}
           cu={evidenceCu}
@@ -81,7 +81,7 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
       </section>
 
       <section className="flex flex-col gap-7 border-t border-border pt-9">
-        <Eyebrow>Trao đổi</Eyebrow>
+        <Eyebrow>Conversation</Eyebrow>
         <TaskTimeline comments={timeline} />
         <ChatBox
           slug={task.slug}

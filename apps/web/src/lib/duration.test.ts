@@ -13,8 +13,8 @@ describe("khoangThoiGian", () => {
     [3600, "1h00m"],
     [12_000, "3h20m"],
     [86_399, "23h59m"],
-    [86_400, "1 ngày 0h"],
-    [280_800, "3 ngày 6h"],
+    [86_400, "1d 0h"],
+    [280_800, "3d 6h"],
   ])("%is → %s", (s, want) => {
     expect(khoangThoiGian(s)).toBe(want);
   });
@@ -24,6 +24,6 @@ describe("khoangThoiGian", () => {
   });
 
   it("daCho ghép đúng cụm", () => {
-    expect(daCho(12_000)).toBe("đã chờ 3h20m");
+    expect(daCho(12_000)).toBe("waited 3h20m");
   });
 });

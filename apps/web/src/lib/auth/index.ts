@@ -47,7 +47,7 @@ const isLive = process.env.GITHUB_SOURCE === "live";
  */
 const devProvider = Credentials({
   id: "dev",
-  name: "Đăng nhập thử",
+  name: "Test sign-in",
   credentials: { login: { label: "GitHub login", type: "text" } },
   authorize: async (creds) => {
     const login = String(creds?.login ?? "").trim();

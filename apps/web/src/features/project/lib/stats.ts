@@ -11,24 +11,24 @@ export function thongKeDuAn(projects: ProjectView[]): Stat[] {
 
   return [
     {
-      label: "Dự án",
+      label: "Projects",
       value: String(projects.length),
       hint:
         chuaCaiDat > 0
-          ? `${chuaCaiDat} chưa chạy be repo add`
-          : "reconciler đã biết tất cả",
+          ? `${chuaCaiDat} missing be repo add`
+          : "the reconciler knows them all",
       tone: chuaCaiDat > 0 ? "warn" : undefined,
     },
-    { label: "Agent đang làm", value: String(dangChay), hint: "trên toàn bộ dự án" },
+    { label: "Agents working", value: String(dangChay), hint: "across all projects" },
     {
-      label: "Hàng đợi",
+      label: "Queued",
       value: String(hangDoi),
-      hint: hangDoi > 0 ? "khớp rule nhưng chưa có slot" : "không có gì chờ slot",
+      hint: hangDoi > 0 ? "matched a rule, waiting for a slot" : "nothing waiting for a slot",
     },
     {
-      label: "PR đang mở",
+      label: "Open PRs",
       value: String(projects.reduce((n, p) => n + p.prs.length, 0)),
-      hint: "chờ người đọc diff",
+      hint: "waiting for someone to read the diff",
     },
   ];
 }
@@ -40,22 +40,22 @@ export function thongKeMotDuAn(project: ProjectView): Stat[] {
   const choDuyet = mo.filter((t) => stageOf(t) === "cho-duyet").length;
 
   return [
-    { label: "Task mở", value: String(mo.length), hint: "chưa đóng trên GitHub" },
+    { label: "Open tasks", value: String(mo.length), hint: "not closed on GitHub" },
     {
-      label: "Agent đang làm",
+      label: "Agents working",
       value: `${project.running.length}/${project.repo?.wip.max ?? "?"}`,
-      hint: `hàng đợi ${project.repo?.queue.length ?? 0}`,
+      hint: `${project.repo?.queue.length ?? 0} queued`,
       tone: project.running.length > 0 ? "agent" : undefined,
     },
     {
-      label: "Chờ duyệt PR",
+      label: "PRs to review",
       value: String(choDuyet),
-      hint: choDuyet > 0 ? "chờ người đọc diff" : "không có PR nào chờ",
+      hint: choDuyet > 0 ? "waiting for someone to read the diff" : "no PR waiting",
     },
     {
-      label: "Cần người",
+      label: "Needs human",
       value: String(canNguoi),
-      hint: canNguoi > 0 ? "agent đã dừng" : "không có gì kẹt",
+      hint: canNguoi > 0 ? "agent stopped" : "nothing stuck",
       tone: canNguoi > 0 ? "down" : undefined,
     },
   ];

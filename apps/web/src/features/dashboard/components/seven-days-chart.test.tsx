@@ -13,6 +13,6 @@ describe("SevenDaysChart", () => {
      */
     render(<SevenDaysChart days={bayNgayQua([])} tomTat={null} />);
 
-    expect(screen.getByText("Chưa có lần chạy nào")).toBeInTheDocument();
+    expect(screen.getByText("No runs yet")).toBeInTheDocument();
   });
 });

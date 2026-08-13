@@ -12,7 +12,7 @@ test("trên điện thoại: đọc được hộp thư, không tràn ngang", as
   await vaoViec(page, "pm-linh");
 
   // Sức khoẻ hệ thống giờ sống ở Tổng quan và ở chân sidebar, không ở đây.
-  await expect(page.getByRole("table", { name: "Việc đang chờ bạn" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Work waiting on you" })).toBeVisible();
 
   const tran = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -24,7 +24,7 @@ test("trên điện thoại: bấm được Duyệt", async ({ page }) => {
   await vaoViec(page, "pm-linh");
   await page.goto("/t/shop/30");
 
-  const nut = page.getByRole("button", { name: "Duyệt PR" });
+  const nut = page.getByRole("button", { name: "Approve PR" });
   await expect(nut).toBeVisible();
 
   // Vùng bấm đủ lớn cho ngón tay — nút nhỏ hơn ~32px là nút bấm trượt.
@@ -32,5 +32,5 @@ test("trên điện thoại: bấm được Duyệt", async ({ page }) => {
   expect(hop!.height).toBeGreaterThanOrEqual(28);
 
   await nut.click();
-  await expect(page.getByText("Đã duyệt — merge trên GitHub")).toBeVisible();
+  await expect(page.getByText("Approved — merge it on GitHub")).toBeVisible();
 });

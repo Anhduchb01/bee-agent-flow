@@ -44,7 +44,7 @@ const MAN_MOT_LAN: Man[] = [
     ten: "08-modal-tao-task",
     url: "/p/myapp",
     mo: async (p) => {
-      await p.getByRole("button", { name: "Tạo task" }).click();
+      await p.getByRole("button", { name: "New task" }).click();
       await p.getByRole("dialog").waitFor();
     },
   },

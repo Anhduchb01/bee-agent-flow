@@ -33,7 +33,7 @@ function body(parts: {
   ui: string;
 }): string {
   return [
-    "### Mục tiêu",
+    "### Goal",
     "",
     parts.goal,
     "",
@@ -41,7 +41,7 @@ function body(parts: {
     "",
     ...parts.acceptance.map((a) => `- [ ] ${a}`),
     "",
-    "### Ràng buộc kỹ thuật",
+    "### Technical constraints",
     "",
     ...parts.constraints.map((c) => `- ${c}`),
     "",
@@ -72,19 +72,19 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "myapp",
       number: 38,
-      title: "Thêm bộ lọc trạng thái cho danh sách đơn hàng",
+      title: "Add a status filter to the orders list",
       body: body({
-        goal: "Người vận hành lọc được đơn theo trạng thái để tìm đơn cần xử lý mà không phải cuộn hết trang.",
+        goal: "An operator can filter orders by status to find the ones needing action without scrolling the whole page.",
         acceptance: [
-          "Given danh sách đơn, When chọn trạng thái “Chờ xử lý”, Then chỉ đơn ở trạng thái đó hiện ra.",
-          "Given đã lọc, When tải lại trang, Then bộ lọc vẫn giữ nguyên.",
+          "Given the orders list, When I pick the status “Pending”, Then only orders in that status show.",
+          "Given a filter is applied, When I reload the page, Then the filter is still applied.",
         ],
         constraints: [
-          "Chỉ đụng module đơn hàng; không sửa module thanh toán.",
-          "Giữ nguyên response shape của GET /orders — client mobile đang dùng.",
+          "Touch the orders module only; do not modify the payments module.",
+          "Keep the response shape of GET /orders — the mobile client depends on it.",
         ],
-        outOfScope: ["Không làm phân trang (sẽ có issue riêng).", "Không refactor bảng hiện tại."],
-        ui: "Figma: khối filter nằm ngay trên bảng, dạng chip.",
+        outOfScope: ["No pagination (that gets its own issue).", "No refactor of the existing table."],
+        ui: "Figma: the filter block sits right above the table, as chips.",
       }),
       labels: ["status:spec-review"],
       author: PM,
@@ -97,16 +97,16 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "myapp",
       number: 40,
-      title: "Lọc đơn hàng theo trạng thái",
+      title: "Filter orders by status",
       body: body({
-        goal: "Bản dựng của #38, đã có PR và bằng chứng.",
+        goal: "The build of #38 — PR and evidence exist.",
         acceptance: [
-          "Given danh sách đơn, When chọn trạng thái, Then chỉ đơn khớp hiện ra.",
-          "Given đã lọc, When tải lại trang, Then bộ lọc vẫn giữ nguyên.",
+          "Given the orders list, When I pick a status, Then only matching orders show.",
+          "Given a filter is applied, When I reload the page, Then the filter is still applied.",
         ],
-        constraints: ["Chỉ đụng module đơn hàng."],
-        outOfScope: ["Không làm phân trang."],
-        ui: "Như #38.",
+        constraints: ["Touch the orders module only."],
+        outOfScope: ["No pagination."],
+        ui: "Same as #38.",
       }),
       labels: ["agent:build", "agent:eligible", "agent:built"],
       author: PM,
@@ -116,7 +116,7 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
       state: "open",
       pull: {
         number: 45,
-        title: "feat(orders): lọc theo trạng thái",
+        title: "feat(orders): filter by status",
         url: "https://github.com/org/myapp/pull/45",
         draft: false,
         head_sha: "9f3c1ab",
@@ -127,13 +127,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "myapp",
       number: 41,
-      title: "Gộp hai màn hình cấu hình thông báo",
+      title: "Combine the two notification settings screens",
       body: body({
-        goal: "Người dùng chỉnh mọi cấu hình thông báo ở một chỗ.",
-        acceptance: ["Given trang cấu hình, When mở, Then thấy cả email lẫn push trong một form."],
-        constraints: ["Không đổi schema bảng notification_settings."],
-        outOfScope: ["Không thêm kênh Slack."],
-        ui: "Không có UI mới, chỉ gộp hai trang đã có.",
+        goal: "A user changes every notification setting in one place.",
+        acceptance: ["Given the settings page, When it opens, Then both email and push appear in one form."],
+        constraints: ["Do not change the notification_settings schema."],
+        outOfScope: ["No Slack channel."],
+        ui: "No new UI, just merging two existing pages.",
       }),
       labels: ["agent:build"],
       author: TL,
@@ -146,13 +146,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "myapp",
       number: 42,
-      title: "Thêm trang cài đặt thông báo",
+      title: "Add a notification settings page",
       body: body({
-        goal: "Người dùng bật/tắt từng loại thông báo.",
-        acceptance: ["Given trang cài đặt, When tắt một loại, Then không nhận thông báo loại đó nữa."],
-        constraints: ["Dùng lại form component đã có."],
-        outOfScope: ["Không làm thông báo đẩy trên di động."],
-        ui: "Figma: danh sách toggle.",
+        goal: "A user turns each notification type on or off.",
+        acceptance: ["Given the settings page, When I turn a type off, Then I stop receiving that type."],
+        constraints: ["Reuse the existing form component."],
+        outOfScope: ["No mobile push notifications."],
+        ui: "Figma: a list of toggles.",
       }),
       labels: ["agent:build", "agent:eligible", "agent:running"],
       author: PM,
@@ -165,13 +165,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "myapp",
       number: 44,
-      title: "Export danh sách ra CSV",
+      title: "Export the list to CSV",
       body: body({
-        goal: "Người vận hành tải danh sách đang lọc ra CSV để gửi kế toán.",
-        acceptance: ["Given danh sách đã lọc, When bấm Export, Then tải về CSV đúng số dòng đang hiện."],
-        constraints: ["Không tải toàn bộ bảng vào bộ nhớ."],
-        outOfScope: ["Không làm export XLSX."],
-        ui: "Nút Export cạnh khối filter.",
+        goal: "An operator downloads the filtered list as CSV to send to accounting.",
+        acceptance: ["Given a filtered list, When I hit Export, Then the CSV has exactly the rows on screen."],
+        constraints: ["Do not load the whole table into memory."],
+        outOfScope: ["No XLSX export."],
+        ui: "An Export button next to the filter block.",
       }),
       labels: ["agent:build", "agent:eligible"],
       author: PM,
@@ -184,13 +184,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "myapp",
       number: 47,
-      title: "Sửa lỗi hiển thị ngày ở màn hình chi tiết đơn",
+      title: "Fix the date shown on the order detail screen",
       body: body({
-        goal: "Ngày hiện đúng múi giờ Việt Nam.",
-        acceptance: ["Given đơn tạo lúc 23:30 giờ VN, When mở chi tiết, Then hiện đúng ngày hôm đó."],
-        constraints: ["Không đổi cách lưu trong DB (vẫn UTC)."],
-        outOfScope: ["Không làm chọn múi giờ theo người dùng."],
-        ui: "Không có UI mới.",
+        goal: "Dates render in the Vietnam time zone.",
+        acceptance: ["Given an order created at 23:30 VN time, When I open its detail, Then it shows that same day."],
+        constraints: ["Do not change how it is stored in the DB (still UTC)."],
+        outOfScope: ["No per-user time zone setting."],
+        ui: "No new UI.",
       }),
       labels: ["needs-human"],
       author: TL,
@@ -203,13 +203,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "myapp",
       number: 49,
-      title: "Cho phép huỷ đơn trong 15 phút đầu",
+      title: "Allow cancelling an order within the first 15 minutes",
       body: body({
-        goal: "Khách tự huỷ đơn mới đặt mà không cần gọi tổng đài.",
-        acceptance: ["Given đơn đặt dưới 15 phút, When bấm Huỷ, Then đơn chuyển sang trạng thái đã huỷ."],
-        constraints: ["Phải ghi audit log cho mỗi lần huỷ."],
-        outOfScope: ["Không làm hoàn tiền tự động."],
-        ui: "Nút Huỷ trong trang chi tiết đơn.",
+        goal: "A customer cancels a fresh order themselves without calling support.",
+        acceptance: ["Given an order placed under 15 minutes ago, When I hit Cancel, Then it moves to cancelled."],
+        constraints: ["Every cancellation must be written to the audit log."],
+        outOfScope: ["No automatic refunds."],
+        ui: "A Cancel button on the order detail page.",
       }),
       labels: ["agent:build", "agent:eligible", "agent:built"],
       author: TL,
@@ -219,7 +219,7 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
       state: "open",
       pull: {
         number: 52,
-        title: "feat(orders): huỷ đơn trong 15 phút",
+        title: "feat(orders): cancel within 15 minutes",
         url: "https://github.com/org/myapp/pull/52",
         draft: true,
         head_sha: "c71e004",
@@ -230,13 +230,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "myapp",
       number: 50,
-      title: "Đổi cách đánh số hoá đơn",
+      title: "Change the invoice numbering scheme",
       body: body({
-        goal: "Số hoá đơn theo định dạng kế toán yêu cầu.",
-        acceptance: ["Given hoá đơn mới, When tạo, Then số có dạng HD-YYYY-NNNN."],
-        constraints: ["Không đổi hoá đơn cũ."],
-        outOfScope: ["Không làm xuất hoá đơn điện tử."],
-        ui: "Không có UI.",
+        goal: "Invoice numbers follow the format accounting asked for.",
+        acceptance: ["Given a new invoice, When it is created, Then its number looks like HD-YYYY-NNNN."],
+        constraints: ["Do not touch existing invoices."],
+        outOfScope: ["No e-invoice export."],
+        ui: "No UI.",
       }),
       labels: ["status:ready-for-spec"],
       author: PM,
@@ -251,13 +251,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "shop",
       number: 12,
-      title: "Hiển thị lịch sử giá của sản phẩm",
+      title: "Show a product's price history",
       body: body({
-        goal: "Khách thấy giá đã đổi thế nào trong 90 ngày.",
-        acceptance: ["Given trang sản phẩm, When mở tab Lịch sử giá, Then thấy biểu đồ 90 ngày."],
-        constraints: ["Đọc từ bảng price_history đã có."],
-        outOfScope: ["Không làm cảnh báo giảm giá."],
-        ui: "Figma: tab thứ ba trong trang sản phẩm.",
+        goal: "A customer sees how the price moved over 90 days.",
+        acceptance: ["Given a product page, When I open the Price history tab, Then I see a 90-day chart."],
+        constraints: ["Read from the existing price_history table."],
+        outOfScope: ["No price-drop alerts."],
+        ui: "Figma: the third tab on the product page.",
       }),
       labels: ["status:spec-review"],
       author: PM,
@@ -270,13 +270,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "shop",
       number: 30,
-      title: "Tính thuế theo vùng",
+      title: "Regional tax calculation",
       body: body({
-        goal: "Đơn hàng tính đúng thuế theo tỉnh giao hàng.",
-        acceptance: ["Given địa chỉ giao ở tỉnh có thuế riêng, When đặt hàng, Then tổng tiền tính đúng thuế."],
-        constraints: ["Bảng thuế nạp từ file cấu hình, không hardcode."],
-        outOfScope: ["Không làm thuế quốc tế."],
-        ui: "Không có UI mới, chỉ đổi con số ở bước thanh toán.",
+        goal: "Orders apply the right tax for the delivery province.",
+        acceptance: ["Given a delivery address in a province with its own tax, When I place the order, Then the total applies that tax."],
+        constraints: ["Load the tax table from a config file, do not hardcode it."],
+        outOfScope: ["No international tax."],
+        ui: "No new UI, only the numbers at checkout change.",
       }),
       labels: ["agent:build", "agent:eligible", "agent:built"],
       author: TL,
@@ -286,7 +286,7 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
       state: "open",
       pull: {
         number: 37,
-        title: "feat(checkout): thuế theo vùng",
+        title: "feat(checkout): regional tax",
         url: "https://github.com/org/shop/pull/37",
         draft: false,
         head_sha: "4b21d70",
@@ -297,8 +297,8 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "shop",
       number: 33,
-      title: "Đổi luồng thanh toán",
-      body: "### Mục tiêu\n\nCòn đang viết.",
+      title: "Rework the checkout flow",
+      body: "### Goal\n\nStill drafting.",
       labels: ["status:draft"],
       author: PM,
       created_at: at(20 * MIN),
@@ -310,13 +310,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "shop",
       number: 36,
-      title: "Sửa lỗi tính thuế cho đơn có mã giảm giá",
+      title: "Fix tax on orders with a discount code",
       body: body({
-        goal: "Thuế tính trên số tiền sau giảm giá.",
-        acceptance: ["Given đơn có mã giảm 10%, When tính thuế, Then thuế tính trên số sau giảm."],
-        constraints: ["Không đổi cách lưu mã giảm giá."],
-        outOfScope: ["Không làm mã giảm giá theo sản phẩm."],
-        ui: "Không có UI.",
+        goal: "Tax applies to the amount after the discount.",
+        acceptance: ["Given an order with a 10% discount code, When tax is computed, Then it applies to the discounted amount."],
+        constraints: ["Do not change how discount codes are stored."],
+        outOfScope: ["No per-product discount codes."],
+        ui: "No UI.",
       }),
       labels: ["agent:build", "priority:high"],
       author: TL,
@@ -331,13 +331,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "blog",
       number: 8,
-      title: "Trang tác giả",
+      title: "Author pages",
       body: body({
-        goal: "Mỗi tác giả có một trang gom bài đã viết.",
-        acceptance: ["Given một tác giả, When mở /tac-gia/<slug>, Then thấy danh sách bài của họ."],
-        constraints: ["Dùng lại layout danh sách bài đã có."],
-        outOfScope: ["Không làm trang chỉnh sửa hồ sơ."],
-        ui: "Figma: giống trang chuyên mục.",
+        goal: "Each author gets a page collecting what they wrote.",
+        acceptance: ["Given an author, When I open /authors/<slug>, Then I see the list of their posts."],
+        constraints: ["Reuse the existing post-list layout."],
+        outOfScope: ["No profile editing page."],
+        ui: "Figma: same as the category page.",
       }),
       labels: ["status:ready-for-spec"],
       author: PM,
@@ -350,13 +350,13 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
     {
       slug: "blog",
       number: 9,
-      title: "RSS trả về 500 khi bài không có ảnh bìa",
+      title: "RSS returns 500 when a post has no cover image",
       body: body({
-        goal: "RSS không đổ khi thiếu ảnh bìa.",
-        acceptance: ["Given bài không có ảnh bìa, When gọi /rss.xml, Then trả 200 và bỏ qua thẻ ảnh."],
-        constraints: ["Không đổi schema bài viết."],
-        outOfScope: ["Không làm ảnh bìa mặc định."],
-        ui: "Không có UI.",
+        goal: "RSS does not fall over when a cover image is missing.",
+        acceptance: ["Given a post with no cover image, When /rss.xml is called, Then it returns 200 and skips the image tag."],
+        constraints: ["Do not change the post schema."],
+        outOfScope: ["No default cover image."],
+        ui: "No UI.",
       }),
       labels: ["needs-human", "priority:high"],
       author: TL,
@@ -374,10 +374,10 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
         id: 1001,
         author: ORCH,
         body:
-          "<!-- agent-run -->\n**Độ rõ của spec: 4/5.**\n\nBốn mục đầu đủ và kiểm được. " +
-          "Một chỗ còn mơ hồ: AC2 nói “bộ lọc vẫn giữ nguyên” sau khi tải lại — giữ ở " +
-          "URL hay ở localStorage? Hai cách cho hành vi khác nhau khi người dùng gửi " +
-          "link cho đồng nghiệp.",
+          "<!-- agent-run -->\n**Spec clarity: 4/5.**\n\nThe first four sections are complete and " +
+          "checkable. One thing stays ambiguous: AC2 says the filter “is still applied” after " +
+          "a reload — kept in the URL or in localStorage? The two choices behave differently " +
+          "when someone sends the link to a colleague.",
         created_at: at(3 * HOUR + 20 * MIN),
         kind: "issue",
         from_agent: true,
@@ -388,7 +388,7 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
         id: 1002,
         author: ORCH,
         body:
-          "<!-- agent-run -->\nĐã mở PR #45. Bốn AC đều có test E2E; bằng chứng ghi ở " +
+          "<!-- agent-run -->\nOpened PR #45. All four AC have E2E tests; evidence written to " +
           "`evidence/myapp/45/9f3c1ab/`.",
         created_at: at(2 * HOUR + 5 * MIN),
         kind: "issue",
@@ -400,10 +400,10 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
         id: 1003,
         author: ORCH,
         body:
-          "<!-- agent-run -->\nDừng sau 2 lần thử. Test `orders/detail.spec.ts` đỏ ở cả " +
-          "hai lần với cùng lỗi lệch một ngày, nhưng sửa theo cách hiển nhiên thì làm " +
-          "đỏ 6 test khác đang giả định giờ UTC. Đây là quyết định về sản phẩm chứ " +
-          "không phải về code — cần người quyết.",
+          "<!-- agent-run -->\nStopped after 2 attempts. `orders/detail.spec.ts` was red both " +
+          "times with the same off-by-one-day failure, but the obvious fix turns 6 other " +
+          "tests red — they assume UTC. This is a product decision, not a code one — it " +
+          "needs a human.",
         created_at: at(6 * HOUR + 40 * MIN),
         kind: "issue",
         from_agent: true,
@@ -413,7 +413,7 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
       {
         id: 1004,
         author: TL,
-        body: "@claude cái audit log này ghi vào bảng nào cho đúng chuẩn hiện tại?",
+        body: "@claude which table should this audit log be written to, to match what we do today?",
         created_at: at(HOUR + 10 * MIN),
         kind: "issue",
         from_agent: false,
@@ -422,10 +422,10 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
         id: 1005,
         author: ORCH,
         body:
-          "<!-- agent-run -->\nTrong repo đang có hai chỗ ghi audit: `audit_events` " +
-          "(bảng chung, có `actor_id`) và `order_events` (chỉ cho vòng đời đơn). Huỷ " +
-          "đơn thuộc vòng đời đơn nhưng người thực hiện là khách, nên nó rơi vào giữa. " +
-          "Anh muốn tôi ghi vào bảng nào?",
+          "<!-- agent-run -->\nThe repo writes audit records in two places: `audit_events` " +
+          "(the shared table, with `actor_id`) and `order_events` (order lifecycle only). " +
+          "Cancellation belongs to the order lifecycle, but the actor is a customer, so it " +
+          "falls between the two. Which one should I write to?",
         created_at: at(50 * MIN),
         kind: "issue",
         from_agent: true,
@@ -436,8 +436,8 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
         id: 1006,
         author: ORCH,
         body:
-          "<!-- agent-run -->\n**Độ rõ của spec: 5/5.** Không có gì phải hỏi thêm; AC " +
-          "viết thành test được ngay.",
+          "<!-- agent-run -->\n**Spec clarity: 5/5.** Nothing to ask; the AC translate straight " +
+          "into tests.",
         created_at: at(HOUR + 15 * MIN),
         kind: "issue",
         from_agent: true,
@@ -447,7 +447,7 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
       {
         id: 1007,
         author: ORCH,
-        body: "<!-- agent-run -->\nĐã mở PR #37. Bằng chứng ở `evidence/shop/37/4b21d70/`.",
+        body: "<!-- agent-run -->\nOpened PR #37. Evidence in `evidence/shop/37/4b21d70/`.",
         created_at: at(5 * HOUR),
         kind: "issue",
         from_agent: true,
@@ -455,7 +455,7 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
       {
         id: 1008,
         author: TL,
-        body: "Diff ổn. Đã approve trên GitHub, chờ PM duyệt nốt rồi tôi merge.",
+        body: "Diff looks fine. Approved on GitHub — waiting on the PM, then I will merge.",
         created_at: at(4 * HOUR),
         kind: "issue",
         from_agent: false,
@@ -466,8 +466,8 @@ export function seedGithub(base: Date = new Date()): GithubSeed {
         id: 1009,
         author: ORCH,
         body:
-          "<!-- agent-run -->\nKhông tái hiện được lỗi trên bản dựng sạch. Cần một bài " +
-          "cụ thể gây lỗi để tiếp tục.",
+          "<!-- agent-run -->\nCould not reproduce the failure on a clean build. I need a " +
+          "specific post that triggers it to continue.",
         created_at: at(26 * HOUR),
         kind: "issue",
         from_agent: true,

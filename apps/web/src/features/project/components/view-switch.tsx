@@ -17,14 +17,14 @@ export function docViewMode(value: string | string[] | undefined): ViewMode {
  */
 export function ViewSwitch({ slug, current }: { slug: string; current: ViewMode }) {
   const items: { mode: ViewMode; label: string; href: string }[] = [
-    { mode: "bang", label: "Bảng", href: `/p/${slug}` },
+    { mode: "bang", label: "Table", href: `/p/${slug}` },
     { mode: "kanban", label: "Kanban", href: `/p/${slug}?view=kanban` },
   ];
 
   return (
     <div
       role="group"
-      aria-label="Kiểu xem"
+      aria-label="View mode"
       className="inline-flex rounded-control border border-border bg-card p-0.5"
     >
       {items.map((i) => (

@@ -13,9 +13,9 @@ describe("parseTaskBody", () => {
     const parsed = parseTaskBody(body("myapp", 38));
 
     expect(parsed.sections.map((s) => s.heading)).toEqual([
-      "Mục tiêu",
+      "Goal",
       "Acceptance Criteria",
-      "Ràng buộc kỹ thuật",
+      "Technical constraints",
       "Out of scope",
       "UI Reference",
     ]);
@@ -27,7 +27,7 @@ describe("parseTaskBody", () => {
     const parsed = parseTaskBody(body("myapp", 38));
 
     expect(parsed.acceptance).toHaveLength(2);
-    expect(parsed.acceptance[0].text).toContain("Given danh sách đơn");
+    expect(parsed.acceptance[0].text).toContain("Given the orders list");
     expect(parsed.acceptance[0].done).toBe(false);
   });
 
@@ -47,14 +47,14 @@ describe("parseTaskBody", () => {
   it("issue không đúng hợp đồng thì nói thiếu mục nào, không mất chữ", () => {
     const parsed = parseTaskBody(body("shop", 33));
 
-    expect(parsed.sections.map((s) => s.heading)).toEqual(["Mục tiêu"]);
+    expect(parsed.sections.map((s) => s.heading)).toEqual(["Goal"]);
     expect(parsed.missing).toEqual([
       "Acceptance Criteria",
-      "Ràng buộc kỹ thuật",
+      "Technical constraints",
       "Out of scope",
       "UI Reference",
     ]);
-    expect(parsed.sections[0].body).toContain("Còn đang viết");
+    expect(parsed.sections[0].body).toContain("Still drafting");
   });
 
   it("văn bản trước mục đầu tiên được giữ lại", () => {
@@ -77,9 +77,9 @@ describe("parseTaskBody", () => {
       sections: [],
       acceptance: [],
       missing: [
-        "Mục tiêu",
+        "Goal",
         "Acceptance Criteria",
-        "Ràng buộc kỹ thuật",
+        "Technical constraints",
         "Out of scope",
         "UI Reference",
       ],
@@ -87,7 +87,7 @@ describe("parseTaskBody", () => {
   });
 
   it("xuống dòng kiểu Windows không làm lệch việc tách mục", () => {
-    const parsed = parseTaskBody("### Mục tiêu\r\n\r\nLàm X.\r\n");
+    const parsed = parseTaskBody("### Goal\r\n\r\nLàm X.\r\n");
 
     expect(parsed.sections).toHaveLength(1);
     expect(parsed.sections[0].body).toBe("Làm X.");

@@ -20,13 +20,13 @@ export type KetQuaThemDuAn =
  */
 export async function themDuAn(full: string): Promise<KetQuaThemDuAn> {
   const actor = await getActor();
-  if (!actor) return { ok: false, message: "Bạn không có quyền làm việc này." };
+  if (!actor) return { ok: false, message: "You are not allowed to do this." };
 
   try {
     const repo = await getGithub().addRepo(full, actor);
     revalidatePath("/du-an");
     return { ok: true, slug: repo.slug };
   } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : "Không thêm được." };
+    return { ok: false, message: e instanceof Error ? e.message : "Could not add the project." };
   }
 }

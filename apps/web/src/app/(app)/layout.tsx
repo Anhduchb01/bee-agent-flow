@@ -31,15 +31,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     return (
       <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-6 py-24">
         <PageTitle
-          title="Bạn chưa có quyền vào đây"
-          hint={`Đăng nhập thành công với tài khoản ${session.login}, nhưng tài khoản này chưa nằm trong danh sách được phép.`}
+          title="You do not have access yet"
+          hint={`Signed in as ${session.login}, but that account is not on the allowlist.`}
         />
         <p className="text-sm text-body">
-          Nhờ PM hoặc Techlead thêm login của bạn vào <code>ALLOWED_LOGINS</code>.
+          Ask a PM or Techlead to add your login to <code>ALLOWED_LOGINS</code>.
         </p>
         <form action={raNgoai}>
           <Button type="submit" variant="outline">
-            Đăng nhập bằng tài khoản khác
+            Sign in with a different account
           </Button>
         </form>
       </main>
@@ -73,7 +73,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             tone: health.level === "ok" ? "ok" : health.level === "warn" ? "warn" : "down",
             headline: health.headline,
             detail: health.slots
-              ? `build ${health.slots.build.used}/${health.slots.build.max} · hàng đợi ${health.queued}`
+              ? `build ${health.slots.build.used}/${health.slots.build.max} · ${health.queued} queued`
               : null,
           }}
           dangXuat={raNgoai}

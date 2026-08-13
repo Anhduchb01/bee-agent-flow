@@ -14,9 +14,9 @@ const CHECK_TONE: Record<CheckConclusion, Tone> = {
 
 const CHECK_LABEL: Record<CheckConclusion, string> = {
   success: "xanh",
-  failure: "đỏ",
-  pending: "đang chạy",
-  neutral: "không kết luận",
+  failure: "red",
+  pending: "running",
+  neutral: "inconclusive",
 };
 
 function Dong({ nhan, children }: { nhan: string; children: React.ReactNode }) {
@@ -48,9 +48,9 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
 
   return (
     <div className="overflow-hidden rounded-card border border-border bg-card">
-      <Dong nhan="Nhãn">
+      <Dong nhan="Labels">
         {task.labels.length === 0 ? (
-          <span className="text-muted-foreground">chưa có</span>
+          <span className="text-muted-foreground">none</span>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {task.labels.map((l) => (
@@ -64,13 +64,13 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
         {dangChay ? (
           <span className="flex items-center gap-2 text-body">
             <StatusDot tone="agent" />
-            đang chạy <Ma>{dangChay.rule}</Ma>
+            running <Ma>{dangChay.rule}</Ma>
             <span className="font-mono text-xs tabular-nums">
               {khoangThoiGian(dangChay.elapsed_s)}
             </span>
           </span>
         ) : (
-          <span className="text-muted-foreground">không có việc nào đang chạy</span>
+          <span className="text-muted-foreground">nothing running</span>
         )}
       </Dong>
 
@@ -83,11 +83,11 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
               rel="noreferrer"
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
-              #{task.pull.number} trên GitHub
+              #{task.pull.number} on GitHub
             </a>
             {task.pull.draft ? (
               <span className="eyebrow rounded-pill border border-border px-2 py-0.5">
-                nháp
+                draft
               </span>
             ) : null}
             <code className="font-mono text-xs text-muted-foreground">
@@ -97,7 +97,7 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
 
           <Dong nhan="bee/test">
             {task.pull.checks.length === 0 ? (
-              <span className="text-muted-foreground">chưa chạy</span>
+              <span className="text-muted-foreground">not run</span>
             ) : (
               task.pull.checks.map((c) => (
                 <span key={c.name} className="flex items-center gap-1.5 text-body">
@@ -110,9 +110,9 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
             )}
           </Dong>
 
-          <Dong nhan="Đã duyệt">
+          <Dong nhan="Approved">
             {approvals.length === 0 ? (
-              <span className="text-muted-foreground">chưa ai duyệt</span>
+              <span className="text-muted-foreground">nobody has approved</span>
             ) : (
               approvals.map((r) => (
                 <span
@@ -128,7 +128,7 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
         </>
       ) : (
         <Dong nhan="Pull request">
-          <span className="text-muted-foreground">chưa có</span>
+          <span className="text-muted-foreground">none</span>
         </Dong>
       )}
     </div>

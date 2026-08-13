@@ -70,18 +70,18 @@ export function ChatBox({
 
   return (
     <form action={gui} className="flex flex-col gap-3">
-      <Label htmlFor="noi-dung" className="eyebrow">Nói tiếp với agent</Label>
+      <Label htmlFor="noi-dung" className="eyebrow">Continue with the agent</Label>
       <Textarea
         id="noi-dung"
         name="noi-dung"
         rows={3}
         required
-        placeholder="Trả lời câu hỏi của agent, hoặc yêu cầu sửa gì đó. @claude được thêm tự động."
+        placeholder="Answer the agent's question, or ask for a change. @claude is added automatically."
       />
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={dangGui}>
-          {dangGui ? "Đang gửi…" : "Gửi"}
+          {dangGui ? "Sending…" : "Send"}
         </Button>
         <TrangThai
           guiLuc={guiLuc}
@@ -110,7 +110,7 @@ function TrangThai({
   if (dangChayRule) {
     return (
       <p aria-live="polite" className="text-sm text-body">
-        agent đang làm · {khoangThoiGian(dangChayGiay)}
+        agent working · {khoangThoiGian(dangChayGiay)}
       </p>
     );
   }
@@ -118,7 +118,7 @@ function TrangThai({
   if (guiLuc === null) {
     return (
       <p className="text-sm text-body">
-        Agent nhìn thấy ở tick sau — tối đa {TICK_S} giây.
+        The agent sees it on the next tick — at most {TICK_S} seconds.
       </p>
     );
   }
@@ -126,15 +126,15 @@ function TrangThai({
   if (troi > HET_KIEN_NHAN_S) {
     return (
       <p aria-live="polite" className="text-sm text-warning-deep">
-        đã gửi {khoangThoiGian(troi)} trước, agent vẫn chưa nhận · có thể hàng đợi đang đầy hoặc
-        dự án đang tạm dừng
+        sent {khoangThoiGian(troi)} ago, the agent still has not picked it up · the queue may be
+        full, or the project paused
       </p>
     );
   }
 
   return (
     <p aria-live="polite" className="text-sm text-body">
-      đã gửi · chờ tick tiếp theo · {khoangThoiGian(troi)}
+      sent · waiting for the next tick · {khoangThoiGian(troi)}
     </p>
   );
 }

@@ -43,11 +43,11 @@ export interface InboxInput {
 }
 
 export const KIND_LABEL: Record<InboxKind, string> = {
-  "can-nguoi": "Cần người",
-  "agent-hoi-nguoc": "Agent hỏi ngược",
-  "duyet-pr": "Duyệt PR",
-  "duyet-spec": "Duyệt spec",
-  "cho-phep-nhan-task": "Cho phép nhận task",
+  "can-nguoi": "Needs human",
+  "agent-hoi-nguoc": "Agent asked you",
+  "duyet-pr": "Review PR",
+  "duyet-spec": "Review spec",
+  "cho-phep-nhan-task": "Allow agent to pick up",
 };
 
 /**
@@ -103,7 +103,7 @@ function candidates(task: GhTask, input: InboxInput): Candidate[] {
     out.push({
       kind: "can-nguoi",
       waitingSince: task.updated_at,
-      action: { kind: "mo-task", label: "Mở task" },
+      action: { kind: "mo-task", label: "Open task" },
     });
   }
 
@@ -116,7 +116,7 @@ function candidates(task: GhTask, input: InboxInput): Candidate[] {
       out.push({
         kind: "agent-hoi-nguoc",
         waitingSince: hoi.created_at,
-        action: { kind: "tra-loi", label: "Trả lời" },
+        action: { kind: "tra-loi", label: "Reply" },
       });
     }
   }
@@ -132,8 +132,8 @@ function candidates(task: GhTask, input: InboxInput): Candidate[] {
         waitingSince: task.updated_at,
         action:
           actor.role === "pm"
-            ? { kind: "duyet-pr", label: "Duyệt" }
-            : { kind: "mo-task", label: "Xem PR" },
+            ? { kind: "duyet-pr", label: "Approve" }
+            : { kind: "mo-task", label: "View PR" },
       });
     }
   }
@@ -143,7 +143,7 @@ function candidates(task: GhTask, input: InboxInput): Candidate[] {
     out.push({
       kind: "duyet-spec",
       waitingSince: task.updated_at,
-      action: { kind: "duyet-spec", label: "Duyệt spec" },
+      action: { kind: "duyet-spec", label: "Review spec" },
     });
   }
 
@@ -151,7 +151,7 @@ function candidates(task: GhTask, input: InboxInput): Candidate[] {
     out.push({
       kind: "cho-phep-nhan-task",
       waitingSince: task.updated_at,
-      action: { kind: "giao-agent", label: "Giao cho agent" },
+      action: { kind: "giao-agent", label: "Assign to agent" },
     });
   }
 

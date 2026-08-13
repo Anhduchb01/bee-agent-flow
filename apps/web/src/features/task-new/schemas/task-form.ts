@@ -6,22 +6,25 @@ import { z } from "zod";
  * Mục tiêu là làm form này *dễ điền hơn* form GitHub, không phải *lỏng hơn*.
  * Hợp đồng thiếu là gốc của mọi task build lệch: spec gatekeeper sẽ hỏi ngược
  * và task nằm chờ thêm một vòng, nên bắt ở đây rẻ hơn nhiều.
+ *
+ * Tên năm mục phải khớp **từng chữ** với bảng trong `prompts/spec.md` của
+ * reconciler — chúng là cùng một hợp đồng đọc từ hai phía.
  */
 const batBuoc = (nhan: string, min = 1) =>
   z
     .string()
     .trim()
-    .min(min, min === 1 ? `${nhan} không được để trống.` : `${nhan} cần ít nhất ${min} ký tự.`);
+    .min(min, min === 1 ? `${nhan} is required.` : `${nhan} needs at least ${min} characters.`);
 
 export const taskFormSchema = z.object({
-  slug: batBuoc("Dự án"),
-  title: batBuoc("Tiêu đề", 8),
-  goal: batBuoc("Mục tiêu", 15),
+  slug: batBuoc("Project"),
+  title: batBuoc("Title", 8),
+  goal: batBuoc("Goal", 15),
   acceptance: batBuoc("Acceptance Criteria", 15).refine(
     (v) => /(^|\n)\s*[-*]\s*\[( |x|X)\]\s*\S/.test(v),
-    "Mỗi tiêu chí một checkbox, dạng `- [ ] Given …, When …, Then …`.",
+    "One checkbox per criterion, as `- [ ] Given …, When …, Then …`.",
   ),
-  constraints: batBuoc("Ràng buộc kỹ thuật"),
+  constraints: batBuoc("Technical constraints"),
   out_of_scope: batBuoc("Out of scope"),
   ui_reference: batBuoc("UI Reference"),
 });
@@ -31,32 +34,32 @@ export type TaskFormValues = z.infer<typeof taskFormSchema>;
 export const TRUONG: { name: keyof TaskFormValues; label: string; hint: string; rows?: number }[] = [
   {
     name: "goal",
-    label: "Mục tiêu",
-    hint: "Một câu, nhìn từ phía người dùng. Đây là thứ agent bám vào khi phải chọn giữa hai cách làm.",
+    label: "Goal",
+    hint: "One sentence, from the user's point of view. This is what the agent falls back on when it has to choose between two approaches.",
     rows: 2,
   },
   {
     name: "acceptance",
     label: "Acceptance Criteria",
-    hint: "Given/When/Then, mỗi tiêu chí một checkbox. Đây sẽ thành test case và tên file E2E — nên phải kiểm chứng được. Tránh “hợp lý”, “mượt”, “nhanh”.",
+    hint: "Given/When/Then, one checkbox per criterion. These become test cases and E2E file names — so they must be verifiable. Avoid “reasonable”, “smooth”, “fast”.",
     rows: 5,
   },
   {
     name: "constraints",
-    label: "Ràng buộc kỹ thuật",
-    hint: "File/module được phép đụng, API contract phải giữ nguyên, thư viện bắt buộc hoặc bị cấm.",
+    label: "Technical constraints",
+    hint: "Files/modules in play, API contracts that must hold, libraries required or forbidden.",
     rows: 3,
   },
   {
     name: "out_of_scope",
     label: "Out of scope",
-    hint: "Quan trọng ngang AC — đây là thứ chặn agent nở scope. Ghi cả những thứ “trông có vẻ nên làm luôn”.",
+    hint: "As important as the AC — this is what stops the agent from creeping. Include the things that “look like they should be done while we're here”.",
     rows: 3,
   },
   {
     name: "ui_reference",
     label: "UI Reference",
-    hint: "Link Figma, screenshot, hoặc mô tả. Task không có UI thì ghi rõ “không có UI”.",
+    hint: "A Figma link, a screenshot, or a description. If the task has no UI, say “no UI” explicitly.",
     rows: 2,
   },
 ];

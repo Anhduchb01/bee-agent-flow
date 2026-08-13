@@ -27,7 +27,7 @@ export function createDiskBeeSource(): BeeSource {
       } catch (e) {
         const code = (e as NodeJS.ErrnoException).code;
         if (code === "ENOENT") {
-          return { ok: false, reason: "missing", detail: `${file} chưa tồn tại` };
+          return { ok: false, reason: "missing", detail: `${file} does not exist` };
         }
         return { ok: false, reason: "unreadable", detail: `${file}: ${code ?? String(e)}` };
       }
