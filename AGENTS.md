@@ -135,12 +135,26 @@ in `apps/reconciler/`, stop and raise it — separate change, separate review.
 
 ### Stack
 
-Next.js 16 (App Router) · TypeScript strict · Tailwind · shadcn/ui · TanStack
-Query · Zustand · Zod · NextAuth v5 · Vitest + Testing Library + MSW · Playwright.
+Next.js 16.3 (App Router) · React 19.2 · TypeScript strict · **Tailwind v4** ·
+shadcn/ui · TanStack Query · Zustand · Zod · NextAuth v5 · Vitest + Testing
+Library + MSW · Playwright.
 
 Next 16 specifics that break copied tutorials: `params`, `searchParams`,
 `cookies()`, `headers()` are **async**; `proxy.ts` replaces `middleware.ts`;
 `fetch` is **uncached by default** — leave it that way.
+
+**Tailwind is v4, not v3.** There is no `tailwind.config.ts`: configuration is
+CSS-first in `src/app/globals.css` via `@import "tailwindcss"` and `@theme
+inline`. Tutorials that tell you to edit a JS config file are for v3.
+
+**`shadcn` is a CLI, not a runtime dependency.** Use `pnpm dlx shadcn@latest add
+<component>`; it must not appear in `dependencies`. Note that `shadcn init` wrote
+an `@import "shadcn/tailwind.css"` line into `globals.css` that the published
+package does not actually contain — it was removed, and `globals.css` carries the
+full token set on its own. If a regeneration puts it back, delete it again.
+
+The port is **3187** everywhere (`dev`, `start`, Playwright `baseURL`). 3000 and
+3100 were already taken on the dev machine.
 
 **Route handlers are the server.** There is no separate backend. They run on the
 agent machine, read `/srv/bee/`, and call GitHub. Standing up a second service to
@@ -220,8 +234,10 @@ of truth Query will not keep fresh. Call `queryClient.clear()` on login and logo
 - Route protection in `proxy.ts`, but **the proxy gate is UX, not security** —
   Next has shipped middleware-bypass CVEs (CVE-2025-29927). Every route handler
   re-checks the session.
-- NextAuth v5 is in maintenance mode: **pin the exact version**, check the
-  installed API. v4 patterns do not apply.
+- **NextAuth v5 ships under the `beta` dist-tag** (`5.0.0-beta.32` as of
+  2026-08-13) — `latest` is still v4. Install it explicitly and **pin the exact
+  version**; check the installed API rather than assuming. v4 patterns
+  (`getServerSession`, `authOptions`, `[...nextauth].ts`) do not apply.
 
 ### Style and quality gates
 
