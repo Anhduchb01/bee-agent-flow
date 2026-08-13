@@ -1,0 +1,10 @@
+{
+  "heartbeat": "__AGO_7__",
+  "mode": "paused",
+  "slots": {
+    "build": { "used": 0, "max": 3, "per_repo_max": 2 },
+    "evidence": { "used": 0, "max": 1 }
+  },
+  "running": [],
+  "repos": []
+}

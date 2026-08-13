@@ -1,0 +1,10 @@
+{
+  "sha": "4b21d70",
+  "suite": "e2e",
+  "passed": 4,
+  "failed": 0,
+  "duration_s": 41,
+  "specs": [
+    "tinh-thue-theo-vung.spec.ts"
+  ]
+}

@@ -12,6 +12,12 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: {
+      "@": path.resolve(import.meta.dirname, "./src"),
+      // `server-only` ném lỗi ngay khi được import ngoài môi trường server của
+      // Next. Đó đúng là việc của nó — nhưng nó biến mọi bài test cho lib/bee
+      // thành lỗi resolve khó hiểu. Chặn thật vẫn nằm ở `pnpm build`.
+      "server-only": path.resolve(import.meta.dirname, "./src/test/server-only-stub.ts"),
+    },
   },
 });

@@ -1,0 +1,71 @@
+{
+  "heartbeat": "__AGO_19__",
+  "mode": "running",
+  "slots": {
+    "build": { "used": 1, "max": 3, "per_repo_max": 2 },
+    "evidence": { "used": 0, "max": 1 }
+  },
+  "running": [
+    {
+      "id": "myapp-42",
+      "repo": "myapp",
+      "number": 42,
+      "rule": "07-build",
+      "pool": "build",
+      "started_at": "__AGO_331__",
+      "elapsed_s": 331
+    }
+  ],
+  "repos": [
+    {
+      "slug": "myapp",
+      "full": "org/myapp",
+      "enabled": true,
+      "paused": false,
+      "running": 1,
+      "wip": { "max": 3 },
+      "queue": [],
+      "recent": [
+        {
+          "id": "myapp-40",
+          "repo": "myapp",
+          "number": 40,
+          "rule": "04-evidence",
+          "result": "fail",
+          "turns": 31,
+          "duration_s": 1502,
+          "at": "__AGO_1700__"
+        }
+      ]
+    },
+    {
+      "slug": "shop",
+      "full": "org/shop",
+      "enabled": true,
+      "paused": true,
+      "running": 0,
+      "wip": { "max": 3 },
+      "queue": [
+        {
+          "repo": "shop",
+          "number": 33,
+          "rule": "07-build",
+          "title": "Đổi luồng thanh toán",
+          "wait_reason": "chờ người duyệt spec"
+        }
+      ],
+      "recent": [
+        {
+          "id": "shop-31",
+          "repo": "shop",
+          "number": 31,
+          "rule": "01-recover-stale",
+          "result": "gave-up",
+          "turns": 0,
+          "duration_s": 3,
+          "at": "__AGO_900__"
+        }
+      ]
+    }
+  ]
+}

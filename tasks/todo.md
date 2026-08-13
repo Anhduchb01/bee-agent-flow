@@ -10,7 +10,7 @@ nối vào dữ liệu thật (B, cần cả hai).
 ## A · Web trên fixture ← đang làm
 
 - [x] 🤖 **W1** Bộ khung — 4 cổng chất lượng xanh trước khi có code để bảo vệ
-- [ ] 🤖 **W2** Đường ranh dữ liệu + fixture sinh từ schema thật
+- [x] 🤖 **W2** Đường ranh dữ liệu + fixture sinh từ schema thật
 - [ ] 🤖 **W3** Đăng nhập · người ngoài allowlist thấy trống · token không lộ ra client
 - [ ] 🤖 **W4** Sức khoẻ hệ thống · heartbeat cũ báo đỏ · JSON hỏng không crash
 - [ ] 🤖 **W5** Hộp thư "đang chờ bạn" — màn hình chính

@@ -1,0 +1,50 @@
+{
+  "heartbeat": "__AGO_2071__",
+  "mode": "running",
+  "slots": {
+    "build": { "used": 1, "max": 3, "per_repo_max": 2 },
+    "evidence": { "used": 0, "max": 1 }
+  },
+  "running": [
+    {
+      "id": "myapp-42",
+      "repo": "myapp",
+      "number": 42,
+      "rule": "07-build",
+      "pool": "build",
+      "started_at": "__AGO_2402__",
+      "elapsed_s": 2402
+    }
+  ],
+  "repos": [
+    {
+      "slug": "myapp",
+      "full": "org/myapp",
+      "enabled": true,
+      "paused": false,
+      "running": 1,
+      "wip": { "max": 3 },
+      "queue": [
+        {
+          "repo": "myapp",
+          "number": 44,
+          "rule": "07-build",
+          "title": "Export CSV",
+          "wait_reason": "xếp sau task khác"
+        }
+      ],
+      "recent": [
+        {
+          "id": "myapp-39",
+          "repo": "myapp",
+          "number": 39,
+          "rule": "04-evidence",
+          "result": "ok",
+          "turns": 12,
+          "duration_s": 403,
+          "at": "__AGO_4000__"
+        }
+      ]
+    }
+  ]
+}

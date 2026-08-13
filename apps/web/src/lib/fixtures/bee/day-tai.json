@@ -1,0 +1,131 @@
+{
+  "heartbeat": "__AGO_4__",
+  "mode": "running",
+  "slots": {
+    "build": { "used": 3, "max": 3, "per_repo_max": 2 },
+    "evidence": { "used": 1, "max": 1 }
+  },
+  "running": [
+    {
+      "id": "myapp-42",
+      "repo": "myapp",
+      "number": 42,
+      "rule": "07-build",
+      "pool": "build",
+      "started_at": "__AGO_1844__",
+      "elapsed_s": 1844
+    },
+    {
+      "id": "myapp-51",
+      "repo": "myapp",
+      "number": 51,
+      "rule": "02-review-feedback",
+      "pool": "build",
+      "started_at": "__AGO_233__",
+      "elapsed_s": 233
+    },
+    {
+      "id": "shop-33",
+      "repo": "shop",
+      "number": 33,
+      "rule": "07-build",
+      "pool": "build",
+      "started_at": "__AGO_96__",
+      "elapsed_s": 96
+    },
+    {
+      "id": "shop-30",
+      "repo": "shop",
+      "number": 30,
+      "rule": "04-evidence",
+      "pool": "evidence",
+      "started_at": "__AGO_618__",
+      "elapsed_s": 618
+    }
+  ],
+  "repos": [
+    {
+      "slug": "blog",
+      "full": "org/blog",
+      "enabled": true,
+      "paused": false,
+      "running": 0,
+      "wip": { "max": 3 },
+      "queue": [
+        {
+          "repo": "blog",
+          "number": 8,
+          "rule": "08-spec",
+          "title": "Trang tác giả",
+          "wait_reason": "chờ slot build · toàn cục 3/3"
+        }
+      ],
+      "recent": []
+    },
+    {
+      "slug": "myapp",
+      "full": "org/myapp",
+      "enabled": true,
+      "paused": false,
+      "running": 2,
+      "wip": { "max": 3 },
+      "queue": [
+        {
+          "repo": "myapp",
+          "number": 44,
+          "rule": "07-build",
+          "title": "Export CSV",
+          "wait_reason": "repo đã dùng 2/2 slot"
+        },
+        {
+          "repo": "myapp",
+          "number": 47,
+          "rule": "04-evidence",
+          "title": "bằng chứng cho SHA 9f3c1ab",
+          "wait_reason": "chờ slot evidence · toàn cục 1/1"
+        }
+      ],
+      "recent": [
+        {
+          "id": "myapp-39",
+          "repo": "myapp",
+          "number": 39,
+          "rule": "04-evidence",
+          "result": "ok",
+          "turns": 12,
+          "duration_s": 403,
+          "at": "__AGO_2400__"
+        }
+      ]
+    },
+    {
+      "slug": "shop",
+      "full": "org/shop",
+      "enabled": true,
+      "paused": false,
+      "running": 2,
+      "wip": { "max": 3 },
+      "queue": [
+        {
+          "repo": "shop",
+          "number": 36,
+          "rule": "07-build",
+          "title": "Sửa lỗi tính thuế",
+          "wait_reason": "repo đã dùng 2/2 slot"
+        }
+      ],
+      "recent": [
+        {
+          "id": "shop-29",
+          "repo": "shop",
+          "number": 29,
+          "rule": "03-run-ci",
+          "result": "ok",
+          "turns": 0,
+          "duration_s": 68,
+          "at": "__AGO_3300__"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "sha": "9f3c1ab",
+  "suite": "e2e",
+  "passed": 8,
+  "failed": 0,
+  "duration_s": 82,
+  "specs": [
+    "loc-don-theo-trang-thai.spec.ts",
+    "giu-bo-loc-khi-tai-lai.spec.ts"
+  ]
+}
