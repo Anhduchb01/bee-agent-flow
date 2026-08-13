@@ -144,16 +144,23 @@ nhất được đề xuất: nó trả lời "máy có đang tệ đi không".
 **Cố ý KHÔNG đưa lên** (chỉ số phù phiếm, theo đúng danh sách trong tài liệu đã
 tra): tổng số task · số commit · số dòng code · số giờ · tổng task đã xong.
 
-#### Tách khu vực
+#### Tách khu vực — nguyên nhân thật nằm ở nền, không ở khoảng cách
 
-Nguyên nhân "khó nhìn" không chỉ là số lượng khối. Mọi tiêu đề khu vực trước đây
-đều là eyebrow mono hoa 12px xám — **cùng cỡ, cùng màu, cùng kiểu với nhãn cột và
-nhãn ô**, nên không có gì tách khu vực này với khu vực kia. Tiêu đề khu vực giờ
-là chữ sans 16px đậm màu mực, kèm một đường tóc chạy hết bề ngang. Nhìn lướt là
-đếm được có mấy khối.
+Bản trước tôi để **vùng nội dung màu trắng** (theo đúng nguyên tắc "chrome xám,
+nội dung trắng" của Geist) và panel cũng trắng. Hai bề mặt trắng chồng nhau thì
+đường tóc 1px là thứ duy nhất tách chúng — và ở kích thước đó nó gần như vô hình.
+Thêm khoảng trắng bao nhiêu cũng không sửa được, vì vấn đề là **tương phản nền**.
 
-Đây cũng chính là lỗi eyebrow-dùng-khắp-nơi đã nêu ở §2.1, lần này lộ ra ở một
-chỗ khác.
+Sửa: **vùng nội dung xám `#fafafa`, panel trắng có viền và bóng 1px**. Sidebar vẫn
+xám nhưng không có panel nào nên nó tự lùi lại. Ba bậc bề mặt thay vì hai.
+
+Mỗi khu vực giờ là một panel kín: dải tiêu đề riêng (nền `#fcfcfc`, tiêu đề sans
+16px đậm màu mực) và phần thân. **Bên trong panel không viền thêm lần nữa** — thẻ
+lồng thẻ là nguồn nhiễu chính của bản trước; bên trong tách nhau bằng đường kẻ.
+
+Tiêu đề khu vực cũng thôi dùng eyebrow mono hoa: trước đây nó cùng cỡ, cùng màu,
+cùng kiểu với nhãn cột và nhãn ô. Đây chính là lỗi eyebrow-dùng-khắp-nơi đã nêu ở
+§2.1, lần này lộ ra ở một chỗ khác.
 
 ### 3.3. Sửa phân cấp thị giác
 
@@ -228,9 +235,18 @@ không** (`status`), và **bao giờ reset** (`resetsAt`).
 API, không phải mức tiêu thụ hạn mức của gói thuê bao. Không nguồn nào tôi kiểm
 được cho ra `% tuần` / `% 5h`.
 
-Nên mockup để **đồng hồ đếm ngược tới cửa sổ mới** thay vì vẽ một thanh phần trăm
-không có thật — "còn 2h14m nữa agent chạy lại được" trả lời đúng câu người dùng
-định hỏi, mà lại là số có thật.
+Mockup **vẫn vẽ thanh phần trăm** vì đó là thứ được yêu cầu, và một mockup là bản
+mô tả ý định. Nhưng con số ấy **chưa có nguồn**, nên trước khi dựng thật phải
+chốt một trong hai đường:
+
+1. **Tìm ra nguồn %.** Lệnh `/usage` trong Claude Code tương tác có hiện phần
+   trăm, nên số đó tồn tại ở đâu đó. Cảnh báo: nó gần như chắc chắn đến từ một
+   endpoint gọi bằng **token của `bee-agent`**, mà app chạy dưới `bee-web` và
+   **không được đọc credential của agent** — ranh giới hai UID. Đường đi sạch duy
+   nhất là reconciler ghi ra một file cho app đọc.
+2. **Đổi sang số có thật.** `resetsAt` cho đồng hồ đếm ngược tới cửa sổ mới, và
+   `status` cho đèn còn-dùng-được / sắp-chạm / đã-hết. Kém trực quan hơn một
+   thanh, nhưng không có chỗ nào bịa.
 
 ---
 

@@ -49,8 +49,11 @@
              display:flex;flex-direction:column;gap:5px}
 
   /* ── Nội dung ──────────────────────────────────────────────────────────── */
-  .main{background:var(--surface);min-width:0}
-  .head{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);
+  /* Nền vùng nội dung là XÁM, panel là TRẮNG. Trước đây cả hai đều trắng nên
+     panel không tách khỏi nền — đó mới là lý do "giữa các phần không rõ ràng",
+     không phải do thiếu khoảng cách. */
+  .main{background:var(--canvas);min-width:0}
+  .head{position:sticky;top:0;background:var(--canvas);border-bottom:1px solid var(--line);
         padding:16px 32px;display:flex;align-items:center;gap:18px;z-index:5}
   .h1{font-size:24px;font-weight:600;letter-spacing:-.025em;color:var(--ink)}
   .btn{height:34px;border:1px solid transparent;border-radius:6px;padding:0 12px;
@@ -73,11 +76,17 @@
      cùng màu, cùng kiểu với nhãn cột và nhãn ô, nên chẳng có gì tách khu vực
      này với khu vực kia. Giờ tiêu đề là chữ sans 16px đậm màu mực, kèm một
      đường tóc chạy hết bề ngang. Nhìn lướt là đếm được có mấy khối. */
-  .block{display:flex;flex-direction:column;gap:14px}
-  .block > h2{display:flex;align-items:baseline;gap:12px;padding-bottom:10px;
-              border-bottom:1px solid var(--line)}
-  .block > h2 > .t{font-size:16px;font-weight:600;letter-spacing:-.02em;color:var(--ink)}
-  .block > h2 > .sub{font-size:13px;color:var(--mute)}
+  .block{display:flex;flex-direction:column}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+         overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.03)}
+  .panel > h2{display:flex;align-items:center;gap:12px;padding:13px 20px;
+              border-bottom:1px solid var(--line);background:#fcfcfc}
+  .panel > h2 > .t{font-size:16px;font-weight:600;letter-spacing:-.02em;color:var(--ink)}
+  .panel > h2 > .sub{font-size:13px;color:var(--mute)}
+  .panel > .body{padding:20px}
+  /* Trong panel thì KHÔNG viền thêm lần nữa — thẻ lồng thẻ là nguồn nhiễu chính
+     của bản trước. Bên trong tách nhau bằng đường kẻ. */
+  .panel .flush{padding:0}
   .more{margin-left:auto;font-size:13px;color:var(--link)}
   .cols{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:24px;
         align-items:start}
@@ -102,29 +111,34 @@
   .grp .meta{font-size:13px;color:var(--mute);margin-left:12px}
 
   /* ── Khối Claude: trạng thái dịch vụ và mức dùng ───────────────────────── */
-  .claude{display:grid;grid-template-columns:repeat(2,1fr);border:1px solid var(--line);
-          border-radius:10px;overflow:hidden;background:var(--surface)}
-  .claude > div{padding:16px 18px}
+  .claude{display:grid;grid-template-columns:repeat(2,1fr)}
+  .claude > div{padding:16px 20px}
   .claude > div:nth-child(even){border-left:1px solid var(--line)}
   .claude > div:nth-child(n+3){border-top:1px solid var(--line)}
   .claude .v{font-family:var(--mono);font-size:22px;line-height:1;color:var(--ink);
              letter-spacing:-.02em;display:flex;align-items:center;gap:8px;margin:9px 0 6px}
   .claude .v.txt{font-family:var(--sans);font-size:16px;font-weight:500;letter-spacing:-.01em}
   .claude .h{font-size:13px;color:var(--mute)}
-  .warnbar{display:flex;align-items:flex-start;gap:10px;border:1px solid #f5a62366;
-           background:#fff9ed;border-radius:10px;padding:12px 16px;font-size:14px;color:var(--body)}
+  .quota{height:8px;border-radius:99px;background:var(--line-soft);overflow:hidden;margin:10px 0 8px}
+  .quota i{display:block;height:100%;border-radius:99px}
+  .quota .lo{background:#0070f3} .quota .hi{background:#f5a623} .quota .max{background:#ee0000}
+  .qtop{display:flex;align-items:baseline;gap:8px;margin-top:9px}
+  .qtop b{font-family:var(--mono);font-size:26px;line-height:1;color:var(--ink);letter-spacing:-.02em}
+  .qtop span{font-size:13px;color:var(--mute)}
 
   /* ── Dải "máy đang làm" ────────────────────────────────────────────────── */
-  .runs{display:flex;flex-direction:column;gap:10px}
-  .run{border:1px solid var(--line);border-radius:10px;padding:12px 16px;background:var(--surface)}
+  .runs{display:flex;flex-direction:column}
+  .run{padding:16px 20px;border-bottom:1px solid var(--line-soft)}
+  .run:last-child{border-bottom:0}
   .bar{height:3px;background:var(--line-soft);border-radius:99px;margin-top:8px;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--violet);border-radius:99px}
 
   /* ── Tổng quan từng dự án ──────────────────────────────────────────────── */
-  .proj{display:flex;flex-direction:column;gap:14px}
+  .proj{display:flex;flex-direction:column}
   .prow{display:grid;grid-template-columns:200px 1fr 92px;align-items:center;gap:20px;
-        border:1px solid var(--line);border-radius:10px;padding:14px 18px;background:var(--surface)}
-  .prow:hover{border-color:var(--faint)}
+        padding:16px 20px;border-bottom:1px solid var(--line-soft)}
+  .prow:last-child{border-bottom:0}
+  .prow:hover{background:#fcfcfc}
   .pname{display:flex;flex-direction:column;gap:3px;min-width:0}
   .pname b{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
   .pname span{font-family:var(--mono);font-size:12px;color:var(--faint)}
@@ -229,51 +243,34 @@
 
         <!-- ── 1. Claude + máy đang làm, cạnh nhau ──────────────────────── -->
         <div class="cols">
-          <div class="block">
-            <h2><span class="t">Claude</span>
-                <span class="sub">nguồn: <code>rate_limit_event</code> và <code>result</code>
-                  của stream-json · status.claude.com</span></h2>
-
+          <section class="panel">
+            <h2><span class="t">Claude</span></h2>
             <div class="claude">
               <div>
                 <div class="eyebrow">Hạn mức 5 giờ</div>
-                <div class="v txt"><span class="dot ok"></span>Còn dùng được</div>
-                <div class="h">cửa sổ mới sau <b style="color:var(--ink)">2h14m</b></div>
+                <div class="qtop"><b>38%</b><span>còn 2h14m tới cửa sổ mới</span></div>
+                <div class="quota"><i class="lo" style="width:38%"></i></div>
               </div>
               <div>
                 <div class="eyebrow">Hạn mức tuần</div>
-                <div class="v txt"><span class="dot warn"></span>Sắp chạm</div>
-                <div class="h">cửa sổ mới <b style="color:var(--ink)">Thứ 2, 09:00</b></div>
+                <div class="qtop"><b>81%</b><span>reset Thứ 2, 09:00</span></div>
+                <div class="quota"><i class="hi" style="width:81%"></i></div>
               </div>
-              <div>
+              <div style="border-top:1px solid var(--line)">
                 <div class="eyebrow">Token hôm nay</div>
                 <div class="v">1.24<span style="font-size:15px">M</span></div>
                 <div class="h">89% đọc từ cache · 13 lần chạy</div>
               </div>
-              <div>
+              <div style="border-top:1px solid var(--line)">
                 <div class="eyebrow">Chi phí hôm nay</div>
                 <div class="v">$2.41</div>
                 <div class="h">bảy ngày: $14.80</div>
               </div>
             </div>
+          </section>
 
-            <div class="warnbar">
-              <span class="dot warn" style="margin-top:6px"></span>
-              <span><b style="color:var(--ink);font-weight:500">3 lần chạy dừng vì hết hạn mức.</b>
-                Đây là lý do tỉ lệ đỏ hôm nay cao — không phải code hỏng.</span>
-            </div>
-
-            <p class="note"><b style="color:var(--ink);font-weight:500">Chưa có phần trăm.</b>
-              Tôi đã dò: <code>rate_limit_event</code> cho <code>status</code>,
-              <code>rateLimitType</code> (<code>five_hour</code> / tuần) và <code>resetsAt</code> —
-              đủ để nói "còn dùng được" và "reset lúc nào", nhưng <em>không có con số %</em>.
-              Không nguồn nào tôi kiểm được cho ra %, nên tôi để đồng hồ đếm ngược
-              thay vì vẽ một thanh phần trăm không có thật.</p>
-          </div>
-
-          <div class="block">
-            <h2><span class="t">Máy đang làm</span>
-                <span class="sub">1/3 slot build</span></h2>
+          <section class="panel">
+            <h2><span class="t">Máy đang làm</span><span class="sub">1/3 slot build</span></h2>
             <div class="runs">
               <div class="run">
                 <div style="display:flex;align-items:center;gap:8px">
@@ -283,17 +280,17 @@
                 <div class="mono" style="color:var(--faint);margin-top:3px">07-build</div>
                 <div class="bar"><i style="width:38%"></i></div>
               </div>
-              <div class="run" style="border-style:dashed">
+              <div class="run">
                 <div class="mono" style="color:var(--faint)">còn 2 slot build trống</div>
                 <div style="font-size:14px;color:var(--mute);margin-top:6px">
                   1 việc đang xếp hàng: <span class="mono">myapp#44</span></div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
 
         <!-- ── 2. Dự án ─────────────────────────────────────────────────── -->
-        <div class="block">
+        <section class="panel">
           <h2><span class="t">Dự án</span>
             <span class="legend">
               <span><i class="s-nhap"></i>Nháp</span>
@@ -351,33 +348,28 @@
               <span class="ptot"><b>2</b><span>task mở</span></span>
             </a>
           </div>
-
-          <p class="note">Nhìn ngang là thấy dự án nào đang dồn ở đâu —
-            <span style="color:var(--ink)">blog</span> chỉ có 2 task nhưng một nửa kẹt ở
-            "cần người", còn <span style="color:var(--ink)">myapp</span> có 8 task mà phần
-            lớn đang chạy. Một cột "tổng số task" không phân biệt được hai tình huống đó.</p>
-        </div>
+        </section>
 
         <!-- ── 3. Bảy ngày qua ──────────────────────────────────────────── -->
-        <div class="block">
+        <section class="panel">
           <h2><span class="t">Bảy ngày qua</span>
             <span class="legend">
               <span><i style="background:#0070f3"></i>chạy xong</span>
               <span><i style="background:#ee0000"></i>thất bại</span>
             </span>
           </h2>
-          <div class="chart">
-            <div class="day"><em>6</em><div class="stack"><i class="g" style="height:48px"></i></div><span>T5</span></div>
-            <div class="day"><em>11</em><div class="stack"><i class="g" style="height:80px"></i><i class="b" style="height:8px"></i></div><span>T6</span></div>
-            <div class="day"><em>3</em><div class="stack"><i class="g" style="height:24px"></i></div><span>T7</span></div>
-            <div class="day"><em>1</em><div class="stack"><i class="g" style="height:8px"></i></div><span>CN</span></div>
-            <div class="day"><em>14</em><div class="stack"><i class="g" style="height:104px"></i><i class="b" style="height:8px"></i></div><span>T2</span></div>
-            <div class="day"><em>12</em><div class="stack"><i class="g" style="height:96px"></i></div><span>T3</span></div>
-            <div class="day"><em>13</em><div class="stack"><i class="g" style="height:56px"></i><i class="b" style="height:48px"></i></div><span>Hôm nay</span></div>
+          <div class="body">
+            <div class="chart">
+              <div class="day"><em>6</em><div class="stack"><i class="g" style="height:48px"></i></div><span>T5</span></div>
+              <div class="day"><em>11</em><div class="stack"><i class="g" style="height:80px"></i><i class="b" style="height:8px"></i></div><span>T6</span></div>
+              <div class="day"><em>3</em><div class="stack"><i class="g" style="height:24px"></i></div><span>T7</span></div>
+              <div class="day"><em>1</em><div class="stack"><i class="g" style="height:8px"></i></div><span>CN</span></div>
+              <div class="day"><em>14</em><div class="stack"><i class="g" style="height:104px"></i><i class="b" style="height:8px"></i></div><span>T2</span></div>
+              <div class="day"><em>12</em><div class="stack"><i class="g" style="height:96px"></i></div><span>T3</span></div>
+              <div class="day"><em>13</em><div class="stack"><i class="g" style="height:56px"></i><i class="b" style="height:48px"></i></div><span>Hôm nay</span></div>
+            </div>
           </div>
-          <p class="note">Hôm nay 6/13 lần chạy thất bại — sáu ngày trước gần như không có
-            lần nào. Đó là thứ đổi hành vi, nên nó lên màn hình. "Tổng số task" thì không.</p>
-        </div>
+        </section>
 
       </div>
     </section>
@@ -395,6 +387,7 @@
         <p class="note">Việc gộp theo dự án. Nhóm vẫn xếp theo việc chờ lâu nhất
           bên trong nó, <em>không</em> theo bảng chữ cái — gộp là để dễ đọc, không phải
           để đánh mất thứ tự khẩn cấp. Đầu nhóm dính khi cuộn.</p>
+        <section class="panel">
         <table>
           <thead><tr>
             <th style="width:170px">Loại</th>
@@ -453,6 +446,7 @@
                 <td class="r"><button class="btn">Duyệt spec</button></td></tr>
           </tbody>
         </table>
+        </section>
       </div>
     </section>
 
