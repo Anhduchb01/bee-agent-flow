@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bee</title>
+<style>
+  /* Trang này KHÔNG do reconciler phục vụ. File tĩnh + web server tách rời hai
+     số phận: reconciler chết thì trang vẫn lên, và heartbeat cũ hiện thành báo
+     động đỏ. Đó là cách duy nhất phát hiện chế độ hỏng nguy hiểm nhất — chết im
+     lặng, không có job đỏ nào để nhìn. */
+  :root {
+    --mono: ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --ground:#EDEFEC; --surface:#FBFCFA; --surface-2:#E3E6E1;
+    --ink:#1A1F23; --ink-2:#5A6570; --ink-3:#8B949D;
+    --line:#C6CBC4; --line-2:#D8DCD5;
+    --orch:#14655F; --agent:#A8401B;
+    --ok:#2C6E49; --warn:#8A6A12; --bad:#A32B2B;
+    --ok-bg:#DCEAE0; --warn-bg:#F0E8CE; --bad-bg:#F3DEDE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#14171A; --surface:#1C2024; --surface-2:#252A2F;
+      --ink:#E4E7E4; --ink-2:#9AA4AC; --ink-3:#6E7A83;
+      --line:#363C42; --line-2:#2B3136;
+      --orch:#58B5AC; --agent:#E08356;
+      --ok:#6FBF8E; --warn:#D9B24C; --bad:#E5776F;
+      --ok-bg:#16301F; --warn-bg:#332A12; --bad-bg:#3A1E1E;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#14171A; --surface:#1C2024; --surface-2:#252A2F;
+    --ink:#E4E7E4; --ink-2:#9AA4AC; --ink-3:#6E7A83;
+    --line:#363C42; --line-2:#2B3136;
+    --orch:#58B5AC; --agent:#E08356;
+    --ok:#6FBF8E; --warn:#D9B24C; --bad:#E5776F;
+    --ok-bg:#16301F; --warn-bg:#332A12; --bad-bg:#3A1E1E;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:0 20px 64px; background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.55;
+    font-variant-numeric:tabular-nums;
+  }
+  .wrap { max-width:1180px; margin:0 auto; }
+
+  header {
+    display:flex; align-items:baseline; gap:18px; flex-wrap:wrap;
+    padding:26px 0 18px; border-bottom:1px solid var(--line); margin-bottom:24px;
+  }
+  h1 { font-size:22px; font-weight:640; letter-spacing:-0.02em; margin:0; }
+  h1 span { color:var(--orch); }
+  .hb { font-family:var(--mono); font-size:12.5px; color:var(--ink-2); }
+  .hb.stale { color:var(--bad); font-weight:600; }
+  .grow { flex:1; }
+
+  h2 {
+    font-family:var(--mono); font-size:11px; letter-spacing:0.11em;
+    text-transform:uppercase; color:var(--ink-3); font-weight:500;
+    margin:32px 0 12px;
+  }
+
+  .banner {
+    border-radius:6px; padding:14px 18px; margin-bottom:20px;
+    border:1px solid; font-size:14.5px;
+  }
+  .banner.bad  { background:var(--bad-bg);  border-color:var(--bad);  color:var(--ink); }
+  .banner.warn { background:var(--warn-bg); border-color:var(--warn); color:var(--ink); }
+  .banner b { font-weight:640; }
+
+  .slots { display:flex; gap:12px; flex-wrap:wrap; }
+  .slot {
+    background:var(--surface); border:1px solid var(--line); border-radius:6px;
+    padding:12px 16px; min-width:150px;
+  }
+  .slot .lbl { font-family:var(--mono); font-size:11px; letter-spacing:0.07em;
+               text-transform:uppercase; color:var(--ink-3); }
+  .slot .val { font-size:21px; font-weight:620; letter-spacing:-0.02em; margin-top:2px; }
+  .bar { height:4px; border-radius:2px; background:var(--surface-2); margin-top:8px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--orch); }
+  .bar i.full { background:var(--warn); }
+
+  .rows { display:flex; flex-direction:column; gap:6px; }
+  .row {
+    display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center;
+    background:var(--surface); border:1px solid var(--line); border-radius:6px;
+    border-left:3px solid var(--line); padding:10px 14px;
+  }
+  .row.run  { border-left-color:var(--orch); }
+  .row.wait { border-left-color:var(--ink-3); }
+  .row.fail { border-left-color:var(--bad); }
+  .row .id { font-family:var(--mono); font-size:12.5px; font-weight:600; white-space:nowrap; }
+  .row .ttl { color:var(--ink-2); font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .rt { font-family:var(--mono); font-size:11.5px; color:var(--ink-3); white-space:nowrap; }
+  .row .why { color:var(--warn); font-size:13px; font-family:var(--mono); }
+
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:14px; }
+  .card {
+    background:var(--surface); border:1px solid var(--line); border-radius:7px;
+    padding:16px 18px; display:flex; flex-direction:column; gap:10px;
+  }
+  .card.paused { border-color:var(--warn); background:var(--warn-bg); }
+  .card h3 { margin:0; font-size:16px; font-weight:640; letter-spacing:-0.01em; }
+  .card .full { font-family:var(--mono); font-size:11.5px; color:var(--ink-3); }
+  .card .sub { font-family:var(--mono); font-size:11px; letter-spacing:0.08em;
+               text-transform:uppercase; color:var(--ink-3); margin-top:4px; }
+  .card .empty { color:var(--ink-3); font-size:13.5px; }
+  .mini { display:flex; flex-direction:column; gap:4px; }
+  .mini div { display:flex; gap:10px; align-items:baseline; font-size:13.5px; }
+  .mini .n { font-family:var(--mono); font-size:12px; color:var(--ink-2); white-space:nowrap; }
+  .mini .t { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mini .w { font-family:var(--mono); font-size:11.5px; color:var(--warn); white-space:nowrap; }
+
+  .pill {
+    font-family:var(--mono); font-size:10.5px; letter-spacing:0.05em;
+    padding:1px 7px; border-radius:3px; border:1px solid currentColor; white-space:nowrap;
+  }
+  .pill.ok { color:var(--ok); } .pill.bad { color:var(--bad); } .pill.warn { color:var(--warn); }
+  .pill.on { color:var(--orch); }
+
+  footer { margin-top:36px; padding-top:16px; border-top:1px solid var(--line-2);
+           font-size:12.5px; color:var(--ink-3); font-family:var(--mono); }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1><span>🐝</span> bee</h1>
+  <div class="hb" id="hb">đang tải…</div>
+  <div class="grow"></div>
+  <div class="hb" id="mode"></div>
+</header>
+
+<div id="alarm"></div>
+
+<h2>Sức khoẻ hệ thống</h2>
+<div class="slots" id="slots"></div>
+
+<h2>Đang chạy</h2>
+<div class="rows" id="running"></div>
+
+<div id="attn-wrap" hidden>
+  <h2>Cần chú ý</h2>
+  <div class="rows" id="attn"></div>
+</div>
+
+<h2>Theo repo</h2>
+<div class="cards" id="repos"></div>
+
+<footer id="foot">status.json · làm mới mỗi 5 giây</footer>
+</div>
+
+<script>
+"use strict";
+// Ngưỡng khớp HEARTBEAT_STALE_S mặc định trong /etc/bee/bee.env. Trang tĩnh
+// không đọc được config nên con số nằm ở đây; đổi ở đó thì đổi cả ở đây.
+var STALE_S = 600;
+
+function el(t, c, txt) {
+  var e = document.createElement(t);
+  if (c) e.className = c;
+  if (txt !== undefined && txt !== null) e.textContent = String(txt);
+  return e;
+}
+function dur(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  if (s < 60) return s + "s";
+  if (s < 3600) return Math.floor(s / 60) + "m" + String(s % 60).padStart(2, "0") + "s";
+  return Math.floor(s / 3600) + "h" + String(Math.floor(s % 3600 / 60)).padStart(2, "0") + "m";
+}
+function ageOf(iso) {
+  var t = Date.parse(iso);
+  return isNaN(t) ? Infinity : (Date.now() - t) / 1000;
+}
+
+function slotCard(name, used, max, note) {
+  var c = el("div", "slot");
+  c.appendChild(el("div", "lbl", name));
+  c.appendChild(el("div", "val", used + " / " + max));
+  var bar = el("div", "bar"), i = el("i");
+  var pct = max > 0 ? Math.min(100, used / max * 100) : 0;
+  i.style.width = pct + "%";
+  if (max > 0 && used >= max) i.className = "full";
+  bar.appendChild(i); c.appendChild(bar);
+  if (note) c.appendChild(el("div", "lbl", note));
+  return c;
+}
+
+function render(d) {
+  // --- heartbeat: chỉ báo quan trọng nhất trên trang -----------------------
+  var age = ageOf(d.heartbeat), stale = age > STALE_S;
+  var hb = document.getElementById("hb");
+  hb.textContent = "heartbeat " + (isFinite(age) ? dur(age) + " trước" : "không đọc được");
+  hb.className = "hb" + (stale ? " stale" : "");
+  document.getElementById("mode").textContent = d.mode || "";
+
+  var alarm = document.getElementById("alarm");
+  alarm.textContent = "";
+  if (stale) {
+    var b = el("div", "banner bad");
+    b.appendChild(el("b", null, "Reconciler có thể đã chết. "));
+    b.appendChild(document.createTextNode(
+      "Không có tick nào " + dur(age) + " nay. Đây là chế độ hỏng nguy hiểm nhất " +
+      "vì không có gì đỏ để nhìn — kiểm: systemctl status bee-reconcile.timer"));
+    alarm.appendChild(b);
+  } else if (d.mode === "paused") {
+    var p = el("div", "banner warn");
+    p.appendChild(el("b", null, "Đang tạm dừng toàn hệ thống. "));
+    p.appendChild(document.createTextNode("/etc/bee/PAUSE tồn tại — be resume để chạy lại."));
+    alarm.appendChild(p);
+  }
+
+  // --- slot ----------------------------------------------------------------
+  var s = d.slots || {}, sl = document.getElementById("slots");
+  sl.textContent = "";
+  if (s.build) sl.appendChild(slotCard("slot build", s.build.used, s.build.max,
+    s.build.per_repo_max ? "tối đa " + s.build.per_repo_max + "/repo" : ""));
+  if (s.evidence) sl.appendChild(slotCard("slot evidence", s.evidence.used, s.evidence.max,
+    "cố ý là 1 — chống flake"));
+  var repos = (d.repos || []).slice().sort(function (a, b) {
+    return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0;   // ổn định, không theo mức hoạt động
+  });
+  var queued = repos.reduce(function (n, r) { return n + (r.queue || []).length; }, 0);
+  sl.appendChild(slotCard("hàng đợi", queued, queued, repos.length + " repo"));
+
+  // --- đang chạy: CHỈ ở vùng này, không lặp lại trong thẻ repo -------------
+  var run = document.getElementById("running");
+  run.textContent = "";
+  var running = d.running || [];
+  if (!running.length) {
+    var idle = el("div", "row wait");
+    idle.appendChild(el("div", "id", "—"));
+    idle.appendChild(el("div", "ttl", "không có task nào đang chạy"));
+    idle.appendChild(el("div", "rt", ""));
+    run.appendChild(idle);
+  }
+  running.forEach(function (r) {
+    var row = el("div", "row run");
+    row.appendChild(el("div", "id", r.id));
+    row.appendChild(el("div", "ttl", r.rule || ""));
+    var rt = el("div", "rt", dur(r.elapsed_s) + " · " + (r.pool || ""));
+    row.appendChild(rt);
+    run.appendChild(row);
+  });
+
+  // --- cần chú ý: DẪN XUẤT từ dữ liệu có thật, không phải trường riêng -----
+  var attn = [];
+  repos.forEach(function (r) {
+    if (r.paused) attn.push({ id: r.slug, why: ".agent/PAUSE trên main — repo này đang dừng" });
+    (r.recent || []).forEach(function (x) {
+      if (x.result && x.result !== "ok")
+        attn.push({ id: x.id, why: x.rule + " → " + x.result });
+    });
+  });
+  var aw = document.getElementById("attn-wrap"), ab = document.getElementById("attn");
+  ab.textContent = "";
+  // Khối luôn hiện dù rỗng sẽ bị mắt bỏ qua sau ba ngày. Chỉ render khi có việc.
+  aw.hidden = attn.length === 0;
+  attn.slice(0, 8).forEach(function (a) {
+    var row = el("div", "row fail");
+    row.appendChild(el("div", "id", a.id));
+    row.appendChild(el("div", "ttl", a.why));
+    row.appendChild(el("div", "rt", ""));
+    ab.appendChild(row);
+  });
+
+  // --- thẻ repo ------------------------------------------------------------
+  var rc = document.getElementById("repos");
+  rc.textContent = "";
+  if (!repos.length) {
+    var none = el("div", "card");
+    none.appendChild(el("div", "empty", "chưa có repo nào — be repo add org/name"));
+    rc.appendChild(none);
+  }
+  repos.forEach(function (r) {
+    var c = el("div", "card" + (r.paused ? " paused" : ""));
+    var head = el("div");
+    head.style.display = "flex";
+    head.style.alignItems = "baseline";
+    head.style.gap = "10px";
+    head.appendChild(el("h3", null, r.slug));
+    if (r.paused) head.appendChild(el("span", "pill warn", "TẠM DỪNG"));
+    if (r.running > 0) head.appendChild(el("span", "pill on", r.running + " đang chạy"));
+    c.appendChild(head);
+    c.appendChild(el("div", "full", r.full));
+
+    c.appendChild(el("div", "sub", "hàng đợi (" + (r.queue || []).length + ")"));
+    var q = el("div", "mini");
+    if (!(r.queue || []).length) q.appendChild(el("div", "empty", "trống"));
+    (r.queue || []).slice(0, 6).forEach(function (i) {
+      var d1 = el("div");
+      d1.appendChild(el("span", "n", "#" + i.number));
+      d1.appendChild(el("span", "t", i.title || i.rule));
+      // Trường giá trị nhất của cả trang: biến "sao task của tôi chưa chạy?"
+      // từ một câu hỏi hỗ trợ thành một câu trả lời tự phục vụ.
+      d1.appendChild(el("span", "w", i.wait_reason || ""));
+      q.appendChild(d1);
+    });
+    c.appendChild(q);
+
+    c.appendChild(el("div", "sub", "gần đây"));
+    var rec = el("div", "mini");
+    if (!(r.recent || []).length) rec.appendChild(el("div", "empty", "chưa có lần chạy nào"));
+    (r.recent || []).slice(0, 5).forEach(function (x) {
+      var d2 = el("div");
+      d2.appendChild(el("span", "n", "#" + x.number));
+      d2.appendChild(el("span", "t", x.rule));
+      d2.appendChild(el("span", "pill " + (x.result === "ok" ? "ok" : "bad"), x.result));
+      d2.appendChild(el("span", "n", dur(x.duration_s) + (x.turns ? " · " + x.turns + "t" : "")));
+      rec.appendChild(d2);
+    });
+    c.appendChild(rec);
+    rc.appendChild(c);
+  });
+}
+
+function tick() {
+  fetch("status.json?_=" + Date.now(), { cache: "no-store" })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (d) {
+      render(d);
+      document.getElementById("foot").textContent =
+        "status.json · làm mới lúc " + new Date().toLocaleTimeString();
+    })
+    .catch(function (e) {
+      // Không đọc được file KHÁC với reconciler chết — nói rõ ra, đừng gộp.
+      var a = document.getElementById("alarm");
+      a.textContent = "";
+      var b = el("div", "banner bad");
+      b.appendChild(el("b", null, "Không đọc được status.json. "));
+      b.appendChild(document.createTextNode(
+        String(e.message) + " — reconciler chưa chạy lần nào, hoặc web server trỏ sai thư mục."));
+      a.appendChild(b);
+    });
+}
+tick();
+setInterval(tick, 5000);
+</script>
+</body>
+</html>
