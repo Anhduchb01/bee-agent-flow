@@ -36,6 +36,12 @@ export function AppHeader({
           >
             Dự án
           </Link>
+          <Link
+            href="/task-moi"
+            className="rounded-md px-2 py-1 text-muted-foreground hover:text-foreground"
+          >
+            Task mới
+          </Link>
         </nav>
 
         <div className="ml-auto flex items-center gap-3">

@@ -184,6 +184,33 @@ Cắt dọc: mỗi task là một đường đi trọn vẹn, chạy được v�
 >
 > Đến đây có thể demo cho cả đội mà không cần một máy Ubuntu nào.
 
+### Chạy thử
+
+```bash
+cd apps/web && pnpm install && pnpm dev     # http://127.0.0.1:3187
+```
+
+Đăng nhập bằng `pm-linh` hoặc `tl-duc`. Gõ một tên khác để xem người ngoài
+allowlist nhìn thấy gì.
+
+Đi qua 5 cảnh dữ liệu — đặt cookie `bee-canh` rồi tải lại trang. Trong DevTools
+console:
+
+```js
+document.cookie = "bee-canh=reconciler-chet; path=/"   // rồi F5
+```
+
+Các cảnh: `binh-thuong` · `day-tai` · `co-su-co` · `reconciler-chet` ·
+`vua-cai` · `chua-co-file` · `json-hong`. Xoá cookie để về mặc định.
+
+### Ba chỗ fixture **không** chứng minh được, đã biết trước
+
+| | Trả ở đâu |
+|---|---|
+| Bằng chứng dạng **video** thật (`<video>` + mp4) — máy dev không có ffmpeg nên fixture dùng GIF động, phát thật trong trình duyệt nhưng đi nhánh `<img>` | B1 |
+| Webhook Slack thật gửi được | B3 |
+| Luồng OAuth thật, Cloudflare Access | B4 |
+
 ---
 
 ## C · Nghiệm thu reconciler (🧑 — làm song song bất cứ lúc nào)
