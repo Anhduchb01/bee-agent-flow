@@ -15,58 +15,58 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:var(--sans);background:var(--canvas);color:var(--body);
-       font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+       font-size:15px;line-height:22px;-webkit-font-smoothing:antialiased}
   a{color:inherit;text-decoration:none}
-  .eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;
+  .eyebrow{font-family:var(--mono);font-size:12px;font-weight:500;
            text-transform:uppercase;color:var(--mute);letter-spacing:.02em}
-  .mono{font-family:var(--mono);font-size:12px}
-  .dot{width:6px;height:6px;border-radius:99px;flex:0 0 auto;display:inline-block}
+  .mono{font-family:var(--mono);font-size:13px}
+  .dot{width:7px;height:7px;border-radius:99px;flex:0 0 auto;display:inline-block}
   .ok{background:var(--link)} .warn{background:var(--warn)}
   .down{background:var(--err)} .agent{background:var(--violet)} .idle{background:var(--faint)}
 
   /* ── Vỏ: sidebar xám lùi lại, nội dung trắng nổi lên ───────────────────── */
-  .app{display:grid;grid-template-columns:256px 1fr;min-height:100vh}
+  .app{display:grid;grid-template-columns:272px 1fr;min-height:100vh}
   .side{background:var(--canvas);border-right:1px solid var(--line);
         display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
-  .side-top{padding:14px 12px 8px;display:flex;align-items:center;gap:8px}
-  .brand{font-weight:600;letter-spacing:-.02em;color:var(--ink);font-size:15px}
-  .who{margin-left:auto;font-size:12px;color:var(--body)}
-  .search{margin:4px 12px 12px;height:30px;border:1px solid var(--line);
+  .side-top{padding:16px 14px 10px;display:flex;align-items:center;gap:8px}
+  .brand{font-weight:600;letter-spacing:-.02em;color:var(--ink);font-size:17px}
+  .who{margin-left:auto;font-size:13px;color:var(--body)}
+  .search{margin:4px 14px 14px;height:34px;border:1px solid var(--line);
           background:var(--surface);border-radius:6px;display:flex;align-items:center;
-          gap:8px;padding:0 8px;color:var(--faint);font-size:13px;cursor:pointer}
-  .kbd{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint);
-       border:1px solid var(--line);border-radius:4px;padding:1px 4px}
-  .nav{padding:0 8px;display:flex;flex-direction:column;gap:1px}
-  .nav a{height:32px;display:flex;align-items:center;gap:8px;padding:0 8px;
-         border-radius:6px;color:var(--body);font-size:13px}
+          gap:8px;padding:0 10px;color:var(--faint);font-size:14px;cursor:pointer}
+  .kbd{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--faint);
+       border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+  .nav{padding:0 10px;display:flex;flex-direction:column;gap:2px}
+  .nav a{height:36px;display:flex;align-items:center;gap:9px;padding:0 10px;
+         border-radius:6px;color:var(--body);font-size:14px}
   .nav a:hover{background:var(--line-soft);color:var(--ink)}
   .nav a.on{background:var(--surface);color:var(--ink);font-weight:500;
             box-shadow:0 0 0 1px var(--line)}
-  .badge{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--mute)}
-  .sec{display:flex;align-items:center;padding:16px 16px 6px}
-  .sec .add{margin-left:auto;color:var(--faint);font-size:15px;line-height:1}
-  .side-foot{margin-top:auto;border-top:1px solid var(--line);padding:12px 16px;
-             display:flex;flex-direction:column;gap:4px}
+  .badge{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--mute)}
+  .sec{display:flex;align-items:center;padding:18px 18px 7px}
+  .sec .add{margin-left:auto;color:var(--faint);font-size:17px;line-height:1}
+  .side-foot{margin-top:auto;border-top:1px solid var(--line);padding:14px 18px;
+             display:flex;flex-direction:column;gap:5px}
 
   /* ── Nội dung ──────────────────────────────────────────────────────────── */
   .main{background:var(--surface);min-width:0}
   .head{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);
-        padding:14px 28px;display:flex;align-items:center;gap:16px;z-index:5}
-  .h1{font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--ink)}
-  .btn{height:30px;border:1px solid transparent;border-radius:6px;padding:0 10px;
-       font-size:13px;font-weight:500;background:var(--ink);color:#fff;cursor:pointer;
+        padding:16px 32px;display:flex;align-items:center;gap:18px;z-index:5}
+  .h1{font-size:24px;font-weight:600;letter-spacing:-.025em;color:var(--ink)}
+  .btn{height:34px;border:1px solid transparent;border-radius:6px;padding:0 12px;
+       font-size:14px;font-weight:500;background:var(--ink);color:#fff;cursor:pointer;
        display:inline-flex;align-items:center;font-family:var(--sans)}
   .btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
-  .wrap{padding:24px 28px 64px;display:flex;flex-direction:column;gap:28px}
+  .wrap{padding:28px 32px 72px;display:flex;flex-direction:column;gap:32px}
 
   /* ── Khối "cần bạn ngay": bấm được, không phải bốn con số chết ─────────── */
   .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .tile{border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+  .tile{border:1px solid var(--line);border-radius:10px;padding:16px 18px;
         background:var(--surface);cursor:pointer;text-align:left;font-family:var(--sans)}
   .tile:hover{border-color:var(--faint)}
-  .tile .n{font-family:var(--mono);font-size:28px;line-height:1;color:var(--ink);
-           letter-spacing:-.02em;display:flex;align-items:center;gap:8px;margin:8px 0 6px}
-  .tile .h{font-size:12px;color:var(--mute)}
+  .tile .n{font-family:var(--mono);font-size:32px;line-height:1;color:var(--ink);
+           letter-spacing:-.02em;display:flex;align-items:center;gap:9px;margin:10px 0 7px}
+  .tile .h{font-size:13px;color:var(--mute)}
 
   /* ── Khối không viền: tách bằng khoảng trắng, "cấu trúc được cảm thấy" ─── */
   .block{display:flex;flex-direction:column;gap:12px}
@@ -74,44 +74,57 @@
   .more{margin-left:auto;font-size:12px;color:var(--link)}
 
   table{width:100%;border-collapse:collapse}
-  th{text-align:left;font-size:12px;font-weight:400;color:var(--mute);
-     padding:0 12px 8px;border-bottom:1px solid var(--line)}
-  td{padding:0 12px;height:40px;border-bottom:1px solid var(--line-soft);font-size:13px}
-  tr:last-child td{border-bottom:0}
-  tr:hover td{background:#fcfcfc}
+  th{text-align:left;font-size:13px;font-weight:400;color:var(--mute);
+     padding:0 14px 9px;border-bottom:1px solid var(--line)}
+  td{padding:0 14px;height:46px;border-bottom:1px solid var(--line-soft);font-size:15px}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover td{background:#fcfcfc}
   .title{color:var(--ink);font-weight:500;letter-spacing:-.01em}
-  .num{font-family:var(--mono);font-size:12px;color:var(--mute)}
+  .num{font-family:var(--mono);font-size:13px;color:var(--mute);white-space:nowrap}
   .r{text-align:right}
-  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--body)}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:14px;color:var(--body)}
+
+  /* ── Đầu nhóm dự án: dính khi cuộn ────────────────────────────────────── */
+  tr.grp td{position:sticky;top:0;z-index:2;background:var(--line-soft);height:34px;
+            border-bottom:1px solid var(--line);border-top:1px solid var(--line)}
+  tr.grp:hover td{background:var(--line-soft)}
+  .grp .name{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--ink)}
+  .grp .meta{font-size:13px;color:var(--mute);margin-left:12px}
 
   /* ── Dải "máy đang làm" ────────────────────────────────────────────────── */
   .runs{display:flex;gap:10px;flex-wrap:wrap}
-  .run{border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:190px}
+  .run{border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:210px}
   .bar{height:3px;background:var(--line-soft);border-radius:99px;margin-top:8px;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--violet);border-radius:99px}
 
   /* ── Biểu đồ 7 ngày: chỉ số xu hướng DUY NHẤT được đề xuất ─────────────── */
-  .chart{display:flex;align-items:flex-end;gap:10px;height:88px;padding-top:8px}
+  .chart{display:flex;align-items:flex-end;gap:12px;height:100px;padding-top:8px}
   .day{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
-  .stack{width:56%;display:flex;flex-direction:column-reverse;gap:2px;height:64px;
+  .stack{width:56%;display:flex;flex-direction:column-reverse;gap:2px;height:74px;
          justify-content:flex-start}
   .stack i{display:block;border-radius:2px}
   .stack .g{background:#d3e5ff}
   .stack .b{background:#ffd4d4}
-  .day span{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  .day span{font-size:12px;color:var(--faint);font-family:var(--mono)}
 
   /* ── Kanban ────────────────────────────────────────────────────────────── */
-  .board{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px}
-  .col{width:236px;flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
-  .col header{display:flex;align-items:center;gap:6px}
-  .card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;
-        background:var(--surface);display:flex;flex-direction:column;gap:6px}
+  /* Sáu cột đều nhau, KHÔNG cuộn ngang. Cuộn ngang trong kanban là một cái bẫy:
+     hai cột cuối — "Chờ duyệt PR" và "Cần người", đúng hai cột chứa việc cần
+     người nhất — lại là hai cột nằm ngoài tầm mắt. */
+  .board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+  .col{min-width:0;display:flex;flex-direction:column;gap:9px}
+  .col header{display:flex;align-items:flex-start;gap:7px}
+  .col header .eyebrow{line-height:1.25}
+  .col .num,.col .title{overflow-wrap:anywhere}
+  @media (max-width:1100px){.board{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+        background:var(--surface);display:flex;flex-direction:column;gap:7px}
   .card:hover{border-color:var(--faint)}
-  .empty{border:1px dashed var(--line);border-radius:10px;padding:18px;text-align:center;
-         font-size:12px;color:var(--faint)}
+  .empty{border:1px dashed var(--line);border-radius:10px;padding:22px;text-align:center;
+         font-size:13px;color:var(--faint)}
 
   .screen{display:none} .screen.on{display:block}
-  .note{border-left:2px solid var(--line);padding-left:12px;font-size:12px;color:var(--mute);
+  .note{border-left:2px solid var(--line);padding-left:14px;font-size:13px;color:var(--mute);
         max-width:70ch}
   @media (max-width:900px){.app{grid-template-columns:1fr}.side{display:none}
     .tiles{grid-template-columns:repeat(2,1fr)}}
@@ -251,29 +264,65 @@
         <button class="btn">Tạo task</button>
       </div>
       <div class="wrap">
-        <p class="note">Bộ lọc nằm ngay trên tiêu đề cột. Tiêu đề cột giờ là chữ thường
-          12px xám — không còn chữ hoa mono, để nó lùi lại sau dữ liệu.</p>
+        <p class="note">Việc gộp theo dự án. Nhóm vẫn xếp theo việc chờ lâu nhất
+          bên trong nó, <em>không</em> theo bảng chữ cái — gộp là để dễ đọc, không phải
+          để đánh mất thứ tự khẩn cấp. Đầu nhóm dính khi cuộn.</p>
         <table>
           <thead><tr>
-            <th style="width:150px">Loại</th><th style="width:96px">Dự án</th>
-            <th>Tiêu đề</th><th style="width:104px">Đã chờ</th><th style="width:120px" class="r">Hành động</th>
+            <th style="width:170px">Loại</th>
+            <th>Tiêu đề</th><th style="width:130px">Đã chờ</th><th style="width:150px" class="r">Hành động</th>
           </tr></thead>
+
           <tbody>
+            <tr class="grp"><td colspan="4">
+              <span class="name">blog</span><span class="meta">1 việc · lâu nhất 1 ngày 2h</span></td></tr>
             <tr><td><span class="chip"><span class="dot down"></span>Cần người</span></td>
-                <td class="num">blog#9</td><td class="title">RSS trả về 500 khi bài không có ảnh bìa</td>
-                <td class="num">1 ngày 2h</td><td class="r"><button class="btn ghost">Mở task</button></td></tr>
+                <td><span class="title">RSS trả về 500 khi bài không có ảnh bìa</span>
+                    <span class="num" style="margin-left:10px">blog#9</span></td>
+                <td class="num">đã chờ 1 ngày 2h</td>
+                <td class="r"><button class="btn ghost">Mở task</button></td></tr>
+
+            <tr class="grp"><td colspan="4">
+              <span class="name">myapp</span><span class="meta">4 việc · lâu nhất 6h40m</span></td></tr>
             <tr><td><span class="chip"><span class="dot down"></span>Cần người</span></td>
-                <td class="num">myapp#47</td><td class="title">Sửa lỗi hiển thị ngày</td>
-                <td class="num">6h40m</td><td class="r"><button class="btn ghost">Mở task</button></td></tr>
-            <tr><td><span class="chip"><span class="dot ok"></span>Duyệt PR</span></td>
-                <td class="num">shop#30</td><td class="title">Tính thuế theo vùng</td>
-                <td class="num">4h30m</td><td class="r"><button class="btn">Duyệt</button></td></tr>
+                <td><span class="title">Sửa lỗi hiển thị ngày ở màn hình chi tiết đơn</span>
+                    <span class="num" style="margin-left:10px">myapp#47</span></td>
+                <td class="num">đã chờ 6h40m</td>
+                <td class="r"><button class="btn ghost">Mở task</button></td></tr>
             <tr><td><span class="chip"><span class="dot ok"></span>Duyệt spec</span></td>
-                <td class="num">myapp#38</td><td class="title">Thêm bộ lọc trạng thái</td>
-                <td class="num">3h20m</td><td class="r"><button class="btn">Duyệt spec</button></td></tr>
-            <tr><td><span class="chip"><span class="dot warn"></span>Chờ giao</span></td>
-                <td class="num">shop#36</td><td class="title">Sửa lỗi tính thuế cho đơn có mã giảm giá</td>
-                <td class="num">2h40m</td><td class="r"><button class="btn">Giao</button></td></tr>
+                <td><span class="title">Thêm bộ lọc trạng thái cho danh sách đơn hàng</span>
+                    <span class="num" style="margin-left:10px">myapp#38</span></td>
+                <td class="num">đã chờ 3h20m</td>
+                <td class="r"><button class="btn">Duyệt spec</button></td></tr>
+            <tr><td><span class="chip"><span class="dot ok"></span>Duyệt PR</span></td>
+                <td><span class="title">Lọc đơn hàng theo trạng thái</span>
+                    <span class="num" style="margin-left:10px">myapp#40</span></td>
+                <td class="num">đã chờ 2h05m</td>
+                <td class="r"><a href="#" style="color:var(--link);font-family:var(--mono);font-size:13px;margin-right:10px">#45</a><button class="btn">Duyệt</button></td></tr>
+            <tr><td><span class="chip"><span class="dot warn"></span>Cho phép nhận task</span></td>
+                <td><span class="title">Gộp hai màn hình cấu hình thông báo</span>
+                    <span class="num" style="margin-left:10px">myapp#41</span></td>
+                <td class="num">đã chờ 1h05m</td>
+                <td class="r"><button class="btn">Giao cho agent</button></td></tr>
+
+            <tr class="grp"><td colspan="4">
+              <span class="name">shop</span><span class="meta">3 việc · lâu nhất 4h30m</span></td></tr>
+            <tr><td><span class="chip"><span class="dot ok"></span>Duyệt PR</span></td>
+                <td><span class="title">Tính thuế theo vùng</span>
+                    <span class="num" style="margin-left:10px">shop#30</span></td>
+                <td class="num">đã chờ 4h30m</td>
+                <td class="r"><a href="#" style="color:var(--link);font-family:var(--mono);font-size:13px;margin-right:10px">#37</a><button class="btn">Duyệt</button></td></tr>
+            <tr><td><span class="chip"><span class="dot warn"></span>Cho phép nhận task</span></td>
+                <td><span class="title">Sửa lỗi tính thuế cho đơn có mã giảm giá</span>
+                    <span class="num" style="margin-left:10px">shop#36</span>
+                    <span style="border:1px solid var(--line);border-radius:99px;padding:1px 8px;font-size:12px;margin-left:8px">ưu tiên</span></td>
+                <td class="num">đã chờ 2h40m</td>
+                <td class="r"><button class="btn">Giao cho agent</button></td></tr>
+            <tr><td><span class="chip"><span class="dot ok"></span>Duyệt spec</span></td>
+                <td><span class="title">Hiển thị lịch sử giá của sản phẩm</span>
+                    <span class="num" style="margin-left:10px">shop#12</span></td>
+                <td class="num">đã chờ 1h15m</td>
+                <td class="r"><button class="btn">Duyệt spec</button></td></tr>
           </tbody>
         </table>
       </div>
@@ -289,6 +338,17 @@
         <button class="btn">Tạo task</button>
       </div>
       <div class="wrap">
+        <div class="tiles">
+          <div class="tile" style="cursor:default"><div class="eyebrow">Task mở</div>
+            <div class="n">8</div><div class="h">chưa đóng trên GitHub</div></div>
+          <div class="tile" style="cursor:default"><div class="eyebrow">Agent đang làm</div>
+            <div class="n"><span class="dot agent"></span>1/3</div><div class="h">hàng đợi 1</div></div>
+          <div class="tile" style="cursor:default"><div class="eyebrow">Chờ duyệt PR</div>
+            <div class="n">1</div><div class="h">chờ người đọc diff</div></div>
+          <div class="tile" style="cursor:default"><div class="eyebrow">Cần người</div>
+            <div class="n"><span class="dot down"></span>1</div><div class="h">agent đã dừng</div></div>
+        </div>
+
         <div class="board">
           <div class="col"><header><span class="dot idle"></span><span class="eyebrow">Nháp</span>
             <span class="badge" style="margin-left:auto">0</span></header>
