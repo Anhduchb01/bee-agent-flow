@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Eyebrow } from "@/components/eyebrow";
 import { StatGrid } from "@/components/stat-grid";
-import { STAGE_LABEL, STAGE_TONE, stageOf } from "@/features/project";
+import { STAGE_LABEL, STAGE_TONE, stageOf } from "@/lib/task-stage";
 import {
   ChatBox,
   EvidenceViewer,

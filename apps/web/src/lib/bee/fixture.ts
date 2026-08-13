@@ -4,10 +4,10 @@ import path from "node:path";
 
 import { cookies } from "next/headers";
 
-import { isSceneId, sceneJson, type SceneId } from "@/lib/fixtures/bee";
+import { isSceneId, recentRunsJson, sceneJson, type SceneId } from "@/lib/fixtures/bee";
 
 import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
-import { parseStatus } from "./parse";
+import { parseRecentLine, parseStatus } from "./parse";
 import type { BeeRecentRun, BeeSource, StatusRead } from "./types";
 
 const EVIDENCE_ROOT = path.join(process.cwd(), "src", "lib", "fixtures", "evidence");
@@ -55,10 +55,11 @@ export function createFixtureBeeSource(): BeeSource {
     },
 
     async readRecent(limit = 20): Promise<BeeRecentRun[]> {
-      const read = parseStatus(sceneJson(sceneId(await scene())));
-      if (!read.ok) return [];
-      return read.status.repos
-        .flatMap((r) => r.recent)
+      // Bảy ngày lịch sử, không phải vài dòng trong `repos[].recent` của
+      // status.json — biểu đồ xu hướng cần một cửa sổ thật để có gì mà nói.
+      return recentRunsJson()
+        .map(parseRecentLine)
+        .filter((r): r is BeeRecentRun => r !== null)
         .sort((a, b) => b.at.localeCompare(a.at))
         .slice(0, limit);
     },

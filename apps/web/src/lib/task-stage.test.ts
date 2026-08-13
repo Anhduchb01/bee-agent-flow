@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { seedGithub } from "@/lib/fixtures/github";
 import type { GhTask } from "@/lib/github/types";
 
-import { STAGES, stageOf, xepTheoStage } from "./stage";
+import { STAGES, stageOf, xepTheoStage } from "./task-stage";
 
 const seed = seedGithub(new Date("2026-08-13T10:00:00Z"));
 const t = (slug: string, num: number): GhTask =>

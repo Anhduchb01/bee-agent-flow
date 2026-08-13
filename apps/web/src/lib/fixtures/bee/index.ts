@@ -50,3 +50,54 @@ export function sceneJson(id: SceneId, now: Date = new Date()): string {
     JSON.stringify(new Date(now.getTime() - Number(sec) * 1000).toISOString()),
   );
 }
+
+/**
+ * Bảy ngày lịch sử chạy, sinh theo công thức cố định (không dùng random — hai
+ * lần mở trang phải cho cùng một biểu đồ, nếu không thì không ai tin nó).
+ *
+ * Hình dạng cố ý: cuối tuần gần như im, hôm nay tỉ lệ đỏ cao hẳn. Đó là cảnh
+ * khiến khối "Bảy ngày qua" có lý do tồn tại — nó phải nói được "máy đang tệ
+ * đi", chứ không phải vẽ bảy cột đều nhau.
+ */
+const MAU_NGAY: { xong: number; loi: number }[] = [
+  { xong: 6, loi: 0 }, // 6 ngày trước
+  { xong: 10, loi: 1 },
+  { xong: 3, loi: 0 }, // cuối tuần
+  { xong: 1, loi: 0 },
+  { xong: 13, loi: 1 },
+  { xong: 12, loi: 0 },
+  { xong: 7, loi: 6 }, // hôm nay
+];
+
+const RULE = ["07-build", "04-evidence", "03-run-ci", "08-spec", "02-review-feedback"];
+const REPO = ["myapp", "shop", "blog"];
+
+export function recentRunsJson(now: Date = new Date()): string[] {
+  const out: string[] = [];
+  let n = 0;
+
+  MAU_NGAY.forEach((ngay, i) => {
+    const luiNgay = MAU_NGAY.length - 1 - i;
+    for (let k = 0; k < ngay.xong + ngay.loi; k++) {
+      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() - luiNgay, 9 + (k % 9), (k * 7) % 60);
+      // Không vượt quá "bây giờ" — một lần chạy ở tương lai là dấu hiệu dữ liệu hỏng.
+      if (at.getTime() > now.getTime()) at.setTime(now.getTime() - (k + 1) * 60_000);
+      const repo = REPO[n % REPO.length];
+      out.push(
+        JSON.stringify({
+          id: `${repo}-${100 + n}`,
+          repo,
+          number: 100 + n,
+          rule: RULE[n % RULE.length],
+          result: k < ngay.xong ? "ok" : k % 2 === 0 ? "fail" : "gave-up",
+          turns: 3 + (n % 20),
+          duration_s: 60 + ((n * 37) % 900),
+          at: at.toISOString(),
+        }),
+      );
+      n++;
+    }
+  });
+
+  return out;
+}

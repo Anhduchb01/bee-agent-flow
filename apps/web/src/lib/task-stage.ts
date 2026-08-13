@@ -1,6 +1,16 @@
 import type { Tone } from "@/components/status-dot";
 import type { GhTask } from "@/lib/github/types";
 
+/*
+ * Nằm ở `lib/` chứ không ở `features/project/` vì **hai** feature cần nó:
+ * bảng kanban của dự án, và biểu đồ phân bố ở Tổng quan. Theo AGENTS.md §4 thì
+ * nâng lên khi có feature thứ hai cần, không nâng theo dự đoán.
+ *
+ * Nó cũng phải là module thuần: barrel của `features/project` xuất cả server
+ * action, nên import qua barrel kéo theo next-auth và làm hỏng mọi bài test cho
+ * một hàm không chạm mạng.
+ */
+
 /**
  * Giai đoạn của một task trong vòng đời thật của reconciler.
  *

@@ -1,7 +1,7 @@
 import type { Stat } from "@/components/stat-grid";
 
 import type { ProjectView } from "../api/load";
-import { stageOf } from "./stage";
+import { stageOf } from "@/lib/task-stage";
 
 /** Bốn con số cho danh sách dự án. */
 export function thongKeDuAn(projects: ProjectView[]): Stat[] {

@@ -5,7 +5,7 @@ import { khoangThoiGian } from "@/lib/duration";
 import type { GhTask } from "@/lib/github/types";
 import { cn } from "@/lib/utils";
 
-import { STAGE_HINT, STAGE_LABEL, STAGE_TONE, stageOf, xepTheoStage } from "../lib/stage";
+import { STAGE_HINT, STAGE_LABEL, STAGE_TONE, stageOf, xepTheoStage } from "@/lib/task-stage";
 
 const COT = "grid grid-cols-[10rem_5rem_1fr_8rem] items-center gap-3 px-5";
 

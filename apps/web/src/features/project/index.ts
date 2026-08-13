@@ -7,6 +7,4 @@ export { ProjectKanban, ProjectTaskTable } from "./components/project-tasks";
 export { QueueList } from "./components/queue-list";
 export { docViewMode, ViewSwitch } from "./components/view-switch";
 export type { ViewMode } from "./components/view-switch";
-export { STAGE_LABEL, STAGE_TONE, stageOf, xepTheoStage } from "./lib/stage";
-export type { Stage } from "./lib/stage";
 export { thongKeDuAn, thongKeMotDuAn } from "./lib/stats";
