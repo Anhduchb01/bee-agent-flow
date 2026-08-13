@@ -70,13 +70,28 @@ trang, không tab, không board.
 
 Một mục xuất hiện ở đây khi và chỉ khi nó **chặn ở người đang đăng nhập**:
 
-| Loại | Điều kiện | Hành động ngay trên dòng |
-|---|---|---|
-| Duyệt spec | issue có `status:spec-review` | Mở task |
-| Cho phép nhận task | issue có `status:approved`, chưa có `agent:eligible` | **Giao cho agent** |
-| Duyệt PR | PR mở, `bee/test` xanh, có bằng chứng khớp SHA, người này chưa approve | **Duyệt** (PM) · **Mở trên GitHub** (TL) |
-| Cần người | issue/PR có `needs-human` | Mở task |
-| Agent hỏi ngược | comment mới nhất của agent kết thúc bằng câu hỏi | Trả lời |
+| Loại | Điều kiện | Chặn ở ai | Hành động |
+|---|---|---|---|
+| Cần người | issue/PR có `needs-human` | cả hai | Mở task |
+| Agent hỏi ngược | comment mới nhất của agent kết thúc bằng dấu hỏi | người cuối cùng đã nói chuyện, không thì tác giả issue | Trả lời |
+| Duyệt PR | PR mở, không nháp, `bee/test` xanh, có bằng chứng khớp SHA head, người này chưa approve | cả hai | **Duyệt** (PM) · **Xem PR** (TL) |
+| Duyệt spec | issue có `status:spec-review` | PM | Duyệt spec |
+| Cho phép nhận task | issue có `agent:build`, **thiếu** `agent:eligible`, không có `agent:running` | cả hai | **Giao cho agent** |
+
+**Một task chỉ sinh một mục**, theo đúng thứ tự trên: lý do chặn cụ thể nhất
+thắng. Không có luật này thì một issue vừa có PR nháp, vừa chờ trả lời agent,
+vừa mang `agent:build` sẽ xuất hiện ba lần trong một danh sách phẳng.
+
+> **Sửa so với bản nháp đầu:** bản đầu viết `status:approved`. Nhãn đó **không
+> tồn tại** trong `repo_sync_labels()`. Điều kiện thật của rule 07 là issue có
+> **cả** `agent:build` lẫn `agent:eligible`, nên "chờ cho phép nhận task" chính
+> là trạng thái có `agent:build` mà thiếu `agent:eligible` — đúng như mô tả của
+> nhãn đó: *"opt-in, người gắn"*. Luồng đầy đủ: `status:draft` → (người)
+> `status:ready-for-spec` → (rule 08) `status:spec-review` → (người duyệt spec)
+> `agent:build` → (người opt-in) `agent:eligible` → rule 07 dựng.
+
+**`priority:high` hiện thành nhãn, không chen chỗ.** Nó là ưu tiên của hàng đợi
+máy; thứ tự ở đây trả lời một câu khác — "ai đã chờ tôi lâu nhất".
 
 **Rỗng là trạng thái tốt và phải trông như vậy** — không để một danh sách rỗng
 trông giống lỗi tải.
