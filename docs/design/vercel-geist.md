@@ -177,9 +177,22 @@ Thang số của Tailwind cũng được ánh xạ để mọi primitive shadcn 
 không phải sửa file trong `components/ui/`: `rounded-lg` → 6px (nút, input),
 `rounded-xl` → 12px (thẻ), `rounded-4xl` → pill (badge).
 
-### Khoảng cách
+### Khoảng cách và thang kích thước
 
-Đơn vị gốc 4px: 4 · 8 · 12 · 16 · 24 · 32 · 40 · 64 · 96 · 128.
+Đơn vị gốc **4.5px** (`--spacing: 0.28rem`), không phải 4px như Tailwind mặc
+định.
+
+Geist gốc là hệ chữ **dày đặc**: Vercel đặt body ở 14px, Linear ở 13px. Con số
+đó hợp cho trang tài liệu đọc trên laptop 13"; trên màn hình lớn, dùng cả ngày,
+nó nhỏ đến mức phải nhoài người về phía trước.
+
+Nâng cả thang lên một bậc thay vì sửa từng chỗ: `--spacing` là gốc của **mọi**
+tiện ích khoảng cách và chiều cao trong Tailwind v4 (`h-8` là
+`calc(var(--spacing) * 8)`), nên nới nó lên 12% thì nút, ô nhập, chiều cao hàng,
+padding và khoảng hở cùng lớn theo — **không phải đụng vào một file nào trong
+`components/ui/`**.
+
+Cỡ chữ nâng theo: 13 · 15 · 17 · 19 · 22 · 28px.
 
 Ruột thẻ 24–32px. Khoảng giữa các khu vực 32–40px trong app (Vercel dùng
 96–128px cho marketing — app có mật độ thông tin cao hơn nên nhịp chặt hơn).

@@ -24,7 +24,7 @@ test("heartbeat cũ 35 phút → báo đỏ, và nói rõ các con số là cũ"
   await expect(health).toContainText("cũ");
 
   // Quan trọng: trang vẫn lên, hộp thư vẫn dùng được.
-  await expect(page.getByRole("list", { name: "Việc đang chờ bạn" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Việc đang chờ bạn" })).toBeVisible();
 });
 
 test("thiếu status.json → báo rõ, không crash", async ({ page }) => {
@@ -46,7 +46,7 @@ test("status.json hỏng → báo rõ, không crash", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Sức khoẻ hệ thống" })).toContainText(
     "Không đọc được trạng thái hệ thống",
   );
-  await expect(page.getByRole("list", { name: "Việc đang chờ bạn" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Việc đang chờ bạn" })).toBeVisible();
 });
 
 test("vừa cài xong → nói bước tiếp theo, không hiện trang trống", async ({ page }) => {

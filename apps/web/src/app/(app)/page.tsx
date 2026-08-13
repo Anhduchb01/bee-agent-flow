@@ -13,7 +13,7 @@ export default async function ViecCuaBanPage() {
   const health = deriveHealth(statusRead);
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto flex w-full max-w-[88rem] flex-col gap-6 px-4 py-10 sm:px-6">
       <PageTitle
         title="Việc của bạn"
         hint={

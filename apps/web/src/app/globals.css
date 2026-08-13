@@ -99,6 +99,32 @@
   --tracking-display: -0.05em;
   --tracking-heading: -0.04em;
   --tracking-title: -0.02em;
+
+  /*
+   * ── Thang kích thước ──────────────────────────────────────────────────
+   *
+   * Geist gốc là hệ chữ **dày đặc**: Vercel đặt body ở 14px, Linear ở 13px.
+   * Con số đó hợp cho một trang tài liệu đọc trên laptop 13"; trên màn hình
+   * lớn, dùng cả ngày, nó nhỏ đến mức phải nhoài người về phía trước.
+   *
+   * Nâng cả thang lên một bậc thay vì sửa từng chỗ:
+   *
+   * `--spacing` là gốc của MỌI tiện ích khoảng cách và chiều cao trong
+   * Tailwind v4 — `h-8` là `calc(var(--spacing) * 8)`. Nới nó lên 0.28rem thì
+   * nút, ô nhập, chiều cao hàng, padding và khoảng hở cùng lớn thêm 12% mà
+   * không phải đụng vào một file nào trong `components/ui/`. Đây là lý do
+   * việc đổi giao diện ở dự án này luôn bắt đầu từ token.
+   *
+   * Cỡ chữ nâng theo, lệch pha một chút để tỉ lệ chữ/khoảng cách không đổi.
+   */
+  --spacing: 0.28rem;
+
+  --text-xs: 0.8125rem;   /* 13px — chú thích, eyebrow, mã ngắn */
+  --text-sm: 0.9375rem;   /* 15px — mặc định của giao diện */
+  --text-base: 1.0625rem; /* 17px — đoạn văn dài */
+  --text-lg: 1.1875rem;   /* 19px */
+  --text-xl: 1.375rem;    /* 22px */
+  --text-2xl: 1.75rem;    /* 28px — con số ở dải thống kê */
 }
 
 :root {

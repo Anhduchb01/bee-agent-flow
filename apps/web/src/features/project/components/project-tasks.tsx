@@ -114,29 +114,38 @@ export function ProjectKanban({
   if (cot.every((c) => c.tasks.length === 0)) return <KhongCoTask />;
 
   return (
-    // Vùng cuộn tràn ra sát lề trang: sáu cột không bao giờ vừa một màn hình,
-    // và một thẻ bị cắt ở đúng mép giấy trông như lỗi bố cục, còn bị cắt ở mép
-    // màn hình thì đọc ra là "còn nữa, cuộn đi".
-    <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
-      {/* Nhóm các vùng, không phải một danh sách: cột và thẻ đều là `listitem`
-          thì mọi truy vấn theo vai trò đều nhập nhằng — cho cả trình đọc màn
-          hình lẫn cho test. Mỗi cột là một <section> có tên, tức một `region`. */}
-      <div className="flex min-w-max gap-4" role="group" aria-label="Bảng kanban">
+    /*
+     * Lưới sáu cột bằng nhau, **không cuộn ngang** trên desktop.
+     *
+     * Cuộn ngang trong một bảng kanban là một cái bẫy: hai cột cuối nằm ngoài
+     * tầm mắt, nên "Chờ duyệt PR" và "Cần người" — đúng hai cột chứa việc cần
+     * người nhất — là hai cột dễ bị quên nhất. Ép chúng vào màn hình quan
+     * trọng hơn việc giữ thẻ rộng rãi.
+     *
+     * Dưới 1024px thì mới cho cuộn: ở bề ngang đó, sáu cột bóp lại còn hẹp
+     * hơn một từ.
+     */
+    <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0">
+      <div
+        role="group"
+        aria-label="Bảng kanban"
+        className="grid min-w-max grid-flow-col auto-cols-[15rem] gap-4 lg:min-w-0 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-6"
+      >
         {cot.map((c) => (
           <section
             key={c.stage}
             aria-label={STAGE_LABEL[c.stage]}
-            className="flex w-64 shrink-0 flex-col gap-3"
+            className="flex min-w-0 flex-col gap-3"
           >
             <header className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5">
-                <StatusDot tone={STAGE_TONE[c.stage]} />
-                <h3 className="eyebrow">{STAGE_LABEL[c.stage]}</h3>
+              <div className="flex items-start gap-1.5">
+                <StatusDot tone={STAGE_TONE[c.stage]} className="mt-1" />
+                <h3 className="eyebrow leading-tight">{STAGE_LABEL[c.stage]}</h3>
                 <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
                   {c.tasks.length}
                 </span>
               </div>
-              <p className="text-xs leading-snug text-muted-foreground">
+              <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">
                 {STAGE_HINT[c.stage]}
               </p>
             </header>
@@ -154,9 +163,7 @@ export function ProjectKanban({
                       className="flex flex-col gap-2 rounded-card border border-border bg-card px-3.5 py-3 transition-colors hover:border-faint"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-muted-foreground">
-                          #{t.number}
-                        </span>
+                        <span className="font-mono text-xs text-muted-foreground">#{t.number}</span>
                         {t.labels.includes("priority:high") ? (
                           <span className="eyebrow rounded-pill border border-border px-1.5">
                             ưu tiên

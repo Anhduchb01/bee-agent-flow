@@ -69,6 +69,23 @@ test.describe("chi tiết dự án", () => {
     await expect(page.getByRole("region", { name: "Chờ giao cho agent" })).toContainText("#41");
   });
 
+  // Cuộn ngang trong kanban là cái bẫy: hai cột cuối — "Chờ duyệt PR" và
+  // "Cần người", đúng hai cột chứa việc cần người nhất — lại là hai cột nằm
+  // ngoài tầm mắt.
+  test("kanban vừa màn hình, không phải cuộn ngang", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/p/myapp?view=kanban");
+
+    const board = page.getByRole("group", { name: "Bảng kanban" });
+    await expect(board).toBeVisible();
+
+    const tran = await board.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    expect(tran).toBe(false);
+
+    // Cột cuối nhìn thấy được mà không phải cuộn.
+    await expect(page.getByRole("region", { name: "Cần người" })).toBeInViewport();
+  });
+
   test("thẻ kanban mở được trang task", async ({ page }) => {
     await page.goto("/p/myapp?view=kanban");
     await page.getByRole("region", { name: "Cần người" }).getByRole("link").first().click();

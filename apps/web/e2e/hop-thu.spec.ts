@@ -5,7 +5,7 @@ import { dangNhap } from "./helpers";
 test("PM thấy việc đang chặn mình, xếp chờ lâu nhất lên đầu", async ({ page }) => {
   await dangNhap(page, "pm-linh");
 
-  const bang = page.getByRole("list", { name: "Việc đang chờ bạn" });
+  const bang = page.getByRole("group", { name: "Việc đang chờ bạn" });
   await expect(bang).toBeVisible();
 
   const rows = bang.getByRole("listitem");
@@ -17,10 +17,24 @@ test("PM thấy việc đang chặn mình, xếp chờ lâu nhất lên đầu",
   await expect(bang).toContainText("Duyệt PR");
 });
 
+test("việc gộp theo dự án, dự án có việc thối rữa lâu nhất lên đầu", async ({ page }) => {
+  await dangNhap(page, "pm-linh");
+
+  const nhom = page.getByRole("group", { name: "Việc đang chờ bạn" }).getByRole("region");
+  await expect(nhom.first()).toHaveAccessibleName("Dự án blog");
+
+  // Gộp là để dễ đọc, không phải để đánh mất thứ tự khẩn cấp.
+  const ten = await nhom.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+  expect(ten).toEqual(["Dự án blog", "Dự án myapp", "Dự án shop"]);
+
+  // Đầu nhóm nói luôn nhóm đó có gì, để không phải đếm bằng mắt.
+  await expect(page.getByRole("region", { name: "Dự án blog" })).toContainText("1 việc");
+});
+
 test("TL thấy danh sách khác PM", async ({ page }) => {
   await dangNhap(page, "tl-duc");
 
-  const bang = page.getByRole("list", { name: "Việc đang chờ bạn" });
+  const bang = page.getByRole("group", { name: "Việc đang chờ bạn" });
   await expect(bang).toContainText("Agent hỏi ngược");
   await expect(bang).not.toContainText("Duyệt spec");
 });
@@ -52,7 +66,7 @@ test.describe("bộ lọc trên từng cột", () => {
   test("lọc theo loại việc", async ({ page }) => {
     await page.getByLabel("Lọc theo loại").selectOption("can-nguoi");
 
-    const rows = page.getByRole("list", { name: "Việc đang chờ bạn" }).getByRole("listitem");
+    const rows = page.getByRole("group", { name: "Việc đang chờ bạn" }).getByRole("listitem");
     await expect(rows).toHaveCount(2);
     await expect(rows.first()).toContainText("Cần người");
     await expect(page.getByText(/Hiện 2\/\d+ việc/)).toBeVisible();
@@ -61,7 +75,7 @@ test.describe("bộ lọc trên từng cột", () => {
   test("lọc theo dự án", async ({ page }) => {
     await page.getByLabel("Lọc theo dự án").selectOption("shop");
 
-    const rows = page.getByRole("list", { name: "Việc đang chờ bạn" }).getByRole("listitem");
+    const rows = page.getByRole("group", { name: "Việc đang chờ bạn" }).getByRole("listitem");
     for (const row of await rows.all()) await expect(row).toContainText("shop#");
   });
 
@@ -69,7 +83,7 @@ test.describe("bộ lọc trên từng cột", () => {
     await page.getByLabel("Tìm trong tiêu đề").fill("tinh thue");
 
     // Fixture có hai task về tính thuế; cả hai đều phải khớp khi gõ không dấu.
-    const rows = page.getByRole("list", { name: "Việc đang chờ bạn" }).getByRole("listitem");
+    const rows = page.getByRole("group", { name: "Việc đang chờ bạn" }).getByRole("listitem");
     await expect(rows).toHaveCount(2);
     for (const row of await rows.all()) await expect(row).toContainText("thuế");
   });
@@ -77,7 +91,7 @@ test.describe("bộ lọc trên từng cột", () => {
   test("lọc theo thời gian đã chờ", async ({ page }) => {
     await page.getByLabel("Lọc theo thời gian đã chờ").selectOption("86400");
 
-    const rows = page.getByRole("list", { name: "Việc đang chờ bạn" }).getByRole("listitem");
+    const rows = page.getByRole("group", { name: "Việc đang chờ bạn" }).getByRole("listitem");
     await expect(rows).toHaveCount(1);
     await expect(rows.first()).toContainText("blog#9");
   });
@@ -85,7 +99,7 @@ test.describe("bộ lọc trên từng cột", () => {
   test("chỉ ưu tiên", async ({ page }) => {
     await page.getByLabel("Chỉ ưu tiên").check();
 
-    const rows = page.getByRole("list", { name: "Việc đang chờ bạn" }).getByRole("listitem");
+    const rows = page.getByRole("group", { name: "Việc đang chờ bạn" }).getByRole("listitem");
     for (const row of await rows.all()) await expect(row).toContainText("ưu tiên");
   });
 
@@ -99,7 +113,7 @@ test.describe("bộ lọc trên từng cột", () => {
   });
 
   test("bỏ lọc trả lại đủ danh sách", async ({ page }) => {
-    const rows = page.getByRole("list", { name: "Việc đang chờ bạn" }).getByRole("listitem");
+    const rows = page.getByRole("group", { name: "Việc đang chờ bạn" }).getByRole("listitem");
     const truoc = await rows.count();
 
     await page.getByLabel("Lọc theo dự án").selectOption("shop");

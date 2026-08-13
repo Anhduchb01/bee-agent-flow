@@ -11,7 +11,7 @@ test.use({ ...devices["Pixel 7"] });
 test("trên điện thoại: đọc được hộp thư, không tràn ngang", async ({ page }) => {
   await dangNhap(page, "pm-linh");
 
-  await expect(page.getByRole("list", { name: "Việc đang chờ bạn" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Việc đang chờ bạn" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Sức khoẻ hệ thống" })).toBeVisible();
 
   const tran = await page.evaluate(
