@@ -1,145 +1,134 @@
 # 🐝 bee-agent-flow
 
-Nền tảng để AI agent tự chạy vòng đời phát triển phần mềm — từ ý tưởng → spec → plan → build → review → ship — theo một bộ quy ước nhất quán.
+Nền tảng để AI agent tự chạy vòng đời phát triển phần mềm — từ ý tưởng → spec →
+plan → build → review → ship — theo một bộ quy ước nhất quán.
 
-Gồm hai phần dùng được độc lập:
+Gồm **ba phần dùng được độc lập**:
 
-| Phần | Là gì |
-|---|---|
-| **Template cho Claude Code** | Bộ **slash command** và **agent skill** — copy `.claude/` vào repo của bạn là dùng được ngay. |
-| **`bee` — reconciler** | Điều phối agent chạy tự động trên một máy Ubuntu: GitHub là nguồn sự thật, agent tự nhận issue, mở PR kèm bằng chứng. Xem [`docs/AGENT_FLOW.md`](docs/AGENT_FLOW.md) và [`infra/reconciler/`](infra/reconciler/). |
+| Phần | Là gì | Trạng thái |
+|---|---|---|
+| **Template cho Claude Code** — [`.claude/`](.claude/) | Bộ slash command và agent skill. Copy vào repo của bạn là dùng được ngay | Dùng được |
+| **`bee` — reconciler** — [`apps/reconciler/`](apps/reconciler/) | Điều phối agent chạy tự động trên một máy Ubuntu. GitHub là nguồn sự thật, agent tự nhận issue và mở PR kèm bằng chứng | Code xong, **chưa nghiệm thu trên máy thật** |
+| **`web` — app cho PM & Techlead** — [`docs/specs/web.md`](docs/specs/web.md) | Mặt người dùng đặt lên trên `bee`: mở nó thay vì mở GitHub Issues | Mới có spec |
 
-**Không gắn với stack nào.** Skill và slash command ở đây nói về *cách làm việc* — spec trước khi code, test dẫn dắt, bằng chứng trước khi merge — nên dùng được với Python, TypeScript, Go hay bất cứ thứ gì. Quy ước riêng của từng dự án thì nằm trong chính repo đó (`AGENTS.md` / `CLAUDE.md` của nó), không nằm ở đây.
+> **Bắt đầu đọc ở đâu:** [`docs/architecture.html`](docs/architecture.html) — toàn
+> bộ hệ thống trong một bản đồ, mở bằng trình duyệt.
 
 ---
 
-## 📂 Cấu trúc thư mục
+## 📂 Cấu trúc
 
 ```
 bee-agent-flow/
+├── AGENTS.md                  # Quy ước cho agent làm việc TRÊN repo này
 ├── README.md                  # ← Bạn đang ở đây
 │
+├── apps/
+│   ├── reconciler/            # `bee` — bash + systemd, cài lên máy Ubuntu
+│   │   ├── bin/ lib/ rules/   # dispatcher, worker, 9 rule
+│   │   ├── prompts/           # prompt của 4 vai trò agent
+│   │   ├── public/            # dashboard tĩnh
+│   │   └── systemd/ sudoers/  # unit, ranh giới quyền
+│   └── web/                   # Next.js 16 — chưa scaffold, xem docs/specs/web.md
+│
 ├── docs/
-│   ├── AGENT_FLOW.md          # Kiến trúc hệ thống agent tự động
-│   ├── AGENT_RECONCILER.md    # Thiết kế điều phối chi tiết
-│   ├── agent-flow.html        # Bản trực quan, mở bằng trình duyệt
-│   └── PRD_TEMPLATE.md        # Mẫu PRD để bắt đầu một tính năng
+│   ├── architecture.html      # ← bản đồ toàn hệ thống
+│   ├── design/                # lý lẽ: vì sao chọn từng phương án
+│   ├── specs/                 # đặc tả từng phần
+│   ├── intent/                # ý định đã chốt qua phỏng vấn
+│   ├── mockups/               # bản duyệt giao diện (sinh tự động)
+│   └── templates/             # mẫu để copy
 │
-├── infra/
-│   └── reconciler/            # `bee` — cài lên máy Ubuntu, điều phối agent
-│
-└── .claude/
-    ├── commands/              # Slash command (*.md)
-    └── skills/                # Agent skill tái sử dụng (*/SKILL.md)
+├── .claude/                   # template: commands/ + skills/
+└── .github/                   # issue template, PR template (KHÔNG có workflows/)
 ```
+
+`.github/` không có `workflows/` — hệ quả trực tiếp của việc chọn reconciler thay
+vì GitHub Actions.
+
+**`.claude/` vừa là template vừa là cấu hình của chính repo này.** Nó cố ý không
+mang stack nào: skill và slash command ở đó nói về *cách làm việc*, dùng được với
+Python, TypeScript, Go hay bất cứ thứ gì. Quy ước riêng của từng dự án nằm trong
+`AGENTS.md` của chính repo đó.
 
 ---
 
 ## ⚡ Slash Command
 
-Được định nghĩa trong [`.claude/commands/`](.claude/commands/). Gõ chúng trong Claude Code để điều khiển quy trình làm việc.
+Định nghĩa trong [`.claude/commands/`](.claude/commands/).
 
 | Command | Chức năng | Skill đứng sau |
 | --- | --- | --- |
-| `/spec` | Viết đặc tả (specification) có cấu trúc trước khi code | `spec-driven-development` |
-| `/plan` | Chia nhỏ công việc thành các task kiểm chứng được, kèm tiêu chí nghiệm thu + thứ tự phụ thuộc → `tasks/plan.md`, `tasks/todo.md` | `planning-and-task-breakdown` |
-| `/build` | Làm task kế tiếp đang chờ (TDD: RED → GREEN → verify → commit), rồi dừng | `incremental-implementation` + `test-driven-development` |
-| `/build auto` | Plan + build toàn bộ spec trong một lượt tự động (đã duyệt), mỗi task một commit | như trên |
-| `/test` | TDD cho tính năng mới; mẫu **Prove-It** cho việc sửa bug (tái hiện → sửa → chống hồi quy) | `test-driven-development` |
-| `/review` | Review code 5 trục: correctness, readability, architecture, security, performance | `code-review-and-quality` |
+| `/spec` | Viết đặc tả có cấu trúc trước khi code | `spec-driven-development` |
+| `/plan` | Chia nhỏ thành task kiểm chứng được + thứ tự phụ thuộc | `planning-and-task-breakdown` |
+| `/build` | Làm task kế tiếp (TDD: RED → GREEN → verify → commit) rồi dừng | `incremental-implementation` + `test-driven-development` |
+| `/build auto` | Plan + build toàn bộ spec trong một lượt đã duyệt | như trên |
+| `/test` | TDD cho tính năng mới; **Prove-It** cho sửa bug | `test-driven-development` |
+| `/review` | Review 5 trục: correctness, readability, architecture, security, performance | `code-review-and-quality` |
 | `/code-simplify` | Giảm độ phức tạp mà không đổi hành vi | `code-simplification` |
-| `/webperf` | Audit hiệu năng web (Deep mode với Lighthouse/CrUX, nếu không thì Quick mode) | qua persona `web-performance-auditor` |
-| `/ship` | Fan-out song song trước khi release tới 3 persona → tổng hợp quyết định **go/no-go** + kế hoạch rollback | `shipping-and-launch` |
-
-### Luồng khuyến nghị
+| `/webperf` | Audit hiệu năng web | persona `web-performance-auditor` |
+| `/ship` | Fan-out 3 persona → quyết định go/no-go + kế hoạch rollback | `shipping-and-launch` |
 
 ```
 /spec  →  /plan  →  /build (lặp)  →  /test  →  /review  →  /ship
-                                             ↘  /code-simplify  /webperf  (khi cần)
+                                            ↘  /code-simplify  /webperf  (khi cần)
 ```
+
+> `/ship` và `/webperf` cần thư mục `agents/` chứa persona — template chưa kèm sẵn.
 
 ---
 
 ## 🛠️ Agent Skill
 
-Các gói năng lực tái sử dụng trong [`.claude/skills/`](.claude/skills/). Claude tự động gọi skill phù hợp cho từng task, hoặc bạn có thể yêu cầu theo tên.
+24 gói năng lực trong [`.claude/skills/`](.claude/skills/). Claude tự gọi skill
+phù hợp, hoặc bạn yêu cầu theo tên.
 
-**Quy trình & bàn giao (Workflow & delivery)**
-- `spec-driven-development` — spec trước, code sau
-- `planning-and-task-breakdown` — task có thứ tự, kiểm chứng được
-- `incremental-implementation` — đưa thay đổi vào từng phần nhỏ
-- `test-driven-development` — test dẫn dắt code
-- `shipping-and-launch` — checklist trước release + rollout
-- `git-workflow-and-versioning` — branch, commit, release
-- `ci-cd-and-automation` — pipeline & cổng chất lượng
+**Quy trình & bàn giao** — `spec-driven-development` · `planning-and-task-breakdown` ·
+`incremental-implementation` · `test-driven-development` · `shipping-and-launch` ·
+`git-workflow-and-versioning` · `ci-cd-and-automation`
 
-**Chất lượng & an toàn (Quality & safety)**
-- `code-review-and-quality` — review đa trục
-- `code-simplification` — rõ ràng mà không đổi hành vi
-- `security-and-hardening` — input không tin cậy, auth, lưu trữ
-- `debugging-and-error-recovery` — debug tận gốc
-- `doubt-driven-development` — kiểm chứng đối kháng cho quyết định rủi ro
-- `performance-optimization` — hiệu năng frontend/backend/query
+**Chất lượng & an toàn** — `code-review-and-quality` · `code-simplification` ·
+`security-and-hardening` · `debugging-and-error-recovery` ·
+`doubt-driven-development` · `performance-optimization`
 
-**Thiết kế & tài liệu (Design & docs)**
-- `api-and-interface-design` — ranh giới API/module ổn định
-- `frontend-ui-engineering` — UI production, có accessibility
-- `browser-testing-with-devtools` — kiểm thử trên trình duyệt thật (Chrome DevTools MCP)
-- `e2e-evidence-capture` — chạy E2E có quay video, xanh mới đẩy MinIO + gắn khối bằng chứng vào PR
-- `documentation-and-adrs` — ghi lại các quyết định
-- `observability-and-instrumentation` — logging/metrics/tracing
-- `deprecation-and-migration` — gỡ bỏ & migrate an toàn
+**Thiết kế & tài liệu** — `api-and-interface-design` · `frontend-ui-engineering` ·
+`browser-testing-with-devtools` · `e2e-evidence-capture` · `documentation-and-adrs` ·
+`observability-and-instrumentation` · `deprecation-and-migration`
 
-**Tư duy & bối cảnh (Thinking & context)**
-- `idea-refine` — mài sắc ý tưởng còn mơ hồ
-- `interview-me` — bóc tách ý định thật từ yêu cầu chưa rõ
-- `context-engineering` — cấu hình rule & context
-- `source-driven-development` — bám tài liệu chính thống
-- `using-agent-skills` — meta-skill để khám phá các skill còn lại
-
----
-
-## 🤖 Agent Persona (`agents/`)
-
-`/ship` và `/webperf` fan-out tới các persona subagent chuyên biệt. Mỗi `agents/<name>.md` trở thành một tool `<name>` có thể gọi được.
-
-| Persona | Dùng bởi | Vai trò |
-| --- | --- | --- |
-| `code-reviewer` | `/ship` | Review 5 trục |
-| `security-auditor` | `/ship` | Rà OWASP / threat-model / CVE |
-| `test-engineer` | `/ship` | Phân tích khoảng trống test coverage |
-| `web-performance-auditor` | `/webperf` | Bảng điểm hiệu năng + danh sách vấn đề xếp hạng |
-
-> Các persona này chưa có sẵn trong template — hãy tạo thư mục `agents/` với chúng để bật đầy đủ fan-out của `/ship` và `/webperf`. Định nghĩa ở cấp người dùng (user-level) sẽ tự động ghi đè bản mặc định của plugin.
-
----
-
-## 🏁 Bắt đầu (Getting Started)
-
-**Dùng template trong dự án của bạn** — copy `.claude/` vào repo đích:
-
-1. **Viết PRD:** copy [`docs/PRD_TEMPLATE.md`](docs/PRD_TEMPLATE.md) → `docs/PRD_<tinh-nang>.md` rồi điền vào.
-2. **Khởi động một tính năng:** chạy `/spec` (biến PRD thành spec kỹ thuật), rồi `/plan`.
-3. **Build:** lặp `/build` (hoặc `/build auto` sau khi đã duyệt plan).
-4. **Kiểm tra & ship:** `/test` → `/review` → `/ship`.
-
-> Quy ước riêng của dự án — layering, thư viện được phép dùng, những gì đã thử và fail — viết vào `AGENTS.md` (hoặc `CLAUDE.md`) **của chính repo đó**. Template này cố ý không mang theo stack nào.
-
-**Chạy `bee` để agent tự làm** — xem mục dưới.
+**Tư duy & bối cảnh** — `idea-refine` · `interview-me` · `context-engineering` ·
+`source-driven-development` · `using-agent-skills`
 
 ---
 
 ## 🐝 `bee` — chạy agent tự động
 
-Phần trên là bạn ngồi gõ slash command. Phần này là để agent tự làm, không cần ai ngồi trước máy.
+Phần trên là bạn ngồi gõ slash command. Phần này là để agent tự làm, không cần ai
+ngồi trước máy.
 
-Một tiến trình trên máy Ubuntu, cứ **30 giây** đối chiếu trạng thái trên GitHub với thực tế rồi làm **đúng một việc** để kéo hai bên về gần nhau. Không GitHub Actions, không webhook — hàng đợi chính là label trên issue, nên máy tắt ba tiếng cũng không mất việc nào.
+Một tiến trình trên máy Ubuntu, cứ **30 giây** đối chiếu trạng thái trên GitHub
+với thực tế rồi làm **đúng một việc** để kéo hai bên về gần nhau. Không GitHub
+Actions, không webhook — hàng đợi chính là label trên issue, nên máy tắt ba tiếng
+cũng không mất việc nào.
+
+### Cài
 
 ```bash
-sudo ./infra/reconciler/install.sh
+git clone git@github.com:org/bee-agent-flow.git ~/bee-src
+sudo ~/bee-src/apps/reconciler/install.sh      # idempotent, --no-deps để bỏ qua cài gói
+```
+
+Cài xong hệ thống **nằm im** (`/etc/bee/PAUSE` được tạo sẵn). Còn 5 việc cần
+người, script in ra ở cuối:
+
+```bash
+sudo -u bee-agent -H claude        # /login  ← ĐÚNG user này
+sudo -u bee-orch  -H gh auth login
+sudo $EDITOR /etc/bee/orch.env     # GH_TOKEN fine-grained, KHÔNG cấp Workflows
 be repo add org/ten-repo
 be doctor && be dry-run && be resume
 ```
+
+### Dùng hằng ngày
 
 | Lệnh | |
 |---|---|
@@ -150,16 +139,107 @@ be doctor && be dry-run && be resume
 | `be logs myapp-42` | log của một task |
 | `be pause` | kill switch |
 
-Vòng đời một task: PM tạo issue → agent chấm độ rõ của spec → người duyệt → agent build và mở draft PR → CI + E2E quay video → PM xem video, Techlead soi diff → cả hai approve → người bấm merge. **Agent không bao giờ được merge**, và không cầm credential nào để push thẳng `main`.
+Kill switch có hai tầng: `/etc/bee/PAUSE` (ngay, cần SSH) và `.agent/PAUSE` trên
+nhánh `main` của từng repo (PM tạo qua web GitHub trong 10 giây, lưu vết trong
+lịch sử git).
 
-Chi tiết: [`docs/AGENT_FLOW.md`](docs/AGENT_FLOW.md) · [`docs/AGENT_RECONCILER.md`](docs/AGENT_RECONCILER.md) · [`infra/reconciler/`](infra/reconciler/)
+### Vòng đời một task
+
+PM tạo issue → agent chấm độ rõ của spec → người duyệt → agent build và mở draft
+PR → CI + E2E quay video → PM xem video, Techlead soi diff → cả hai approve →
+**người bấm merge**. Agent không bao giờ được merge, và không cầm credential nào
+để push thẳng `main`.
+
+### Nghiệm thu M0 — làm trước khi cho agent chạy thật
+
+```bash
+be doctor                                 # mọi mục ✓
+be dry-run                                # in ra nó ĐỊNH làm gì
+
+sudo -u bee-agent env | grep -i token     # phải RỖNG
+id -nG bee-agent | grep -w docker         # phải RỖNG
+sudo -u bee-agent -n true                 # phải FAIL
+
+systemctl start bee-task@test-1           # lần 2 khi đang chạy: BỊ TỪ CHỐI
+journalctl -u bee-reconcile -n 50         # tick đều, không chồng nhau
+```
+
+Bỏ qua mốc này thì lúc agent ra kết quả sai bạn sẽ không phân biệt được lỗi ở
+prompt hay ở hạ tầng của chính mình — debug hai ẩn số cùng lúc.
+
+### Đã làm tới đâu
+
+| Rule | |
+|---|---|
+| 01 recover · 02 review · 03 CI · 04 evidence · 05 approvals · 07 build · 08 spec · 09 reindex | có |
+| 06 preview | mốc M6 — mới có phần scan |
+
+Repo đích cần thêm: `scripts/ci.sh` (rule 03), `infra/docker-compose.test.yml`
+(nếu test cần Postgres/Redis), `.claude/skills/e2e-evidence-capture/` (rule 04 —
+thiếu thì rule tự tắt, không cảnh báo).
+
+Chi tiết thiết kế: [`docs/design/reconciler.md`](docs/design/reconciler.md) ·
+kiến trúc: [`docs/architecture.html`](docs/architecture.html)
 
 ---
 
-## 🧱 `bee` chạy trên gì
+## 💻 `web` — app cho PM & Techlead
 
-Chỉ phần điều phối mới có stack cố định, và nó cố ý mỏng: **bash + systemd + `gh` + `jq`**, cộng Docker để dựng service test và Playwright để quay bằng chứng.
+Máy chạy 24/7. **Người mới là chỗ nghẽn** — nghẽn ở đúng ba cửa: duyệt spec, cho
+phép agent nhận task, approve PR. Agent làm xong lúc 2 giờ sáng rồi nằm chờ tới 9
+giờ, không phải vì máy chậm mà vì không ai biết.
 
-Không framework, không runtime, không cơ sở dữ liệu — kể cả dashboard cũng chỉ là một file `status.json` tĩnh do reconciler ghi ra. Chọn vậy vì thứ này phải sống sót qua reboot, mất điện và những đêm không ai trông; càng ít bộ phận chuyển động thì càng ít thứ hỏng lúc 2 giờ sáng.
+Nên màn hình chính không phải một cái board. Nó là **hộp thư "đang chờ bạn"**,
+xếp theo thời gian đã chờ, cộng một tin Slack để bạn không phải nhớ mở app.
 
-Dự án mà `bee` quản thì dùng stack gì cũng được — nó chỉ đọc issue, chạy `scripts/ci.sh` của repo đó, và đọc `infra/docker-compose.test.yml` nếu có.
+| Làm được | Không làm |
+|---|---|
+| Hộp thư chờ bạn, mọi dự án | Xem diff |
+| Tạo task theo hợp đồng 5 mục | Comment theo dòng |
+| Chat vào task — nối lại đúng phiên agent cũ | Merge |
+| Xem video bằng chứng ngay trong trang | |
+| PM duyệt bằng token GitHub của chính mình | |
+
+Chạy trên chính máy agent dưới user riêng `bee-web`: thuộc group `bee` để đọc,
+**không có `GH_TOKEN`, không sudo, không docker.** Mọi thao tác ghi lên GitHub
+dùng token OAuth của đúng người vừa bấm — không có token bot dùng chung, nên lịch
+sử GitHub luôn nói đúng ai đã làm gì.
+
+Ý định đã chốt: [`docs/intent/pm-app.md`](docs/intent/pm-app.md) ·
+đặc tả: [`docs/specs/web.md`](docs/specs/web.md) ·
+mockup dashboard: [`docs/mockups/dashboard.html`](docs/mockups/dashboard.html)
+
+---
+
+## 🏁 Bắt đầu
+
+**Dùng template trong dự án của bạn** — copy `.claude/` vào repo đích (thêm
+`.github/` nếu repo đó sẽ do `bee` quản):
+
+1. **Viết PRD:** copy [`docs/templates/prd.md`](docs/templates/prd.md) →
+   `docs/PRD_<tinh-nang>.md` rồi điền vào.
+2. **Khởi động:** `/spec` (biến PRD thành spec kỹ thuật) → `/plan`.
+3. **Build:** lặp `/build`, hoặc `/build auto` sau khi đã duyệt plan.
+4. **Kiểm tra & ship:** `/test` → `/review` → `/ship`.
+
+> Quy ước riêng của dự án — layering, thư viện được phép dùng, những gì đã thử và
+> fail — viết vào `AGENTS.md` của **chính repo đó**, không viết vào template.
+
+**Chạy `bee` để agent tự làm** — xem mục trên.
+
+---
+
+## 🧱 Chạy trên gì
+
+Chỉ phần điều phối mới có stack cố định, và nó cố ý mỏng: **bash + systemd + `gh`
++ `jq`**, cộng Docker để dựng service test và Playwright để quay bằng chứng. Không
+framework, không runtime, không cơ sở dữ liệu — kể cả dashboard cũng chỉ là một
+file `status.json` tĩnh do reconciler ghi ra.
+
+Chọn vậy vì thứ này phải sống sót qua reboot, mất điện và những đêm không ai
+trông; càng ít bộ phận chuyển động thì càng ít thứ hỏng lúc 2 giờ sáng.
+
+`apps/web/` là Next.js — nó là app cho người, không nằm trong đường găng của
+agent, và máy tắt thì cả hai đều dừng nên nó không thêm chế độ hỏng mới.
+
+Dự án mà `bee` quản thì dùng stack gì cũng được.

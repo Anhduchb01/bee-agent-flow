@@ -29,7 +29,7 @@ rule_run() {
   wt=$(worktree_ensure "$slug" "$num" "pr")
   t0=$(now_epoch)
 
-  # Hạ tầng do orch dựng TRƯỚC, agent/test chỉ kết nối vào. Xem AGENT_RECONCILER §7.1.
+  # Hạ tầng do orch dựng TRƯỚC, agent/test chỉ kết nối vào. Xem docs/design/reconciler.md §7.1.
   testenv_up "$slug" "$id" "$wt" || rc=$?
   if (( rc == 0 )); then
     ( cd "$wt" && timeout 20m ./scripts/ci.sh ) || rc=$?
