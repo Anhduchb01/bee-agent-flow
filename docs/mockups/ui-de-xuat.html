@@ -91,21 +91,62 @@
   .grp .name{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--ink)}
   .grp .meta{font-size:13px;color:var(--mute);margin-left:12px}
 
+  /* ── Khối Claude: trạng thái dịch vụ và mức dùng ───────────────────────── */
+  .claude{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);
+          border-radius:10px;overflow:hidden;background:var(--surface)}
+  .claude > div{padding:14px 18px}
+  .claude > div + div{border-left:1px solid var(--line)}
+  .claude .v{font-family:var(--mono);font-size:22px;line-height:1;color:var(--ink);
+             letter-spacing:-.02em;display:flex;align-items:center;gap:8px;margin:9px 0 6px}
+  .claude .v.txt{font-family:var(--sans);font-size:16px;font-weight:500;letter-spacing:-.01em}
+  .claude .h{font-size:13px;color:var(--mute)}
+  .warnbar{display:flex;align-items:flex-start;gap:10px;border:1px solid #f5a62366;
+           background:#fff9ed;border-radius:10px;padding:12px 16px;font-size:14px;color:var(--body)}
+
   /* ── Dải "máy đang làm" ────────────────────────────────────────────────── */
   .runs{display:flex;gap:10px;flex-wrap:wrap}
   .run{border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:210px}
   .bar{height:3px;background:var(--line-soft);border-radius:99px;margin-top:8px;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--violet);border-radius:99px}
 
+  /* ── Tổng quan từng dự án ──────────────────────────────────────────────── */
+  .proj{display:flex;flex-direction:column;gap:14px}
+  .prow{display:grid;grid-template-columns:200px 1fr 92px;align-items:center;gap:20px;
+        border:1px solid var(--line);border-radius:10px;padding:14px 18px;background:var(--surface)}
+  .prow:hover{border-color:var(--faint)}
+  .pname{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .pname b{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+  .pname span{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .pbar{display:flex;height:12px;border-radius:99px;overflow:hidden;background:var(--line-soft)}
+  .pbar i{display:block}
+  .pleg{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:9px;font-size:13px;color:var(--body)}
+  .pleg b{color:var(--ink);font-family:var(--mono);font-weight:500}
+  .ptot{text-align:right}
+  .ptot b{font-family:var(--mono);font-size:22px;color:var(--ink);letter-spacing:-.02em}
+  .ptot span{display:block;font-size:12px;color:var(--mute)}
+
+  /* Sáu màu trạng thái, tất cả rút từ bảng của Vercel — không màu tuỳ tiện. */
+  .s-nhap{background:#d4d4d4} .s-spec{background:#8ec5ff} .s-giao{background:#f5a623}
+  .s-agent{background:#7928ca} .s-duyet{background:#0070f3} .s-nguoi{background:#ee0000}
+
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-left:auto;font-size:12px;color:var(--mute)}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;
+            vertical-align:-1px}
+
   /* ── Biểu đồ 7 ngày: chỉ số xu hướng DUY NHẤT được đề xuất ─────────────── */
-  .chart{display:flex;align-items:flex-end;gap:12px;height:100px;padding-top:8px}
-  .day{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
-  .stack{width:56%;display:flex;flex-direction:column-reverse;gap:2px;height:74px;
-         justify-content:flex-start}
-  .stack i{display:block;border-radius:2px}
-  .stack .g{background:#d3e5ff}
-  .stack .b{background:#ffd4d4}
+  /* Cột cao theo SỐ LẦN CHẠY (8px mỗi lần), không phải chiều cao bịa. Và
+     `.stack` để cao tự do — cao cố định thì nhãn số trôi lên đỉnh khung, tách
+     rời khỏi chính cột mà nó đang đếm. */
+  .chart{display:flex;align-items:flex-end;gap:16px;padding-top:8px}
+  .day{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px}
+  .stack{width:46%;display:flex;flex-direction:column-reverse;gap:2px}
+  .stack i{display:block;border-radius:3px}
+  /* Đặc, không phải sắc nhạt: khối đỏ là tín hiệu duy nhất của biểu đồ này,
+     mà một sắc hồng 20% thì không ai nhìn thấy nó đang lớn dần. */
+  .stack .g{background:#0070f3}
+  .stack .b{background:#ee0000}
   .day span{font-size:12px;color:var(--faint);font-family:var(--mono)}
+  .day em{font-family:var(--mono);font-size:12px;font-style:normal;color:var(--mute)}
 
   /* ── Kanban ────────────────────────────────────────────────────────────── */
   /* Sáu cột đều nhau, KHÔNG cuộn ngang. Cuộn ngang trong kanban là một cái bẫy:
@@ -218,6 +259,77 @@
         </div>
 
         <div class="block">
+          <h2><span class="eyebrow">Dự án</span>
+            <span class="legend">
+              <span><i class="s-nhap"></i>Nháp</span>
+              <span><i class="s-spec"></i>Chờ chấm spec</span>
+              <span><i class="s-giao"></i>Chờ giao</span>
+              <span><i class="s-agent"></i>Agent đang làm</span>
+              <span><i class="s-duyet"></i>Chờ duyệt PR</span>
+              <span><i class="s-nguoi"></i>Cần người</span>
+            </span>
+          </h2>
+
+          <div class="proj">
+            <a class="prow" href="#">
+              <span class="pname"><b>myapp</b><span>org/myapp</span></span>
+              <span>
+                <span class="pbar">
+                  <i class="s-spec"  style="flex:2"></i>
+                  <i class="s-giao"  style="flex:1"></i>
+                  <i class="s-agent" style="flex:3"></i>
+                  <i class="s-duyet" style="flex:1"></i>
+                  <i class="s-nguoi" style="flex:1"></i>
+                </span>
+                <span class="pleg">
+                  <span><b>2</b> chờ chấm spec</span><span><b>1</b> chờ giao</span>
+                  <span><b>3</b> agent đang làm</span><span><b>1</b> chờ duyệt PR</span>
+                  <span><b>1</b> cần người</span>
+                </span>
+              </span>
+              <span class="ptot"><b>8</b><span>task mở</span></span>
+            </a>
+
+            <a class="prow" href="#">
+              <span class="pname"><b>shop</b><span>org/shop</span></span>
+              <span>
+                <span class="pbar">
+                  <i class="s-nhap"  style="flex:1"></i>
+                  <i class="s-spec"  style="flex:1"></i>
+                  <i class="s-giao"  style="flex:1"></i>
+                  <i class="s-duyet" style="flex:1"></i>
+                </span>
+                <span class="pleg">
+                  <span><b>1</b> nháp</span><span><b>1</b> chờ chấm spec</span>
+                  <span><b>1</b> chờ giao</span><span><b>1</b> chờ duyệt PR</span>
+                </span>
+              </span>
+              <span class="ptot"><b>4</b><span>task mở</span></span>
+            </a>
+
+            <a class="prow" href="#">
+              <span class="pname"><b>blog</b><span>org/blog</span></span>
+              <span>
+                <span class="pbar">
+                  <i class="s-spec"  style="flex:1"></i>
+                  <i class="s-nguoi" style="flex:1"></i>
+                </span>
+                <span class="pleg">
+                  <span><b>1</b> chờ chấm spec</span><span><b>1</b> cần người</span>
+                </span>
+              </span>
+              <span class="ptot"><b>2</b><span>task mở</span></span>
+            </a>
+          </div>
+
+          <p class="note">Một thanh cho mỗi dự án, chia theo giai đoạn. Nhìn ngang là
+            thấy dự án nào đang dồn ở đâu — <span style="color:var(--ink)">blog</span> chỉ
+            có 2 task nhưng một nửa đang kẹt ở "cần người", còn
+            <span style="color:var(--ink)">myapp</span> có 8 task mà phần lớn đang chạy.
+            Hai tình huống rất khác nhau, và một cột "tổng số task" không phân biệt được.</p>
+        </div>
+
+        <div class="block">
           <h2><span class="eyebrow">Máy đang làm</span></h2>
           <div class="runs">
             <div class="run">
@@ -237,19 +349,63 @@
         </div>
 
         <div class="block">
-          <h2><span class="eyebrow">Bảy ngày qua</span>
-              <span class="note" style="border:0;padding:0">lần chạy xanh / đỏ mỗi ngày — chỉ số xu hướng duy nhất</span></h2>
-          <div class="chart">
-            <div class="day"><div class="stack"><i class="g" style="height:22px"></i></div><span>T5</span></div>
-            <div class="day"><div class="stack"><i class="g" style="height:34px"></i><i class="b" style="height:8px"></i></div><span>T6</span></div>
-            <div class="day"><div class="stack"><i class="g" style="height:12px"></i></div><span>T7</span></div>
-            <div class="day"><div class="stack"><i class="g" style="height:6px"></i></div><span>CN</span></div>
-            <div class="day"><div class="stack"><i class="g" style="height:44px"></i><i class="b" style="height:6px"></i></div><span>T2</span></div>
-            <div class="day"><div class="stack"><i class="g" style="height:38px"></i></div><span>T3</span></div>
-            <div class="day"><div class="stack"><i class="g" style="height:28px"></i><i class="b" style="height:18px"></i></div><span>Hôm nay</span></div>
+          <h2><span class="eyebrow">Claude</span>
+            <span class="note" style="border:0;padding:0">nguồn: dòng <code>result</code> của
+              stream-json + status.claude.com</span></h2>
+
+          <div class="claude">
+            <div>
+              <div class="eyebrow">Trạng thái dịch vụ</div>
+              <div class="v txt"><span class="dot ok"></span>Bình thường</div>
+              <div class="h">status.claude.com · kiểm 40 giây trước</div>
+            </div>
+            <div>
+              <div class="eyebrow">Chạy hôm nay</div>
+              <div class="v"><span class="dot down"></span>13</div>
+              <div class="h">6 lần thất bại</div>
+            </div>
+            <div>
+              <div class="eyebrow">Token hôm nay</div>
+              <div class="v">1.24<span style="font-size:15px">M</span></div>
+              <div class="h">89% đọc từ cache</div>
+            </div>
+            <div>
+              <div class="eyebrow">Chi phí hôm nay</div>
+              <div class="v">$2.41</div>
+              <div class="h">7 ngày: $14.80</div>
+            </div>
           </div>
-          <p class="note">Hôm nay tỉ lệ đỏ cao hơn hẳn sáu ngày trước — đó là thứ đổi hành vi,
-            nên nó lên màn hình. "Tổng số task" thì không, nên nó không lên.</p>
+
+          <div class="warnbar">
+            <span class="dot warn" style="margin-top:6px"></span>
+            <span><b style="color:var(--ink);font-weight:500">3 lần chạy dừng vì hết hạn mức.</b>
+              Đây là lý do tỉ lệ đỏ hôm nay cao — không phải code hỏng.
+              <code style="font-family:var(--mono);font-size:13px">stop_reason</code> và
+              <code style="font-family:var(--mono);font-size:13px">api_error_status</code> đã có sẵn
+              trong dòng <code style="font-family:var(--mono);font-size:13px">result</code>,
+              chỉ là reconciler đang vứt đi.</span>
+          </div>
+        </div>
+
+        <div class="block">
+          <h2><span class="eyebrow">Bảy ngày qua</span>
+            <span class="legend">
+              <span><i style="background:#0070f3"></i>chạy xong</span>
+              <span><i style="background:#ee0000"></i>thất bại</span>
+            </span>
+          </h2>
+          <div class="chart">
+            <div class="day"><em>6</em><div class="stack"><i class="g" style="height:48px"></i></div><span>T5</span></div>
+            <div class="day"><em>11</em><div class="stack"><i class="g" style="height:80px"></i><i class="b" style="height:8px"></i></div><span>T6</span></div>
+            <div class="day"><em>3</em><div class="stack"><i class="g" style="height:24px"></i></div><span>T7</span></div>
+            <div class="day"><em>1</em><div class="stack"><i class="g" style="height:8px"></i></div><span>CN</span></div>
+            <div class="day"><em>14</em><div class="stack"><i class="g" style="height:104px"></i><i class="b" style="height:8px"></i></div><span>T2</span></div>
+            <div class="day"><em>12</em><div class="stack"><i class="g" style="height:96px"></i></div><span>T3</span></div>
+            <div class="day"><em>13</em><div class="stack"><i class="g" style="height:56px"></i><i class="b" style="height:48px"></i></div><span>Hôm nay</span></div>
+          </div>
+          <p class="note">Hôm nay 6/13 lần chạy thất bại — sáu ngày trước gần như không có lần nào.
+            Đó là thứ đổi hành vi, nên nó lên màn hình. "Tổng số task" thì không, nên nó
+            không lên.</p>
         </div>
       </div>
     </section>

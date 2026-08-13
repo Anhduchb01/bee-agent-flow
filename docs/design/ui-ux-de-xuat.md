@@ -123,6 +123,19 @@ màn hình thay đổi theo thời gian thực, nên nó đáng một khối ri�
 Dựng từ `recent.jsonl` đã có sẵn. **Đây là chỉ số xu hướng duy nhất tôi đề
 xuất** — nó trả lời "máy có đang tệ đi không", và câu đó đổi hành vi.
 
+**e. Tổng quan từng dự án** — mỗi dự án một dòng, kèm **một thanh chia theo giai
+đoạn**. Nhìn ngang là thấy dự án nào đang dồn ở đâu: `blog` chỉ có 2 task nhưng
+một nửa kẹt ở "cần người", còn `myapp` có 8 task mà phần lớn đang chạy. Hai tình
+huống rất khác nhau, và **một cột "tổng số task" không phân biệt được** — đó
+chính là lý do con số đó là chỉ số phù phiếm còn thanh này thì không.
+
+Sáu màu của thanh rút từ đúng bảng Vercel: xám `#d4d4d4` · xanh nhạt `#8ec5ff` ·
+cam `#f5a623` · tím `#7928ca` · xanh `#0070f3` · đỏ `#ee0000`.
+
+**f. Claude — trạng thái và mức dùng.** Bốn ô: trạng thái dịch vụ · số lần chạy
+hôm nay và bao nhiêu thất bại · token hôm nay kèm tỉ lệ đọc từ cache · chi phí
+hôm nay và bảy ngày.
+
 **Cố ý KHÔNG đưa lên** (chỉ số phù phiếm, theo đúng danh sách trong tài liệu đã
 tra): tổng số task · số commit · số dòng code · số giờ · tổng task đã xong.
 
@@ -146,6 +159,45 @@ tra): tổng số task · số commit · số dòng code · số giờ · tổng
 
 Ô tìm ở đầu sidebar hiện sẵn gợi ý `⌘K` — vấn đề lớn nhất của command palette
 là *không ai biết nó tồn tại*.
+
+---
+
+## 3.5. Dữ liệu cho khối Claude — đã kiểm, không phải phỏng đoán
+
+Tôi chạy thật `claude -p --output-format stream-json` trên máy này (bản 2.1.161)
+và đọc dòng `result` để xem có gì, thay vì tin trí nhớ.
+
+**Phát hiện đáng nói: reconciler đã nhận đủ dữ liệu usage rồi, và đang vứt đi.**
+
+`bin/agent-exec.sh` gọi `claude -p --output-format stream-json --verbose`, và
+`run_agent()` trong `bin/worker.sh` đã bóc dòng `result` để lấy `session_id`,
+`num_turns`, `duration_ms`. Cùng dòng đó còn mang:
+
+| Trường | Nội dung |
+|---|---|
+| `usage.input_tokens` · `output_tokens` | Token vào/ra |
+| `usage.cache_read_input_tokens` · `cache_creation_input_tokens` | Đủ để tính tỉ lệ cache — thứ quyết định phần lớn chi phí ở khối việc này |
+| `total_cost_usd` | Chi phí ước tính của lần chạy |
+| `stop_reason` · `api_error_status` | **Vì sao lần chạy dừng** — phân biệt "code hỏng" với "hết hạn mức" |
+
+Trường cuối là thứ đáng giá nhất. Hiện `record_run()` chỉ ghi `result` dạng
+`ok`/`fail`, nên một lần chạy chết vì hết quota trông y hệt một lần chạy chết vì
+test đỏ — hai chuyện đòi hai hành động hoàn toàn khác nhau.
+
+**Cần một thay đổi nhỏ trong reconciler**: thêm mấy dòng `jq` vào `run_agent()`
+và mấy trường vào `record_run()`. Theo ranh giới ở `AGENTS.md` §2, mọi thay đổi
+trong `apps/reconciler/` phải **hỏi trước** — nên tôi nêu ra ở đây chứ không tự
+làm.
+
+Trạng thái dịch vụ lấy từ `https://status.claude.com/api/v2/status.json` (bản cũ
+`status.anthropic.com` giờ chuyển hướng sang đây). Cấu trúc:
+`{ page: {...}, status: { indicator, description } }`, với `indicator: "none"`
+nghĩa là bình thường. Một route handler gọi theo lịch là đủ.
+
+**Thứ KHÔNG lấy được từ dòng `result`:** phần trăm hạn mức của gói thuê bao.
+`total_cost_usd` là chi phí quy đổi theo giá API, không phải mức tiêu thụ hạn
+mức. Muốn con số đó phải đọc chỗ khác, và tôi chưa xác minh được — nên tôi không
+đưa nó lên mockup.
 
 ---
 
