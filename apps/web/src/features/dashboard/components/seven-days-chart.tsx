@@ -34,7 +34,10 @@ import type { NgayChay } from "../lib/seven-days";
  * không có lỗi nào báo.
  */
 const CAU_HINH = {
-  xong: { label: "Chạy xong", color: "var(--link)" },
+  // Xanh nước biển, không phải xanh điện: `--link` (#0070f3) rực và kéo mắt
+  // như một cái link bấm được. `--link-deep` (#0761d1) trầm hơn, để khối đỏ
+  // giữ nguyên vai trò tín hiệu duy nhất của biểu đồ.
+  xong: { label: "Chạy xong", color: "var(--link-deep)" },
   loi: { label: "Thất bại", color: "var(--destructive)" },
 } satisfies ChartConfig;
 
@@ -59,8 +62,20 @@ export function SevenDaysChart({ days, tomTat }: { days: NgayChay[]; tomTat: str
             <XAxis dataKey="nhan" tickLine={false} axisLine={false} tickMargin={10} />
             <ChartTooltip content={<ChartTooltipContent />} />
             <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="xong" stackId="a" fill="var(--color-xong)" radius={[0, 0, 4, 4]} />
-            <Bar dataKey="loi" stackId="a" fill="var(--color-loi)" radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="xong"
+              stackId="a"
+              fill="var(--color-xong)"
+              radius={[0, 0, 4, 4]}
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="loi"
+              stackId="a"
+              fill="var(--color-loi)"
+              radius={[4, 4, 0, 0]}
+              isAnimationActive={false}
+            />
           </BarChart>
         </ChartContainer>
       </CardContent>

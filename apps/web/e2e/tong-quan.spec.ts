@@ -38,13 +38,16 @@ test("máy đang làm nói được việc gì, không chỉ số hiệu", async
 
 // Đây là toàn bộ lý do khối "Dự án" tồn tại: hai dự án khác hẳn nhau mà một cột
 // "tổng số task" không phân biệt được.
-test("mỗi dự án một thanh chia theo giai đoạn", async ({ page }) => {
-  const blog = page.getByRole("img", { name: /^blog:/ });
-  await expect(blog).toBeVisible();
-  await expect(blog).toHaveAccessibleName(/cần người/);
+test("mỗi dự án một thanh chia theo giai đoạn, trên trục chung", async ({ page }) => {
+  const khoi = page.getByRole("main").getByText("Dự án", { exact: true }).locator("../..");
 
-  const myapp = page.getByRole("img", { name: /^myapp:/ });
-  await expect(myapp).toHaveAccessibleName(/agent đang làm/);
+  // Tên dự án là nhãn trục, và cả sáu giai đoạn có mặt trong chú giải.
+  for (const ten of ["myapp", "shop", "blog"]) {
+    await expect(khoi.getByText(ten, { exact: true })).toBeVisible();
+  }
+  for (const ten of ["Cần người", "Agent đang làm", "Chờ duyệt PR"]) {
+    await expect(khoi.getByText(ten, { exact: true })).toBeVisible();
+  }
 });
 
 test("biểu đồ bảy ngày dựng đủ bảy cột và gọi tên xu hướng", async ({ page }) => {

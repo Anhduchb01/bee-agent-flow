@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import {
   Card,
@@ -7,56 +10,68 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { STAGES, STAGE_LABEL, type Stage } from "@/lib/task-stage";
 
 import type { HonHopDuAn } from "../lib/project-mix";
 
-/** Sáu màu rút từ bảng của Vercel — xem docs/design/vercel-geist.md §3. */
-const MAU: Record<Stage, string> = {
-  nhap: "bg-faint",
-  "cho-spec": "bg-link/40",
-  "cho-giao": "bg-warning",
-  "agent-lam": "bg-violet",
-  "cho-duyet": "bg-link",
-  "can-nguoi": "bg-destructive",
+/*
+ * Sáu màu rút từ bảng Vercel, và dùng biến gốc ở `:root` chứ không phải biến
+ * của `@theme inline` — cái sau không tồn tại lúc chạy, Recharts sẽ nhận `fill`
+ * rỗng và vẽ ra không gì cả.
+ */
+const CAU_HINH: ChartConfig = {
+  nhap: { label: STAGE_LABEL.nhap, color: "#d4d4d4" },
+  "cho-spec": { label: STAGE_LABEL["cho-spec"], color: "#8ec5ff" },
+  "cho-giao": { label: STAGE_LABEL["cho-giao"], color: "var(--warning)" },
+  "agent-lam": { label: STAGE_LABEL["agent-lam"], color: "var(--violet)" },
+  "cho-duyet": { label: STAGE_LABEL["cho-duyet"], color: "var(--link)" },
+  "can-nguoi": { label: STAGE_LABEL["can-nguoi"], color: "var(--destructive)" },
 };
 
-function ChuGiai() {
-  return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-      {STAGES.map((s) => (
-        <span key={s} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span aria-hidden className={`size-2.5 rounded-[3px] ${MAU[s]}`} />
-          {STAGE_LABEL[s]}
-        </span>
-      ))}
-    </div>
-  );
-}
+type Hang = { duAn: string; tong: number } & Partial<Record<Stage, number>>;
 
 /**
- * Phân bố task theo giai đoạn, mỗi dự án một thanh.
+ * Phân bố task theo giai đoạn, một thanh ngang cho mỗi dự án.
  *
- * Đây là thứ thay cho cột "tổng số task". Nhìn ngang là thấy dự án nào đang dồn
- * ở đâu: một dự án 2 task mà một nửa kẹt ở "cần người" và một dự án 8 task đang
- * chạy ngon là hai tình huống đòi hai hành động khác nhau — mà một con số tổng
- * thì không phân biệt được.
+ * Dùng **trục chung** chứ không phải mỗi thanh tự chuẩn hoá về 100%: thanh
+ * 100% cho biết *tỉ lệ* nhưng giấu mất *khối lượng*, nên một dự án 2 task và
+ * một dự án 20 task trông ngang nhau. Với trục chung, chiều dài thanh trả lời
+ * "dự án nào đang gánh nhiều nhất" và các đoạn màu trả lời "gánh đang kẹt ở
+ * đâu" — hai câu trong một hình.
+ *
+ * Thanh ngang chứ không phải cột dọc vì tên dự án đọc theo chiều ngang, và
+ * danh sách dự án dài ra theo thời gian.
  */
 export function ProjectMixPanel({ duAn }: { duAn: HonHopDuAn[] }) {
+  const router = useRouter();
   const coTask = duAn.filter((d) => d.tong > 0);
+
+  const data: Hang[] = coTask.map((d) => {
+    const hang: Hang = { duAn: d.slug, tong: d.tong };
+    for (const k of d.khuc) hang[k.stage] = k.so;
+    return hang;
+  });
 
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b bg-muted/30 px-5 py-3.5">
         <CardTitle className="text-base tracking-title">Dự án</CardTitle>
         <CardDescription>
-          <ChuGiai />
+          Chiều dài thanh là khối lượng, màu là giai đoạn. Bấm để mở dự án.
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex flex-col px-0">
-        {coTask.length === 0 ? (
+      <CardContent className="px-5 py-5">
+        {data.length === 0 ? (
           <Empty className="border-0">
             <EmptyHeader>
               <EmptyTitle>Chưa có task nào đang mở</EmptyTitle>
@@ -64,50 +79,54 @@ export function ProjectMixPanel({ duAn }: { duAn: HonHopDuAn[] }) {
             </EmptyHeader>
           </Empty>
         ) : (
-          coTask.map((d) => (
-            <div
-              key={d.slug}
-              className="grid grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-5 border-b px-5 py-4 last:border-b-0"
+          <ChartContainer
+            config={CAU_HINH}
+            className="w-full"
+            style={{ height: `${Math.max(140, data.length * 56 + 56)}px` }}
+          >
+            <BarChart
+              accessibilityLayer
+              layout="vertical"
+              data={data}
+              margin={{ left: 4, right: 16 }}
+              barSize={22}
+              onClick={(e) => {
+                // Recharts 3 không khai báo `activePayload` trong kiểu của
+                // handler, nhưng vẫn truyền nó. Thu hẹp từ `unknown` thay vì
+                // `as any` — nếu họ đổi hình dạng thì chỗ này trả về undefined
+                // chứ không nổ.
+                const payload = (e as { activePayload?: { payload?: Hang }[] }).activePayload;
+                const slug = payload?.[0]?.payload?.duAn;
+                if (slug) router.push(`/p/${slug}`);
+              }}
             >
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <Link
-                  href={`/p/${d.slug}`}
-                  className="truncate text-sm font-semibold tracking-title text-foreground underline-offset-4 hover:underline"
-                >
-                  {d.slug}
-                </Link>
-                <span className="truncate font-mono text-xs text-muted-foreground">{d.full}</span>
-              </div>
-
-              <div className="flex min-w-0 flex-col gap-2.5">
-                <div
-                  className="flex h-3 overflow-hidden rounded-pill bg-muted"
-                  role="img"
-                  aria-label={`${d.slug}: ${d.khuc.map((k) => `${k.so} ${k.label.toLowerCase()}`).join(", ")}`}
-                >
-                  {d.khuc.map((k) => (
-                    <span key={k.stage} className={MAU[k.stage]} style={{ flex: k.so }} />
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-body">
-                  {d.khuc.map((k) => (
-                    <span key={k.stage}>
-                      <span className="font-mono font-medium text-foreground">{k.so}</span>{" "}
-                      {k.label.toLowerCase()}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="text-right">
-                <div className="font-mono text-xl leading-none tabular-nums tracking-title text-foreground">
-                  {d.tong}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">task mở</div>
-              </div>
-            </div>
-          ))
+              <CartesianGrid horizontal={false} />
+              <XAxis type="number" tickLine={false} axisLine={false} allowDecimals={false} />
+              <YAxis
+                type="category"
+                dataKey="duAn"
+                tickLine={false}
+                axisLine={false}
+                width={92}
+                tickMargin={8}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartLegend content={<ChartLegendContent />} />
+              {STAGES.map((s, i) => (
+                <Bar
+                  key={s}
+                  dataKey={s}
+                  stackId="a"
+                  fill={`var(--color-${s})`}
+                  className="cursor-pointer"
+                  isAnimationActive={false}
+                  radius={
+                    i === 0 ? [4, 0, 0, 4] : i === STAGES.length - 1 ? [0, 4, 4, 0] : undefined
+                  }
+                />
+              ))}
+            </BarChart>
+          </ChartContainer>
         )}
       </CardContent>
     </Card>
