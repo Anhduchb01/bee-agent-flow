@@ -48,14 +48,14 @@ export function TaskForm({ repos }: { repos: { slug: string; full: string }[] })
   }
 
   return (
-    <form action={gui} noValidate className="flex flex-col gap-6">
+    <form action={gui} noValidate className="flex flex-col gap-7">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="slug">Dự án</Label>
+        <Label htmlFor="slug" className="eyebrow">Dự án</Label>
         <select
           id="slug"
           name="slug"
           defaultValue={repos[0]?.slug ?? ""}
-          className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+          className="h-8 w-full rounded-control border border-border bg-card px-2.5 text-sm text-foreground"
         >
           {repos.map((r) => (
             <option key={r.slug} value={r.slug}>
@@ -67,14 +67,14 @@ export function TaskForm({ repos }: { repos: { slug: string; full: string }[] })
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="title">Tiêu đề</Label>
+        <Label htmlFor="title" className="eyebrow">Tiêu đề</Label>
         <Input id="title" name="title" placeholder="Thêm bộ lọc trạng thái cho danh sách đơn" />
         <Loi message={errors.title} />
       </div>
 
       {TRUONG.map((t) => (
         <div key={t.name} className="flex flex-col gap-2">
-          <Label htmlFor={t.name}>{t.label}</Label>
+          <Label htmlFor={t.name} className="eyebrow">{t.label}</Label>
           <p className="text-xs text-muted-foreground">{t.hint}</p>
           <Textarea
             id={t.name}
@@ -90,7 +90,7 @@ export function TaskForm({ repos }: { repos: { slug: string; full: string }[] })
         <Button type="submit" disabled={dangGui}>
           {dangGui ? "Đang tạo…" : "Tạo task"}
         </Button>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-body">
           Issue tạo ra mang tên bạn và gắn <code>status:ready-for-spec</code>.
         </p>
       </div>

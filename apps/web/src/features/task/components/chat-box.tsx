@@ -70,7 +70,7 @@ export function ChatBox({
 
   return (
     <form action={gui} className="flex flex-col gap-3">
-      <Label htmlFor="noi-dung">Nói tiếp với agent</Label>
+      <Label htmlFor="noi-dung" className="eyebrow">Nói tiếp với agent</Label>
       <Textarea
         id="noi-dung"
         name="noi-dung"
@@ -109,7 +109,7 @@ function TrangThai({
 }) {
   if (dangChayRule) {
     return (
-      <p aria-live="polite" className="text-sm text-muted-foreground">
+      <p aria-live="polite" className="text-sm text-body">
         agent đang làm · {khoangThoiGian(dangChayGiay)}
       </p>
     );
@@ -117,7 +117,7 @@ function TrangThai({
 
   if (guiLuc === null) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-body">
         Agent nhìn thấy ở tick sau — tối đa {TICK_S} giây.
       </p>
     );
@@ -125,7 +125,7 @@ function TrangThai({
 
   if (troi > HET_KIEN_NHAN_S) {
     return (
-      <p aria-live="polite" className="text-sm text-amber-700 dark:text-amber-500">
+      <p aria-live="polite" className="text-sm text-warning-deep">
         đã gửi {khoangThoiGian(troi)} trước, agent vẫn chưa nhận · có thể hàng đợi đang đầy hoặc
         dự án đang tạm dừng
       </p>
@@ -133,7 +133,7 @@ function TrangThai({
   }
 
   return (
-    <p aria-live="polite" className="text-sm text-muted-foreground">
+    <p aria-live="polite" className="text-sm text-body">
       đã gửi · chờ tick tiếp theo · {khoangThoiGian(troi)}
     </p>
   );

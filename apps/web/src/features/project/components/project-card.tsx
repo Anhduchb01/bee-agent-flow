@@ -1,51 +1,50 @@
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
+import { StatusDot } from "@/components/status-dot";
 
 import type { ProjectView } from "../api/load";
+
+function So({ nhan, gia }: { nhan: string; gia: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <dt className="eyebrow">{nhan}</dt>
+      <dd className="font-mono text-sm tabular-nums text-foreground">{gia}</dd>
+    </div>
+  );
+}
 
 export function ProjectCard({ project }: { project: ProjectView }) {
   const queue = project.repo?.queue.length ?? 0;
 
   return (
-    <li className="rounded-lg border p-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <li className="rounded-card border border-border bg-card px-5 py-4 transition-colors hover:border-faint">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <Link
           href={`/p/${project.slug}`}
-          className="text-sm font-medium underline-offset-4 hover:underline"
+          className="text-sm font-medium tracking-title text-foreground underline-offset-4 hover:underline"
         >
           {project.slug}
         </Link>
         <span className="font-mono text-xs text-muted-foreground">{project.full}</span>
         {project.repo?.paused ? (
-          <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-500">
-            tạm dừng
-          </Badge>
+          <span className="flex items-center gap-1.5">
+            <StatusDot tone="warn" />
+            <span className="eyebrow">tạm dừng</span>
+          </span>
         ) : null}
         {project.repo === null ? (
-          <Badge variant="outline">reconciler chưa biết dự án này</Badge>
+          <span className="flex items-center gap-1.5">
+            <StatusDot tone="idle" />
+            <span className="eyebrow">reconciler chưa biết dự án này</span>
+          </span>
         ) : null}
       </div>
 
-      <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-        <div>
-          <dt className="text-xs text-muted-foreground">Đang chạy</dt>
-          <dd className="font-mono tabular-nums">
-            {project.running.length}/{project.repo?.wip.max ?? "?"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Hàng đợi</dt>
-          <dd className="font-mono tabular-nums">{queue}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Task mở</dt>
-          <dd className="font-mono tabular-nums">{project.tasks.length}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">PR mở</dt>
-          <dd className="font-mono tabular-nums">{project.prs.length}</dd>
-        </div>
+      <dl className="mt-4 flex flex-wrap gap-x-10 gap-y-3">
+        <So nhan="Đang chạy" gia={`${project.running.length}/${project.repo?.wip.max ?? "?"}`} />
+        <So nhan="Hàng đợi" gia={String(queue)} />
+        <So nhan="Task mở" gia={String(project.tasks.length)} />
+        <So nhan="PR mở" gia={String(project.prs.length)} />
       </dl>
     </li>
   );

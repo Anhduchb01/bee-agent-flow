@@ -67,7 +67,7 @@ export function TaskActions({ task, actor }: { task: GhTask; actor: Actor }) {
       {ketQua ? (
         <p
           aria-live="polite"
-          className={ketQua.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}
+          className={ketQua.ok ? "text-sm text-body" : "text-sm text-destructive"}
         >
           {ketQua.message}
         </p>

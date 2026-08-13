@@ -13,7 +13,7 @@ export default async function DuAnPage() {
   const projects = await loadProjects();
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageTitle title="Dự án" hint="Một dự án là một repo." />
         <Link href="/task-moi" className={cn(buttonVariants())}>
@@ -22,9 +22,9 @@ export default async function DuAnPage() {
       </div>
 
       {projects.length === 0 ? (
-        <div className="rounded-lg border border-dashed px-6 py-12 text-center">
-          <p className="text-sm font-medium">Chưa có dự án nào</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+        <div className="rounded-card border border-dashed border-border bg-card px-6 py-14 text-center">
+          <p className="text-sm font-medium tracking-title text-foreground">Chưa có dự án nào</p>
+          <p className="mt-1.5 text-sm text-body">
             Thêm bằng <code>be repo add &lt;org/repo&gt;</code> trên máy agent.
           </p>
         </div>

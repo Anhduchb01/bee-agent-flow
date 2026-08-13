@@ -1,49 +1,59 @@
+import { StatusDot, type Tone } from "@/components/status-dot";
 import { cn } from "@/lib/utils";
 
 import type { Health } from "../lib/derive";
 
-const TONE: Record<Health["level"], string> = {
-  ok: "border-border bg-card",
-  warn: "border-amber-500/40 bg-amber-500/5",
-  down: "border-destructive/50 bg-destructive/5",
+/**
+ * Dải sức khoẻ hệ thống. Thuần trình bày — mọi quyết định nằm ở `deriveHealth`,
+ * nên chúng test được mà không phải dựng DOM.
+ *
+ * Màu ở đây chỉ sống trong một chấm 6px và một đường viền 1px. Geist cấm đổ màu
+ * accent lên bề mặt rộng; phân biệt được "reconciler chết" với "đang chạy" thì
+ * lại là thông tin quan trọng nhất app này nói được. Chấm và viền là liều lượng
+ * nhỏ nhất còn đọc được.
+ */
+const TONE: Record<Health["level"], Tone> = {
+  ok: "ok",
+  warn: "warn",
+  down: "down",
 };
 
-const DOT: Record<Health["level"], string> = {
-  ok: "bg-emerald-500",
-  warn: "bg-amber-500",
-  down: "bg-destructive",
+const VIEN: Record<Health["level"], string> = {
+  ok: "border-border",
+  warn: "border-warning/40",
+  down: "border-destructive/40",
 };
 
 function Con({ nhan, gia }: { nhan: string; gia: string }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-muted-foreground">{nhan}</span>
-      <span className="font-mono text-sm tabular-nums">{gia}</span>
+    <div className="flex flex-col gap-1">
+      <span className="eyebrow">{nhan}</span>
+      <span className="font-mono text-sm tabular-nums text-foreground">{gia}</span>
     </div>
   );
 }
 
-/**
- * Dải sức khoẻ hệ thống. Thuần trình bày — mọi quyết định nằm ở `deriveHealth`,
- * nên chúng test được mà không phải dựng DOM.
- */
 export function SystemHealth({ health }: { health: Health }) {
   return (
     <section
       aria-label="Sức khoẻ hệ thống"
-      className={cn("rounded-lg border px-4 py-3", TONE[health.level])}
+      className={cn("rounded-card border bg-card px-5 py-4", VIEN[health.level])}
     >
-      <div className="flex items-start gap-3">
-        <span
-          aria-hidden
-          className={cn("mt-1.5 size-2 shrink-0 rounded-full", DOT[health.level])}
-        />
+      <div className="flex items-start gap-2.5">
+        <StatusDot tone={TONE[health.level]} className="mt-1.5" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">{health.headline}</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">{health.detail}</p>
+          <p
+            className={cn(
+              "text-sm font-medium tracking-title",
+              health.level === "down" ? "text-destructive" : "text-foreground",
+            )}
+          >
+            {health.headline}
+          </p>
+          <p className="mt-1 text-sm text-body">{health.detail}</p>
 
           {health.slots ? (
-            <div className="mt-3 flex flex-wrap gap-x-8 gap-y-3">
+            <div className="mt-4 flex flex-wrap gap-x-10 gap-y-3">
               <Con
                 nhan="Slot build"
                 gia={`${health.slots.build.used}/${health.slots.build.max}`}
@@ -58,7 +68,7 @@ export function SystemHealth({ health }: { health: Health }) {
           ) : null}
 
           {health.dropped > 0 ? (
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-4 text-xs text-muted-foreground">
               {health.dropped} mục trong status.json sai hình dạng và đã bị bỏ qua. Kiểu
               trong <code>lib/bee/types.ts</code> có thể đã lệch với reconciler.
             </p>

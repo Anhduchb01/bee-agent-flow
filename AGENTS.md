@@ -254,10 +254,26 @@ creates a second source of truth Query will not keep fresh. Call
 
 ### Style and quality gates
 
-Tailwind utilities only, **no `style={{}}`**. Merge with `cn()` — later Tailwind
-classes do not automatically win. No hardcoded hex or pixel values. Mobile-first;
-the inbox and the approve button must work on a phone. Real `<button>` for
-actions, `<Link>` for navigation, labels tied to inputs, visible focus rings.
+**The design system is Geist, Vercel's** — see
+[`docs/design/vercel-geist.md`](docs/design/vercel-geist.md) for the reasoning,
+including the three places this app deliberately departs from vercel.com. The
+short version: near-white canvas, near-black ink, 1px hairlines instead of
+shadows, Geist Sans at tight negative tracking, uppercase Geist Mono eyebrows
+labelling sections, 6px square buttons. **No pill buttons** — the pill belongs to
+marketing surfaces and this app has none. Status colour lives in a 6px dot, a
+1px border, and text; never in a fill wider than a badge.
+
+**Change the look by changing tokens in `globals.css`**, not by hand-editing
+`components/ui/` — a `shadcn add` regeneration overwrites edits there. The radius
+scale is mapped so the shadcn primitives land on the right Geist value on their
+own (`rounded-lg` → 6px, `rounded-xl` → 12px, `rounded-4xl` → pill).
+
+Tailwind utilities only, **no `style={{}}`** (the one exception is the login
+mesh gradient, which is a multi-stop composition no utility expresses). Merge
+with `cn()` — later Tailwind classes do not automatically win. No hardcoded hex
+or pixel values. Mobile-first; the inbox and the approve button must work on a
+phone. Real `<button>` for actions, `<Link>` for navigation, labels tied to
+inputs, visible focus rings.
 
 `strict: true`, **`any` is forbidden** — use `unknown` and narrow. Zod validates
 user input at the form boundary and nothing else.

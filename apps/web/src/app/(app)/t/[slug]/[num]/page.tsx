@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Eyebrow } from "@/components/eyebrow";
 import {
   ChatBox,
   EvidenceViewer,
@@ -28,34 +27,40 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
   const { task, timeline, evidence, evidenceCu, dangChay } = view;
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
+      <div className="flex max-w-3xl flex-col gap-10">
       <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Link href={`/p/${task.slug}`} className="underline underline-offset-4">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-muted-foreground">
+          <Link
+            href={`/p/${task.slug}`}
+            className="font-mono underline underline-offset-4 hover:text-foreground"
+          >
             {task.slug}
           </Link>
           <span className="font-mono">#{task.number}</span>
           <span>·</span>
           <span>{task.author.name} mở</span>
           {task.labels.includes("priority:high") ? (
-            <Badge variant="outline">ưu tiên</Badge>
+            <span className="eyebrow rounded-pill border border-border px-2 py-0.5">
+              ưu tiên
+            </span>
           ) : null}
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">{task.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-heading text-foreground">
+          {task.title}
+        </h1>
         <TaskActions task={task} actor={actor} />
       </header>
 
       <TaskStatus task={task} dangChay={dangChay} />
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold tracking-tight text-muted-foreground">Hợp đồng</h2>
+      <section className="flex flex-col gap-5 border-t border-border pt-9">
+        <Eyebrow>Hợp đồng</Eyebrow>
         <TaskBody body={task.body} />
       </section>
 
-      <Separator />
-
-      <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold tracking-tight text-muted-foreground">Bằng chứng</h2>
+      <section className="flex flex-col gap-5 border-t border-border pt-9">
+        <Eyebrow>Bằng chứng</Eyebrow>
         <EvidenceViewer
           evidence={evidence}
           cu={evidenceCu}
@@ -63,10 +68,8 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
         />
       </section>
 
-      <Separator />
-
-      <section className="flex flex-col gap-6">
-        <h2 className="text-sm font-semibold tracking-tight text-muted-foreground">Trao đổi</h2>
+      <section className="flex flex-col gap-7 border-t border-border pt-9">
+        <Eyebrow>Trao đổi</Eyebrow>
         <TaskTimeline comments={timeline} />
         <ChatBox
           slug={task.slug}
@@ -75,6 +78,7 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
           dangChayGiay={dangChay?.elapsed_s ?? 0}
         />
       </section>
+      </div>
     </main>
   );
 }

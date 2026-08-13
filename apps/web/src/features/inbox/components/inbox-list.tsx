@@ -9,9 +9,11 @@ import { InboxRow } from "./inbox-row";
  */
 function KhongCoGi() {
   return (
-    <div className="rounded-lg border border-dashed px-6 py-12 text-center">
-      <p className="text-sm font-medium">Không có gì chờ bạn</p>
-      <p className="mt-1 text-sm text-muted-foreground">
+    <div className="rounded-card border border-dashed border-border bg-card px-6 py-14 text-center">
+      <p className="text-sm font-medium tracking-title text-foreground">
+        Không có gì chờ bạn
+      </p>
+      <p className="mt-1.5 text-sm text-body">
         Mọi thứ đang ở phía máy. Bạn sẽ nhận thông báo khi có việc cần bạn quyết.
       </p>
     </div>
@@ -22,7 +24,10 @@ export function InboxList({ items }: { items: InboxItem[] }) {
   if (items.length === 0) return <KhongCoGi />;
 
   return (
-    <ul aria-label="Việc đang chờ bạn" className="rounded-lg border px-4">
+    <ul
+      aria-label="Việc đang chờ bạn"
+      className="overflow-hidden rounded-card border border-border bg-card"
+    >
       {items.map((item) => (
         <InboxRow key={item.key} item={item} />
       ))}

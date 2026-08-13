@@ -22,7 +22,12 @@ export default defineConfig({
   webServer: {
     command: "pnpm build && pnpm exec next start --port 3187",
     url: "http://127.0.0.1:3187",
-    reuseExistingServer: !process.env.CI,
+    // KHÔNG dùng lại server đang chạy. Một server mồ côi từ lượt trước vẫn trả
+    // HTML mới nhưng phục vụ chunk của bản build cũ, nên trang lên bình thường
+    // mà không hydrate: mọi nút im lặng không làm gì. Chín bài test đỏ cùng lúc
+    // và không bài nào chỉ đúng nguyên nhân. Thà hỏng ồn ào vì cổng bận còn hơn
+    // âm thầm kiểm một bản build khác với bản vừa sửa.
+    reuseExistingServer: false,
     timeout: 180_000,
   },
 });

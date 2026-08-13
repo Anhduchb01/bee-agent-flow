@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           title="Bạn chưa có quyền vào đây"
           hint={`Đăng nhập thành công với tài khoản ${session.login}, nhưng tài khoản này chưa nằm trong danh sách được phép.`}
         />
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-body">
           Nhờ PM hoặc Techlead thêm login của bạn vào <code>ALLOWED_LOGINS</code>.
         </p>
         <form action={raNgoai}>

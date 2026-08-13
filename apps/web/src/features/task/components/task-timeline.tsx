@@ -1,16 +1,8 @@
-import { Badge } from "@/components/ui/badge";
+import { StatusDot } from "@/components/status-dot";
 import type { GhComment } from "@/lib/github/types";
 
 /** Bỏ dấu mà rule 08/02 chèn vào đầu comment để nhận ra bài của agent. */
 const AGENT_MARK = /^<!--\s*agent-run\s*-->\s*/;
-
-function KhoiThoiGian({ iso }: { iso: string }) {
-  return (
-    <time dateTime={iso} className="text-xs text-muted-foreground">
-      {new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
-    </time>
-  );
-}
 
 /**
  * Comment của người và của agent, **xen kẽ theo thứ tự thật**.
@@ -21,29 +13,39 @@ function KhoiThoiGian({ iso }: { iso: string }) {
 export function TaskTimeline({ comments }: { comments: GhComment[] }) {
   if (comments.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-body">
         Chưa có trao đổi nào. Agent sẽ ghi kết quả vào đây ở tick sau.
       </p>
     );
   }
 
   return (
-    <ol aria-label="Dòng thời gian" className="flex flex-col gap-5">
+    <ol aria-label="Dòng thời gian" className="flex flex-col gap-6">
       {[...comments]
         .sort((a, b) => a.created_at.localeCompare(b.created_at))
         .map((c) => (
-          <li key={c.id} className="flex flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium">{c.author.name}</span>
+          <li key={c.id} className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-sm font-medium tracking-title text-foreground">
+                {c.author.name}
+              </span>
               {c.from_agent ? (
-                <Badge variant="outline" className="border-violet-500/40 text-violet-600 dark:text-violet-400">
-                  agent
-                </Badge>
+                <span className="flex items-center gap-1.5">
+                  <StatusDot tone="agent" />
+                  <span className="eyebrow">agent</span>
+                </span>
               ) : null}
-              {c.kind === "review" ? <Badge variant="outline">trên diff</Badge> : null}
-              <KhoiThoiGian iso={c.created_at} />
+              {c.kind === "review" ? <span className="eyebrow">trên diff</span> : null}
+              <time dateTime={c.created_at} className="text-xs text-muted-foreground">
+                {new Date(c.created_at).toLocaleString("vi-VN", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                })}
+              </time>
             </div>
-            <p className="text-sm whitespace-pre-wrap">{c.body.replace(AGENT_MARK, "")}</p>
+            <p className="text-sm whitespace-pre-wrap text-body">
+              {c.body.replace(AGENT_MARK, "")}
+            </p>
           </li>
         ))}
     </ol>

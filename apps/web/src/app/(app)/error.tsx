@@ -17,8 +17,10 @@ export default function Error({
 }) {
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-4 px-6 py-24">
-      <h1 className="text-2xl font-semibold tracking-tight">Trang này hỏng</h1>
-      <p className="text-sm text-muted-foreground">
+      <h1 className="text-[2rem] leading-10 font-semibold tracking-heading text-foreground">
+        Trang này hỏng
+      </h1>
+      <p className="text-sm text-body">
         {error.message || "Không có thông tin gì thêm."}
         {error.digest ? <span className="ml-1 font-mono text-xs">({error.digest})</span> : null}
       </p>

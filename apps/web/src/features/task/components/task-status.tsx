@@ -1,18 +1,18 @@
-import { Badge } from "@/components/ui/badge";
+import { StatusDot, type Tone } from "@/components/status-dot";
 import { buttonVariants } from "@/components/ui/button";
 import type { BeeRunning } from "@/lib/bee/types";
 import { khoangThoiGian } from "@/lib/duration";
-import type { GhTask } from "@/lib/github/types";
+import type { CheckConclusion, GhTask } from "@/lib/github/types";
 import { cn } from "@/lib/utils";
 
-const CHECK_TONE: Record<string, string> = {
-  success: "border-emerald-500/40 text-emerald-700 dark:text-emerald-400",
-  failure: "border-destructive/40 text-destructive",
-  pending: "border-amber-500/40 text-amber-700 dark:text-amber-500",
-  neutral: "",
+const CHECK_TONE: Record<CheckConclusion, Tone> = {
+  success: "ok",
+  failure: "down",
+  pending: "warn",
+  neutral: "idle",
 };
 
-const CHECK_LABEL: Record<string, string> = {
+const CHECK_LABEL: Record<CheckConclusion, string> = {
   success: "xanh",
   failure: "đỏ",
   pending: "đang chạy",
@@ -21,10 +21,19 @@ const CHECK_LABEL: Record<string, string> = {
 
 function Dong({ nhan, children }: { nhan: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 py-2 text-sm">
-      <span className="w-28 shrink-0 text-xs text-muted-foreground">{nhan}</span>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-5 py-3 text-sm last:border-b-0">
+      <span className="eyebrow w-32 shrink-0">{nhan}</span>
       {children}
     </div>
+  );
+}
+
+/** Thẻ mã: nhãn, rule, SHA đều là định danh kỹ thuật, nên chúng đặt bằng mono. */
+function Ma({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="rounded-control border border-border bg-muted px-1.5 py-0.5 text-xs text-body">
+      {children}
+    </code>
   );
 }
 
@@ -38,16 +47,14 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
   const approvals = task.pull?.reviews.filter((r) => r.state === "APPROVED") ?? [];
 
   return (
-    <div className="divide-y rounded-lg border px-4">
+    <div className="overflow-hidden rounded-card border border-border bg-card">
       <Dong nhan="Nhãn">
         {task.labels.length === 0 ? (
           <span className="text-muted-foreground">chưa có</span>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {task.labels.map((l) => (
-              <Badge key={l} variant="outline" className="font-mono text-xs">
-                {l}
-              </Badge>
+              <Ma key={l}>{l}</Ma>
             ))}
           </div>
         )}
@@ -55,9 +62,12 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
 
       <Dong nhan="Agent">
         {dangChay ? (
-          <span>
-            đang chạy <code className="text-xs">{dangChay.rule}</code> ·{" "}
-            {khoangThoiGian(dangChay.elapsed_s)}
+          <span className="flex items-center gap-2 text-body">
+            <StatusDot tone="agent" />
+            đang chạy <Ma>{dangChay.rule}</Ma>
+            <span className="font-mono text-xs tabular-nums">
+              {khoangThoiGian(dangChay.elapsed_s)}
+            </span>
           </span>
         ) : (
           <span className="text-muted-foreground">không có việc nào đang chạy</span>
@@ -75,8 +85,14 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
             >
               #{task.pull.number} trên GitHub
             </a>
-            {task.pull.draft ? <Badge variant="outline">nháp</Badge> : null}
-            <code className="text-xs text-muted-foreground">{task.pull.head_sha}</code>
+            {task.pull.draft ? (
+              <span className="eyebrow rounded-pill border border-border px-2 py-0.5">
+                nháp
+              </span>
+            ) : null}
+            <code className="font-mono text-xs text-muted-foreground">
+              {task.pull.head_sha}
+            </code>
           </Dong>
 
           <Dong nhan="bee/test">
@@ -84,9 +100,12 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
               <span className="text-muted-foreground">chưa chạy</span>
             ) : (
               task.pull.checks.map((c) => (
-                <Badge key={c.name} variant="outline" className={CHECK_TONE[c.conclusion]}>
-                  {c.name} · {CHECK_LABEL[c.conclusion] ?? c.conclusion}
-                </Badge>
+                <span key={c.name} className="flex items-center gap-1.5 text-body">
+                  <StatusDot tone={CHECK_TONE[c.conclusion]} />
+                  <span className="font-mono text-xs">
+                    {c.name} · {CHECK_LABEL[c.conclusion] ?? c.conclusion}
+                  </span>
+                </span>
               ))
             )}
           </Dong>
@@ -96,9 +115,13 @@ export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunn
               <span className="text-muted-foreground">chưa ai duyệt</span>
             ) : (
               approvals.map((r) => (
-                <Badge key={r.author.login} variant="outline">
+                <span
+                  key={r.author.login}
+                  className="flex items-center gap-1.5 text-body"
+                >
+                  <StatusDot tone="ok" />
                   {r.author.name}
-                </Badge>
+                </span>
               ))
             )}
           </Dong>

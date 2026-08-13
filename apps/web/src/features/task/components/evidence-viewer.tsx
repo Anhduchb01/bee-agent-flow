@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { StatusDot } from "@/components/status-dot";
 import type { EvidenceFile, EvidenceRun } from "@/lib/bee/types";
 
 function src(run: EvidenceRun, file: EvidenceFile): string {
@@ -11,11 +11,18 @@ function Phat({ run, file }: { run: EvidenceRun; file: EvidenceFile }) {
   // Video thật cần <video>; GIF là image/gif và thẻ đúng để phát nó là <img>.
   if (file.kind === "video") {
     return (
-      <video src={url} controls playsInline preload="metadata" className="w-full rounded-md border" />
+      <video
+        src={url}
+        controls
+        playsInline
+        preload="metadata"
+        className="w-full rounded-card border border-border bg-card"
+      />
     );
   }
+  const anh = "w-full rounded-card border border-border bg-card";
   // eslint-disable-next-line @next/next/no-img-element -- file trên đĩa máy agent, không qua image loader
-  return <img src={url} alt={file.name} className="w-full rounded-md border" loading="lazy" />;
+  return <img src={url} alt={file.name} loading="lazy" className={anh} />;
 }
 
 /**
@@ -36,9 +43,11 @@ export function EvidenceViewer({
 }) {
   if (!evidence) {
     return (
-      <div className="rounded-lg border border-dashed px-4 py-8 text-center">
-        <p className="text-sm font-medium">Chưa có bằng chứng cho commit này</p>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="rounded-card border border-dashed border-border bg-card px-6 py-10 text-center">
+        <p className="text-sm font-medium tracking-title text-foreground">
+          Chưa có bằng chứng cho commit này
+        </p>
+        <p className="mt-1.5 text-sm text-body">
           {cu.length > 0
             ? `Có bằng chứng của ${cu.length} commit cũ hơn, nhưng chúng chứng minh cho một bản code không còn tồn tại.`
             : "Rule 04 sẽ dựng khi bee/test xanh và có slot bằng chứng."}
@@ -51,34 +60,39 @@ export function EvidenceViewer({
   const khac = evidence.files.filter((f) => f.kind !== "video" && f.kind !== "image");
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className="font-mono text-xs">
+        <code className="rounded-control border border-border bg-muted px-1.5 py-0.5 text-xs text-body">
           {evidence.sha}
-        </Badge>
+        </code>
         {evidence.sha === headSha ? (
-          <span className="text-xs text-muted-foreground">khớp head của PR</span>
+          <span className="flex items-center gap-1.5">
+            <StatusDot tone="ok" />
+            <span className="eyebrow">khớp head của PR</span>
+          </span>
         ) : null}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2">
         {media.map((f) => (
-          <figure key={f.rel} className="flex flex-col gap-1.5">
+          <figure key={f.rel} className="flex flex-col gap-2">
             <Phat run={evidence} file={f} />
-            <figcaption className="font-mono text-xs text-muted-foreground">{f.rel}</figcaption>
+            <figcaption className="font-mono text-xs text-muted-foreground">
+              {f.rel}
+            </figcaption>
           </figure>
         ))}
       </div>
 
       {khac.length > 0 ? (
-        <ul className="flex flex-wrap gap-3 text-xs">
+        <ul className="flex flex-wrap gap-4 text-xs">
           {khac.map((f) => (
             <li key={f.rel}>
               <a
                 href={src(evidence, f)}
                 target="_blank"
                 rel="noreferrer"
-                className="font-mono underline underline-offset-4"
+                className="font-mono text-link underline underline-offset-4"
               >
                 {f.rel}
               </a>

@@ -10,12 +10,14 @@ export default async function TaskMoiPage() {
   const repos = await getGithub().listRepos();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
+      <div className="flex max-w-2xl flex-col gap-10">
       <PageTitle
         title="Task mới"
         hint="Năm mục dưới đây đều bắt buộc. Điền đủ ngay từ đầu rẻ hơn một vòng hỏi ngược."
       />
       <TaskForm repos={repos} />
+      </div>
     </main>
   );
 }

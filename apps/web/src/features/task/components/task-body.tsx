@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { StatusDot } from "@/components/status-dot";
 
 import { parseTaskBody } from "../lib/parse-body";
 
@@ -13,44 +13,49 @@ export function TaskBody({ body }: { body: string }) {
   const parsed = parseTaskBody(body);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-7">
       {parsed.missing.length > 0 ? (
-        <Alert>
-          <AlertTitle>Hợp đồng chưa đủ</AlertTitle>
-          <AlertDescription>
-            Thiếu {parsed.missing.length} mục bắt buộc: {parsed.missing.join(" · ")}. Spec
-            gatekeeper sẽ hỏi ngược và task nằm chờ thêm một vòng.
-          </AlertDescription>
-        </Alert>
+        <div className="flex items-start gap-2.5 rounded-card border border-warning/40 bg-card px-5 py-4">
+          <StatusDot tone="warn" className="mt-1.5" />
+          <div>
+            <p className="text-sm font-medium tracking-title text-foreground">
+              Hợp đồng chưa đủ
+            </p>
+            <p className="mt-1 text-sm text-body">
+              Thiếu {parsed.missing.length} mục bắt buộc: {parsed.missing.join(" · ")}. Spec
+              gatekeeper sẽ hỏi ngược và task nằm chờ thêm một vòng.
+            </p>
+          </div>
+        </div>
       ) : null}
 
       {parsed.preamble ? (
-        <p className="text-sm whitespace-pre-wrap text-muted-foreground">{parsed.preamble}</p>
+        <p className="text-sm whitespace-pre-wrap text-body">{parsed.preamble}</p>
       ) : null}
 
       {parsed.sections.map((section) => (
-        <section key={section.heading} className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold tracking-tight">{section.heading}</h3>
+        <section key={section.heading} className="flex flex-col gap-2.5">
+          <h3 className="eyebrow">{section.heading}</h3>
 
           {section.heading === "Acceptance Criteria" && parsed.acceptance.length > 0 ? (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-2.5">
               {parsed.acceptance.map((ac) => (
-                <li key={ac.text} className="flex items-start gap-2 text-sm">
+                <li key={ac.text} className="flex items-start gap-2.5 text-sm">
                   <span
                     aria-hidden
-                    className="mt-0.5 grid size-4 shrink-0 place-items-center rounded border text-[10px]"
+                    className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-control border border-border bg-card text-[10px] text-foreground"
                   >
                     {ac.done ? "✓" : ""}
                   </span>
                   <span className="sr-only">{ac.done ? "đã xong:" : "chưa xong:"}</span>
-                  <span className={ac.done ? "text-muted-foreground line-through" : undefined}>
+                  <span className={ac.done ? "text-faint line-through" : "text-body"}>
                     {ac.text}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm whitespace-pre-wrap">{section.body}</p>
+            <p className="text-sm whitespace-pre-wrap text-body">{section.body}</p>
           )}
         </section>
       ))}
