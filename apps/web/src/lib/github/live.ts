@@ -23,6 +23,7 @@ export function createLiveGithubSource(): GithubSource {
 
   return {
     listRepos: notYet,
+    addRepo: notYet,
     listTasks: notYet,
     getTask: notYet,
     listTimeline: notYet,

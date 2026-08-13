@@ -11,11 +11,15 @@ const HOP_LE = {
   ui_reference: "Ô tìm kiếm trên đầu bảng.",
 };
 
+/** Mở modal tạo task từ chi tiết dự án — không còn màn hình riêng. */
+async function moModalTaoTask(page: import("@playwright/test").Page, slug = "myapp") {
+  await page.goto(`/p/${slug}`);
+  await page.getByRole("button", { name: "Tạo task" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+}
+
 async function dienForm(page: import("@playwright/test").Page, bo: Partial<typeof HOP_LE> = {}) {
   const gia = { ...HOP_LE, ...bo };
-  // Mặc định là dự án đầu bảng chữ cái (blog); chọn tường minh để bài test nói
-  // về form chứ không về thứ tự danh sách.
-  await page.getByLabel("Dự án").selectOption("myapp");
   await page.getByLabel("Tiêu đề").fill(gia.title);
   await page.getByLabel("Mục tiêu").fill(gia.goal);
   await page.getByLabel("Acceptance Criteria").fill(gia.acceptance);
@@ -27,32 +31,34 @@ async function dienForm(page: import("@playwright/test").Page, bo: Partial<typeo
 // Mục tiêu là làm form này DỄ ĐIỀN hơn form GitHub, không phải lỏng hơn.
 test("form không cho bỏ qua mục bắt buộc nào", async ({ page }) => {
   await dangNhap(page, "pm-linh");
-  await page.goto("/task-moi");
+  await moModalTaoTask(page);
 
   await dienForm(page, { out_of_scope: "" });
-  await page.getByRole("button", { name: "Tạo task" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Tạo task" }).click();
 
   await expect(page.locator("form").getByRole("alert")).toContainText("Out of scope");
-  await expect(page).toHaveURL(/\/task-moi/);
+  // Modal vẫn mở: không đá người dùng ra khỏi thứ họ đang gõ dở.
+  await expect(page.getByRole("dialog")).toBeVisible();
 });
 
 test("AC phải là checkbox, không phải văn xuôi", async ({ page }) => {
   await dangNhap(page, "pm-linh");
-  await page.goto("/task-moi");
+  await moModalTaoTask(page);
 
   await dienForm(page, { acceptance: "Tìm được đơn theo mã và kết quả chính xác." });
-  await page.getByRole("button", { name: "Tạo task" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Tạo task" }).click();
 
   await expect(page.locator("form").getByRole("alert")).toContainText("checkbox");
 });
 
 test("tạo task → issue mới mang tên người tạo, gắn status:ready-for-spec", async ({ page }) => {
   await dangNhap(page, "pm-linh");
-  await page.goto("/task-moi");
+  await moModalTaoTask(page);
 
   await dienForm(page);
-  await page.getByRole("button", { name: "Tạo task" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Tạo task" }).click();
 
+  // Dự án lấy từ chỗ đang đứng, không phải từ một ô chọn lặp lại điều đó.
   await expect(page).toHaveURL(/\/t\/myapp\/\d+/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(HOP_LE.title);
   await expect(page.getByText("Nguyễn Thị Linh mở")).toBeVisible();

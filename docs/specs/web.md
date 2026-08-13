@@ -63,10 +63,18 @@ Cả hai đều đăng nhập bằng GitHub OAuth và mọi thao tác ghi đều
 
 ## 4. Màn hình
 
-### 4.1. Hộp thư "đang chờ bạn" — trang chủ
+### 4.1. "Việc của bạn" — trang chủ
 
-Danh sách phẳng, mọi dự án, **xếp theo thời gian đã chờ giảm dần**. Không phân
-trang, không tab, không board.
+**Bảng** phẳng, mọi dự án, **xếp theo thời gian đã chờ giảm dần**. Không phân
+trang, không tab.
+
+Mỗi cột lọc bằng đúng thứ nó hiển thị: loại việc · dự án · ô tìm tiêu đề (bỏ
+dấu, nên gõ "tinh thue" tìm được "Tính thuế") · ngưỡng thời gian chờ · cờ ưu
+tiên. Bảng rỗng vì lọc và bảng rỗng vì hết việc **nói hai câu khác nhau**.
+
+Trên bảng là một dải bốn con số, chọn theo câu người dùng thật sự hỏi buổi
+sáng: có gì đang cháy · phải duyệt bao nhiêu · còn bao nhiêu chờ tôi cho phép ·
+thứ lâu nhất đã chờ bao lâu.
 
 Một mục xuất hiện ở đây khi và chỉ khi nó **chặn ở người đang đăng nhập**:
 
@@ -98,8 +106,24 @@ trông giống lỗi tải.
 
 ### 4.2. Trang dự án `/p/[slug]`
 
-Một dự án = một repo. Gồm: hàng đợi kèm `wait_reason`, task đang chạy, PR đang
-mở, lịch sử gần đây. Thứ tự thẻ ổn định theo tên.
+Một dự án = một repo. Gồm: dải bốn con số, **danh sách task với hai kiểu xem**,
+và hàng đợi của máy kèm `wait_reason`.
+
+**Bảng** liệt kê mọi task mở kèm cột giai đoạn. **Kanban** xếp chúng vào sáu cột
+theo đúng chiều công việc chảy — Nháp → Chờ chấm spec → Chờ giao cho agent →
+Agent đang làm → Chờ duyệt PR → Cần người. Giai đoạn **suy ra từ nhãn thật**,
+không phải từ một trường trạng thái riêng: nhãn là một tập hợp, một issue có thể
+mang `agent:build` lẫn `needs-human` cùng lúc, nên phải chọn theo thứ tự "cụ thể
+nhất thắng". Bảng **luôn đủ sáu cột**, kể cả cột rỗng — mất cột khi rỗng thì mỗi
+lần mở lại có hình dạng khác và người dùng không học được vị trí của thứ gì.
+
+Kiểu xem nằm trong URL (`?view=kanban`) nên chia sẻ được và server dựng sẵn đúng
+kiểu.
+
+**Thêm dự án** bằng modal ở danh sách dự án. App chỉ ghi nhận dự án ở phía nó —
+nó không có sudo, không giữ token orchestrator, và không chạy `be repo add`.
+Modal nói trước rằng còn một bước trên máy Ubuntu; tới lúc đó thẻ dự án mang
+nhãn "reconciler chưa biết dự án này".
 
 ### 4.3. Trang task `/t/[slug]/[num]`
 
@@ -113,6 +137,10 @@ Một trang cho cả issue lẫn PR liên kết — vì với người dùng đ�
 - Nút theo trạng thái: Giao cho agent · Duyệt · Mở PR trên GitHub
 
 ### 4.4. Tạo task
+
+**Modal, mở từ chi tiết dự án** — không có màn hình riêng. Dự án đã được chọn
+bởi việc bạn đang đứng ở đó, nên một trang riêng chỉ thêm một lần điều hướng và
+một ô chọn lặp lại thứ người dùng vừa nói.
 
 Form theo đúng hợp đồng của
 [`.github/ISSUE_TEMPLATE/task.yml`](../../.github/ISSUE_TEMPLATE/task.yml) — 5 mục

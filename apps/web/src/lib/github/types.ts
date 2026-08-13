@@ -110,6 +110,17 @@ export interface Actor extends GhUser {
 
 export interface GithubSource {
   listRepos(): Promise<GhRepo[]>;
+  /**
+   * Thêm một dự án vào danh sách của app.
+   *
+   * **Không** chạy `be repo add` — app không có sudo, không có token orch, và
+   * không được sửa state của reconciler. Nó chỉ ghi nhận dự án ở phía app;
+   * reconciler chỉ bắt đầu theo dõi repo đó sau khi có người chạy
+   * `be repo add <org/repo>` trên máy. Cho tới lúc ấy thẻ dự án mang nhãn
+   * "reconciler chưa biết dự án này", và đó là sự thật cần nói ra chứ không
+   * phải chi tiết cần giấu.
+   */
+  addRepo(full: string, actor: Actor): Promise<GhRepo>;
   listTasks(): Promise<GhTask[]>;
   getTask(slug: string, num: number): Promise<GhTask | null>;
   listTimeline(slug: string, num: number): Promise<GhComment[]>;

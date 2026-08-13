@@ -51,6 +51,23 @@ export function createFixtureGithubSource(): GithubSource {
       return clone(store().repos);
     },
 
+    async addRepo(full: string): Promise<GhRepo> {
+      const s = store();
+      const sach = full.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "");
+      if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(sach)) {
+        throw new Error("Tên repo phải có dạng org/repo.");
+      }
+      const slug = sach.split("/")[1];
+      if (s.repos.some((r) => r.slug === slug)) {
+        throw new Error(`Đã có dự án tên ${slug}.`);
+      }
+
+      const repo: GhRepo = { slug, full: sach };
+      s.repos = [...s.repos, repo].sort((a, b) => a.slug.localeCompare(b.slug));
+      s.nextIssueNumber[slug] ??= 1;
+      return clone(repo);
+    },
+
     async listTasks(): Promise<GhTask[]> {
       return clone(store().tasks);
     },

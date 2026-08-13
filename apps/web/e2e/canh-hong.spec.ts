@@ -35,7 +35,7 @@ test("thiếu status.json → báo rõ, không crash", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Sức khoẻ hệ thống" })).toContainText(
     "Chưa có dữ liệu từ reconciler",
   );
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Đang chờ bạn");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Việc của bạn");
 });
 
 test("status.json hỏng → báo rõ, không crash", async ({ page }) => {
