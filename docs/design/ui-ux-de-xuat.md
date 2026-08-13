@@ -106,38 +106,54 @@ Quyết định và lý do:
 | Sức khoẻ máy | **chân sidebar**, một dòng | Luôn thấy, không chiếm chỗ của nội dung |
 | Header trang | tiêu đề + điều khiển xem + **một** nút hành động chính | Mỗi màn đúng một hành động chính |
 
-### 3.2. Màn Tổng quan — chỉ những gì đổi hành vi
+### 3.2. Màn Tổng quan — trạng thái hệ thống, không phải hàng đợi cá nhân
 
-Bốn khối, xếp theo thứ tự đọc:
+**Ba khối, không hơn.** Bản trước có năm khối và đọc rối; hai khối bị bỏ là hai
+khối *lặp lại* màn "Việc của bạn":
 
-**a. Cần bạn ngay** — 4 ô, mỗi ô **bấm được** và lọc thẳng sang bảng việc.
-Không phải bốn con số chết như hiện tại.
+| Bỏ | Vì sao |
+|---|---|
+| "Cần bạn ngay" (4 ô đếm) | Con số đó đã nằm ở badge cạnh "Việc của bạn" trong sidebar |
+| "Chặn lâu nhất" (5 dòng) | Chính là năm dòng đầu của màn "Việc của bạn" |
 
-**b. Chặn lâu nhất** — 5 dòng đầu bảng việc, kèm thời gian chờ. Đây là khối trả
-lời "cái gì đang thối rữa".
+Sau khi bỏ, hai màn có ranh giới sạch: **Tổng quan trả lời "hệ thống ra sao",
+Việc của bạn trả lời "tôi phải làm gì".** Trước đó cả hai cùng trả lời câu thứ
+hai, và đó là một nửa lý do dashboard trông rối.
 
-**c. Máy đang làm gì** — dải các việc đang chạy, kèm đồng hồ. Thứ duy nhất trên
-màn hình thay đổi theo thời gian thực, nên nó đáng một khối riêng.
+**a. Claude — cạnh Máy đang làm.** Hai khối này cùng trả lời một câu: *máy có
+làm được việc không*. Đặt cạnh nhau đọc một lượt.
 
-**d. Bảy ngày qua** — biểu đồ cột nhỏ: mỗi ngày bao nhiêu lần chạy xanh/đỏ.
-Dựng từ `recent.jsonl` đã có sẵn. **Đây là chỉ số xu hướng duy nhất tôi đề
-xuất** — nó trả lời "máy có đang tệ đi không", và câu đó đổi hành vi.
+- Hạn mức 5 giờ · Hạn mức tuần — trạng thái và đồng hồ đếm tới cửa sổ mới
+- Token hôm nay, kèm tỉ lệ đọc từ cache
+- Chi phí hôm nay và bảy ngày
+- Băng cảnh báo khi có lần chạy dừng vì hết hạn mức
 
-**e. Tổng quan từng dự án** — mỗi dự án một dòng, kèm **một thanh chia theo giai
-đoạn**. Nhìn ngang là thấy dự án nào đang dồn ở đâu: `blog` chỉ có 2 task nhưng
-một nửa kẹt ở "cần người", còn `myapp` có 8 task mà phần lớn đang chạy. Hai tình
-huống rất khác nhau, và **một cột "tổng số task" không phân biệt được** — đó
-chính là lý do con số đó là chỉ số phù phiếm còn thanh này thì không.
+**b. Dự án** — mỗi dự án một **thanh chia theo giai đoạn**. Nhìn ngang là thấy dự
+án nào đang dồn ở đâu: `blog` chỉ có 2 task nhưng một nửa kẹt ở "cần người", còn
+`myapp` có 8 task mà phần lớn đang chạy. **Một cột "tổng số task" không phân biệt
+được hai tình huống đó** — đó chính là lý do con số đó là chỉ số phù phiếm còn
+thanh này thì không.
 
-Sáu màu của thanh rút từ đúng bảng Vercel: xám `#d4d4d4` · xanh nhạt `#8ec5ff` ·
-cam `#f5a623` · tím `#7928ca` · xanh `#0070f3` · đỏ `#ee0000`.
+Sáu màu rút từ đúng bảng Vercel: `#d4d4d4` · `#8ec5ff` · `#f5a623` · `#7928ca` ·
+`#0070f3` · `#ee0000`.
 
-**f. Claude — trạng thái và mức dùng.** Bốn ô: trạng thái dịch vụ · số lần chạy
-hôm nay và bao nhiêu thất bại · token hôm nay kèm tỉ lệ đọc từ cache · chi phí
-hôm nay và bảy ngày.
+**c. Bảy ngày qua** — cột xanh/đỏ mỗi ngày, cao **8px cho mỗi lần chạy** nên nhìn
+cột là đọc được số. Dựng từ `recent.jsonl` đã có sẵn. Đây là chỉ số xu hướng duy
+nhất được đề xuất: nó trả lời "máy có đang tệ đi không".
 
 **Cố ý KHÔNG đưa lên** (chỉ số phù phiếm, theo đúng danh sách trong tài liệu đã
 tra): tổng số task · số commit · số dòng code · số giờ · tổng task đã xong.
+
+#### Tách khu vực
+
+Nguyên nhân "khó nhìn" không chỉ là số lượng khối. Mọi tiêu đề khu vực trước đây
+đều là eyebrow mono hoa 12px xám — **cùng cỡ, cùng màu, cùng kiểu với nhãn cột và
+nhãn ô**, nên không có gì tách khu vực này với khu vực kia. Tiêu đề khu vực giờ
+là chữ sans 16px đậm màu mực, kèm một đường tóc chạy hết bề ngang. Nhìn lướt là
+đếm được có mấy khối.
+
+Đây cũng chính là lỗi eyebrow-dùng-khắp-nơi đã nêu ở §2.1, lần này lộ ra ở một
+chỗ khác.
 
 ### 3.3. Sửa phân cấp thị giác
 
@@ -194,10 +210,27 @@ Trạng thái dịch vụ lấy từ `https://status.claude.com/api/v2/status.js
 `{ page: {...}, status: { indicator, description } }`, với `indicator: "none"`
 nghĩa là bình thường. Một route handler gọi theo lịch là đủ.
 
-**Thứ KHÔNG lấy được từ dòng `result`:** phần trăm hạn mức của gói thuê bao.
-`total_cost_usd` là chi phí quy đổi theo giá API, không phải mức tiêu thụ hạn
-mức. Muốn con số đó phải đọc chỗ khác, và tôi chưa xác minh được — nên tôi không
-đưa nó lên mockup.
+### Hạn mức: có trạng thái, **không có phần trăm**
+
+Dò tiếp thì stream-json còn một loại thông điệp nữa ngoài `system` / `assistant` /
+`result`, đó là **`rate_limit_event`**:
+
+```json
+{ "status": "allowed", "resetsAt": 1786624800,
+  "rateLimitType": "five_hour", "overageStatus": "rejected",
+  "isUsingOverage": false }
+```
+
+Đủ để nói **cửa sổ nào đang chặn** (`five_hour` / tuần), **còn dùng được hay
+không** (`status`), và **bao giờ reset** (`resetsAt`).
+
+**Nhưng không có con số phần trăm.** `total_cost_usd` là chi phí quy đổi theo giá
+API, không phải mức tiêu thụ hạn mức của gói thuê bao. Không nguồn nào tôi kiểm
+được cho ra `% tuần` / `% 5h`.
+
+Nên mockup để **đồng hồ đếm ngược tới cửa sổ mới** thay vì vẽ một thanh phần trăm
+không có thật — "còn 2h14m nữa agent chạy lại được" trả lời đúng câu người dùng
+định hỏi, mà lại là số có thật.
 
 ---
 
