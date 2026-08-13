@@ -63,6 +63,22 @@ describe("getBee — fixture", () => {
     const times = recent.map((r) => Date.parse(r.at));
     expect(times).toEqual([...times].sort((a, b) => b - a));
   });
+
+  it.each(["vua-cai", "chua-co-file"])(
+    "cảnh %s chưa từng chạy gì nên lịch sử phải rỗng",
+    async (canh) => {
+      /*
+       * `vua-cai` chưa đăng ký repo nào và `chua-co-file` thì `status.json` còn
+       * chưa tồn tại — cả hai đều là máy chưa chạy lần nào. Trả về bảy ngày
+       * lịch sử ở đó là dựng một cảnh tự mâu thuẫn: người duyệt giao diện nhìn
+       * "0 dự án" ngay cạnh "13 lần chạy hôm nay" và không tin được màn nào nữa.
+       */
+      process.env.BEE_FIXTURE_SCENE = canh;
+      resetBeeSource();
+
+      expect(await getBee().readRecent()).toEqual([]);
+    },
+  );
 });
 
 describe("getBee — bằng chứng", () => {

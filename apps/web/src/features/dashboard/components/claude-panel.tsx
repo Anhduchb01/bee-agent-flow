@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Progress, ProgressTrack, ProgressIndicator } from "@/components/ui/progress";
+import { Progress } from "@/components/ui/progress";
 import type { ClaudeSnapshot, HanMuc } from "@/lib/claude";
 import { khoangThoiGian } from "@/lib/duration";
 import { cn } from "@/lib/utils";
@@ -22,11 +22,21 @@ const TRANG_THAI: Record<HanMuc["trangThai"], Tone> = {
   exceeded: "down",
 };
 
-/** Thanh đổi màu theo mức, không đổi theo ý thích: xanh → cam → đỏ. */
+/**
+ * Thanh đổi màu theo mức, không đổi theo ý thích: xanh → cam → đỏ.
+ *
+ * Tô qua `[&_[data-slot=…]]` chứ không truyền `ProgressIndicator` làm con:
+ * `Progress` của shadcn luôn nối thêm một `ProgressTrack` của riêng nó **sau**
+ * `children`, nên truyền track vào sẽ ra hai thanh chồng nhau — thanh của mình
+ * đúng màu và một thanh `bg-primary` đen ngay dưới, trông như một chỉ số thứ
+ * hai không ai giải thích được.
+ */
 function mauThanh(h: HanMuc): string {
-  if (h.trangThai === "exceeded" || (h.phanTram ?? 0) >= 95) return "bg-destructive";
-  if (h.trangThai === "warning" || (h.phanTram ?? 0) >= 75) return "bg-warning";
-  return "bg-link";
+  if (h.trangThai === "exceeded" || (h.phanTram ?? 0) >= 95)
+    return "[&_[data-slot=progress-indicator]]:bg-destructive";
+  if (h.trangThai === "warning" || (h.phanTram ?? 0) >= 75)
+    return "[&_[data-slot=progress-indicator]]:bg-warning";
+  return "[&_[data-slot=progress-indicator]]:bg-link";
 }
 
 function O({
@@ -61,11 +71,11 @@ function ThanhHanMuc({ hanMuc, now }: { hanMuc: HanMuc; now: number }) {
         </span>
       </div>
 
-      <Progress value={hanMuc.phanTram ?? 0} aria-label={CUA_SO[hanMuc.cuaSo]}>
-        <ProgressTrack className="h-2">
-          <ProgressIndicator className={mauThanh(hanMuc)} />
-        </ProgressTrack>
-      </Progress>
+      <Progress
+        value={hanMuc.phanTram ?? 0}
+        aria-label={CUA_SO[hanMuc.cuaSo]}
+        className={cn("[&_[data-slot=progress-track]]:h-2", mauThanh(hanMuc))}
+      />
     </>
   );
 }

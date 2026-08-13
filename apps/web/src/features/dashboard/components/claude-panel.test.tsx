@@ -1,0 +1,80 @@
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+
+import type { ClaudeSnapshot } from "@/lib/claude";
+
+import { ClaudePanel } from "./claude-panel";
+
+const NOW = Date.UTC(2026, 7, 13, 10, 0, 0);
+
+function snapshot(phanTram: [number | null, number | null]): ClaudeSnapshot {
+  return {
+    hanMuc: [
+      {
+        cuaSo: "five_hour",
+        trangThai: "allowed",
+        phanTram: phanTram[0],
+        resetsAt: Math.floor(NOW / 1000) + 3600,
+      },
+      {
+        cuaSo: "weekly",
+        trangThai: "warning",
+        phanTram: phanTram[1],
+        resetsAt: Math.floor(NOW / 1000) + 86_400,
+      },
+    ],
+    mucDung: {
+      soLanChay: 13,
+      soLanLoi: 6,
+      token: 1_240_000,
+      tiLeCache: 0.89,
+      chiPhiHomNay: 2.41,
+      chiPhiBayNgay: 14.8,
+      dungViHetHanMuc: 3,
+    },
+    dichVu: { indicator: "none", moTa: "All Systems Operational", kiemLuc: "" },
+  };
+}
+
+describe("ClaudePanel", () => {
+  it("mỗi hạn mức đúng MỘT thanh", () => {
+    /*
+     * `Progress` của shadcn tự nối thêm một `ProgressTrack` sau `children`, nên
+     * truyền track của mình vào sẽ ra hai thanh chồng lên nhau: thanh của mình
+     * đúng màu, thanh mặc định màu `bg-primary` (đen) nằm ngay dưới. Trông y
+     * như một thanh tiến trình thứ hai không ai giải thích được.
+     *
+     * Đếm cả track lẫn indicator: chỉ đếm indicator thì một track thừa nhưng
+     * rỗng vẫn lọt.
+     */
+    const { container } = render(<ClaudePanel snapshot={snapshot([38, 81])} now={NOW} />);
+
+    expect(container.querySelectorAll('[data-slot="progress-track"]')).toHaveLength(2);
+    expect(container.querySelectorAll('[data-slot="progress-indicator"]')).toHaveLength(2);
+  });
+
+  it("thanh đổi màu theo mức, không theo ý thích", () => {
+    render(<ClaudePanel snapshot={snapshot([38, 97])} now={NOW} />);
+
+    expect(screen.getByLabelText("Hạn mức 5 giờ")).toHaveClass(
+      "[&_[data-slot=progress-indicator]]:bg-link",
+    );
+    // 97% vượt ngưỡng 95 nên đỏ, dù `trangThai` mới chỉ là "warning": con số
+    // thật đáng tin hơn nhãn mà nguồn tự dán cho mình.
+    expect(screen.getByLabelText("Hạn mức tuần")).toHaveClass(
+      "[&_[data-slot=progress-indicator]]:bg-destructive",
+    );
+  });
+
+  it("không có phần trăm thì hiện gạch ngang chứ không hiện 0%", () => {
+    /*
+     * Chưa có nguồn nào đã kiểm chứng phát ra phần trăm (xem `lib/claude/types.ts`),
+     * nên `null` là trạng thái sẽ gặp thật khi nối vào dữ liệu thật. Vẽ "0%" ở
+     * đó là nói dối theo hướng nguy hiểm nhất: "còn nguyên hạn mức".
+     */
+    render(<ClaudePanel snapshot={snapshot([null, 81])} now={NOW} />);
+
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.queryByText("0%")).not.toBeInTheDocument();
+  });
+});

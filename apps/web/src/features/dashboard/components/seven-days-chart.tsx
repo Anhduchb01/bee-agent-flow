@@ -17,6 +17,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 import type { NgayChay } from "../lib/seven-days";
 
@@ -56,6 +57,16 @@ export function SevenDaysChart({ days, tomTat }: { days: NgayChay[]; tomTat: str
       </CardHeader>
 
       <CardContent className="px-5 py-5">
+        {days.every((d) => d.tong === 0) ? (
+          <Empty className="border-0">
+            <EmptyHeader>
+              <EmptyTitle>Chưa có lần chạy nào</EmptyTitle>
+              <EmptyDescription>
+                Bảy ngày qua máy chưa chạy rule nào. Thêm dự án và mở kill switch để bắt đầu.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
         <ChartContainer config={CAU_HINH} className="h-56 w-full">
           <BarChart accessibilityLayer data={days} maxBarSize={64}>
             <CartesianGrid vertical={false} />
@@ -78,6 +89,7 @@ export function SevenDaysChart({ days, tomTat }: { days: NgayChay[]; tomTat: str
             />
           </BarChart>
         </ChartContainer>
+        )}
       </CardContent>
     </Card>
   );
