@@ -7,7 +7,7 @@ nối vào dữ liệu thật (B, cần cả hai).
 
 ---
 
-## A · Web trên fixture ← đang làm
+## A · Web trên fixture ← chỉ còn W12 (bạn duyệt)
 
 - [x] 🤖 **W1** Bộ khung — 4 cổng chất lượng xanh trước khi có code để bảo vệ
 - [x] 🤖 **W2** Đường ranh dữ liệu + fixture sinh từ schema thật
@@ -19,7 +19,7 @@ nối vào dữ liệu thật (B, cần cả hai).
 - [x] 🤖 **W8** Chat vào task — không spinner vô tận
 - [x] 🤖 **W9** Xem bằng chứng — **chặn path traversal ngay từ đầu**
 - [x] 🤖 **W10** PM duyệt · không có nút merge ở bất kỳ đâu
-- [ ] 🤖 **W11** Slack — gộp, không spam, không bắn lại
+- [x] 🤖 **W11** Slack — gộp, không spam, không bắn lại
 - [ ] 🧑 **W12** Bạn duyệt giao diện qua đủ 5 cảnh dữ liệu
 
 > **✅ Checkpoint A** — demo được cho cả đội mà không cần máy Ubuntu nào

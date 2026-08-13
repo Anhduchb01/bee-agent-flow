@@ -217,11 +217,24 @@ Its TypeScript type lives in `lib/bee/types.ts` and is **kept in sync by hand**
 with `apps/reconciler/bin/reconcile.sh`. Change one, change the other in the same
 commit.
 
-**TanStack Query owns all server state.** Never `useEffect` + `useState` to fetch.
-Query keys are a factory per feature, never inline arrays — an inline key drifts,
-and a drifted key means an invalidation that silently does nothing. **Zustand is
-for transient UI state only**; copying server data into it creates a second source
-of truth Query will not keep fresh. Call `queryClient.clear()` on login and logout.
+**Server state is fetched on the server.** Pages are Server Components that read
+`lib/bee` and `lib/github` directly; writes are Server Actions that call
+`revalidatePath`. Nothing in the browser fetches application data, so there is no
+client cache to keep coherent — and `pnpm build` enforces it, because a Client
+Component importing a `server-only` module is a build error.
+
+**TanStack Query is installed but not yet wired**, and that is deliberate: adding
+a `QueryClientProvider` that nothing reads would be a second data path to keep in
+sync for no benefit. It enters when something genuinely needs client-side caching
+across routes. The one place today that watches for change — the chat box waiting
+for the agent to pick a comment up — uses `router.refresh()` on a 30 s interval,
+matching the reconciler's tick, and stops as soon as the agent starts.
+
+When Query does arrive: query keys are a factory per feature, never inline arrays
+— an inline key drifts, and a drifted key means an invalidation that silently does
+nothing. **Zustand is for transient UI state only**; copying server data into it
+creates a second source of truth Query will not keep fresh. Call
+`queryClient.clear()` on login and logout.
 
 ### Auth
 

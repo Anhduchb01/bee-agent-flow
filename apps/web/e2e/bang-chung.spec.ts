@@ -64,7 +64,8 @@ test("chưa đăng nhập thì không đọc được một byte nào", async ({
     { maxRedirects: 0 },
   );
 
-  expect(res.status()).not.toBe(200);
+  // 401 chứ không phải một trang HTML đăng nhập: /api/** không đi qua proxy.
+  expect(res.status()).toBe(401);
   await context.close();
 });
 

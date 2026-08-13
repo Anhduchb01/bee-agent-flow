@@ -13,9 +13,13 @@ import { auth } from "@/lib/auth";
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
+  // `/api/**` không đi qua đây. Chuyển hướng sang trang đăng nhập là việc có
+  // ích cho một trang, nhưng với một endpoint thì nó biến 401 thành một trang
+  // HTML — người gọi nhận về `<!DOCTYPE` thay vì lý do thật. Mỗi route handler
+  // tự kiểm quyền của mình, và `/api/notify` còn dùng cơ chế khác hẳn.
   const open =
     pathname.startsWith("/dang-nhap") ||
-    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/") ||
     pathname.startsWith("/_next");
 
   if (open || req.auth) return NextResponse.next();

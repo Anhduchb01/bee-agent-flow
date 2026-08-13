@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ghiThaoTac } from "@/features/notify";
 import { getActor } from "@/lib/auth";
 import { getGithub } from "@/lib/github";
 
@@ -18,6 +19,8 @@ export interface KetQua {
 async function nguoiBam() {
   const actor = await getActor();
   if (!actor) throw new Error("Bạn không có quyền làm việc này.");
+  // Người vừa bấm gì đó đang nhìn thẳng vào app; đừng bắn Slack cho họ ngay sau đó.
+  await ghiThaoTac(actor.login);
   return actor;
 }
 
