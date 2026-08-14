@@ -39,6 +39,21 @@ declare module "next-auth/jwt" {
 const isLive = process.env.GITHUB_SOURCE === "live";
 
 /**
+ * `repo` KHÔNG phải scope mặc định, và thiếu nó thì hỏng theo kiểu im lặng nhất.
+ *
+ * Mặc định của NextAuth là `read:user user:email` — đủ để đăng nhập, đủ để hiện
+ * đúng tên và avatar, và KHÔNG đủ để đọc một repo private. GitHub trả 404 cho
+ * repo bạn không có quyền đọc (chứ không phải 403), nên triệu chứng là "dự án
+ * biến mất" ngay sau một lần đăng nhập trông hoàn toàn thành công.
+ *
+ * `lib/github/live.ts` cũng GHI: tạo issue, comment, approve. Cả ba đều cần
+ * `repo`.
+ */
+const ghProvider = GitHub({
+  authorization: { params: { scope: "read:user user:email repo" } },
+});
+
+/**
  * Provider giả chỉ tồn tại khi **không** chạy dữ liệu thật.
  *
  * Nó cho đăng nhập bằng một dòng chữ, nên nếu nó sống sót sang bản chạy thật
@@ -70,7 +85,7 @@ const devProvider = Credentials({
 const secret = process.env.AUTH_SECRET ?? (isLive ? undefined : "bee-fixture-khong-bi-mat");
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: isLive ? [GitHub] : [devProvider],
+  providers: isLive ? [ghProvider] : [devProvider],
   session: { strategy: "jwt" },
   secret,
   // App chạy sau Cloudflare Access trên tên miền riêng, không phải trên Vercel.

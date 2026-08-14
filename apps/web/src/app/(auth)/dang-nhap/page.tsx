@@ -8,6 +8,27 @@ import { auth, signIn } from "@/lib/auth";
 const isLive = process.env.GITHUB_SOURCE === "live";
 
 /**
+ * Cấu hình live còn thiếu gì.
+ *
+ * `GITHUB_SOURCE=live` mà chưa có OAuth app thì nút "Continue with GitHub" dẫn
+ * thẳng tới trang 404 của GitHub, vì URL authorize mang `client_id=` rỗng. Trang
+ * đó không nhắc gì tới bee và không nhắc gì tới cấu hình.
+ *
+ * `ALLOWED_LOGINS` rỗng thì đăng nhập THÀNH CÔNG rồi vào một app trống trơn —
+ * cố ý (rỗng nghĩa là không ai, không phải ai cũng được), nhưng nó là thứ đọc ra
+ * y hệt "app hỏng". Nói trước còn hơn để người ta đi dò.
+ */
+function thieuGi(): string[] {
+  if (!isLive) return [];
+  const thieu: string[] = [];
+  if (!process.env.AUTH_GITHUB_ID) thieu.push("AUTH_GITHUB_ID");
+  if (!process.env.AUTH_GITHUB_SECRET) thieu.push("AUTH_GITHUB_SECRET");
+  if (!process.env.AUTH_SECRET) thieu.push("AUTH_SECRET");
+  if (!process.env.ALLOWED_LOGINS?.trim()) thieu.push("ALLOWED_LOGINS");
+  return thieu;
+}
+
+/**
  * Mesh gradient — **thứ trang trí duy nhất trong cả app**.
  *
  * Nó dựng từ ba cặp màu lịch sử của Vercel (develop / preview / ship) pha lại
@@ -43,6 +64,7 @@ export default async function DangNhapPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
+  const thieu = thieuGi();
   const { "tiep-tuc": next } = await searchParams;
   const target = typeof next === "string" && next.startsWith("/") ? next : "/";
 
@@ -72,7 +94,30 @@ export default async function DangNhapPage({
           </p>
         </div>
 
-        {isLive ? (
+        {isLive && thieu.length > 0 ? (
+          // Không hiện nút. Một nút dẫn tới trang 404 của GitHub tệ hơn hẳn
+          // không có nút: nó nói rằng đăng nhập là chuyện khả thi.
+          <div className="flex flex-col gap-3 rounded-card border border-destructive/40 bg-card p-5">
+            <p className="eyebrow text-destructive">Not configured</p>
+            <p className="text-sm text-body">
+              This dashboard runs on live GitHub data, but{" "}
+              <code>/etc/bee/web.env</code> is missing:
+            </p>
+            <ul className="flex flex-col gap-1">
+              {thieu.map((t) => (
+                <li key={t} className="text-sm">
+                  <code>{t}</code>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-muted-foreground">
+              Create a GitHub OAuth app with callback{" "}
+              <code>{(process.env.AUTH_URL ?? "").replace(/\/$/, "")}/api/auth/callback/github</code>{" "}
+              and the <code>repo</code> scope, fill those in, then{" "}
+              <code>systemctl restart bee-web</code>.
+            </p>
+          </div>
+        ) : isLive ? (
           <form action={vaoBangGithub}>
             <Button type="submit" className="w-full">
               Continue with GitHub
