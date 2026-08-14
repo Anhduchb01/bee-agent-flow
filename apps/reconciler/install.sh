@@ -311,7 +311,9 @@ hoặc quyết định của bạn, nên script cố ý không tự làm:
         sudo -u $ORCH -H gh auth login
 
   ${B}3.${N} Điền token vào $ETC/orch.env   (quyền 600)
-     Dùng fine-grained PAT: Contents + Pull requests + Issues = write.
+     Dùng fine-grained PAT, ${B}bốn${N} quyền đều là write:
+        Contents · Issues · Pull requests · ${B}Commit statuses${N}
+     Quên Commit statuses thì rule 03 đổ với HTTP 403 và thử lại mãi.
      ${Y}Cố ý KHÔNG cấp quyền Workflows${N} — để agent không tự nới guardrail được.
 
   ${B}4.${N} Thêm repo
