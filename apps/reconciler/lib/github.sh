@@ -26,11 +26,60 @@ gh_pr_body() {
   gh pr view "$2" --repo "$1" --json body --jq '.body' 2>/dev/null || true
 }
 
-# Review comment trên diff có nhắc @claude. Trả về số lượng.
-gh_pending_claude_comments() {
+# Mọi comment nhắc @claude trên một PR, gộp từ BA nguồn của GitHub. In ra một
+# mảng JSON, sắp theo thời gian.
+#
+# GitHub để comment của một PR ở ba chỗ khác nhau, và trước đây rule 02 chỉ đọc
+# chỗ đầu tiên:
+#
+#   /pulls/N/comments   comment gắn vào một dòng trong diff
+#   /issues/N/comments  comment thường trong tab Conversation  ← BỎ SÓT
+#   /pulls/N/reviews    lời tổng kết khi bấm Approve / Request changes  ← BỎ SÓT
+#
+# Techlead gõ "@claude sửa lại chỗ này" vào ô cuối trang là chuyện bình thường
+# nhất trên đời, và bee im lặng không phản ứng. Không có lỗi nào, không có log
+# nào — chỉ có một người ngồi đợi.
+#
+# `unique_by(.url)` không phải vì ba nguồn chồng nhau (chúng rời nhau), mà vì
+# `--paginate` có thể trả trùng khi ai đó comment giữa lúc lật trang, và vì nguồn
+# thứ tư sẽ được thêm vào một ngày nào đó.
+#
+# Lọc bỏ comment của CHÍNH BEE là chốt chống lặp thật sự: mọi comment bee đăng
+# đều mang `<!-- agent-run -->`, và bee thì trích lại nguyên văn yêu cầu của
+# người dùng — nghĩa là trích lại cả chữ "@claude". Thiếu dòng lọc này thì bee
+# tự trả lời chính nó cho tới khi hết hạn mức.
+gh_claude_comments() {
   local repo="$1" pr="$2"
-  gh api "repos/$repo/pulls/$pr/comments" --paginate \
-     --jq '[.[] | select(.body | test("@claude"; "i"))] | length' 2>/dev/null || echo 0
+  {
+    gh api "repos/$repo/pulls/$pr/comments" --paginate --jq \
+      '.[] | {url:.html_url, at:.created_at, who:.user.login,
+              path:.path, line:(.line // .original_line // 0), body:.body}' 2>/dev/null || true
+    gh api "repos/$repo/issues/$pr/comments" --paginate --jq \
+      '.[] | {url:.html_url, at:.created_at, who:.user.login,
+              path:null, line:0, body:.body}' 2>/dev/null || true
+    gh api "repos/$repo/pulls/$pr/reviews" --paginate --jq \
+      '.[] | select(.body != "" and .body != null)
+       | {url:.html_url, at:.submitted_at, who:.user.login,
+          path:null, line:0, body:.body}' 2>/dev/null || true
+  } | gh_claude_merge
+}
+
+# Phần lọc, tách riêng để test được mà không cần token: đọc từng dòng JSON ở
+# stdin, in ra một mảng.
+gh_claude_merge() {
+  jq -sc '
+      map(select(.body | test("@claude"; "i")))
+    | map(select(.body | test("<!-- agent-run -->") | not))
+    | unique_by(.url) | sort_by(.at)'
+}
+
+# Vân tay của TẬP comment, không phải số đếm.
+#
+# Mốc cũ đếm số comment, và đếm thì không phân biệt được "vẫn ba comment cũ" với
+# "xoá một, thêm một". TL sửa lại yêu cầu mà giữ nguyên số lượng thì bee bỏ qua
+# vĩnh viễn — im lặng, không dấu vết.
+gh_claude_fingerprint() {
+  jq -r '[.[].url] | sort | join("\n")' <<<"$1" | sha1sum | cut -c1-12
 }
 
 # Commit status do chính hệ thống này đẩy lên (context bắt đầu bằng bee/).

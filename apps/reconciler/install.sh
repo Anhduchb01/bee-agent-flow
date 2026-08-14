@@ -218,7 +218,8 @@ fi
 step "Thư mục"
 install -d -m 755 "$PREFIX" "$PREFIX/bin" "$PREFIX/lib" "$PREFIX/rules" "$PREFIX/prompts"
 install -d -m 755 "$ETC" "$ETC/repos.d"
-install -d -o "$ORCH" -g "$GRP" -m 775 "$SRV" "$SRV/repos" "$SRV/state" "$SRV/attempts" "$SRV/public"
+install -d -o "$ORCH" -g "$GRP" -m 775 "$SRV" "$SRV/repos" "$SRV/state" "$SRV/attempts" \
+                                        "$SRV/reviewed" "$SRV/public"
 # setgid trên work/: mọi worktree tạo ra tự thuộc group bee, nên agent
 # (cùng group) đọc ghi được mà không cần chown mỗi lần.
 install -d -o "$ORCH" -g "$GRP" -m 2775 "$SRV/work"

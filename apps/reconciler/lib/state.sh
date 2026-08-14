@@ -88,6 +88,24 @@ attempt_bump() {
 }
 attempt_reset() { rm -f -- "$(attempt_file "$1")"; }
 
+# Vân tay của bộ comment mà rule 02 đã xử lý xong.
+#
+# PHẢI nằm ngoài thư mục state, cùng lý do với bộ đếm ở trên — và đây từng là
+# một lỗi thật: rule 02 ghi mốc bằng `touch "$D/reviewed-$n"`, còn worker.sh có
+# `trap … claim_clear "$ID"` khi thoát, tức là xoá sạch thư mục đó. Mốc chống
+# lặp bị xoá ngay sau khi được đặt.
+#
+# Hậu quả không phải "chạy thừa một lần": comment do chính bee đăng ở cuối lần
+# chạy làm `updatedAt` của PR đổi, `scan_changed` mở cổng ở tick sau, mốc thì
+# không còn — nên nó chạy lại, đăng comment, đổi updatedAt, mãi mãi. Mỗi vòng là
+# một lần gọi model.
+reviewed_file() { printf '%s/reviewed/%s' "$BEE_SRV" "$1"; }
+reviewed_get()  { cat "$(reviewed_file "$1")" 2>/dev/null || true; }
+reviewed_set() {
+  local f; f=$(reviewed_file "$1"); mkdir -p "$(dirname "$f")"
+  printf '%s' "$2" > "$f"
+}
+
 # Ghi lịch sử một lần chạy để dashboard hiển thị "gần đây".
 #
 # Mức dùng của lần chạy (`usage.json` do `run_agent` để lại trong thư mục state
