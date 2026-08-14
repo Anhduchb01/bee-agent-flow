@@ -297,6 +297,10 @@ EOF
 
   printf '\n%sĐã thêm %s%s\n' "$C_GREEN" "$slug" "$C_RESET"
   printf 'Sửa %s để điền REVIEWERS_PM / REVIEWERS_TL.\n' "$envf"
+  # Rule 03 bắt buộc file này. Thiếu nó thì mọi PR đều đỏ, và cho tới khi có
+  # người đọc journal thì lý do trông như lỗi trong code chứ không phải thiếu file.
+  printf 'Repo phải có %sscripts/ci.sh%s (chạy được) — bee không đoán cách chạy test.\n' \
+         "$C_BOLD" "$C_RESET"
 }
 
 repo_sync_labels() {

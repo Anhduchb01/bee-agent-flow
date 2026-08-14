@@ -27,6 +27,26 @@ rule_run() {
   gh_set_status "$REPO_FULL" "$sha" pending "bee/test" "đang chạy trên $(hostname -s)"
 
   wt=$(worktree_ensure "$slug" "$num" "pr")
+
+  # Hợp đồng với repo đích: nó phải TỰ NÓI cách chạy test của mình.
+  #
+  # Không đoán hộ (`npm test`, `pytest`, `make`) — đoán trúng thì tiết kiệm được
+  # một file, đoán trượt thì CI xanh mà chẳng kiểm gì cả, và đó là kiểu hỏng
+  # không ai phát hiện cho tới lúc một PR hỏng được merge.
+  #
+  # Nhưng phải nói RÕ là thiếu file. Trước đây `timeout` trả 127 và status ghi
+  # "đỏ (exit 127)" — người đọc PR sẽ đi tìm lỗi trong code của mình.
+  if [[ ! -f "$wt/scripts/ci.sh" ]]; then
+    gh_set_status "$REPO_FULL" "$sha" failure "bee/test" "repo chưa có scripts/ci.sh — bee không biết chạy test kiểu gì"
+    record_run "$id" "$slug" "$num" "$RULE_ID" "fail" 0 0
+    return 1
+  fi
+  if [[ ! -x "$wt/scripts/ci.sh" ]]; then
+    gh_set_status "$REPO_FULL" "$sha" failure "bee/test" "scripts/ci.sh thiếu quyền chạy — chmod +x rồi commit lại"
+    record_run "$id" "$slug" "$num" "$RULE_ID" "fail" 0 0
+    return 1
+  fi
+
   t0=$(now_epoch)
 
   # Hạ tầng do orch dựng TRƯỚC, agent/test chỉ kết nối vào. Xem docs/design/reconciler.md §7.1.
