@@ -58,7 +58,18 @@ notes.
 The issue below is the contract. `Acceptance Criteria` is what you must satisfy;
 `Out of scope` is what you must not touch no matter how tempting.
 
-Run the full suite (`scripts/ci.sh` if the repo has one) before the last commit.
+Run `scripts/ci.sh` before the last commit. That script is the same gate the
+orchestrator runs against your commit after you stop — passing it locally is the
+only way to know your PR will come back green. If the repo has no `scripts/ci.sh`,
+run the suite by hand and **say so in your report**: do not create the file
+yourself, it decides what "green" means for every future task and that is a
+human's call.
+
+`scripts/ci.sh` starts with `npm ci`, not `npm install` — so a lockfile that
+disagrees with `package.json` makes it exit before a single test runs. If you add
+or change a dependency, update the lockfile in the same commit and re-run the
+script. (Seen for real: the first task through this loop failed here twice.)
+
 Commit messages follow Conventional Commits, in whatever language the repo's
 existing history uses.
 
@@ -73,6 +84,12 @@ existing history uses.
   anything else that defines permissions or infrastructure. If the task needs a
   new service, **stop** and say so in your report: that is a separate
   infrastructure PR for a human to approve.
+
+  For `.github/workflows/` this is not advice, it is a wall: the orchestrator's
+  token deliberately lacks the Workflows permission, so GitHub rejects the whole
+  push — including every unrelated commit in it. Edit one line there and you lose
+  the entire run's work, with an error message that arrives after you have
+  stopped and cannot fix it.
 - No real secrets in any file. `.env.test` is the only config, and everything in
   it is deliberately worthless.
 - No scope creep. Spot an unrelated bug? Report it, don't fix it.
