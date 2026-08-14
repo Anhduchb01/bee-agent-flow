@@ -39,6 +39,22 @@ ExecStart=/usr/bin/node /opt/bee-web/server.js
 Restart=on-failure
 RestartSec=5
 
+# Next giữ kết nối keep-alive và không phải lúc nào cũng thoát khi nhận SIGTERM:
+# một tab trình duyệt đang mở là đủ để nó chờ. Với `TimeoutStopSec` mặc định
+# (90s) thì `systemctl restart` treo đúng một phút rưỡi rồi mới SIGKILL —
+# đo được trong journal: "Stopping" 18:10:40, "status=9/KILL" 18:12:10.
+#
+# Người gõ lệnh không thấy gì trong suốt 90 giây đó và kết luận là máy treo.
+# Mười giây là quá đủ cho một tiến trình chỉ phục vụ HTML.
+TimeoutStopSec=10
+# SIGTERM tới tiến trình chính, rồi SIGKILL cho phần còn lại khi hết giờ.
+KillMode=mixed
+# Thoát vì SIGTERM là cách kết thúc BÌNH THƯỜNG của dịch vụ này. Không khai báo
+# thì mỗi lần restart đều ghi "Failed with result 'exit-code'" vào journal, và
+# một dòng Failed ở mỗi lần khởi động lại là cách nhanh nhất để người ta thôi
+# đọc journal.
+SuccessExitStatus=143 SIGTERM
+
 Slice=bee.slice
 
 # ---------------------------------------------------------------------------
