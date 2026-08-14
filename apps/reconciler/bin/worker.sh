@@ -124,7 +124,26 @@ worktree_ensure() {
   git --git-dir="$REPO_GIT" fetch --prune --quiet origin || true
   bee_exclude
 
-  if [[ ! -d "$wt" ]]; then
+  if [[ -d "$wt" ]]; then
+    # Worktree còn sót từ lần chạy trước. Với hai chế độ CHỈ ĐỌC, phải kéo nó về
+    # đúng ref của lần này.
+    #
+    # Dùng lại nguyên trạng nghĩa là chạy test trên một cây code KHÁC với SHA mà
+    # kết quả sẽ được gắn vào. `bee/test` xanh cho một commit chưa từng được
+    # kiểm là lỗ hổng nằm ngay giữa cổng chất lượng — và nó không để lại dấu
+    # hiệu nào, vì status vẫn hiện ra đúng chỗ với đúng màu.
+    #
+    # `new:*` cố ý KHÔNG đụng tới: đó là nhánh agent đang dựng dở, và rule 01
+    # mới là chỗ chịu trách nhiệm dọn nó.
+    case "$mode" in
+      pr)        ref=$(gh pr view "$num" --repo "$REPO_FULL" --json headRefName --jq '.headRefName')
+                 git --git-dir="$REPO_GIT" fetch --quiet origin "$ref"
+                 git -C "$wt" reset -q --hard "origin/$ref"
+                 git -C "$wt" clean -qfd ;;
+      readonly)  git -C "$wt" reset -q --hard origin/HEAD
+                 git -C "$wt" clean -qfd ;;
+    esac
+  else
     case "$mode" in
       new:*)     git --git-dir="$REPO_GIT" worktree add -q -B "${mode#new:}" "$wt" origin/HEAD ;;
       pr)        ref=$(gh pr view "$num" --repo "$REPO_FULL" --json headRefName --jq '.headRefName')
