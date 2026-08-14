@@ -9,14 +9,28 @@
 # template unit đang active.
 
 unit_of()      { printf 'bee-task@%s.service' "$1"; }   # $1 = <slug>-<số>
-unit_active()  { systemctl is-active --quiet "$(unit_of "$1")"; }
 unit_failed()  { systemctl is-failed --quiet "$(unit_of "$1")"; }
+
+# `bee-task@` là Type=oneshot, và một oneshot ĐANG CHẠY nằm ở
+# ActiveState=activating / SubState=start — nó KHÔNG BAO GIỜ đi qua "active"
+# hay "running". Đó là hai chỗ dưới đây từng sai, và cả hai đều sai im lặng:
+#
+#   `is-active --quiet` trả 3 suốt lúc task chạy, nên dispatcher tưởng không có
+#   gì chạy và giao lại chính việc đó ở mỗi tick.
+#
+#   `--state=running` không khớp gì cả, nên đếm slot luôn ra 0 — toàn bộ trần
+#   MAX_BUILD_SLOTS trở nên vô hiệu, và dashboard báo "không có gì đang chạy"
+#   trong khi máy đang bận.
+unit_active() {
+  local s; s=$(systemctl show "$(unit_of "$1")" -p ActiveState --value 2>/dev/null)
+  [[ "$s" == "active" || "$s" == "activating" ]]
+}
 
 # Danh sách id đang chạy, mỗi dòng một id.
 running_ids() {
-  systemctl list-units --type=service --state=running --no-legend --plain \
+  systemctl list-units --type=service --all --no-legend --plain \
       'bee-task@*.service' 2>/dev/null \
-    | awk '{print $1}' \
+    | awk '$3 == "active" || $3 == "activating" { print $1 }' \
     | sed -E 's/^bee-task@(.*)\.service$/\1/'
 }
 
