@@ -32,6 +32,13 @@ load_global_config
 # Rule 0 — kill switch. Không có gì trước nó.
 # ---------------------------------------------------------------------------
 if [[ -f "$BEE_ETC/PAUSE" ]]; then
+  # Dry-run KHÔNG được ghi gì. Mốc M0 tồn tại để bạn tin cái vòng lặp, và một
+  # lệnh "xem thử" mà đóng dấu heartbeat sẽ làm hệ thống trông như đang sống
+  # trong khi timer chưa hề chạy — đúng thứ heartbeat sinh ra để phát hiện.
+  if (( DRY_RUN )); then
+    printf '%s[DRY]%s đang tạm dừng (/etc/bee/PAUSE) — sẽ không làm gì\n' "$C_DIM" "$C_RESET"
+    exit 0
+  fi
   heartbeat_write
   status_write "paused"
   exit 0
@@ -191,8 +198,13 @@ main() {
 
   (( picked )) || { (( DRY_RUN )) && printf '%s[DRY]%s không có gì để làm\n' "$C_DIM" "$C_RESET"; }
 
-  heartbeat_write
-  status_write "running"
+  # Xem `if (( DRY_RUN ))` ở nhánh PAUSE phía trên: dry-run không đóng dấu
+  # heartbeat và không ghi đè status.json. Nếu ghi, một lần "xem thử" sẽ dựng ra
+  # một ảnh chụp trạng thái mà không tick nào thật sự sinh ra.
+  if (( ! DRY_RUN )); then
+    heartbeat_write
+    status_write "running"
+  fi
 }
 
 # ---------------------------------------------------------------------------

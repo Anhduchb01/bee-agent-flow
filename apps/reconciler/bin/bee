@@ -85,10 +85,14 @@ cmd_doctor() {
   else
     visudo -cf /etc/sudoers.d/bee >/dev/null 2>&1 \
       && ck "sudoers hợp lệ" || cx "sudoers sai cú pháp"
-    if [[ $(grep -c . /etc/sudoers.d/bee) -le 3 ]]; then
-      ck "sudoers hẹp (chỉ agent-exec.sh)"
+    # Đếm dòng LUẬT, không đếm chú thích. File này cố ý có 17 dòng giải thích vì
+    # sao ranh giới chỉ được có một dòng — đếm cả chúng thì chính lời giải thích
+    # lại làm cảnh báo nổ, và cảnh báo đó không bao giờ tắt được.
+    local rules; rules=$(grep -cE '^[[:space:]]*[^#[:space:]]' /etc/sudoers.d/bee)
+    if (( rules <= 1 )); then
+      ck "sudoers hẹp (đúng $rules dòng luật, chỉ agent-exec.sh)"
     else
-      cw "sudoers có nhiều dòng hơn dự kiến — soát lại"
+      cw "sudoers có $rules dòng luật — ranh giới chỉ nên có một, soát lại"
     fi
   fi
 
@@ -195,7 +199,20 @@ cmd_status() {
     )' "$f"
 }
 
-cmd_dry_run() { BEE_DRY_RUN=1 "$BEE_PREFIX/bin/reconcile.sh" --dry-run; }
+cmd_dry_run() {
+  # `orch.env` là 600 root:root, nên chạy `be dry` không có sudo thì GH_TOKEN
+  # KHÔNG được nạp. Mọi hàm bọc `gh` đều kết thúc bằng `|| echo '[]'`, nên mọi
+  # lời gọi API thất bại lặng lẽ thành "không có gì", và dry-run bình thản in ra
+  # "không có gì để làm" — một câu trả lời SAI trông y hệt câu trả lời đúng.
+  #
+  # Đây là lệnh cả mốc M0 dựa vào để tin cái vòng lặp, nên nó phải nói ra khi nó
+  # đang mù.
+  if [[ ! -r "$BEE_ETC/orch.env" ]]; then
+    warn "không đọc được $BEE_ETC/orch.env — GH_TOKEN chưa nạp"
+    warn "kết quả dưới đây KHÔNG đáng tin. Chạy lại: sudo be dry-run"
+  fi
+  BEE_DRY_RUN=1 "$BEE_PREFIX/bin/reconcile.sh" --dry-run
+}
 
 cmd_pause()  { sudo touch "$BEE_ETC/PAUSE"; warn "đã tạm dừng — task đang chạy vẫn chạy nốt"; }
 cmd_resume() { sudo rm -f "$BEE_ETC/PAUSE"; sudo systemctl start bee-reconcile.timer; info "đã tiếp tục"; }
