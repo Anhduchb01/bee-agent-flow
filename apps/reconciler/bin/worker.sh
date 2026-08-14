@@ -158,8 +158,21 @@ worktree_ensure() {
   printf '%s' "$wt"
 }
 
+# Gỡ worktree một cách CHỊU ĐƯỢC worktree hỏng.
+#
+# `worktree prune` bỏ qua worktree đang bị KHOÁ, và `git worktree add` bị SIGKILL
+# đúng lúc để lại đúng thứ đó: một đăng ký bị khoá với HEAD là 0000000. Từ lúc
+# ấy MỌI `git fetch` trên bare repo đều đổ với `fatal: bad object
+# worktrees/<id>/HEAD`, nghĩa là cả repo chết với bee — và rule 01, vốn sinh ra
+# để dọn sau khi máy chết giữa chừng, cũng không dọn nổi vì nó chỉ gọi `prune`.
+#
+# Xoá thẳng thư mục đăng ký là cách duy nhất chắc chắn gỡ được một entry khoá
+# hoặc hỏng. Gặp thật khi nghiệm thu P2.1.
 worktree_remove() {
-  git --git-dir="$REPO_GIT" worktree remove --force "$BEE_SRV/work/$1" 2>/dev/null || true
+  local id="$1" wt="$BEE_SRV/work/$1"
+  git --git-dir="$REPO_GIT" worktree remove --force "$wt" 2>/dev/null || true
+  rm -rf -- "$wt" "$REPO_GIT/worktrees/$id"
+  git --git-dir="$REPO_GIT" worktree prune 2>/dev/null || true
 }
 
 # =============================================================================

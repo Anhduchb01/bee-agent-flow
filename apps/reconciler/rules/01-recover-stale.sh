@@ -24,8 +24,11 @@ rule_run() {
   attempt_bump "$id"
   attempts=$(attempt_get "$id")
 
-  rm -rf -- "$BEE_SRV/work/$id"
-  git --git-dir="$REPO_GIT" worktree prune 2>/dev/null || true
+  # `worktree_remove` chứ không phải `rm -rf` + `prune`: prune bỏ qua worktree
+  # đang bị khoá, mà một `worktree add` bị giết giữa chừng để lại đúng thứ đó —
+  # và từ lúc ấy mọi `git fetch` trên bare repo đều đổ. Rule này tồn tại để dọn
+  # sau khi máy chết giữa chừng, nên nó phải dọn được cả trường hợp đó.
+  worktree_remove "$id"
   claim_clear "$id"
   gh_remove_label "$REPO_FULL" "$num" "agent:running"
 
