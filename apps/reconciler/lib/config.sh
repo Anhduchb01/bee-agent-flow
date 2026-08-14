@@ -10,6 +10,10 @@ MAX_TURNS=80
 AGENT_TIMEOUT=30m
 HEARTBEAT_STALE_S=600
 RECENT_KEEP=20
+EVIDENCE_KEEP_DAYS=90
+# Gốc URL của web app. Rỗng thì khối bằng chứng trong PR body không có liên kết
+# — cố ý, vì một link tương đối trong PR body sẽ trỏ vào github.com.
+BEE_WEB_URL=""
 
 load_global_config() {
   # shellcheck source=/dev/null

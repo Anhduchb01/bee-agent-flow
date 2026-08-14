@@ -22,10 +22,12 @@ cmd_doctor() {
 
   sect "Công cụ"
   local t
-  for t in git jq gh docker node claude mc ffmpeg; do
+  for t in git jq gh docker node claude python3 ffmpeg; do
     if command -v "$t" >/dev/null 2>&1; then ck "$t"
     elif [[ "$t" == "claude" ]]; then cw "$t — chỉ cần dưới user $AGENT_USER, kiểm ở dưới"
-    elif [[ "$t" == "mc" || "$t" == "ffmpeg" ]]; then cw "$t — chưa có, cần cho bằng chứng (M3)"
+    # ffmpeg chỉ để chuyển webm sang mp4 cho tua được. Thiếu thì bằng chứng vẫn
+    # ra, chỉ là ở dạng webm — cảnh báo, không phải lỗi.
+    elif [[ "$t" == "ffmpeg" ]]; then cw "$t — chưa có, bằng chứng sẽ giữ nguyên webm"
     else cx "$t — thiếu"; fi
   done
 

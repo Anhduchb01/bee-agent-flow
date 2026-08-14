@@ -20,6 +20,8 @@ source "$LIB/config.sh"
 source "$LIB/github.sh"
 # shellcheck source=../lib/state.sh
 source "$LIB/state.sh"
+# shellcheck source=../lib/evidence.sh
+source "$LIB/evidence.sh"
 
 DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
@@ -164,10 +166,28 @@ refresh_repos() {
   done
 }
 
+# Dọn bằng chứng cũ — R3.2.
+#
+# Ở dispatcher chứ không thành một rule: nó không gọi model, không cần worktree,
+# không đáng chiếm slot. Nhưng nó CÓ gọi API nên phải có nhịp riêng — mỗi giờ
+# một lần chứ không phải 2.880 lần/ngày.
+#
+# `if` lồng chứ không phải `a && b`: `evidence_sweep_due` ghi mốc thời gian, và
+# dưới --dry-run thì mọi thứ ghi ra đĩa đều là vi phạm hợp đồng của cờ đó.
+sweep_evidence() {
+  local slug
+  (( DRY_RUN )) && return 0
+  evidence_sweep_due 3600 || return 0
+  for slug in $(enabled_repos); do
+    ( load_repo_config "$slug"; evidence_sweep "$slug" )
+  done
+}
+
 main() {
   local line rule pool inline prio slug num label id picked=0
 
   refresh_repos
+  sweep_evidence
   local -a rows=()
 
   while IFS= read -r line; do

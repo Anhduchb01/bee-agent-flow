@@ -179,12 +179,6 @@ if (( ! NO_DEPS )); then
   fi
   ok "gh"
 
-  step "MinIO client"
-  if ! command -v mc >/dev/null; then
-    curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
-    chmod +x /usr/local/bin/mc
-  fi
-  ok "mc"
 fi
 
 # ---------------------------------------------------------------------------
@@ -228,6 +222,10 @@ install -d -o "$ORCH" -g "$GRP" -m 775 "$SRV" "$SRV/repos" "$SRV/state" "$SRV/at
 # setgid trên work/: mọi worktree tạo ra tự thuộc group bee, nên agent
 # (cùng group) đọc ghi được mà không cần chown mỗi lần.
 install -d -o "$ORCH" -g "$GRP" -m 2775 "$SRV/work"
+# evidence/: orch ghi, bee-web ĐỌC. 2750 chứ không phải 2775 — web app không
+# bao giờ ghi vào /srv/bee, và "other" thì không được thấy gì cả (một PR private
+# có thể lộ toàn bộ màn hình sản phẩm qua video).
+install -d -o "$ORCH" -g "$GRP" -m 2750 "$SRV/evidence"
 ok "$PREFIX, $ETC, $SRV"
 
 step "Mã nguồn"

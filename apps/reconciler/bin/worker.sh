@@ -10,7 +10,7 @@ set -euo pipefail
 
 LIB="${BEE_PREFIX:-/opt/bee}/lib"
 source "$LIB/common.sh"; source "$LIB/config.sh"
-source "$LIB/github.sh"; source "$LIB/state.sh"
+source "$LIB/github.sh"; source "$LIB/state.sh"; source "$LIB/evidence.sh"
 
 ID="${1:?cần <slug>-<số>}"
 SLUG="${ID%-*}"

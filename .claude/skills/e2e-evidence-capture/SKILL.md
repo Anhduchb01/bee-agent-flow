@@ -1,6 +1,6 @@
 ---
 name: e2e-evidence-capture
-description: Runs E2E tests that record video and screenshots, drives failures to green, then publishes artifacts from the passing run to MinIO and emits a PR evidence block. Use when a task has UI-visible acceptance criteria, when preparing a pull request body, when a reviewer asks to see the feature working, or when a bug fix needs proof of the before/after behavior.
+description: Runs E2E tests that record video and screenshots, drives failures to green, then leaves the passing run's artifacts for the orchestrator to publish as a PR evidence block. Use when a task has UI-visible acceptance criteria, when preparing a pull request body, when a reviewer asks to see the feature working, or when a bug fix needs proof of the before/after behavior.
 ---
 
 # E2E Evidence Capture
@@ -54,11 +54,9 @@ There is exactly one green run per PR update, and its artifacts are the evidence
                      └── npx playwright test --repeat-each=3
                          └── Any failure here = still red. Back to 3.
 
-6. PUBLISH
-   └── scripts/publish-evidence.sh — convert, upload to MinIO, print markdown
-
-7. ATTACH
-   └── Update the PR body's evidence block (replace, never append)
+6. STOP
+   └── Leave test-results/ from that one green run untouched
+       └── Publishing is the orchestrator's job, not yours — see "Publishing"
 ```
 
 Step 5 is not optional. A test that passes 2 times out of 3 is a broken test, and shipping its video as evidence is worse than shipping no video — it teaches reviewers to trust something unreliable.
@@ -138,67 +136,41 @@ When the suite is red, there is enormous pull toward the fastest path to green. 
 
 Legitimate test-side fixes exist — a wrong selector, a missing fixture, a bad assumption about seed data. The test for legitimacy is simple: **after the fix, does the test still fail if you break the feature on purpose?** If not, you fixed the test into meaninglessness. Verify by temporarily reverting the source change and confirming the test goes red.
 
-## Publishing to MinIO
+## Publishing
 
-Run [`scripts/publish-evidence.sh`](scripts/publish-evidence.sh) after a confirmed-green run. It converts, uploads, and prints the markdown block.
+**The agent's job ends at a confirmed-green run.** Uploading, linking, and
+editing the PR body are done by whoever *ran* the agent — never by the agent
+itself. That split is the load-bearing part: the process that decides "this run
+was green" must not be a process the run could have modified.
 
-```bash
-./scripts/publish-evidence.sh --pr 42 --run "$GITHUB_RUN_ID"
+The deliverable is one `test-results/` directory from a single green run:
+
+```
+test-results/
+├── results.json                     ← the json reporter's output; the gate reads this
+├── <spec>-<project>/video.webm      ← one per spec, recorded by Playwright
+└── shots/ac-2-before.png            ← explicit in-test screenshots, named after the AC
 ```
 
-What it does, and why each part exists:
+Nothing else. Do not hand-edit `results.json`, do not copy a video in from an
+earlier run, do not merge two runs' directories.
 
-- **`.webm` → `.mp4`** (`libx264`, `yuv420p`, `+faststart`) — webm does not play in every browser and mobile client a reviewer might use.
-- **`.mp4` → a short `.gif`** (two-pass palettegen, ~10 fps, 720px wide) — GitHub renders `![](url.gif)` inline. It does **not** render a player for a video hosted on an external host, so a bare mp4 link means the reviewer must download to see anything. The GIF is the preview; the mp4 is the full-quality link.
-- **Upload path** `s3://<bucket>/pr-<N>/<run-id>/…` — run-scoped so re-runs never overwrite older evidence. A reviewer following an old link still sees what they reviewed.
-- **Prints markdown**, does not touch the PR itself. Publishing and attaching stay separate so a failed upload can never half-update a PR body.
+### Under bee
 
-### Bucket setup (once)
+`04-evidence` copies the directory to `/srv/bee/evidence/<repo>/<PR>/<sha>/` on
+the orchestrator's own disk and attaches the block to the PR. The gate
+(`evidence_green`) runs under a different user, from `/opt/bee/lib/`, on code the
+worktree cannot reach.
 
-```bash
-mc alias set evidence "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
-mc mb --ignore-existing evidence/pr-evidence
-mc anonymous set download evidence/pr-evidence
-```
+Evidence is served by the dashboard behind a session check — it is never
+uploaded anywhere. That has one consequence worth stating: **GitHub cannot render
+it.** The block in the PR body is a table of links, not inline images. A GIF
+preview would be dead weight, so there isn't one.
 
-**Use a dedicated bucket.** `mc anonymous set download` makes the whole bucket world-readable — never point it at the application's asset bucket. Presigned URLs are not a workaround here: S3 v4 signatures cap at 7 days, and PR evidence needs to outlive the review.
+Retention is handled for you: evidence is deleted when the PR closes, and any
+directory older than `EVIDENCE_KEEP_DAYS` (90) is swept regardless.
 
-Anything a reviewer sees, the internet can see. Never record a flow containing real customer data, production secrets, or live tokens. Seed fixtures only.
-
-### Retention
-
-Evidence accumulates fast — a 30-second video is a few MB, and a busy repo produces dozens per week. Set a lifecycle rule so it expires:
-
-```bash
-mc ilm rule add --expire-days 90 evidence/pr-evidence
-```
-
-90 days outlives any review while keeping the bucket bounded. If a PR's evidence matters permanently, the video is the wrong artifact — write it down in an ADR.
-
-## The PR Evidence Block
-
-The script emits this. Paste it into the PR body between the markers.
-
-```markdown
-<!-- evidence:start -->
-## Bằng chứng
-
-| AC | Kết quả | Video | Ảnh |
-|---|---|---|---|
-| AC-1 — user đăng nhập được | ✅ pass | [mp4](https://…/ac-1.mp4) | [before](…) · [after](…) |
-| AC-2 — token hết hạn redirect | ✅ pass | [mp4](https://…/ac-2.mp4) | [after](…) |
-
-![AC-2 demo](https://…/ac-2.gif)
-
-`8/8 passed` · `--repeat-each=3 · không flake` · run [`17482910`](…) · commit `a1b2c3d`
-<!-- evidence:end -->
-```
-
-**Always replace the block, never append.** A PR with three stale evidence blocks is worse than one with none — a reviewer cannot tell which reflects the current head. Update with `gh pr edit`, rewriting only the region between the markers.
-
-State the commit SHA in the block. Evidence recorded against a commit that is no longer the PR head is expired, and a reviewer needs to be able to notice that without asking.
-
-## In CI (self-hosted runner)
+### In plain CI
 
 ```yaml
 - name: E2E with recording
@@ -208,16 +180,44 @@ State the commit SHA in the block. Evidence recorded against a commit that is no
 - name: Confirm no flake
   run: npx playwright test --repeat-each=3 --workers=1
 
-- name: Publish evidence
+- name: Keep the evidence
   if: success()          # ← the whole point: only a green run publishes
-  env:
-    MINIO_ENDPOINT:   ${{ secrets.MINIO_ENDPOINT }}
-    MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
-    MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
-  run: ./scripts/publish-evidence.sh --pr ${{ github.event.pull_request.number }} --run ${{ github.run_id }}
+  uses: actions/upload-artifact@v4
+  with:
+    name: evidence-${{ github.event.pull_request.head.sha }}
+    path: test-results/
 ```
 
-On failure, upload the traces as a GitHub artifact instead so the next debugging pass has something to open. Keep them out of MinIO — failure traces are debugging material, not evidence.
+On failure, upload the traces under a *different* artifact name so the next
+debugging pass has something to open. Failure traces are debugging material, not
+evidence, and mixing the two is how a red run's footage ends up in a PR body.
+
+Anything a reviewer sees, anyone with the link can see. Never record a flow
+containing real customer data, production secrets, or live tokens. Seed fixtures
+only.
+
+## The PR Evidence Block
+
+```markdown
+<!-- evidence:start -->
+## Bằng chứng
+
+| AC | Kết quả | Video | Ảnh |
+|---|---|---|---|
+| AC-1 — user đăng nhập được | ✅ pass | [mp4](…/ac-1.mp4) | [before](…) · [after](…) |
+| AC-2 — token hết hạn redirect | ✅ pass | [mp4](…/ac-2.mp4) | [after](…) |
+
+`8/8 passed` · `không flake` · run `…` · commit `a1b2c3d`
+<!-- evidence:end -->
+```
+
+**Always replace the block, never append.** A PR with three stale evidence blocks
+is worse than one with none — a reviewer cannot tell which reflects the current
+head. Rewrite only the region between the markers.
+
+State the commit SHA in the block. Evidence recorded against a commit that is no
+longer the PR head is expired, and a reviewer needs to be able to notice that
+without asking.
 
 ## Red Flags
 
@@ -228,7 +228,6 @@ On failure, upload the traces as a GitHub artifact instead so the next debugging
 - Assertions loosened in the same commit as the fix they were supposed to catch
 - `waitForTimeout` appearing anywhere in the suite
 - Multiple evidence blocks stacked in one PR body
-- Evidence bucket shared with application assets
 - A recorded flow containing real user data or a live token
 - Tests passing against a stale build because the dev server wasn't restarted
 

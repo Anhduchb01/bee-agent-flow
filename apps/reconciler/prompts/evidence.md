@@ -13,10 +13,11 @@ skipped. Red means **fix the code** and start the run over — do not loosen an
 assertion, do not add `test.skip`, do not raise a timeout to paper over a real
 race.
 
-`publish-evidence.sh` refuses to publish a run that wasn't green, and it
-**deliberately has no `--force` flag**. That is the feature, not an oversight.
-Don't work around it, don't edit the script, don't hand-write `results.json`.
-This is the most tempting spot in the entire system and the most closely
+The orchestrator reads `test-results/results.json` and refuses to publish a run
+that wasn't green. There is **deliberately no override flag**. That gate runs
+outside this worktree, under a different user, from code you cannot reach — so
+the only way past it is an actually-green run. Don't hand-write `results.json`
+either: this is the most tempting spot in the entire system and the most closely
 inspected one.
 
 ## Environment
@@ -26,10 +27,10 @@ inspected one.
 - You have **no** `docker`, `gh`, `GH_TOKEN`, or `sudo`. The app and Playwright
   are ordinary processes: Playwright's `webServer` config starts the dev server
   itself, no Docker required.
-- **You do not upload anything and you do not edit the PR body.** The
-  orchestrator holds the MinIO and GitHub credentials and publishes after you
-  stop. Your deliverable is a `test-results/` directory from **one single green
-  run**, with its videos and `results.json` intact.
+- **You do not publish anything and you do not edit the PR body.** The
+  orchestrator copies the artifacts to its own disk and attaches the block after
+  you stop. Your deliverable is a `test-results/` directory from **one single
+  green run**, with its videos and `results.json` intact.
 
 ## Use what the repo already ships
 
