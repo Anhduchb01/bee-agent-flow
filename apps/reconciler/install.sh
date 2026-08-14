@@ -247,6 +247,21 @@ visudo -cf /etc/sudoers.d/bee >/dev/null || {
 }
 ok "orch → agent, đúng một lệnh"
 
+step "polkit"
+# Dispatcher chạy dưới bee-orch và gọi `systemctl start bee-task@…`. Không có
+# luật này thì polkit trả "Interactive authentication required" và tick chết
+# giữa chừng — xem đầu file 49-bee.rules.
+if [[ -d /etc/polkit-1/rules.d ]]; then
+  install -m 644 -o root -g root "$SRC/polkit/49-bee.rules" /etc/polkit-1/rules.d/49-bee.rules
+  ok "bee-orch được khởi động bee-task@*"
+else
+  # polkit đời cũ (≤ 0.105, Ubuntu 22.04) không đọc luật JavaScript. Nó dùng
+  # .pkla, mà .pkla KHÔNG lọc được theo tên unit — nên ở đó phải cấp rộng hơn.
+  # Không tự làm chuyện đó thay bạn; nói ra để bạn quyết.
+  warn "không thấy /etc/polkit-1/rules.d — polkit đời cũ?"
+  warn "bee-orch sẽ không start được bee-task@*; xem apps/reconciler/polkit/49-bee.rules"
+fi
+
 step "systemd"
 install -m 644 "$SRC"/systemd/bee*.service "$SRC"/systemd/bee*.timer \
                "$SRC/systemd/bee.slice" /etc/systemd/system/

@@ -190,8 +190,18 @@ main() {
              "$C_YELLOW" "$C_RESET" "$C_BOLD" "$id" "$C_RESET" "$rule" "$pool" "$label"
     else
       claim_write "$id" "$slug" "$num" "$rule" "$pool"
-      systemctl start --no-block "$(unit_of "$id")"
-      info "giao $id · $rule · $label"
+      # Giao hỏng KHÔNG được giết tick. `heartbeat_write` và `status_write` nằm
+      # ở cuối hàm, nên chết ở đây làm dashboard đóng băng ở ảnh chụp cũ và hiện
+      # "hàng đợi trống" — đúng lúc bạn cần nó nói ra chuyện gì đang hỏng nhất.
+      #
+      # Và phải gỡ claim, nếu không một việc chưa từng chạy vẫn chiếm slot mãi
+      # cho tới khi rule 01 dọn.
+      if systemctl start --no-block "$(unit_of "$id")"; then
+        info "giao $id · $rule · $label"
+      else
+        claim_clear "$id"
+        warn "KHÔNG giao được $id — kiểm: systemctl status $(unit_of "$id")"
+      fi
     fi
     picked=1                     # MỘT việc mỗi tick, rồi thoát
   done

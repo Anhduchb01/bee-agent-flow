@@ -1,0 +1,25 @@
+// /etc/polkit-1/rules.d/49-bee.rules
+//
+// Cho bee-orch khởi động `bee-task@<slug>-<số>.service`.
+//
+// Không có luật này thì `systemctl start` trả "Interactive authentication
+// required", và hỏng theo kiểu tệ nhất có thể: dispatcher đã ghi claim xong,
+// chết ngay ở lệnh start vì `set -e`, nên `heartbeat_write` và `status_write`
+// nằm ở CUỐI hàm không bao giờ chạy. Dashboard vì thế đóng băng ở ảnh chụp cũ
+// và hiện "hàng đợi trống" trong khi thực ra mỗi tick đều đang đổ.
+//
+// Hẹp đúng một tiền tố unit và ba động từ. bee-orch vốn đã thuộc group docker
+// (≈ root) nên luật này không thêm quyền thực chất — nhưng giữ nó hẹp thì log
+// của polkit còn đọc được, và người sau còn biết nó tồn tại để làm gì.
+polkit.addRule(function (action, subject) {
+  if (action.id !== "org.freedesktop.systemd1.manage-units") return;
+  if (subject.user !== "bee-orch") return;
+
+  var unit = action.lookup("unit");
+  var verb = action.lookup("verb");
+
+  if (unit && unit.indexOf("bee-task@") === 0 &&
+      (verb === "start" || verb === "stop" || verb === "restart")) {
+    return polkit.Result.YES;
+  }
+});
