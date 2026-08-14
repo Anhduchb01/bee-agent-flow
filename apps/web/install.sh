@@ -237,12 +237,25 @@ else
   ok "bee-agent không đọc được web.env"
 fi
 
+# In ĐÚNG địa chỉ phải mở, lấy từ AUTH_URL. `localhost` và `127.0.0.1` là hai
+# host khác nhau với cả trình duyệt lẫn GitHub: gõ nhầm cái kia là vòng lặp
+# chuyển hướng vô hạn, hoặc `error=Configuration` sau khi đăng nhập.
+URL=$(grep -E '^AUTH_URL=' "$ETC/web.env" | cut -d= -f2- | tr -d '"')
+URL=${URL:-http://127.0.0.1:3187}
+
 cat <<EOF
+
+${C_B}Mở đúng địa chỉ này${C_0}   ${C_G}${URL}${C_0}
+
+  KHÔNG phải một biến thể khác của nó. Trình duyệt và GitHub đều coi
+  \`localhost\` và \`127.0.0.1\` là hai host khác nhau, và cookie không đi
+  qua lại giữa hai bên.
 
 ${C_B}Còn lại là việc tay${C_0}
 
   1. Điền $ETC/web.env
-        AUTH_GITHUB_ID / AUTH_GITHUB_SECRET   ← GitHub OAuth app, scope repo
+        AUTH_GITHUB_ID / AUTH_GITHUB_SECRET   ← GitHub OAuth app
+        callback phải là ĐÚNG ${URL}/api/auth/callback/github
         AUTH_URL / APP_URL                    ← URL công khai của app
         ALLOWED_LOGINS                        ← rỗng = KHÔNG AI vào được
         BEE_TL_LOGINS                         ← ai là Techlead
