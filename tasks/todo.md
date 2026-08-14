@@ -31,19 +31,19 @@ nối vào dữ liệu thật (B, cần cả hai).
 
 > **✅ Checkpoint A** — demo được cho cả đội mà không cần máy Ubuntu nào
 
-## C · Nghiệm thu reconciler — song song, không chặn A
+## C · Nghiệm thu reconciler ← M0 xong · M1 còn 4 task · M2 xong
 
-- [ ] 🧑 **P0.1** Cài lên máy Ubuntu
-- [ ] 🧑 **P0.2** Ba lệnh ranh giới token
-- [ ] 🧑 **P0.3** `be repo add` — `origin/HEAD` phân giải được
-- [ ] 🧑 **P0.4** Kill switch cả hai tầng (`.agent/PAUSE` chưa từng chạy)
-- [ ] 🧑 **P0.5** Khoá unit, tick không chồng, `be dry-run`
-- [ ] 🧑 **P1.1** Một task nhỏ → draft PR sạch
+- [x] 🧑 **P0.1** Cài lên máy Ubuntu
+- [x] 🧑 **P0.2** Ba lệnh ranh giới token
+- [x] 🧑 **P0.3** `be repo add` — `origin/HEAD` phân giải được
+- [x] 🧑 **P0.4** Kill switch cả hai tầng — tầng repo từng là **cửa một chiều**, đã vá
+- [x] 🧑 **P0.5** Khoá unit, tick không chồng, `be dry-run` không ghi gì
+- [x] 🧑 **P1.1** Một task nhỏ → draft PR sạch (PR #6, 4 file, không lọt rác)
 - [ ] 🧑 **P1.2** Bốn task nữa — 3/5 không can thiệp tay
 - [ ] 🤖 **P1.3** Sửa prompt theo những gì học được
-- [ ] 🧑 **P2.1** Rút điện → rule 01 dọn; lần hai → `needs-human`
-- [ ] 🧑 **P2.2** Rule 03 đẩy `bee/test`
-- [ ] 🧑 **P2.3** Dashboard vẫn lên khi reconciler đã chết
+- [x] 🧑 **P2.1** Rút điện → rule 01 dọn trong 44s; lần hai → `needs-human`
+- [x] 🧑 **P2.2** Rule 03 đẩy `bee/test` — xanh 21s trên PR thật
+- [x] 🧑 **P2.3** Dashboard vẫn lên khi reconciler đã chết, dải đỏ báo heartbeat cũ
 - [ ] 🤖 **R3.1** Bằng chứng sang `/srv/bee/evidence/…` · đổi mốc scan · bỏ MinIO
 - [ ] 🤖 **R3.2** Dọn `evidence/`
 - [x] 🤖 **R4.3** `run_agent` giữ `usage`/`stop_reason` · hạn mức ra file riêng
