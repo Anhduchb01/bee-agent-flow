@@ -50,17 +50,46 @@ cmd_doctor() {
     ck "$AGENT_USER không thấy token nào trong môi trường"
   fi
 
-  sudo -u "$AGENT_USER" -n true 2>/dev/null \
-    && cx "NGUY HIỂM: $AGENT_USER có quyền sudo" \
-    || ck "$AGENT_USER không có sudo"
+  # `sudo -u <agent> -n true` KHÔNG trả lời câu hỏi này. Nó hỏi "NGƯỜI ĐANG GÕ có
+  # được hoá thân thành agent không" — mà người đang gõ gần như luôn là một
+  # sudoer, nên nó báo NGUY HIỂM trên một máy hoàn toàn lành.
+  #
+  # Kêu sai ở đúng chỗ quan trọng nhất còn tệ hơn không kêu: lần sau có cảnh báo
+  # thật, người ta đã được dạy là bỏ qua.
+  #
+  # `sudo -l -U <user>` mới đúng — liệt kê những gì CHÍNH user đó được chạy.
+  # Nó cần quyền root để tra, nên kiểm group trước: rẻ, luôn chạy được, và bắt
+  # được đường lọt phổ biến nhất.
+  local sudo_list
+  if id -nG "$AGENT_USER" 2>/dev/null | grep -qwE 'sudo|admin|wheel'; then
+    cx "NGUY HIỂM: $AGENT_USER thuộc group sudo/admin/wheel"
+  elif sudo_list=$(sudo -n -l -U "$AGENT_USER" 2>/dev/null); then
+    # Dòng đặc quyền của sudo luôn có dạng "    (ALL) ALL"; câu từ chối thì
+    # không có dấu ngoặc nào. Bắt theo hình dạng chứ không theo câu chữ, để
+    # không phụ thuộc ngôn ngữ của hệ thống.
+    if grep -qE '^[[:space:]]*\(' <<<"$sudo_list"; then
+      cx "NGUY HIỂM: $AGENT_USER có quyền sudo"
+    else
+      ck "$AGENT_USER không có sudo"
+    fi
+  else
+    cw "$AGENT_USER không thuộc group sudo, nhưng chưa tra được sudoers — chạy: sudo be doctor"
+  fi
 
-  if [[ -f /etc/sudoers.d/bee ]]; then
+  if [[ ! -f /etc/sudoers.d/bee ]]; then
+    cx "thiếu /etc/sudoers.d/bee"
+  elif [[ ! -r /etc/sudoers.d/bee ]]; then
+    # File là 440 root:root — đúng như nó phải thế. Không đọc được khi chạy
+    # không có root là chuyện bình thường, không phải dấu hiệu hỏng.
+    cw "chưa đọc được /etc/sudoers.d/bee (cần root) — chạy: sudo be doctor"
+  else
     visudo -cf /etc/sudoers.d/bee >/dev/null 2>&1 \
       && ck "sudoers hợp lệ" || cx "sudoers sai cú pháp"
-    [[ $(grep -c . /etc/sudoers.d/bee) -le 3 ]] \
-      && ck "sudoers hẹp (chỉ agent-exec.sh)" || cw "sudoers có nhiều dòng hơn dự kiến — soát lại"
-  else
-    cx "thiếu /etc/sudoers.d/bee"
+    if [[ $(grep -c . /etc/sudoers.d/bee) -le 3 ]]; then
+      ck "sudoers hẹp (chỉ agent-exec.sh)"
+    else
+      cw "sudoers có nhiều dòng hơn dự kiến — soát lại"
+    fi
   fi
 
   sect "Thư mục"
@@ -93,8 +122,14 @@ cmd_doctor() {
 
   sect "Trạng thái"
   [[ -f "$BEE_ETC/PAUSE" ]] && cw "ĐANG TẠM DỪNG (/etc/bee/PAUSE)" || ck "không bị tạm dừng"
-  local age; age=$(heartbeat_age_s)
-  if (( age > HEARTBEAT_STALE_S )); then
+  # "Chưa từng có tick nào" khác hẳn "có rồi mà cũ", dù `heartbeat_age_s` trả về
+  # cùng một con số to (999999 khi thiếu file). Máy vừa cài xong rơi vào vế đầu,
+  # và báo ✗ "có thể đã chết im lặng" ở một máy chưa từng chạy là nói sai —
+  # nó biến một bản cài đúng thành "CÓ LỖI CẦN SỬA".
+  local age hb="$BEE_SRV/state/heartbeat"; age=$(heartbeat_age_s)
+  if [[ ! -f "$hb" ]]; then
+    cw "chưa có heartbeat — reconciler chưa chạy tick nào (bình thường khi vừa cài)"
+  elif (( age > HEARTBEAT_STALE_S )); then
     cx "heartbeat cũ $(human_dur "$age") — reconciler có thể đã chết im lặng"
   else
     ck "heartbeat $(human_dur "$age") trước"
