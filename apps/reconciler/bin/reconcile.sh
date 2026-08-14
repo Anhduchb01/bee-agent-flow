@@ -144,8 +144,30 @@ rank_line() {
 }
 
 # ---------------------------------------------------------------------------
+# Làm mới ref của từng repo MỘT LẦN mỗi tick.
+#
+# Không có bước này thì kill switch tầng repo là CỬA MỘT CHIỀU. `git fetch` chỉ
+# tồn tại trong `worktree_ensure`, mà hàm đó chỉ chạy khi có task được giao. Khi
+# `.agent/PAUSE` đã nằm trên nhánh mặc định thì mọi rule bỏ qua repo, nên không
+# task nào chạy, nên không bao giờ fetch nữa — và gỡ file trên GitHub vĩnh viễn
+# không được nhìn thấy. Repo kẹt cho tới khi có người ssh vào fetch tay.
+#
+# Kiểm chứng ở P0.4 trên máy thật: bật PAUSE ăn ngay, gỡ PAUSE thì không.
+#
+# Giá phải trả là một `git fetch` mỗi repo mỗi tick. Trên repo không đổi thì đó
+# là vài KB — đúng bằng cái giá `worktree_ensure` vẫn trả sẵn.
+refresh_repos() {
+  local slug
+  for slug in $(enabled_repos); do
+    ( load_repo_config "$slug"
+      git --git-dir="$REPO_GIT" fetch --prune --quiet origin 2>/dev/null || true )
+  done
+}
+
 main() {
   local line rule pool inline prio slug num label id picked=0
+
+  refresh_repos
   local -a rows=()
 
   while IFS= read -r line; do
