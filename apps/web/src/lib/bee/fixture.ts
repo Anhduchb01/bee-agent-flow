@@ -7,7 +7,7 @@ import { chuaChayLanNao, currentScene } from "@/lib/fixtures/scene";
 
 import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
 import { parseRecentLine, parseStatus } from "./parse";
-import type { BeeRecentRun, BeeSource, StatusRead } from "./types";
+import type { BeeClaudeRateLimit, BeeRecentRun, BeeSource, StatusRead } from "./types";
 
 const EVIDENCE_ROOT = path.join(process.cwd(), "src", "lib", "fixtures", "evidence");
 
@@ -48,6 +48,21 @@ export function createFixtureBeeSource(): BeeSource {
         .filter((r): r is BeeRecentRun => r !== null)
         .sort((a, b) => b.at.localeCompare(a.at))
         .slice(0, limit);
+    },
+
+    async readClaudeRateLimit(): Promise<BeeClaudeRateLimit | null> {
+      // Chưa chạy lần nào thì chưa có `rate_limit_event` nào — cùng một cảnh
+      // với `phanTram: null` ở `lib/claude/fixture.ts`, và phải khớp nhau, nếu
+      // không thì cảnh `vua-cai` lại tự mâu thuẫn một lần nữa.
+      if (chuaChayLanNao(await currentScene())) return null;
+      return {
+        status: "allowed",
+        resetsAt: Math.floor(Date.now() / 1000) + 2 * 3600 + 14 * 60,
+        rateLimitType: "five_hour",
+        overageStatus: "not_configured",
+        isUsingOverage: false,
+        seen_at: new Date(Date.now() - 6 * 60_000).toISOString(),
+      };
     },
 
     listEvidence: (slug, num) => listEvidenceIn(EVIDENCE_ROOT, slug, num),

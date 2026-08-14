@@ -154,6 +154,12 @@ export interface EvidenceRun {
 export interface BeeSource {
   readStatus(): Promise<StatusRead>;
   readRecent(limit?: number): Promise<BeeRecentRun[]>;
+  /**
+   * `null` khi chưa từng có `rate_limit_event` nào — máy vừa cài, hoặc chưa lần
+   * chạy nào chạm hạn mức. Đây là trạng thái *bình thường*, không phải lỗi, nên
+   * nó nằm trong kiểu trả về chứ không ném ra ngoài.
+   */
+  readClaudeRateLimit(): Promise<BeeClaudeRateLimit | null>;
   listEvidence(slug: string, num: number): Promise<EvidenceRun[]>;
   /** `null` khi đường dẫn không hợp lệ hoặc file không tồn tại — cùng một câu trả lời. */
   readEvidenceFile(

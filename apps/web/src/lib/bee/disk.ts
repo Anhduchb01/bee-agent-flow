@@ -4,8 +4,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
-import { parseRecentLine, parseStatus } from "./parse";
-import type { BeeRecentRun, BeeSource, StatusRead } from "./types";
+import { parseClaudeRateLimit, parseRecentLine, parseStatus } from "./parse";
+import type { BeeClaudeRateLimit, BeeRecentRun, BeeSource, StatusRead } from "./types";
 
 /**
  * Đọc `/srv/bee/` thật. Chỉ đọc — app chạy dưới user `bee-web`, và mọi cách để
@@ -15,12 +15,23 @@ import type { BeeRecentRun, BeeSource, StatusRead } from "./types";
  * `status.json` thật khớp `types.ts` là một trong bốn thứ fixture không chứng
  * minh được. Mọi lệch phát hiện lúc đó phải sửa ở `lib/`, không phải ở màn hình.
  */
-const ROOT = process.env.BEE_SRV ?? "/srv/bee";
+/**
+ * Đọc `process.env` ở MỖI LỜI GỌI, không phải một lần lúc nạp module.
+ *
+ * Bản cũ ghim vào một hằng số ở đầu file, nên `BEE_SRV` đặt sau lúc import
+ * không có tác dụng gì. Bài test "BEE_SOURCE=disk đọc chỗ khác" vì thế chưa bao
+ * giờ kiểm điều nó nói: nó vẫn trỏ vào `/srv/bee`, và nó xanh chỉ vì máy CI
+ * không có thư mục đó. Trên một máy đã cài bee thật thì nó đọc dữ liệu thật và
+ * đỏ — đúng lúc ta cần nó nhất.
+ */
+function root(): string {
+  return process.env.BEE_SRV ?? "/srv/bee";
+}
 
 export function createDiskBeeSource(): BeeSource {
   return {
     async readStatus(): Promise<StatusRead> {
-      const file = path.join(ROOT, "public", "status.json");
+      const file = path.join(root(), "public", "status.json");
       let text: string;
       try {
         text = await fs.readFile(file, "utf8");
@@ -37,7 +48,7 @@ export function createDiskBeeSource(): BeeSource {
     async readRecent(limit = 20): Promise<BeeRecentRun[]> {
       let text: string;
       try {
-        text = await fs.readFile(path.join(ROOT, "state", "recent.jsonl"), "utf8");
+        text = await fs.readFile(path.join(root(), "state", "recent.jsonl"), "utf8");
       } catch {
         return [];
       }
@@ -49,7 +60,19 @@ export function createDiskBeeSource(): BeeSource {
         .slice(0, limit);
     },
 
-    listEvidence: (slug, num) => listEvidenceIn(path.join(ROOT, "evidence"), slug, num),
-    readEvidenceFile: (segments) => readEvidenceFileIn(path.join(ROOT, "evidence"), segments),
+    async readClaudeRateLimit(): Promise<BeeClaudeRateLimit | null> {
+      // Vắng mặt là chuyện thường: file chỉ xuất hiện khi Claude CLI thực sự
+      // phát ra một `rate_limit_event`, mà không phải lần chạy nào cũng có.
+      try {
+        return parseClaudeRateLimit(
+          await fs.readFile(path.join(root(), "state", "claude-rate-limit.json"), "utf8"),
+        );
+      } catch {
+        return null;
+      }
+    },
+
+    listEvidence: (slug, num) => listEvidenceIn(path.join(root(), "evidence"), slug, num),
+    readEvidenceFile: (segments) => readEvidenceFileIn(path.join(root(), "evidence"), segments),
   };
 }

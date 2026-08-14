@@ -7,6 +7,7 @@
  * nó hiện ra đúng chỗ, kèm tên trường.
  */
 import type {
+  BeeClaudeRateLimit,
   BeeQueueItem,
   BeeRecentRun,
   BeeRepo,
@@ -199,6 +200,40 @@ export function parseStatus(text: string): StatusRead {
     return { ok: true, status, dropped };
   } catch (e) {
     if (e instanceof ShapeError) return { ok: false, reason: "malformed", detail: e.message };
+    throw e;
+  }
+}
+
+/**
+ * `state/claude-rate-limit.json`.
+ *
+ * File này do `run_agent()` ghi đè mỗi khi Claude CLI phát ra một
+ * `rate_limit_event`, nên nó có thể bị bắt gặp lúc đang ghi dở. Hỏng thì trả
+ * `null` — "chưa biết hạn mức" là câu trả lời đúng, và nó đã có sẵn một đường
+ * hiển thị (máy vừa cài cũng rơi vào đúng trạng thái này).
+ *
+ * `resetsAt` được kiểm là số: một chuỗi ISO lọt vào đây sẽ thành `NaN` sau khi
+ * nhân 1000, và đồng hồ đếm ngược sẽ hiện "Invalid Date" giữa dashboard.
+ */
+export function parseClaudeRateLimit(text: string): BeeClaudeRateLimit | null {
+  let v: unknown;
+  try {
+    v = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!isObj(v)) return null;
+  try {
+    return {
+      status: str(v, "status", "rate-limit"),
+      resetsAt: num(v, "resetsAt", "rate-limit"),
+      rateLimitType: str(v, "rateLimitType", "rate-limit"),
+      overageStatus: str(v, "overageStatus", "rate-limit"),
+      isUsingOverage: bool(v, "isUsingOverage", "rate-limit"),
+      seen_at: str(v, "seen_at", "rate-limit"),
+    };
+  } catch (e) {
+    if (e instanceof ShapeError) return null;
     throw e;
   }
 }
