@@ -157,8 +157,22 @@ cmd_doctor() {
        sudo -u $ORCH_USER git --git-dir=$REPO_GIT config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
        sudo -u $ORCH_USER git --git-dir=$REPO_GIT fetch --prune origin
        sudo -u $ORCH_USER git --git-dir=$REPO_GIT remote set-head origin --auto"
+      elif [[ -z "${GH_TOKEN:-}" ]]; then
+        cw "$slug: chưa nạp GH_TOKEN nên không kiểm được quyền — chạy: sudo be doctor"
+      elif ! gh issue list --repo "$REPO_FULL" --limit 1 >/dev/null 2>&1; then
+        # Đường hỏng IM LẶNG nhất còn lại. `gh_issues` kết thúc bằng
+        # `|| echo '[]'` và `scan_all` gọi `rule_scan … 2>/dev/null`, nên token
+        # thiếu quyền trên repo này cho ra đúng cùng một kết quả với "không có
+        # việc nào": hàng đợi trống, không lỗi, không log. Bạn sẽ ngồi đợi một
+        # tick không bao giờ tới.
+        #
+        # Fine-grained PAT chỉ áp dụng cho những repo được CHỌN ĐÍCH DANH lúc
+        # tạo. Thêm repo vào bee sau khi tạo token là dính đúng chỗ này.
+        cx "$slug: token không đọc được issue của $REPO_FULL
+       Fine-grained PAT phải chọn đích danh repo này, và cấp Issues + Pull requests + Contents = write.
+       Kiểm tay: sudo bash -c 'set -a; . /etc/bee/orch.env; cd /tmp; gh issue list --repo $REPO_FULL --limit 1'"
       else
-        ck "$slug → $REPO_FULL ($(git --git-dir="$REPO_GIT" rev-parse --short origin/HEAD))"
+        ck "$slug → $REPO_FULL ($(git --git-dir="$REPO_GIT" rev-parse --short origin/HEAD)) · token đọc được issue"
       fi )
   done
   (( n )) || cw "chưa có repo nào — be repo add org/name"
