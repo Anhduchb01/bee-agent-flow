@@ -63,15 +63,34 @@ attempt_bump() {
 attempt_reset() { rm -f -- "$(attempt_file "$1")"; }
 
 # Ghi lịch sử một lần chạy để dashboard hiển thị "gần đây".
+#
+# Mức dùng của lần chạy (`usage.json` do `run_agent` để lại trong thư mục state
+# của chính id này) được gộp vào nếu có. Đọc theo `id` chứ không theo biến toàn
+# cục: hàm này đã nhận id rồi, và một phụ thuộc ngầm vào `$D` sẽ ghi nhầm lúc
+# nào đó mà không ai biết.
+#
+# Cố ý gộp cả ở đường THẤT BẠI. Không có nó thì "chết vì hết hạn mức" và "chết
+# vì test đỏ" cùng là một `result` khác `ok`, mà hai chuyện đó cần hai cách xử
+# lý khác hẳn nhau. Rule 01 dọn một claim chết cũng đọc đúng thư mục state đó,
+# nên `usage.json` của lần chạy vừa đổ vẫn còn và đi kèm được vào bản ghi
+# "gave-up" — đó là thông tin đắt nhất của cả bản ghi ấy.
 record_run() {
   local id="$1" repo="$2" num="$3" rule="$4" result="$5" turns="${6:-0}" dur="${7:-0}"
   local f="$BEE_SRV/state/recent.jsonl"
+  local u; u="$(state_dir "$id")/usage.json"
+  local extra='{}'
+
+  # `jq -e .` chứ không phải `[[ -s ]]`: file có thể đứt giữa chừng nếu tiến
+  # trình chết đúng lúc ghi, và một bản ghi lịch sử hỏng không đáng để làm đổ
+  # cả lần chạy.
+  [[ -f "$u" ]] && extra=$(jq -ce . "$u" 2>/dev/null || printf '{}')
+
   mkdir -p "$(dirname "$f")"
   jq -nc --arg id "$id" --arg repo "$repo" --argjson number "$num" --arg rule "$rule" \
          --arg result "$result" --argjson turns "$turns" --argjson duration_s "$dur" \
-         --arg at "$(now_iso)" \
+         --arg at "$(now_iso)" --argjson extra "$extra" \
          '{id:$id,repo:$repo,number:$number,rule:$rule,result:$result,
-           turns:$turns,duration_s:$duration_s,at:$at}' >> "$f"
+           turns:$turns,duration_s:$duration_s,at:$at} + $extra' >> "$f"
   # Giữ file bounded — dashboard chỉ hiển thị vài dòng cuối.
   tail -n 200 "$f" > "$f.tmp" && mv "$f.tmp" "$f"
 }

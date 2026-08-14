@@ -9,6 +9,7 @@
  *   - mục trong `running` ← `claim_write()` · lib/state.sh, cộng `elapsed_s`
  *   - mục trong `queue` ← `QUEUE_JSON`      · bin/reconcile.sh
  *   - `recent.jsonl`    ← `record_run()`    · lib/state.sh
+ *   - `state/claude-rate-limit.json` ← `run_agent()` · bin/worker.sh
  */
 
 /** `mode` chỉ nhận hai giá trị: `status_write "running"` và `status_write "paused"`. */
@@ -55,6 +56,52 @@ export interface BeeRecentRun {
   turns: number;
   duration_s: number;
   at: string;
+
+  /*
+   * Mức dùng của lần chạy — `record_run()` gộp vào từ `state/<id>/usage.json`.
+   *
+   * **Tuỳ chọn, và sẽ vắng mặt thường xuyên.** Dòng của rule 03 (chạy CI) không
+   * gọi agent nên không bao giờ có; dòng ghi trước khi reconciler giữ lại
+   * `usage` cũng không. `undefined` nghĩa là *không biết*, khác hẳn `0`.
+   */
+  tokens_in?: number;
+  tokens_out?: number;
+  tokens_cache_read?: number;
+  tokens_cache_write?: number;
+  cost_usd?: number;
+
+  /**
+   * Hai trường phân biệt được "chết vì hết hạn mức" với "chết vì test đỏ" —
+   * nếu chỉ nhìn `result` thì cả hai đều là một giá trị khác `ok`.
+   *
+   * Vừa tuỳ chọn vừa nhận `null`, và hai thứ đó **khác nhau**: vắng mặt nghĩa
+   * là lần chạy này không gọi agent, còn `null` nghĩa là có gọi và Claude không
+   * báo lỗi nào. Gộp chúng lại thì "chạy CI" và "agent chạy trơn tru" trông
+   * giống hệt nhau.
+   */
+  stop_reason?: string | null;
+  api_error_status?: number | null;
+}
+
+/**
+ * `state/claude-rate-limit.json` ← `run_agent()` · bin/worker.sh
+ *
+ * Hạn mức là chuyện của **cả tài khoản**, không phải của một lần chạy, nên nó
+ * nằm ngoài `recent.jsonl` và chỉ được ghi đè khi Claude CLI thực sự phát ra
+ * một `rate_limit_event` — không phải lần chạy nào cũng có.
+ *
+ * Lấy nguyên hình dạng `rate_limit_info` đã kiểm chứng bằng cách chạy CLI thật
+ * (v2.1.161), cộng `seen_at` do reconciler đóng dấu. **Không có phần trăm ở
+ * đây** — không nguồn nào phát ra nó, xem `lib/claude/types.ts`.
+ */
+export interface BeeClaudeRateLimit {
+  status: string;
+  /** Epoch giây. */
+  resetsAt: number;
+  rateLimitType: string;
+  overageStatus: string;
+  isUsingOverage: boolean;
+  seen_at: string;
 }
 
 export interface BeeRepo {

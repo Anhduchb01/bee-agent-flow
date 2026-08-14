@@ -46,6 +46,7 @@ nối vào dữ liệu thật (B, cần cả hai).
 - [ ] 🧑 **P2.3** Dashboard vẫn lên khi reconciler đã chết
 - [ ] 🤖 **R3.1** Bằng chứng sang `/srv/bee/evidence/…` · đổi mốc scan · bỏ MinIO
 - [ ] 🤖 **R3.2** Dọn `evidence/`
+- [x] 🤖 **R4.3** `run_agent` giữ `usage`/`stop_reason` · hạn mức ra file riêng
 - [ ] 🤖 **R4.1** Rule 02 quét cả comment thường, không đếm trùng
 - [ ] 🧑 **P4.2** TL comment thật → agent sửa đúng chỗ
 
@@ -54,6 +55,8 @@ nối vào dữ liệu thật (B, cần cả hai).
 ## B · Nối vào dữ liệu thật — cần cả A lẫn C
 
 - [ ] 🤖 **B1** `lib/bee/disk.ts` — type khớp `status.json` thật
+- [ ] 🤖 **B6** `lib/claude/live.ts` — cộng dồn `recent.jsonl` + đọc file hạn mức
+      (phía reconciler xong rồi, xem R4.3)
 - [ ] 🤖 **B2** `lib/github/live.ts` — hình dạng response thật
 - [ ] 🧑🤖 **B3** Ghi thật: tạo issue, comment, approve — mang tên người bấm
 - [ ] 🧑 **B4** OAuth + Cloudflare Access thật

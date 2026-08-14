@@ -38,6 +38,21 @@ function num(o: Obj, key: string, path: string): number {
   return v as number;
 }
 
+/**
+ * Số có thể vắng mặt. Dùng cho các trường mức dùng mà `record_run` chỉ ghi khi
+ * lần chạy đó thực sự có gọi agent — dòng của rule 03 (chạy CI) không bao giờ
+ * có, và những dòng ghi trước khi reconciler được sửa cũng không.
+ *
+ * Vắng mặt là `undefined`, không phải `0`: "không gọi agent" khác hẳn "gọi agent
+ * mà tốn 0 token", và gộp hai thứ đó lại thì mọi phép cộng ở trên đều sai.
+ */
+function numOpt(o: Obj, key: string): number | undefined {
+  const v = o[key];
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+const strOrNull = (v: unknown): string | null => (typeof v === "string" ? v : null);
+
 function bool(o: Obj, key: string, path: string): boolean {
   const v = o[key];
   if (typeof v !== "boolean") fail(`${path}.${key}`, "true/false");
@@ -109,6 +124,22 @@ function recentRun(v: unknown, path: string): BeeRecentRun {
     turns: num(v, "turns", path),
     duration_s: num(v, "duration_s", path),
     at: str(v, "at", path),
+
+    // Mức dùng — tuỳ chọn, xem `numOpt`. Không đưa vào danh sách bắt buộc vì
+    // như thế thì mọi dòng ghi trước khi reconciler được sửa sẽ bị vứt, và
+    // biểu đồ bảy ngày mất sạch lịch sử ngay lúc nâng cấp.
+    tokens_in: numOpt(v, "tokens_in"),
+    tokens_out: numOpt(v, "tokens_out"),
+    tokens_cache_read: numOpt(v, "tokens_cache_read"),
+    tokens_cache_write: numOpt(v, "tokens_cache_write"),
+    cost_usd: numOpt(v, "cost_usd"),
+
+    // Giữ nguyên ba trạng thái: vắng mặt (không gọi agent), `null` (có gọi,
+    // không lỗi), có giá trị. `?? null` ở đây sẽ xoá mất trạng thái thứ nhất.
+    ...("stop_reason" in v ? { stop_reason: strOrNull(v.stop_reason) } : {}),
+    ...("api_error_status" in v
+      ? { api_error_status: numOpt(v, "api_error_status") ?? null }
+      : {}),
   };
 }
 

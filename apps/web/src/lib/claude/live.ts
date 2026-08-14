@@ -12,26 +12,26 @@ import type { ClaudeSource } from "./types";
  * **Phần khó — mức dùng.** Dữ liệu nằm ở dòng `result` và `rate_limit_event` của
  * stream-json, mà stream đó do **`bee-agent`** sinh ra khi worker chạy. App chạy
  * dưới `bee-web` và **không được đọc credential hay home của agent** — đó là
- * ranh giới hai UID, không phải bất tiện. Đường đi sạch duy nhất:
+ * ranh giới hai UID, không phải bất tiện.
  *
- * 1. `run_agent()` trong `apps/reconciler/bin/worker.sh` bóc thêm mấy trường
- *    (`usage.*`, `total_cost_usd`, `stop_reason`, `api_error_status`) — nó đã
- *    parse đúng dòng đó rồi, chỉ là đang vứt đi.
- * 2. Ghi vào `recent.jsonl` qua `record_run()`, hoặc một file riêng dưới
- *    `/srv/bee/`.
- * 3. App đọc file đó như mọi thứ khác trong `lib/bee/`.
+ * Phía reconciler **đã xong**: `run_agent()` giữ lại `usage.*`,
+ * `total_cost_usd`, `stop_reason`, `api_error_status` rồi `record_run()` gộp
+ * vào từng dòng `recent.jsonl`; `rate_limit_event` ghi riêng ra
+ * `state/claude-rate-limit.json` vì hạn mức là chuyện của cả tài khoản chứ
+ * không của một lần chạy. Hình dạng cả hai nằm ở `lib/bee/types.ts`.
  *
- * Bước 1 và 2 là **thay đổi trong reconciler**, mà theo `AGENTS.md` §2 thì phải
- * hỏi trước. Chưa hỏi, nên chưa làm.
+ * Việc còn lại ở đây là cộng dồn: đọc `recent.jsonl` qua `lib/bee/`, cộng token
+ * và chi phí của hôm nay và bảy ngày, rồi đọc file hạn mức. Không có việc nào
+ * chạm ranh giới UID nữa.
  *
- * Và ngay cả khi làm xong: **`phanTram` vẫn không lấy được** từ đó. Xem
+ * Nhưng **`phanTram` vẫn không lấy được**: không nguồn nào phát ra nó. Xem
  * `types.ts`.
  */
 export function createLiveClaudeSource(): ClaudeSource {
   return {
     read: () => {
       throw new Error(
-        "CLAUDE_SOURCE=live is not implemented yet (phase B). The reconciler must keep `usage` first — see lib/claude/live.ts.",
+        "CLAUDE_SOURCE=live is not implemented yet (phase B). The reconciler now records usage; what is left is summing recent.jsonl — see lib/claude/live.ts.",
       );
     },
   };

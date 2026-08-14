@@ -166,7 +166,39 @@ run_agent() {
     jq -r '.result // empty'     <<<"$result" > "$out"
     jq -r '.num_turns // 0'      <<<"$result" > "$D/turns"
     jq -r '((.duration_ms // 0) / 1000 | floor)' <<<"$result" > "$D/duration"
+
+    # Mức dùng và lý do dừng. `record_run` gộp file này vào bản ghi lịch sử.
+    #
+    # Phẳng chứ không lồng: bản ghi trong `recent.jsonl` là một object phẳng, và
+    # một nhánh `usage` lồng bên trong sẽ bắt mọi chỗ đọc phải biết hai hình dạng.
+    #
+    # `stop_reason` và `api_error_status` là hai trường quan trọng nhất ở đây —
+    # chúng là thứ duy nhất phân biệt được agent dừng vì hết hạn mức với agent
+    # dừng vì đã làm xong hoặc vì test đỏ.
+    jq -c '{
+      tokens_in:          (.usage.input_tokens                // 0),
+      tokens_out:         (.usage.output_tokens               // 0),
+      tokens_cache_read:  (.usage.cache_read_input_tokens     // 0),
+      tokens_cache_write: (.usage.cache_creation_input_tokens // 0),
+      cost_usd:           (.total_cost_usd                    // 0),
+      stop_reason:        (.stop_reason                       // null),
+      api_error_status:   (.api_error_status                  // null)
+    }' <<<"$result" > "$D/usage.json" 2>/dev/null || true
   fi
+
+  # Hạn mức là chuyện của CẢ TÀI KHOẢN, không phải của một lần chạy — nên nó ghi
+  # ra chỗ dùng chung chứ không vào thư mục state, vốn bị xoá sau mỗi lần chạy.
+  #
+  # `rate_limit_event` không phải lần chạy nào cũng có; không có thì giữ nguyên
+  # bản cũ, vì "lần cuối biết được" vẫn đúng hơn là không biết gì.
+  local rl
+  rl=$(grep '"type":"rate_limit_event"' "$log" 2>/dev/null | tail -1 || true)
+  if [[ -n "$rl" ]]; then
+    mkdir -p "$BEE_SRV/state"
+    jq -c '.rate_limit_info + {seen_at: now | todate}' <<<"$rl" \
+      > "$BEE_SRV/state/claude-rate-limit.json" 2>/dev/null || true
+  fi
+
   return $rc
 }
 

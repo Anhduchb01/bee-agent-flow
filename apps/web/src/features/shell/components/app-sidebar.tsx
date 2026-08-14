@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  CircleGaugeIcon,
-  InboxIcon,
-  LogOutIcon,
-  PlusIcon,
-  SearchIcon,
-} from "lucide-react";
+import { CircleGaugeIcon, InboxIcon, LogOutIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -84,17 +78,15 @@ export function AppSidebar({
           </span>
         </div>
 
-        {/* Ô tìm hiện sẵn phím tắt: vấn đề lớn nhất của command palette là
-            không ai biết nó tồn tại. Chưa nối — xem tasks/todo.md. */}
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton disabled tooltip="Quick search (coming soon)">
-              <SearchIcon />
-              <span>Quick search…</span>
-              <SidebarMenuBadge className="font-mono">⌘K</SidebarMenuBadge>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {/*
+         * Từng có một ô "Quick search…" kèm gợi ý ⌘K ở đây, `disabled`. Bỏ đi:
+         * một affordance nhìn thấy được mà bấm không làm gì thì tệ hơn là không
+         * có — nó dạy người dùng rằng chỗ này không đáng tin.
+         *
+         * Muốn nối lại thì dùng `Command` trong `Dialog` của shadcn, liệt kê dự
+         * án + task đang mở; phần tìm không dấu đã có sẵn ở
+         * `features/inbox/lib/filter.ts`.
+         */}
       </SidebarHeader>
 
       <SidebarContent>
