@@ -38,10 +38,24 @@ MEM_GB=$(( $(awk '/MemTotal/{print $2}' /proc/meminfo) / 1024 / 1024 ))
 (( MEM_GB >= 15 )) || warn "chỉ có ${MEM_GB}GB RAM — nên hạ MAX_BUILD_SLOTS về 1 trong bee.env"
 
 # ---------------------------------------------------------------------------
+# `apt-get update` trả mã lỗi khi BẤT KỲ nguồn nào hỏng — kể cả nguồn không liên
+# quan gì tới bee. Một PPA hết hạn hay thiếu khoá GPG là chuyện thường trên máy
+# lập trình viên, và với `set -e` thì nó giết installer ngay ở bước đầu tiên,
+# kèm một thông báo nói về k8slens chứ không nói gì về bee.
+#
+# Nên: cảnh báo rồi đi tiếp. Nếu gói bee thực sự cần mà không lấy được thì
+# `apt-get install` ngay sau đó sẽ đỏ — và lúc ấy lỗi mới nói đúng chuyện.
+apt_refresh() {
+  apt-get update -qq && return 0
+  warn "apt-get update có nguồn hỏng (xem lỗi phía trên) — vẫn đi tiếp"
+  warn "nếu đó là repo bên thứ ba không liên quan thì bỏ qua được"
+  return 0
+}
+
 if (( ! NO_DEPS )); then
   step "Gói hệ thống"
   export DEBIAN_FRONTEND=noninteractive
-  apt-get update -qq
+  apt_refresh
   apt-get install -y -qq --no-install-recommends \
     git jq curl ca-certificates gnupg ffmpeg python3 build-essential uidmap >/dev/null
   ok "git jq curl ffmpeg python3"
@@ -60,7 +74,7 @@ if (( ! NO_DEPS )); then
     chmod a+r /etc/apt/keyrings/docker.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
       > /etc/apt/sources.list.d/docker.list
-    apt-get update -qq
+    apt_refresh
     apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null
   fi
   ok "docker $(docker --version | awk '{print $3}' | tr -d ,)"
@@ -72,7 +86,8 @@ if (( ! NO_DEPS )); then
     chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
       > /etc/apt/sources.list.d/github-cli.list
-    apt-get update -qq && apt-get install -y -qq gh >/dev/null
+    apt_refresh
+    apt-get install -y -qq gh >/dev/null
   fi
   ok "gh"
 
