@@ -189,6 +189,14 @@ repo_add() {
 
   [[ -f "$envf" ]] && die "repo đã có: $slug"
 
+  # Chạy từ thư mục mà bee-orch ĐỌC ĐƯỢC.
+  #
+  # `git` từ chối chạy khi không stat nổi thư mục hiện hành, và bạn gần như chắc
+  # chắn gõ `be ra` từ trong home của mình — chỗ bee-orch không vào được. Lỗi báo
+  # ra khi đó là `failed to stat '/home/ban/...'`, đọc như lỗi phân quyền của
+  # repo đích chứ không phải của cwd, nên rất dễ đi tìm sai chỗ.
+  cd /srv/bee
+
   info "clone bare $full → $git"
   sudo -u "$ORCH_USER" git clone --bare "https://github.com/$full.git" "$git"
 
