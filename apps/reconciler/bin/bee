@@ -29,6 +29,27 @@ cmd_doctor() {
     else cx "$t — thiếu"; fi
   done
 
+  # Node của BEE-ORCH, không phải node trong PATH của người đang gõ lệnh.
+  #
+  # nvm, conda, asdf chỉ sống trong shell tương tác của một người. bee-orch và
+  # bee-agent chạy qua sudo/systemd nên chúng lấy /usr/bin/node. Vòng lặp phía
+  # trên hỏi sai user, và nó trả lời "✓ node" trên một máy mà mọi lần chạy CI
+  # đều đổ vì node quá cũ.
+  local node_orch node_major
+  node_orch=$(sudo -u "$ORCH_USER" -H bash -lc 'node -v' 2>/dev/null || true)
+  if [[ -z "$node_orch" ]]; then
+    cw "chưa tra được node của $ORCH_USER — chạy: sudo be doctor"
+  else
+    node_major=${node_orch#v}; node_major=${node_major%%.*}
+    if (( node_major >= 20 )); then
+      ck "$ORCH_USER dùng node $node_orch"
+    else
+      cx "$ORCH_USER dùng node $node_orch — quá cũ, Next.js cần >= 20.9
+       Bạn có thể đang có bản mới hơn qua nvm, nhưng nvm không tới được $ORCH_USER.
+       Sửa: chạy lại installer KHÔNG kèm --no-deps"
+    fi
+  fi
+
   sect "User & ranh giới quyền"
   id -u "$ORCH_USER"  >/dev/null 2>&1 && ck "user $ORCH_USER"  || cx "thiếu user $ORCH_USER"
   id -u "$AGENT_USER" >/dev/null 2>&1 && ck "user $AGENT_USER" || cx "thiếu user $AGENT_USER"

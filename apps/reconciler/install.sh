@@ -23,7 +23,13 @@ SRV=/srv/bee
 ORCH=bee-orch
 AGENT=bee-agent
 GRP=bee
-NODE_MAJOR=20
+# Node của HỆ THỐNG, không phải node trong shell của bạn. bee-orch và bee-agent
+# chạy qua sudo/systemd nên chúng lấy /usr/bin/node — nvm hay conda trong shell
+# của người cài không liên quan gì tới chúng.
+#
+# 22 chứ không phải 20: Next.js 15+ đòi >=20.9, và nhiều gói phổ biến đã yêu cầu
+# `^20.19 || >=22.12`. Ubuntu 24.04 đóng gói sẵn node 18, đủ cũ để mọi thứ đổ.
+NODE_MAJOR=22
 NO_DEPS=0
 CLAUDE_FROM=""
 
@@ -128,10 +134,26 @@ if (( ! NO_DEPS )); then
 
   step "Node ${NODE_MAJOR}"
   if ! command -v node >/dev/null || (( $(node -v | cut -c2- | cut -d. -f1) < NODE_MAJOR )); then
-    curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - >/dev/null
+    # KHÔNG dùng script `setup_XX.x` của NodeSource: nó tự chạy `apt-get update`
+    # và tự chết khi máy có một repo bên thứ ba hỏng — im lặng. Sau đó
+    # `apt-get install nodejs` lấy đúng bản cũ của Ubuntu, và bước này in ra
+    # như đã cài xong. Thêm khoá và nguồn theo đúng cách đã dùng cho Docker/gh.
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+      | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+    chmod a+r /etc/apt/keyrings/nodesource.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
+      > /etc/apt/sources.list.d/nodesource.list
+    apt_refresh
     apt-get install -y -qq nodejs >/dev/null
   fi
-  ok "node $(node -v)"
+  # Kiểm LẠI sau khi cài. Bản cũ in `ok "node $(node -v)"` bất kể kết quả, nên
+  # một lần cài trượt đọc lên y hệt một lần cài thành công.
+  if (( $(node -v | cut -c2- | cut -d. -f1) >= NODE_MAJOR )); then
+    ok "node $(node -v)"
+  else
+    die "vẫn là node $(node -v). bee-orch và bee-agent dùng /usr/bin/node — nvm trong shell của bạn không liên quan tới chúng."
+  fi
 
   step "Docker"
   if ! command -v docker >/dev/null; then
