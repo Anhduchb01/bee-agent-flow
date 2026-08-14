@@ -257,8 +257,17 @@ ok "unit đã cài, timer đã enable"
 
 # Cài xong nhưng CHƯA chạy: tạo PAUSE để hệ thống nằm im cho tới khi bạn xong
 # phần cấu hình tay. Không ai muốn agent bắt đầu làm việc lúc token còn rỗng.
-touch "$ETC/PAUSE"
-warn "đã tạo $ETC/PAUSE — hệ thống nằm im cho tới khi bạn chạy: be resume"
+#
+# Nhưng CHỈ khi hệ thống chưa chạy. Cài lại trên một máy đang chạy mà âm thầm
+# dừng nó thì dòng "Idempotent: chạy lại bao nhiêu lần cũng vô hại" ở đầu file
+# này thành lời nói dối — và bạn sẽ phát hiện ra bằng cách thấy agent im lặng
+# suốt buổi chiều mà không hiểu vì sao.
+if systemctl is-active --quiet bee-reconcile.timer && [[ ! -f "$ETC/PAUSE" ]]; then
+  ok "hệ thống đang chạy — giữ nguyên, không tạo PAUSE"
+else
+  touch "$ETC/PAUSE"
+  warn "đã tạo $ETC/PAUSE — hệ thống nằm im cho tới khi bạn chạy: be resume"
+fi
 
 step "Chống ngủ"
 systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target >/dev/null 2>&1 || true

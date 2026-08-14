@@ -9,12 +9,16 @@ body:
         Năm mục dưới đây đều **bắt buộc**. Thiếu một mục là spec gatekeeper sẽ
         hỏi ngược lại và task nằm chờ thêm một vòng — điền đủ ngay từ đầu rẻ hơn.
 
+        Tên năm mục để nguyên tiếng Anh và **không được sửa**: chúng là hợp đồng
+        mà `prompts/spec.md` của reconciler đọc theo đúng từng chữ. Đổi nhãn ở
+        đây là rule 08 báo thiếu mục ở mọi issue.
+
         Điền xong thì gắn label `status:ready-for-spec` để agent chấm độ rõ.
 
   - type: textarea
     id: goal
     attributes:
-      label: Mục tiêu
+      label: Goal
       description: Một câu, nhìn từ phía người dùng. Đây là thứ agent bám vào khi phải chọn giữa hai cách làm.
       placeholder: Người dùng lọc được danh sách đơn hàng theo trạng thái để tìm đơn cần xử lý mà không phải cuộn hết trang.
     validations:
@@ -37,7 +41,7 @@ body:
   - type: textarea
     id: constraints
     attributes:
-      label: Ràng buộc kỹ thuật
+      label: Technical constraints
       description: File/module được phép đụng, API contract phải giữ nguyên, thư viện bắt buộc hoặc bị cấm, yêu cầu về dữ liệu/migration.
       placeholder: |
         - Chỉ đụng module đơn hàng; không sửa module thanh toán.
