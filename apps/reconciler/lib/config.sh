@@ -15,13 +15,26 @@ EVIDENCE_KEEP_DAYS=90
 # — cố ý, vì một link tương đối trong PR body sẽ trỏ vào github.com.
 BEE_WEB_URL=""
 
+# `set -a` bọc quanh hai lệnh source, và đó KHÔNG phải chi tiết phong cách.
+#
+# `source` trần chỉ đặt biến của SHELL. `gh` và `git` là tiến trình con, chúng
+# chỉ thấy biến đã export — nên không có `set -a` thì `GH_TOKEN` tồn tại với mọi
+# phép kiểm trong bash và vô hình với mọi lệnh thật sự cần nó.
+#
+# Daemon không dính vì systemd nạp orch.env qua `EnvironmentFile=`, vốn export
+# sẵn. Chỉ đường chạy TAY dính: `be doctor` báo "token không đọc được issue của
+# repo này" kèm hướng dẫn đi tạo lại một PAT hoàn toàn lành lặn — còn lệnh kiểm
+# tay mà chính nó in ra thì có `set -a` nên chạy được. Thông báo lỗi vừa sai,
+# vừa tự bác bỏ mình, và vừa đắt: nó gửi người ta đi thu hồi token.
 load_global_config() {
+  set -a
   # shellcheck source=/dev/null
   [[ -f "$BEE_ETC/bee.env" ]] && source "$BEE_ETC/bee.env"
   # orch.env chứa GH_TOKEN — chỉ root đọc được, systemd nạp qua EnvironmentFile.
   # Ở đây chỉ source khi chạy tay và có quyền.
   # shellcheck source=/dev/null
   [[ -r "$BEE_ETC/orch.env" ]] && source "$BEE_ETC/orch.env"
+  set +a
   return 0
 }
 

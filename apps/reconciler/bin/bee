@@ -167,9 +167,17 @@ cmd_doctor() {
 
   sect "Repo"
   local n=0 slug
+  # `( … ) || DOC_FAIL=1` chứ không chỉ `( … )`.
+  #
+  # Subshell cần thiết để biến REPO_* của repo này không rò sang repo sau. Nhưng
+  # `cx` đặt `DOC_FAIL=1` BÊN TRONG subshell, và biến đó chết cùng subshell —
+  # nên doctor in ra dấu ✗ đỏ chót rồi kết luận "Tất cả đều ổn" ở dòng cuối.
+  #
+  # Đúng cái công cụ mà việc duy nhất của nó là trả lời "có ổn không".
   for slug in $(enabled_repos); do
     n=$((n+1))
-    ( load_repo_config "$slug"
+    ( DOC_FAIL=0
+      load_repo_config "$slug"
       if [[ ! -d "$REPO_GIT" ]]; then
         cx "$slug: thiếu bare clone $REPO_GIT"
       elif ! git --git-dir="$REPO_GIT" rev-parse -q --verify origin/HEAD >/dev/null 2>&1; then
@@ -196,7 +204,8 @@ cmd_doctor() {
        Kiểm tay: sudo bash -c 'set -a; . /etc/bee/orch.env; cd /tmp; gh issue list --repo $REPO_FULL --limit 1'"
       else
         ck "$slug → $REPO_FULL ($(git --git-dir="$REPO_GIT" rev-parse --short origin/HEAD)) · token đọc được issue"
-      fi )
+      fi
+      exit "$DOC_FAIL" ) || DOC_FAIL=1
   done
   (( n )) || cw "chưa có repo nào — be repo add org/name"
 
