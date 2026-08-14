@@ -249,10 +249,22 @@ status_write() {
                queue:$queue, recent:$recent}' ) )")
   done
 
+  # Đếm LẠI lúc ghi, không dùng $BUILD_USED/$EVID_USED của đầu tick.
+  #
+  # Hai con số đó chụp lúc tick bắt đầu, và đó là đúng chỗ của chúng: quyết định
+  # giao việc phải dựa trên trạng thái TRƯỚC khi giao. Nhưng file này là ảnh chụp
+  # trạng thái LÚC GHI, mà lúc ghi thì việc vừa giao đã chạy rồi.
+  #
+  # Trộn hai mốc thời gian vào một ảnh chụp sinh ra đúng cái nghịch lý đọc lên
+  # là vô lý: "ĐANG CHẠY 1 việc · slot build 0/3".
+  local build_now evid_now
+  build_now=$(running_in_pool build)
+  evid_now=$(running_in_pool evidence)
+
   mkdir -p "$(dirname "$out")"
   jq -n --arg heartbeat "$(now_iso)" --arg mode "$mode" \
-        --argjson build_used "$BUILD_USED"  --argjson build_max "$MAX_BUILD_SLOTS" \
-        --argjson evid_used "$EVID_USED"    --argjson evid_max "$MAX_EVIDENCE_SLOTS" \
+        --argjson build_used "$build_now"  --argjson build_max "$MAX_BUILD_SLOTS" \
+        --argjson evid_used "$evid_now"    --argjson evid_max "$MAX_EVIDENCE_SLOTS" \
         --argjson per_repo "$MAX_PER_REPO" \
         --argjson running "$(printf '%s\n' "${running[@]:-}" | jq -sc '.')" \
         --argjson repos "$(printf '%s\n' "${repos[@]:-}" | jq -sc '.')" \

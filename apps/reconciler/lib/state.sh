@@ -36,11 +36,23 @@ running_ids() {
 
 running_count()      { running_ids | wc -l; }
 running_in_repo()    { running_ids | grep -c "^$1-" || true; }
+# `n=$((n+1))` chứ KHÔNG phải `(( n++ ))`.
+#
+# `(( n++ ))` là hậu tố: nó trả về giá trị CŨ, nên khi n=0 biểu thức bằng 0, và
+# số học bằng 0 nghĩa là mã thoát 1. Với `set -e` thì lần đếm ĐẦU TIÊN giết cả
+# hàm — kiểm được bằng `bash -c 'set -e; n=0; true && (( n++ )); echo sống'`.
+#
+# Ở đây nó chưa từng nổ, vì hàm luôn được gọi qua `$( )` và bash không cho `-e`
+# giết tiến trình cha từ trong một command substitution. Nhưng đó là may, không
+# phải thiết kế: đổi chỗ gọi thành `running_in_pool build` trực tiếp là hàm im
+# lặng trả về rỗng, `pool_has_slot` coi rỗng là 0, và trần slot biến mất.
 running_in_pool() {
   local pool="$1" id n=0
   while read -r id; do
     [[ -z "$id" ]] && continue
-    [[ "$(cat "$(state_dir "$id")/pool" 2>/dev/null)" == "$pool" ]] && (( n++ ))
+    if [[ "$(cat "$(state_dir "$id")/pool" 2>/dev/null)" == "$pool" ]]; then
+      n=$((n + 1))
+    fi
   done < <(running_ids)
   printf '%d' "$n"
 }
