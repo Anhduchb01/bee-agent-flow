@@ -58,12 +58,12 @@ cmd_doctor() {
 
   # Thuộc group docker = tương đương root: docker run -v /:/host đọc được mọi thứ.
   # Nếu agent lọt vào đây thì toàn bộ thiết kế hai user sụp trong một dòng lệnh.
-  if id -nG "$AGENT_USER" 2>/dev/null | grep -qw docker; then
+  if thuoc_group "$AGENT_USER" docker; then
     cx "NGUY HIỂM: $AGENT_USER thuộc group docker — tương đương quyền root"
   else
     ck "$AGENT_USER KHÔNG thuộc group docker"
   fi
-  id -nG "$ORCH_USER" 2>/dev/null | grep -qw docker \
+  thuoc_group "$ORCH_USER" docker \
     && ck "$ORCH_USER thuộc group docker" || cw "$ORCH_USER chưa vào group docker — CI sẽ không dựng được service"
 
   # Kiểm chứ đừng đoán: đây là thứ nếu sai thì không có dấu hiệu nào cả.
@@ -84,7 +84,8 @@ cmd_doctor() {
   # Nó cần quyền root để tra, nên kiểm group trước: rẻ, luôn chạy được, và bắt
   # được đường lọt phổ biến nhất.
   local sudo_list
-  if id -nG "$AGENT_USER" 2>/dev/null | grep -qwE 'sudo|admin|wheel'; then
+  if thuoc_group "$AGENT_USER" sudo || thuoc_group "$AGENT_USER" admin \
+     || thuoc_group "$AGENT_USER" wheel; then
     cx "NGUY HIỂM: $AGENT_USER thuộc group sudo/admin/wheel"
   elif sudo_list=$(sudo -n -l -U "$AGENT_USER" 2>/dev/null); then
     # Dòng đặc quyền của sudo luôn có dạng "    (ALL) ALL"; câu từ chối thì

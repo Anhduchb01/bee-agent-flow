@@ -16,16 +16,30 @@ RULE_INLINE=1
 
 # Đọc approve từ latestReviews đã có sẵn trong một lời gọi gh_prs cho cả repo —
 # không gọi thêm API cho từng PR.
+#
+# `grep -qw -- "$u"` KHÔNG dùng được ở đây, và đây là chỗ nguy hiểm nhất trong
+# cả hệ thống để dùng nó: với grep, dấu gạch ngang là ranh giới từ, nên
+# `pdtoan2811` khớp bên trong `pdtoan2811-bit`.
+#
+# Nghĩa là một tài khoản KHÁC, chỉ cần tên chứa tên PM như một "từ", cũng ký
+# duyệt thay được. Đây là cổng quyết định `bee/approvals` chuyển xanh — thứ đứng
+# giữa "PM đã đồng ý" và "PM chưa xem". Tên GitHub cho phép dấu gạch ngang, và
+# hai tài khoản của cùng một đội rất hay khác nhau đúng một hậu tố.
+#
+# So khớp TRỌN VẸN từng login, không phải chuỗi con, và không phân biệt hoa
+# thường vì GitHub không phân biệt.
 approvals_state_from() {
   local reviews_json="$1" pm_ok=1 tl_ok=1 u approvers
-  approvers=$(jq -r '[.[]? | select(.state=="APPROVED") | .author.login] | unique | join(" ")' \
+  approvers=$(jq -r '[.[]? | select(.state=="APPROVED") | .author.login | ascii_downcase] | unique | .[]' \
                 <<<"$reviews_json" 2>/dev/null || echo '')
 
+  co_trong() { grep -qxF -- "$(tr '[:upper:]' '[:lower:]' <<<"$1")" <<<"$approvers"; }
+
   if [[ -n "$REPO_PM" ]]; then
-    pm_ok=0; for u in $REPO_PM; do grep -qw -- "$u" <<<"$approvers" && pm_ok=1; done
+    pm_ok=0; for u in $REPO_PM; do co_trong "$u" && pm_ok=1; done
   fi
   if [[ -n "$REPO_TL" ]]; then
-    tl_ok=0; for u in $REPO_TL; do grep -qw -- "$u" <<<"$approvers" && tl_ok=1; done
+    tl_ok=0; for u in $REPO_TL; do co_trong "$u" && tl_ok=1; done
   fi
 
   (( pm_ok && tl_ok )) && printf 'success' || printf 'pending'

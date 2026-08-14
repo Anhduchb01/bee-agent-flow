@@ -67,3 +67,13 @@ slugify() {
 # Chạy lệnh dưới quyền agent. sudo tự bật env_reset nên môi trường bị dọn sạch —
 # đây chính là cách agent không bao giờ nhìn thấy GH_TOKEN.
 as_agent() { sudo -u "$AGENT_USER" -H "$@"; }
+
+# "user X có thuộc group G không".
+#
+# `id -nG X | grep -qw G` KHÔNG trả lời được câu này: với grep, dấu gạch ngang là
+# ranh giới từ, nên `bee-web` khớp `\bbee\b`. Mọi câu hỏi về group `bee` sẽ trả
+# lời CÓ cho mọi user tên `bee-*` — và câu hỏi đó là một trong những chốt an
+# toàn của hệ thống này.
+thuoc_group() {
+  id -nG "$1" 2>/dev/null | tr ' ' '\n' | grep -qx "$2"
+}

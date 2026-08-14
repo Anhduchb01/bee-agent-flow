@@ -199,7 +199,7 @@ ok "$ORCH → group docker"
 # quyền root: `docker run -v /:/host` đọc được cả GH_TOKEN lẫn /home của bạn,
 # và toàn bộ thiết kế hai user sụp trong một dòng lệnh — không để lại dấu hiệu
 # nào. Dòng dưới là bảo hiểm, phòng khi ai đó lỡ tay thêm vào sau này.
-if id -nG "$AGENT" | grep -qw docker; then
+if thuoc_group "$AGENT" docker; then
   gpasswd -d "$AGENT" docker >/dev/null
   warn "đã GỠ $AGENT khỏi group docker (thuộc group này = quyền root)"
 fi
