@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { ghiThaoTac } from "@/features/notify";
-import { getActor } from "@/lib/auth";
+import { getActorWithToken } from "@/lib/auth/token";
 import { getGithub } from "@/lib/github";
 
 export interface KetQua {
@@ -17,7 +17,12 @@ export interface KetQua {
  * kiểm toán chỉ đúng khi nó mang tên người thật.
  */
 async function nguoiBam() {
-  const actor = await getActor();
+  // `getActorWithToken` chứ không phải `getActor`: đường GHI cần access token
+  // của người vừa bấm, mà `getActor()` cố ý không mang nó (token nằm trong JWT
+  // và `fillSession` xoá khỏi session để không có đường nào ra client). Dùng
+  // nhầm hàm thì trên fixture vẫn chạy trơn tru, còn `GITHUB_SOURCE=live` đổ ở
+  // mọi thao tác ghi — một lỗi chỉ lộ ra sau khi đã lên máy thật.
+  const actor = await getActorWithToken();
   if (!actor) throw new Error("You are not allowed to do this.");
   // Người vừa bấm gì đó đang nhìn thẳng vào app; đừng bắn Slack cho họ ngay sau đó.
   await ghiThaoTac(actor.login);

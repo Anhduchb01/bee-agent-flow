@@ -1,6 +1,6 @@
 "use server";
 
-import { getActor } from "@/lib/auth";
+import { getActorWithToken } from "@/lib/auth/token";
 import { getGithub } from "@/lib/github";
 
 import { taskFormSchema } from "../schemas/task-form";
@@ -18,7 +18,12 @@ export type KetQuaTao =
  * tự soạn đi thẳng vào đây mà không qua form nào cả.
  */
 export async function taoTask(raw: Record<string, string>): Promise<KetQuaTao> {
-  const actor = await getActor();
+  // `getActorWithToken` chứ không phải `getActor`: đường GHI cần access token
+  // của người vừa bấm, mà `getActor()` cố ý không mang nó (token nằm trong JWT
+  // và `fillSession` xoá khỏi session để không có đường nào ra client). Dùng
+  // nhầm hàm thì trên fixture vẫn chạy trơn tru, còn `GITHUB_SOURCE=live` đổ ở
+  // mọi thao tác ghi — một lỗi chỉ lộ ra sau khi đã lên máy thật.
+  const actor = await getActorWithToken();
   if (!actor) return { ok: false, errors: { slug: "You are not allowed to create tasks." } };
 
   const parsed = taskFormSchema.safeParse(raw);

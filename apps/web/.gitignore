@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# …trừ file mẫu. Nó không chứa bí mật nào, và nó là chỗ DUY NHẤT ghi lại biến
+# nào tồn tại — bị .env* nuốt thì mọi biến thêm vào chỉ có trên máy người thêm.
+!.env.example
 
 # vercel
 .vercel
