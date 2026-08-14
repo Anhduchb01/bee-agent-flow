@@ -3,12 +3,16 @@
 # install.sh — cài bee reconciler lên Ubuntu 22.04 / 24.04.
 # Idempotent: chạy lại bao nhiêu lần cũng vô hại.
 #
-#   sudo ./apps/reconciler/install.sh [--no-deps]
+#   sudo ./apps/reconciler/install.sh [--no-deps] [--claude-from[=USER]]
 #
 # Nguyên tắc: script làm HẾT phần không tương tác, rồi in ra checklist phần bắt
 # buộc phải có người. Không cố tự động hoá `claude /login`, `gh auth login`,
 # `cloudflared tunnel login` — chúng cần trình duyệt, và script cố làm sẽ treo
 # hoặc fail khó hiểu.
+#
+# `--claude-from` là ngoại lệ có chủ ý: nếu user của bạn đã đăng nhập Claude rồi
+# thì không có lý do gì bắt đăng nhập lần nữa. Nó chép sang bee-agent ĐÚNG HAI
+# THỨ — file binary và đúng một file credential. Xem `claude_from_user()`.
 
 set -euo pipefail
 
@@ -21,7 +25,24 @@ AGENT=bee-agent
 GRP=bee
 NODE_MAJOR=20
 NO_DEPS=0
-[[ "${1:-}" == "--no-deps" ]] && NO_DEPS=1
+CLAUDE_FROM=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-deps)        NO_DEPS=1 ;;
+    --claude-from=*)  CLAUDE_FROM="${1#*=}" ;;
+    # Không có giá trị đi kèm thì lấy chính người đang gõ sudo — trường hợp
+    # thường gặp nhất, và cũng là người chắc chắn đã đăng nhập Claude.
+    --claude-from)    if [[ -n "${2:-}" && "${2:0:1}" != "-" ]]; then
+                        CLAUDE_FROM="$2"; shift
+                      else
+                        CLAUDE_FROM="${SUDO_USER:-}"
+                      fi ;;
+    -h|--help)        sed -n '3,15p' "$0"; exit 0 ;;
+    *)                printf 'tham số lạ: %s\n' "$1" >&2; exit 2 ;;
+  esac
+  shift
+done
 
 if [[ -t 1 ]]; then G=$'\033[32m'; Y=$'\033[33m'; R=$'\033[31m'; B=$'\033[1m'; N=$'\033[0m'
 else G=''; Y=''; R=''; B=''; N=''; fi
@@ -50,6 +71,51 @@ apt_refresh() {
   warn "apt-get update có nguồn hỏng (xem lỗi phía trên) — vẫn đi tiếp"
   warn "nếu đó là repo bên thứ ba không liên quan thì bỏ qua được"
   return 0
+}
+
+# Dùng lại bản Claude Code mà một user thường đã cài và đã đăng nhập.
+#
+# Chép ĐÚNG HAI THỨ, và cố ý không chép gì thêm:
+#
+#   1. binary — bản cài của Claude Code là một file ELF độc lập, nên copy được.
+#      Đặt ở /usr/local/bin chứ không phải ~/.local/bin của agent: agent-exec.sh
+#      chạy qua `sudo`, mà `secure_path` của sudo KHÔNG có ~/.local/bin. Cài vào
+#      home của agent thì `command -v claude` vẫn trượt, và lỗi báo ra là
+#      "chưa cài claude, hoặc chưa đăng nhập" — nói sai hoàn toàn nguyên nhân.
+#
+#   2. `.credentials.json` — đúng một file.
+#
+# TUYỆT ĐỐI không chép cả thư mục `~/.claude/`, và không chép `~/.claude.json`.
+# File đó giữ cấu hình MCP server (có thể chứa API key của dịch vụ khác), lịch
+# sử mọi dự án, và session cũ. Đưa nguyên chỗ đó cho một user chạy
+# `--dangerously-skip-permissions` là mở một cửa hậu không ai nhớ mình đã mở.
+claude_from_user() {
+  local u="$1" home bin cred
+  [[ -n "$u" ]] || die "--claude-from cần tên user (hoặc chạy qua sudo để tự lấy)"
+  home=$(getent passwd "$u" | cut -d: -f6)
+  [[ -n "$home" ]] || die "không có user $u"
+
+  bin="$home/.local/bin/claude"
+  cred="$home/.claude/.credentials.json"
+
+  step "Claude Code — dùng lại của $u"
+
+  if [[ -e "$bin" ]]; then
+    install -m 755 -o root -g root "$(readlink -f "$bin")" /usr/local/bin/claude
+    ok "binary → /usr/local/bin/claude ($(/usr/local/bin/claude --version 2>/dev/null || echo '?'))"
+  else
+    warn "không thấy $bin — bỏ qua binary, agent sẽ cần bản cài riêng"
+  fi
+
+  if [[ -f "$cred" ]]; then
+    install -d -o "$AGENT" -g "$AGENT" -m 700 "/home/$AGENT/.claude"
+    install -m 600 -o "$AGENT" -g "$AGENT" "$cred" "/home/$AGENT/.claude/.credentials.json"
+    ok "credential → /home/$AGENT/.claude/.credentials.json (chỉ mình file này)"
+    warn "agent sẽ chạy bằng TÀI KHOẢN CLAUDE CỦA $u — hạn mức tính vào đó"
+    warn "token có thể được làm mới; nếu sau này agent báo hết phiên thì đăng nhập lại dưới $AGENT"
+  else
+    warn "không thấy $cred — $u đã chạy \`claude\` rồi \`/login\` chưa?"
+  fi
 }
 
 if (( ! NO_DEPS )); then
@@ -125,6 +191,12 @@ ok "$AGENT KHÔNG thuộc group docker"
 
 # Khoá home của agent — nó chạy --dangerously-skip-permissions.
 chmod 700 "/home/$AGENT" "/home/$ORCH" 2>/dev/null || true
+
+# `if` chứ không phải `[[ … ]] && f`: với `set -e`, câu sau trả về 1 khi điều
+# kiện sai và giết cả script — đúng ở nhánh có dùng cờ, chết ở nhánh không dùng.
+if [[ -n "$CLAUDE_FROM" ]]; then
+  claude_from_user "$CLAUDE_FROM"
+fi
 
 # ---------------------------------------------------------------------------
 step "Thư mục"
@@ -207,6 +279,9 @@ hoặc quyết định của bạn, nên script cố ý không tự làm:
         sudo -u $AGENT -H claude          # rồi gõ /login
      Credential nằm ở /home/$AGENT/.claude. Nếu bạn lỡ đăng nhập dưới user
      của mình, job sẽ báo chưa auth và lỗi đó rất khó đoán.
+     ${Y}Đã đăng nhập sẵn dưới user của bạn?${N} Chạy lại installer với
+        sudo ./apps/reconciler/install.sh --claude-from
+     rồi bỏ qua bước này.
 
   ${B}2.${N} Đăng nhập gh dưới orch
         sudo -u $ORCH -H gh auth login
