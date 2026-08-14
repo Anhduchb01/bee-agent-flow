@@ -198,9 +198,17 @@ evidence_write() {
     echo "<!-- evidence:end -->"
   } > "$stage/evidence.md"
 
-  # Web app chạy dưới bee-web, cùng group bee. Đọc là đủ — nó không bao giờ ghi
-  # vào /srv/bee.
-  chgrp -R "$BEE_GROUP" "$stage" 2>/dev/null || true
+  # Group lấy từ CHÍNH thư mục evidence, không phải hằng số `$BEE_GROUP`.
+  #
+  # `/srv/bee/evidence` thuộc group `bee-web` chứ không phải `bee`, và đó là cả
+  # thiết kế: group `bee` có quyền GHI khắp /srv/bee (bee-agent cần thế), nên
+  # cho bee-web vào group đó để đọc bằng chứng là mở luôn quyền ghi vào thư mục
+  # mà reconciler tin rằng chỉ mình nó viết.
+  #
+  # Đọc group tại chỗ thay vì ghi cứng: installer là nơi quyết định, và một hằng
+  # số ở đây sẽ lệch khỏi nó vào một ngày không ai nhớ.
+  local gr; gr=$(stat -c %G "$(evidence_root)" 2>/dev/null || printf '%s' "$BEE_GROUP")
+  chgrp -R "$gr" "$stage" 2>/dev/null || true
   chmod -R g+rX,o-rwx "$stage" 2>/dev/null || true
 
   # Đổi tên là bước cuối cùng và là bước duy nhất mà người ngoài nhìn thấy.

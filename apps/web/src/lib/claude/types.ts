@@ -10,8 +10,10 @@
  * - Dòng `result` mang `usage.{input_tokens, output_tokens,
  *   cache_read_input_tokens, cache_creation_input_tokens}`, `total_cost_usd`,
  *   `stop_reason`, `api_error_status`
- * - Trạng thái dịch vụ: `https://status.claude.com/api/v2/status.json` →
- *   `{ status: { indicator, description } }`, `indicator: "none"` = bình thường
+ * - Trạng thái dịch vụ: `https://anthropic.statuspage.io/api/v2/status.json` →
+ *   `{ status: { indicator, description } }`, `indicator: "none"` = bình thường.
+ *   KHÔNG phải `status.claude.com`: tên đó phân giải về Statuspage nhưng
+ *   Statuspage phục vụ chứng chỉ `*.statuspage.io` cho nó, nên fetch đổ ở TLS.
  *
  * Chi tiết và những thứ **không** lấy được ghi ở
  * [`docs/design/ui-ux-de-xuat.md`](../../../../docs/design/ui-ux-de-xuat.md) §3.5.

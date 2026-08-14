@@ -21,7 +21,20 @@ import type { ClaudeSnapshot, ClaudeSource, TrangThaiDichVu } from "./types";
  * qua `lib/bee/`, đúng cửa duy nhất ra `/srv/bee/`.
  */
 
-const STATUS_URL = process.env.CLAUDE_STATUS_URL ?? "https://status.claude.com/api/v2/status.json";
+/**
+ * `anthropic.statuspage.io`, KHÔNG phải `status.claude.com`.
+ *
+ * Cả `status.claude.com` lẫn `status.anthropic.com` đều phân giải về Statuspage,
+ * nhưng Statuspage phục vụ chứng chỉ `*.statuspage.io` cho chúng — không có SAN
+ * nào khớp, nên mọi `fetch` tới đó đổ ở bước TLS. Kiểm bằng `openssl s_client`
+ * trên máy thật ngày 2026-08-14: subject `CN = *.statuspage.io`, SAN chỉ có
+ * `*.statuspage.io` và `statuspage.io`.
+ *
+ * Triệu chứng trước khi sửa: ô trạng thái dịch vụ luôn hiện "không hỏi được",
+ * ở mọi máy, mãi mãi — và nó trông y hệt một sự cố mạng tạm thời.
+ */
+const STATUS_URL =
+  process.env.CLAUDE_STATUS_URL ?? "https://anthropic.statuspage.io/api/v2/status.json";
 
 /**
  * Bao nhiêu dòng `recent.jsonl` cần đọc.
@@ -70,10 +83,19 @@ async function docDichVu(): Promise<TrangThaiDichVu> {
       moTa: typeof status?.description === "string" ? status.description : "Unknown status",
       kiemLuc: new Date().toISOString(),
     };
-  } catch {
+  } catch (e) {
+    // Nêu ĐÍCH DANH host đang hỏi, lấy từ chính `STATUS_URL`. Câu cũ ghi cứng
+    // "status.claude.com" nên sau khi đổi endpoint nó vẫn tố cáo một tên miền
+    // không còn được gọi tới nữa — và người đọc đi kiểm nhầm chỗ.
+    let host = STATUS_URL;
+    try {
+      host = new URL(STATUS_URL).host;
+    } catch {
+      /* URL do người cấu hình đặt sai — giữ nguyên chuỗi, nó vẫn nói được vấn đề */
+    }
     gia = {
       indicator: "unknown",
-      moTa: "Could not reach status.claude.com",
+      moTa: `Could not reach ${host}: ${e instanceof Error ? e.message : String(e)}`,
       kiemLuc: new Date().toISOString(),
     };
   }

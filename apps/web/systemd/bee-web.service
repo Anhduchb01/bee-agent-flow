@@ -1,0 +1,77 @@
+[Unit]
+Description=bee web — dashboard (chỉ đọc /srv/bee)
+Documentation=file:///opt/bee-web/README
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# UID THỨ BA, và đó là cả thiết kế.
+#
+#   bee-orch  cầm GH_TOKEN, thuộc group docker (≈ root)
+#   bee-agent cầm login Claude, không token, không docker, không sudo
+#   bee-web   không cầm gì cả — chỉ đọc đĩa và nói chuyện với GitHub bằng token
+#             của NGƯỜI đang đăng nhập
+#
+# App đưa lên internet được, nên nó phải là user yếu nhất trong ba user. Thuộc
+# group `bee` chỉ để ĐỌC /srv/bee/evidence (thư mục 2750, "other" không thấy gì).
+User=bee-web
+# Group RIÊNG, và KHÔNG có `bee` ở đâu cả.
+#
+# Group `bee` có quyền ghi trên gần hết /srv/bee vì bee-agent cần viết worktree.
+# Thêm nó vào đây là biến app — thứ duy nhất đưa ra internet — thành thứ ghi
+# được vào đĩa mà reconciler tin rằng chỉ mình nó viết.
+#
+# App đọc bằng chứng qua group `bee-web` của chính thư mục đó (installer đổi),
+# và đọc status.json/recent.jsonl qua quyền "other". Không cần group `bee`.
+#
+# Cũng là thứ giữ /etc/bee/web.env (0640 root:bee-web) khỏi tay bee-agent, vốn
+# chạy --dangerously-skip-permissions.
+Group=bee-web
+
+WorkingDirectory=/opt/bee-web
+Environment=NODE_ENV=production
+Environment=PORT=3187
+Environment=HOSTNAME=127.0.0.1
+EnvironmentFile=/etc/bee/web.env
+ExecStart=/usr/bin/node /opt/bee-web/server.js
+Restart=on-failure
+RestartSec=5
+
+Slice=bee.slice
+
+# ---------------------------------------------------------------------------
+# Ranh giới, cưỡng chế bằng kernel chứ không bằng lời hứa trong code.
+#
+# `ProtectSystem=strict` làm cả hệ thống file chỉ-đọc, rồi ReadWritePaths mở lại
+# đúng một thư mục. Nghĩa là kể cả khi có lỗ RCE trong app, nó vẫn KHÔNG ghi
+# được vào /srv/bee — thứ mà reconciler tin là chỉ mình nó viết.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/bee-web
+ReadOnlyPaths=/srv/bee
+
+# /etc/bee/orch.env là 600 root:root nên UID này vốn đã không đọc được. Dòng
+# dưới là chốt thứ hai, cho cái ngày ai đó "sửa nhanh" quyền file ấy.
+InaccessiblePaths=/etc/bee/orch.env
+
+# Home của bee-orch và bee-agent chứa credential gh và Claude. App không có
+# việc gì ở đó.
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
