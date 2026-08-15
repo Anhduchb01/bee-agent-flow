@@ -1,0 +1,59 @@
+[Unit]
+Description=bee spec-chat — cửa sổ phỏng vấn tạo task
+Documentation=file:///opt/bee/prompts/spec-chat.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Chạy dưới BEE-AGENT, vì đây là user duy nhất có login Claude.
+#
+# Web app không gọi `claude` và không bao giờ được gọi: nó là user đưa ra
+# internet. Nó chỉ gửi văn bản qua một Unix socket tới tiến trình này.
+User=bee-agent
+Group=bee-web
+
+# RuntimeDirectory tạo /run/bee với đúng chủ, và systemd tự dọn khi dừng — nên
+# không có socket mồ côi nào sống sót qua một lần reboot bẩn.
+RuntimeDirectory=bee
+RuntimeDirectoryMode=0750
+
+Environment=BEE_SPEC_SOCKET=/run/bee/spec-chat.sock
+Environment=BEE_SPEC_PROMPT=/opt/bee/prompts/spec-chat.md
+ExecStart=/usr/bin/node /opt/bee/bin/spec-chat.mjs
+Restart=on-failure
+RestartSec=5
+
+Slice=bee.slice
+
+# Next/Claude giữ tiến trình con; mười giây là đủ và nó giữ cho `systemctl
+# restart` không treo 90 giây như bee-web từng bị.
+TimeoutStopSec=10
+KillMode=mixed
+SuccessExitStatus=143 SIGTERM
+
+# ---------------------------------------------------------------------------
+# Ranh giới. Tiến trình này cầm login Claude, nên nó phải chạm được ÍT nhất.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+# Home của agent giữ .credentials.json — `claude` cần đọc nó, nên ProtectHome
+# phải là no. Đó chính là thứ đáng giá nhất trên máy này, và là lý do mọi dòng
+# còn lại trong khối này tồn tại.
+ProtectHome=no
+# KHÔNG cần /srv/bee: vai trò này không đọc code, không ghi state. Nếu một ngày
+# nào đó nó cần, hãy hỏi lại vì sao trước khi mở.
+InaccessiblePaths=/srv/bee /etc/bee/orch.env /etc/bee/web.env
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+# AF_UNIX cho socket phục vụ, AF_INET/6 để gọi API Anthropic.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

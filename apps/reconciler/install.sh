@@ -118,7 +118,18 @@ claude_from_user() {
     install -m 600 -o "$AGENT" -g "$AGENT" "$cred" "/home/$AGENT/.claude/.credentials.json"
     ok "credential → /home/$AGENT/.claude/.credentials.json (chỉ mình file này)"
     warn "agent sẽ chạy bằng TÀI KHOẢN CLAUDE CỦA $u — hạn mức tính vào đó"
-    warn "token có thể được làm mới; nếu sau này agent báo hết phiên thì đăng nhập lại dưới $AGENT"
+    warn ""
+    warn "BẢN COPY NÀY SẼ HỎNG, và câu hỏi chỉ là bao giờ."
+    warn "OAuth token xoay vòng. Lần tới $u dùng Claude, token mới được cấp và"
+    warn "token cũ — bản $AGENT đang giữ — BỊ THU HỒI. Từ lúc đó mọi lần chạy"
+    warn "agent trả về \"401 OAuth access token has been revoked\"."
+    warn ""
+    warn "Đo được trên máy này: copy lúc 14-08 09:56, hỏng trước 15-08 14:19."
+    warn ""
+    warn "Dùng --claude-from để CHẠY THỬ cho nhanh. Trước khi giao việc thật thì"
+    warn "đăng nhập riêng, cùng tài khoản cũng được — mỗi lần đăng nhập là một"
+    warn "token riêng, và chúng không thu hồi lẫn nhau:"
+    warn "      sudo -u $AGENT -H claude      rồi gõ /login"
   else
     warn "không thấy $cred — $u đã chạy \`claude\` rồi \`/login\` chưa?"
   fi
@@ -232,6 +243,7 @@ ok "$PREFIX, $ETC, $SRV"
 step "Mã nguồn"
 install -m 755 "$SRC/bin/reconcile.sh" "$SRC/bin/worker.sh" \
                "$SRC/bin/agent-exec.sh" "$SRC/bin/heartbeat-check.sh" "$PREFIX/bin/"
+install -m 755 "$SRC/bin/spec-chat.mjs" "$PREFIX/bin/"
 install -m 644 "$SRC"/lib/*.sh    "$PREFIX/lib/"
 install -m 644 "$SRC"/rules/*.sh  "$PREFIX/rules/"
 # Lệnh chính là `be` (2 ký tự, thứ bạn gõ hằng ngày); `bee` là symlink để tài

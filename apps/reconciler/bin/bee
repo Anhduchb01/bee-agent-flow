@@ -135,7 +135,10 @@ cmd_doctor() {
   sudo -u "$AGENT_USER" -H bash -lc 'command -v claude >/dev/null && claude -p "ok" --max-turns 1' \
        >/dev/null 2>&1 \
     && ck "claude đã đăng nhập dưới $AGENT_USER" \
-    || cx "claude chưa sẵn sàng dưới $AGENT_USER — chạy: sudo -u $AGENT_USER -H claude"
+    || cx "claude chưa sẵn sàng dưới $AGENT_USER — chạy: sudo -u $AGENT_USER -H claude
+       Hay gặp nhất: bản cài dùng --claude-from, và token đã bị THU HỒI khi
+       user nguồn làm mới phiên của họ. Đăng nhập riêng dưới $AGENT_USER thì
+       không dính nữa — mỗi lần đăng nhập là một token riêng."
   sudo -u "$ORCH_USER" -H gh auth status >/dev/null 2>&1 \
     && ck "gh đã đăng nhập dưới $ORCH_USER" \
     || cx "gh chưa đăng nhập — chạy: sudo -u $ORCH_USER -H gh auth login"
