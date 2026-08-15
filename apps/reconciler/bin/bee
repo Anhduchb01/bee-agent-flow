@@ -165,13 +165,43 @@ cmd_doctor() {
     fi
   fi
 
-  sudo -u "$AGENT_USER" -H bash -lc 'command -v claude >/dev/null && claude -p "ok" --max-turns 1' \
-       >/dev/null 2>&1 \
-    && ck "claude đã đăng nhập dưới $AGENT_USER" \
-    || cx "claude chưa sẵn sàng dưới $AGENT_USER — chạy: sudo -u $AGENT_USER -H claude
-       Hay gặp nhất: bản cài dùng --claude-from, và token đã bị THU HỒI khi
-       user nguồn làm mới phiên của họ. Đăng nhập riêng dưới $AGENT_USER thì
-       không dính nữa — mỗi lần đăng nhập là một token riêng."
+  # Hỏi ĐÚNG CÂU mà agent-exec.sh hỏi: nạp agent.env rồi mới gọi.
+  #
+  # Bản trước gọi `claude` trần dưới bee-agent, tức là kiểm một đường mà KHÔNG
+  # AI dùng thật — agent-exec.sh source agent.env, còn bee-spec-chat.service
+  # nhận qua EnvironmentFile. Kết quả: token dài hạn đã đặt đúng và đang chạy
+  # được, mà doctor vẫn báo đỏ kèm hướng dẫn đi đăng nhập lại.
+  #
+  # Một bài kiểm sai ở chiều BÁO ĐỎ cũng đắt như sai ở chiều báo xanh: nó gửi
+  # người ta đi sửa một thứ không hỏng, và lần sau có lỗi thật thì họ đã quen
+  # bỏ qua.
+  #
+  # `</dev/null` là bắt buộc: `claude -p` vẫn chờ stdin, và khi doctor chạy
+  # trong một pipeline thì nó treo 3 giây rồi thoát khác 0 với "no stdin data
+  # received" — một câu chẳng liên quan gì tới đăng nhập, ở ngay dưới dòng báo
+  # token hợp lệ.
+  local thu thu_ok=0
+  thu=$(sudo -u "$AGENT_USER" -H bash -lc '
+          command -v claude >/dev/null || exit 127
+          set -a; [[ -r /etc/bee/agent.env ]] && . /etc/bee/agent.env; set +a
+          claude -p "ok" --max-turns 1 </dev/null' 2>&1) && thu_ok=1
+
+  if (( thu_ok )); then
+    if [[ -n "$tok" ]]; then
+      ck "claude gọi được dưới $AGENT_USER (bằng token dài hạn)"
+    else
+      ck "claude gọi được dưới $AGENT_USER"
+    fi
+  elif [[ -n "$tok" ]]; then
+    # Có token mà vẫn hỏng là chuyện khác hẳn: token sai, bị thu hồi, hoặc hết
+    # hạn mức. Đừng bảo người ta đi `/login` — họ vừa làm xong.
+    cx "có token dài hạn nhưng gọi không được: $(head -c 120 <<<"$thu")
+       Sinh lại: claude setup-token   rồi   sudo be tk <token>"
+  else
+    cx "claude chưa sẵn sàng dưới $AGENT_USER
+       Đặt token dài hạn (khuyên dùng):  claude setup-token  rồi  sudo be tk <token>
+       Hoặc đăng nhập riêng:             sudo -u $AGENT_USER -H claude"
+  fi
   sudo -u "$ORCH_USER" -H gh auth status >/dev/null 2>&1 \
     && ck "gh đã đăng nhập dưới $ORCH_USER" \
     || cx "gh chưa đăng nhập — chạy: sudo -u $ORCH_USER -H gh auth login"
