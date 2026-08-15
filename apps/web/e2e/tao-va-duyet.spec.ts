@@ -168,16 +168,15 @@ test("giao cho agent gắn agent:eligible", async ({ page }) => {
   await expect(page.getByText("agent:eligible")).toBeVisible();
 });
 
-test("chat vào task → comment mang tên người gửi, không có spinner vô tận", async ({ page }) => {
+test("yêu cầu sửa → comment mang tên người gửi, có @claude để rule 02 nhặt", async ({ page }) => {
   await dangNhap(page, "tl-duc");
   await page.goto("/t/myapp/49");
 
-  await expect(page.getByText("The agent sees it on the next tick")).toBeVisible();
-
-  await page.getByLabel("Continue with the agent").fill("Write it to audit_events.");
-  await page.getByRole("button", { name: "Send" }).click();
-
-  await expect(page.getByText("sent · waiting for the next tick")).toBeVisible();
+  // Cột phải mở ở chế độ "Ask"; yêu cầu sửa là một hành động RIÊNG, phải bấm
+  // sang. Hai đường có hậu quả khác hẳn nhau — một bên đọc, một bên sinh commit.
+  await page.getByRole("button", { name: "Request a change" }).click();
+  await page.getByRole("textbox").last().fill("Write it to audit_events.");
+  await page.getByRole("button", { name: "Send request" }).click();
 
   const items = page.getByRole("list", { name: "Timeline" }).getByRole("listitem");
   await expect(items).toHaveCount(3);
@@ -185,4 +184,10 @@ test("chat vào task → comment mang tên người gửi, không có spinner v�
   await expect(items.last()).toContainText("audit_events");
   // @claude được thêm tự động để rule 02 nhặt được.
   await expect(items.last()).toContainText("@claude");
+});
+
+test("task chưa có lần chạy nào thì nói ra, không hiện ô chat rỗng", async ({ page }) => {
+  await dangNhap(page, "tl-duc");
+  await page.goto("/t/myapp/49");
+  await expect(page.getByText("No agent session on this task yet")).toBeVisible();
 });

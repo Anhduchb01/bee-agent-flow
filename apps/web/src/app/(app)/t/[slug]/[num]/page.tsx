@@ -5,11 +5,12 @@ import { Eyebrow } from "@/components/eyebrow";
 import { StatGrid } from "@/components/stat-grid";
 import { STAGE_LABEL, STAGE_TONE, stageOf } from "@/lib/task-stage";
 import {
-  ChatBox,
   EvidenceViewer,
   loadTask,
   TaskActions,
+  RunList,
   TaskBody,
+  TaskChat,
   TaskStatus,
   TaskTimeline,
   thongKeTask,
@@ -27,11 +28,24 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
   const view = await loadTask(slug, number);
   if (!view) notFound();
 
-  const { task, timeline, evidence, evidenceCu, dangChay } = view;
+  const { task, timeline, evidence, evidenceCu, dangChay, runs } = view;
+
+  // Phiên để nối lại: lần chạy GẦN NHẤT có gọi model. Lấy lần gần nhất bất kể
+  // có phiên hay không thì rule 03 (chạy CI, không gọi model) sẽ che mất lần
+  // build ngay trước nó, và ô chat báo "chưa có phiên" trên một task vừa được
+  // agent làm xong.
+  const phien = runs.find((r) => r.session_id) ?? null;
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="flex max-w-3xl flex-col gap-10">
+    /*
+     * Hai cột, chat ở bên phải và đứng yên khi cột trái cuộn — bố cục của một
+     * cửa sổ soạn thảo, không phải của một trang tài liệu.
+     *
+     * Dưới `xl` thì xếp dọc: hai cột trên màn hẹp cho ra hai cột hẹp, và cột
+     * chat hẹp thì mọi câu trả lời đều xuống dòng sau bốn chữ.
+     */
+    <div className="grid min-h-0 gap-6 p-4 sm:p-6 xl:h-[calc(100dvh-var(--spacing)*4)] xl:grid-cols-[minmax(0,1fr)_26rem] xl:overflow-hidden">
+      <div className="flex min-w-0 flex-col gap-10 xl:overflow-y-auto xl:pr-2">
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-muted-foreground">
           <Link
@@ -80,17 +94,26 @@ export default async function TaskPage({ params }: PageProps<"/t/[slug]/[num]">)
         />
       </section>
 
+      <RunList runs={runs} />
+
       <section className="flex flex-col gap-7 border-t border-border pt-9">
         <Eyebrow>Conversation</Eyebrow>
         <TaskTimeline comments={timeline} />
-        <ChatBox
-          slug={task.slug}
-          num={task.number}
-          dangChayRule={dangChay?.rule ?? null}
-          dangChayGiay={dangChay?.elapsed_s ?? 0}
-        />
       </section>
       </div>
+
+      <aside className="flex min-h-0 min-w-0 flex-col gap-3 rounded-card border border-border bg-card p-4 xl:h-full">
+        <Eyebrow>Agent</Eyebrow>
+        <div className="min-h-0 flex-1">
+          <TaskChat
+            slug={task.slug}
+            num={task.number}
+            taskId={phien?.id ?? null}
+            sessionId={phien?.session_id ?? null}
+            coPr={task.pull !== null}
+          />
+        </div>
+      </aside>
     </div>
   );
 }
