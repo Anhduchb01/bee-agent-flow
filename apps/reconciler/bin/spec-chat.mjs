@@ -19,11 +19,26 @@
 
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
-import { chmodSync, unlinkSync } from "node:fs";
+import { chmodSync, existsSync, unlinkSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 
 const SOCKET = process.env.BEE_SPEC_SOCKET ?? "/run/bee/spec-chat.sock";
-const PROMPT = process.env.BEE_SPEC_PROMPT ?? "/opt/bee/prompts/spec-chat.md";
+const PROMPT_DIR = process.env.BEE_SPEC_PROMPT_DIR ?? "/opt/bee/prompts";
+const WORK_DIR = process.env.BEE_WORK_DIR ?? "/srv/bee/work";
+
+/**
+ * Hai vai, hai prompt.
+ *
+ *   spec     phỏng vấn để tạo task mới. Không phiên cũ, cwd không quan trọng.
+ *   hoi-run  hỏi về một lần chạy đã xong. NỐI LẠI phiên của lần chạy đó.
+ *
+ * Danh sách CHO PHÉP, không phải ghép chuỗi: `mode` đến từ trình duyệt và nó
+ * quyết định file nào được đọc.
+ */
+const VAI = {
+  spec: "spec-chat.md",
+  "hoi-run": "ask-run.md",
+};
 const MAX_TURNS = Number(process.env.BEE_SPEC_MAX_TURNS ?? 12);
 
 // Trần đồng thời. Mỗi phiên chat là một lần gọi model, cùng hạn mức với task
@@ -87,7 +102,22 @@ async function docBody(req) {
  * `session_id` do chính Claude cấp và web app giữ hộ. Ta không tự sinh id: một
  * id tự đặt chỉ là một lớp ánh xạ nữa để lệch.
  */
-function goiClaude({ res, message, sessionId, systemPrompt }) {
+/**
+ * `--resume` CHỈ tìm phiên trong project suy ra từ cwd.
+ *
+ * Kiểm trên máy thật: từ `/tmp`, resume một session id có thật của
+ * `/srv/bee/work/lifebook-assessment-8` trả về "No conversation found". Nên
+ * muốn nối lại một lần chạy thì phải đứng đúng thư mục nó đã chạy.
+ *
+ * Danh sách cho phép cho `id`: nó ghép thẳng vào đường dẫn. `<slug>-<số>` và
+ * không gì khác.
+ */
+function thuMucLamViec(id) {
+  if (!id || !/^[a-z0-9][a-z0-9._-]*-\d+$/i.test(id)) return "/tmp";
+  return `${WORK_DIR}/${id}`;
+}
+
+function goiClaude({ res, message, sessionId, systemPrompt, cwd }) {
   const args = [
     "-p",
     "--output-format", "stream-json",
@@ -100,9 +130,9 @@ function goiClaude({ res, message, sessionId, systemPrompt }) {
   if (sessionId) args.push("--resume", sessionId);
   args.push(message);
 
-  // cwd là /tmp chứ không phải một worktree: role này không có việc gì với đĩa,
-  // và cwd của một tiến trình có tool bị tắt vẫn là thứ nên chọn có chủ ý.
-  const child = spawn("claude", args, { cwd: "/tmp", stdio: ["ignore", "pipe", "pipe"] });
+  // Tool vẫn TẮT ở mọi vai. cwd chỉ để Claude tìm ra phiên cũ; nó không mở
+  // thêm cánh cửa nào, vì model không có tool nào để đọc thư mục đó.
+  const child = spawn("claude", args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
 
   let buf = "";
   let stderr = "";
@@ -215,12 +245,37 @@ const server = createServer(async (req, res) => {
     ? String(body.session_id)
     : null;
 
+  const vai = String(body.mode ?? "spec");
+  const ten = Object.prototype.hasOwnProperty.call(VAI, vai) ? VAI[vai] : null;
+  if (!ten) {
+    res.writeHead(400, { "content-type": "application/x-ndjson" });
+    ndjson(res, { type: "done", error: `vai không biết: ${vai}` });
+    res.end();
+    return;
+  }
+
+  const cwd = vai === "hoi-run" ? thuMucLamViec(String(body.task_id ?? "")) : "/tmp";
+  if (cwd !== "/tmp" && !existsSync(cwd)) {
+    // Worktree đã bị dọn (task đóng, hoặc rule 01 gỡ nó). Phiên vẫn còn trong
+    // home của agent nhưng không tìm ra được nữa. Nói thẳng ra, đừng để nó đội
+    // lốt "Claude không nhớ gì".
+    res.writeHead(200, { "content-type": "application/x-ndjson" });
+    ndjson(res, {
+      type: "done",
+      error:
+        "Worktree của lần chạy này đã được dọn, nên không nối lại phiên được. Báo cáo và log của lần chạy vẫn xem được ở bên trái.",
+    });
+    res.end();
+    return;
+  }
+
   let systemPrompt;
+  const promptFile = `${PROMPT_DIR}/${ten}`;
   try {
-    systemPrompt = await readFile(PROMPT, "utf8");
+    systemPrompt = await readFile(promptFile, "utf8");
   } catch {
     res.writeHead(500, { "content-type": "application/x-ndjson" });
-    ndjson(res, { type: "done", error: `không đọc được ${PROMPT}` });
+    ndjson(res, { type: "done", error: `không đọc được ${promptFile}` });
     res.end();
     return;
   }
@@ -235,7 +290,7 @@ const server = createServer(async (req, res) => {
 
   dangChay += 1;
   res.on("close", () => { dangChay = Math.max(0, dangChay - 1); });
-  goiClaude({ res, message, sessionId, systemPrompt });
+  goiClaude({ res, message, sessionId, systemPrompt, cwd });
 });
 
 try { unlinkSync(SOCKET); } catch { /* chưa có socket cũ — bình thường */ }
