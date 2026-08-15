@@ -240,3 +240,137 @@ export function mapComment(raw: ApiComment, kind: GhComment["kind"]): GhComment 
     from_agent: body.includes("<!-- agent-run -->"),
   };
 }
+
+// ---------------------------------------------------------------------------
+// GraphQL
+//
+// Một truy vấn thay cho `2 + 3N` lời gọi REST. Hình dạng khác hẳn REST nên nó
+// có bộ ánh xạ riêng chứ không cố nhét chung:
+//
+//   state       "OPEN"/"CLOSED"  (REST: "open"/"closed")
+//   createdAt   camelCase        (REST: created_at)
+//   labels      { nodes: [{name}] }
+//   author      có thể là null   (tài khoản đã xoá)
+//
+// MỘT KHÁC BIỆT ĐÁNG GIÁ: `issues` của GraphQL KHÔNG lẫn pull request. Cái bẫy
+// lớn nhất của `GET /issues` biến mất — nhưng `laPullRequest` vẫn ở lại, vì
+// đường ghi và mọi thứ đọc qua REST vẫn cần nó.
+// ---------------------------------------------------------------------------
+
+export interface GqlIssue {
+  number?: number;
+  title?: string;
+  body?: string | null;
+  url?: string;
+  state?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  author?: { login?: string; avatarUrl?: string } | null;
+  labels?: { nodes?: Array<{ name?: string }> };
+}
+
+export interface GqlPull {
+  number?: number;
+  title?: string;
+  body?: string | null;
+  url?: string;
+  isDraft?: boolean;
+  headRefOid?: string;
+  reviews?: {
+    nodes?: Array<{
+      state?: string;
+      submittedAt?: string;
+      author?: { login?: string; avatarUrl?: string } | null;
+    }>;
+  };
+  commits?: {
+    nodes?: Array<{
+      commit?: {
+        statusCheckRollup?: {
+          contexts?: { nodes?: Array<Record<string, unknown>> };
+        } | null;
+      };
+    }>;
+  };
+}
+
+function mapGqlUser(raw: GqlIssue["author"]): GhUser {
+  const login = s(raw?.login) || "unknown";
+  return { login, name: login, avatar_url: s(raw?.avatarUrl) };
+}
+
+export function mapGqlLabels(raw: GqlIssue["labels"]): GhLabel[] {
+  const ten = (raw?.nodes ?? []).map((l) => s(l?.name));
+  return NHAN.filter((k) => ten.includes(k));
+}
+
+export function mapGqlReviews(raw: GqlPull["reviews"]): GhReview[] {
+  const out: GhReview[] = [];
+  for (const r of raw?.nodes ?? []) {
+    const state = s(r?.state);
+    // PENDING chưa gửi, DISMISSED đã bị gỡ hiệu lực — cùng lý do như bản REST.
+    if (state !== "APPROVED" && state !== "CHANGES_REQUESTED" && state !== "COMMENTED") continue;
+    out.push({ author: mapGqlUser(r?.author), state, submitted_at: s(r?.submittedAt) });
+  }
+  return out;
+}
+
+/**
+ * `statusCheckRollup` gộp CẢ HAI thứ mà REST tách làm hai endpoint, phân biệt
+ * bằng `__typename`:
+ *
+ *   CheckRun       GitHub Actions và app khác. conclusion VIẾT HOA, và là null
+ *                  cho tới khi `status == COMPLETED`.
+ *   StatusContext  commit status — chỗ bee đẩy `bee/test` và `bee/approvals`.
+ *
+ * ⚠ Nhánh `StatusContext` là nhánh DUY NHẤT trong file này chưa đối chiếu được
+ * với payload thật: không repo công khai nào tôi tìm được còn dùng commit
+ * status. Nó cũng đúng là chỗ bản REST từng sai. Ai chạm vào đây nên kiểm lại
+ * trên một PR thật của bee trước khi tin.
+ */
+export function mapGqlChecks(raw: GqlPull["commits"]): GhCheck[] {
+  const nodes = raw?.nodes?.[0]?.commit?.statusCheckRollup?.contexts?.nodes ?? [];
+  const out: GhCheck[] = [];
+  for (const c of nodes) {
+    if (c.__typename === "StatusContext") {
+      out.push({ name: s(c.context), conclusion: ketLuanStatus(s(c.state).toLowerCase()) });
+    } else if (c.__typename === "CheckRun") {
+      out.push({
+        name: s(c.name),
+        conclusion:
+          s(c.status) === "COMPLETED" ? ketLuanCheckRun(s(c.conclusion).toLowerCase()) : "pending",
+      });
+    }
+  }
+  return out;
+}
+
+export function mapGqlPull(raw: GqlPull): GhPull {
+  return {
+    number: typeof raw.number === "number" ? raw.number : 0,
+    title: s(raw.title),
+    url: s(raw.url),
+    draft: raw.isDraft === true,
+    head_sha: s(raw.headRefOid),
+    checks: mapGqlChecks(raw.commits),
+    reviews: mapGqlReviews(raw.reviews),
+  };
+}
+
+export function mapGqlTask(slug: string, raw: GqlIssue, pull: GhPull | null): GhTask {
+  return {
+    slug,
+    number: typeof raw.number === "number" ? raw.number : 0,
+    title: s(raw.title),
+    body: typeof raw.body === "string" ? raw.body : "",
+    labels: mapGqlLabels(raw.labels),
+    author: mapGqlUser(raw.author),
+    created_at: s(raw.createdAt),
+    updated_at: s(raw.updatedAt) || s(raw.createdAt),
+    url: s(raw.url),
+    // VIẾT HOA ở GraphQL. So với "closed" thường như bản REST là mọi issue đã
+    // đóng đều đọc ra "open" — và bảng việc dài gấp đôi bằng những thứ đã xong.
+    state: s(raw.state).toUpperCase() === "CLOSED" ? "closed" : "open",
+    pull,
+  };
+}

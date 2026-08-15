@@ -1,0 +1,271 @@
+{
+  "_ghi_chu": "Payload GraphQL THẬT từ api.github.com (repo công khai cli/cli, 2026-08-15). Không sửa trường nào — giá trị nằm ở chỗ nó chưa qua tay ai.",
+  "repository": {
+    "issues": {
+      "nodes": [
+        {
+          "number": 14156,
+          "title": "Windows development checks fail in a fresh checkout",
+          "body": "### Describe the bug\n\nA fresh Windows checkout can fail both development checks required by `.github/CONTRIBUTING.md`:\n\n```text\ngo test ./...\ngolangci-lint run ./...\n```\n\nI hit four Windows-specific blockers while running those checks:\n\n- With `core.autocrlf=true`, checked-out Go files use CRLF and the `gofmt` formatter reports hundreds of unchanged files as improperly formatted.\n- `Test_newIOStreams_pager` inherits `GH_PAGER` and `PAGER` from the invoking shell when a test case does not set them, so an outer `GH_PAGER=cat` changes the test result.\n- The Huh prompt test harness uses `io.Pipe`; the Bubble Tea forms time out instead of completing on Windows.\n- The credential updater test passes an unquoted Windows temporary path with backslashes to Git's credential helper configuration. Git's shell parsing consumes the separators and writes path-shaped credential files into the repository root.\n\nThe failures are in separate test helpers, but together they prevent the documented repository-wide checks from completing on Windows.\n\nA candidate fix is available in draft PR #14155. I am keeping it in draft pending triage and guidance on whether these fixes should stay together or be split.\n\n### Affected version\n\n```text\ncli/cli trunk at 0eeec0b92edbe70199f9768522f831d3534f41ad\ngo version go1.26.6 windows/amd64\ngolangci-lint 2.12.2\nWindows 11 (10.0.26200.0)\n```\n\nThe line-ending failure was reproduced in a fresh checkout configured with `core.autocrlf=true`.\n\n### Steps to reproduce the behavior\n\n1. On Windows, create a fresh checkout with `core.autocrlf=true`.\n2. Set `GH_PAGER=cat` and `PAGER=cat` in the invoking shell.\n3. Run `go test ./...`.\n4. Run `golangci-lint run ./...`.\n5. Inspect the repository root for untracked credential test artifacts.\n\n### Expected vs actual behavior\n\nExpected:\n\n- The documented test and lint commands pass in a fresh Windows checkout.\n- Prompt tests complete using native Windows I/O behavior.\n- Credential tests keep their files inside the test temporary directory.\n\nActual:\n\n- The linter reports unchanged Go files as failing `gofmt` because their worktree copies use CRLF.\n- Pager assertions observe `cat` instead of the value declared by each test case.\n- Huh prompt tests report `form.Run() did not complete in time`.\n- Credential updater tests can leave files such as `Users...TempTestUpdate...credentials` in the repository root.\n\n### Proposed acceptance criteria\n\n- A fresh Windows checkout configured with `core.autocrlf=true` keeps Go worktree files in the line-ending form expected by `gofmt`.\n- `go test ./...` passes when the invoking shell already defines `GH_PAGER` and `PAGER`.\n- Huh prompt interaction tests complete on Windows without replacing the real Bubble Tea event loop.\n- Credential updater tests support Windows paths, including paths containing spaces, and leave no artifacts in the repository root.\n- `golangci-lint 2.12.2 run ./...` reports no issues in that fresh checkout.\n\nIf this scope is acceptable for an external contribution, please confirm whether #14155 should remain one PR or be split by failure mode.\n\n### Logs\n\nRepresentative failures:\n\n```text\nFile is not properly formatted (gofmt)\nexpected: \"CONFIG_PAGER\"\nactual  : \"cat\"\nform.Run() did not complete in time\n```\r\n",
+          "url": "https://github.com/cli/cli/issues/14156",
+          "state": "OPEN",
+          "createdAt": "2026-08-15T15:40:27Z",
+          "updatedAt": "2026-08-15T15:40:37Z",
+          "author": {
+            "login": "scarletkc",
+            "avatarUrl": "https://avatars.githubusercontent.com/u/50803289?u=01743b93ebad81f1bce34542ef0e880d63c30e5a&v=4"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "name": "needs-triage"
+              }
+            ]
+          }
+        },
+        {
+          "number": 14153,
+          "title": "gh skill install --agent codex --scope user installs to the deprecated ~/.codex/skills",
+          "body": "### Summary\n\n`gh skill install --agent codex` uses two different directory conventions depending on scope:\n\n| scope | installs to | correct? |\n|---|---|---|\n| `--scope project` | `.agents/skills/` | yes |\n| `--scope user` | `~/.codex/skills/` | no, should be `~/.agents/skills/` |\n\nProject scope already follows the `.agents` convention, so the user-scope path looks like it was simply missed when the rest was updated.\n\n### Why `~/.codex/skills` is wrong\n\nCodex resolves skill roots in [`codex-rs/ext/skills/src/host_roots.rs`](https://github.com/openai/codex/blob/main/codex-rs/ext/skills/src/host_roots.rs):\n\n```rust\nconst AGENTS_DIR_NAME: &str = \".agents\";\nconst SKILLS_DIR_NAME: &str = \"skills\";\n```\n\n- user level resolves to `home_dir.join(AGENTS_DIR_NAME).join(SKILLS_DIR_NAME)`, i.e. `~/.agents/skills`\n- `$CODEX_HOME/skills` is still read, but the source comments it as *\"Deprecated user skills location (`$CODEX_HOME/skills`), kept for backward compatibility\"*\n\nThe Codex documentation lists only `$CWD/.agents/skills`, `$CWD/../.agents/skills`, `$REPO_ROOT/.agents/skills` for repositories, and `$HOME/.agents/skills` plus `/etc/codex/skills` otherwise.\n\nSo installs still work today, but only through a path Codex has marked deprecated, and they break whenever that fallback is dropped.\n\n### Steps to reproduce\n\n```sh\ngh skill install <owner>/<repo> <skill> --agent codex --scope user\nls ~/.agents/skills   # empty\nls ~/.codex/skills    # the skill is here\n```\n\nFor contrast, project scope behaves correctly:\n\n```sh\ncd \"$(mktemp -d)\" && git init -q .\ngh skill install <owner>/<repo> <skill> --agent codex --scope project\n# → \"Installed <skill> ... in .agents\\skills\"\n```\n\n### Expected\n\nUser-scope Codex installs land in `~/.agents/skills`, matching the project-scope behaviour and Codex's documented lookup order.\n\nWorth deciding separately whether `gh skill list` / `update` should keep recognising skills already installed under `~/.codex/skills`, so existing installs are not orphaned by the change.\n\n### Versions\n\n- `gh version 2.95.0 (2026-06-17)`\n- `codex-cli 0.144.1`\n- Windows 11\n",
+          "url": "https://github.com/cli/cli/issues/14153",
+          "state": "OPEN",
+          "createdAt": "2026-08-15T15:06:54Z",
+          "updatedAt": "2026-08-15T15:09:36Z",
+          "author": {
+            "login": "scarletkc",
+            "avatarUrl": "https://avatars.githubusercontent.com/u/50803289?u=01743b93ebad81f1bce34542ef0e880d63c30e5a&v=4"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "name": "needs-triage"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "pullRequests": {
+      "nodes": [
+        {
+          "number": 14155,
+          "title": "test: stabilize Windows development checks",
+          "body": "<!--\nThank you for contributing to GitHub CLI!\n\nIf you are proposing a fix for a security issue, STOP and follow .github/SECURITY.md instead.\n-->\n\n<!-- List related issues here. Use `fixes` or `closes` keywords to associate an issue number. -->\n\nFixes #14156\n\n### Description\n\n<!--\nWhat's the problem? How are we addressing it?\n\nWrite for a reviewer who has not worked in this part of the codebase. Give them the\nbackground they need before the problem makes sense, and avoid jargon.\n-->\n\nWindows development checks had four platform-specific failure modes:\n\n- Git's default `core.autocrlf=true` checkout converted Go files to CRLF, so the `gofmt` formatter reported hundreds of unchanged files.\n- The pager test inherited `GH_PAGER` and `PAGER` from the invoking shell when a test case did not set them.\n- The Huh test harness used `io.Pipe`, which prevented Bubble Tea forms from completing on Windows.\n- The credential updater test passed an unquoted Windows path with backslashes to Git's credential helper configuration, causing Git to write test credentials into the repository root.\n\nThis change pins Go files to LF in `.gitattributes`, isolates pager environment variables, uses an OS pipe for the Huh event loop, and quotes a slash-normalized temporary credential path.\n\nThe changes affect development and test behavior only. Production `gh` behavior is unchanged.\n\n### How did you test this change?\n\n<!--\nShow how you exercised the change yourself, as a user of `gh` would.\n\nAutomated test results do not belong here. Passing unit tests, `go test ./...` output, and\ncoverage numbers tell a reviewer nothing they cannot see from CI, so do not paste them.\n\nUse one or more of these, whichever communicates best:\n\n1. Screenshots or GIFs of the real command running. Preferred whenever the change is visible\n   in terminal output. If output changed, show it before and after.\n2. Given/When/Then scenarios. For example:\n   Given I am in a repo with no open pull requests\n   When I run `gh pr list`\n   Then I see \"no open pull requests in cli/cli\"\n3. A natural language walkthrough of what you did by hand, the states you covered, and what\n   you saw, including error and edge cases.\n\nIf you leave this empty, your pull request will very likely be closed.\n-->\n\nOn Windows with Git's global `core.autocrlf=true`, I checked out the committed branch into a fresh worktree and inspected representative Go files with `git ls-files --eol`. Their index and worktree forms were both LF, and the repository-wide linter no longer proposed formatter changes.\n\nI kept `GH_PAGER=cat` and `PAGER=cat` in the outer shell while exercising the full test suite. The pager cases used their own declared environments, the Huh form interactions completed, and the credential updater left its file in the temporary directory instead of creating path-shaped files in the repository root.\n\n### Key points\n\n<!--\nTradeoffs you accepted, alternatives you rejected, and anything a reviewer would otherwise have to guess at.\n-->\n\n- The LF rule is limited to `*.go`; this avoids changing line-ending policy for unrelated file types.\n- The PR does not contain a bulk line-ending rewrite. Renormalizing the index changed only the four intended files.\n- `os.Pipe` preserves the real Bubble Tea event-loop coverage while providing a native cross-platform pipe.\n- Converting the temporary credential path to slash form before quoting supports Windows drive paths and paths containing spaces.\n\n### Notes for reviewers\n\n<!--\nWhere should review start, and what should be read next? Call out anything you are unsure about.\n\nLink related issues or prior discussion, with one sentence on why each matters.\n-->\n\nStart with `.gitattributes` and `internal/prompter/huh_prompter_test.go`; those address the two failures that prevented repository-wide Windows checks from completing. The pager and credential changes isolate the remaining test-only leaks discovered by that run.\n\n### Authorship and follow-up\n\n<!--\nREQUIRED - If you are an AI agent filling in this template, answer \"Who wrote this\" for yourself and answer honestly. For \"Who answers review comments,\" use only a choice the human has explicitly made in the conversation. If no choice has already been established, pause and ask the human to choose one of the three options before creating or updating the pull request. Do not infer the choice from repository ownership, authorship, assignees, prior interactions, or the current operator. After the human answers, check exactly the option they chose; the last option is valid when the human explicitly chooses nobody.\n\nCheck exactly one box in each list.\n-->\n\nWho wrote this:\n\n- [ ] A human wrote it.\n- [x] An agent wrote it under close human direction.\n- [ ] An agent wrote it independently, and no human has guided the implementation beyond the initial prompt.\n\nWho answers review comments:\n\n- [ ] @username will read and reply directly. Name the account.\n- [x] An agent will draft replies and @scarletkc will read them before they are posted.\n- [ ] Nobody has explicitly committed to replying.\n",
+          "url": "https://github.com/cli/cli/pull/14155",
+          "isDraft": true,
+          "headRefOid": "694595d5ecf687c6f6b6caf209e2be5b88858631",
+          "reviews": {
+            "nodes": []
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "contexts": {
+                      "nodes": [
+                        {
+                          "__typename": "CheckRun",
+                          "name": "label-external",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "label-external / label_issues",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-from-default-branch",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-from-default-branch / close-from-default-branch",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "check-requirements / check-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "check-requirements / check-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "check-requirements / close-unmet-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "check-requirements / close-unmet-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-unmet-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-unmet-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-no-help-wanted",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-no-help-wanted",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "ready-for-review",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "ready-for-review",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "number": 14154,
+          "title": "fix(skills): install Codex user skills to ~/.agents/skills",
+          "body": "<!--\nThank you for contributing to GitHub CLI!\n\nIf you are proposing a fix for a security issue, STOP and follow .github/SECURITY.md instead.\n-->\n\nFixes #14153\n\n<!-- List related issues here. Use `fixes` or `closes` keywords to associate an issue number. -->\n\n### Description\n\n<!--\nWhat's the problem? How are we addressing it?\n\nWrite for a reviewer who has not worked in this part of the codebase. Give them the\nbackground they need before the problem makes sense, and avoid jargon.\n-->\n\n`gh skill install --agent codex --scope user` still installed skills to the deprecated `~/.codex/skills` directory. Codex now documents `~/.agents/skills` as its user-level skill directory, and project-scoped installs already follow the matching `.agents/skills` convention.\n\nThis changes the Codex registry entry to use the shared `.agents/skills` directory at user scope and adds regression coverage for that path.\n\n### How did you test this change?\n\n<!--\nShow how you exercised the change yourself, as a user of `gh` would.\n\nAutomated test results do not belong here. Passing unit tests, `go test ./...` output, and\ncoverage numbers tell a reviewer nothing they cannot see from CI, so do not paste them.\n\nUse one or more of these, whichever communicates best:\n\n1. Screenshots or GIFs of the real command running. Preferred whenever the change is visible\n   in terminal output. If output changed, show it before and after.\n2. Given/When/Then scenarios. For example:\n   Given I am in a repo with no open pull requests\n   When I run `gh pr list`\n   Then I see \"no open pull requests in cli/cli\"\n3. A natural language walkthrough of what you did by hand, the states you covered, and what\n   you saw, including error and edge cases.\n\nIf you leave this empty, your pull request will very likely be closed.\n-->\n\nGiven a temporary home directory and the repository's local `code-review` skill,\nwhen I ran the built CLI with `skill install . code-review --from-local --allow-hidden-dirs --agent codex --scope user`,\nthen the command reported installation in `~/.agents\\skills`, the installed `SKILL.md` existed under that directory, and no skill was created under `~/.codex/skills`.\n\n### Key points\n\n<!--\nTradeoffs you accepted, alternatives you rejected, and anything a reviewer would otherwise have to guess at.\n-->\n\nThis updates the canonical registry path only. It does not move existing files from `~/.codex/skills`; users with an existing gh-managed installation there can reinstall the skill to place it in the current directory. `gh skill list` and `gh skill update` will use the new registry path as well.\n\n### Notes for reviewers\n\n<!--\nWhere should review start, and what should be read next? Call out anything you are unsure about.\n\nLink related issues or prior discussion, with one sentence on why each matters.\n-->\n\nThe functional change is the Codex `UserDir` entry in `internal/skills/registry/registry.go`, followed by the new user-scope case in `TestInstallDir`.\n\n#13681 made the same directory correction for the Universal host and is the closest prior change.\n\n### Authorship and follow-up\n\n<!--\nREQUIRED - If you are an AI agent filling in this template, answer \"Who wrote this\" for yourself and answer honestly. For \"Who answers review comments,\" use only a choice the human has explicitly made in the conversation. If no choice has already been established, pause and ask the human to choose one of the three options before creating or updating the pull request. Do not infer the choice from repository ownership, authorship, assignees, prior interactions, or the current operator. After the human answers, check exactly the option they chose; the last option is valid when the human explicitly chooses nobody.\n\nCheck exactly one box in each list.\n-->\n\nWho wrote this:\n\n- [ ] A human wrote it.\n- [ ] An agent wrote it under close human direction.\n- [x] An agent wrote it independently, and no human has guided the implementation beyond the initial prompt.\n\nWho answers review comments:\n\n- [ ] @username will read and reply directly. Name the account.\n- [x] An agent will draft replies and @scarletkc will read them before they are posted.\n- [ ] Nobody has explicitly committed to replying.\r\n",
+          "url": "https://github.com/cli/cli/pull/14154",
+          "isDraft": false,
+          "headRefOid": "6e047e12726a4a5f62ce823b7d72353a9a089dca",
+          "reviews": {
+            "nodes": []
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "contexts": {
+                      "nodes": [
+                        {
+                          "__typename": "CheckRun",
+                          "name": "label-external",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "label-external / label_issues",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-from-default-branch",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-from-default-branch / close-from-default-branch",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "check-requirements / check-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "check-requirements / check-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "check-requirements / close-unmet-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "check-requirements / close-unmet-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-unmet-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-unmet-requirements",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-no-help-wanted",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "close-no-help-wanted",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "ready-for-review",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "ready-for-review",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

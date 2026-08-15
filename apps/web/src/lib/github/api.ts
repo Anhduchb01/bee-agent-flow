@@ -46,6 +46,48 @@ export async function ghGet<T>(token: string | undefined, path: string): Promise
   return (await res.json()) as T;
 }
 
+/**
+ * Một lời gọi GraphQL thay cho `2 + 3N` lời gọi REST.
+ *
+ * Đo trên api.github.com: query lấy 100 issue + 100 PR kèm review và trạng thái
+ * check tốn **1 điểm** trong hạn mức 5.000 điểm/giờ. Đường REST cũ tốn
+ * `2 + 3 × số PR đang mở` lời gọi cho CÙNG một màn hình — repo 20 PR là 62 lời
+ * gọi, mỗi lần tải trang.
+ *
+ * GraphQL của GitHub trả HTTP 200 kèm mảng `errors` cho lỗi truy vấn, nên
+ * `res.ok` KHÔNG đủ để biết nó thành công. Đây là chỗ một bản viết ẩu đọc ra
+ * `data: null` rồi hiện một danh sách rỗng như thể repo không có gì.
+ */
+export async function ghGraphQL<T>(
+  token: string | undefined,
+  query: string,
+  variables: Record<string, unknown>,
+): Promise<T> {
+  const res = await fetch(`${BASE}/graphql`, {
+    method: "POST",
+    headers: { ...headersFor(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new GithubError(res.status, "/graphql", await moTaLoi(res, "/graphql"));
+
+  const body = (await res.json()) as {
+    data?: T;
+    errors?: Array<{ message?: string; type?: string }>;
+  };
+  if (body.errors?.length) {
+    const msg = body.errors.map((e) => e.message ?? "?").join(" · ");
+    // GraphQL báo thiếu quyền bằng `type` trong THÂN, HTTP vẫn 200. Ánh xạ về
+    // đúng mã để `neuTokenHong` xử lý y như đường REST — nếu không thì phiên
+    // hết hạn ở đây sẽ ra một lỗi 422 khó hiểu thay vì lời mời đăng nhập lại.
+    const type = body.errors[0]?.type;
+    const status = type === "FORBIDDEN" ? 403 : type === "NOT_FOUND" ? 404 : 422;
+    throw new GithubError(status, "/graphql", `GitHub GraphQL: ${msg}`);
+  }
+  if (!body.data) throw new GithubError(502, "/graphql", "GitHub GraphQL trả về thân rỗng");
+  return body.data;
+}
+
 export async function ghSend<T>(
   token: string | undefined,
   method: "POST" | "PATCH" | "PUT" | "DELETE",

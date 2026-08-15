@@ -5,18 +5,17 @@ import { cache } from "react";
 
 import { getActorWithToken } from "@/lib/auth/token";
 
-import { ghGet, GithubError, ghSend } from "./api";
+import { ghGet, ghGraphQL, GithubError, ghSend } from "./api";
 import {
   issueCuaPr,
-  laPullRequest,
-  mapChecks,
   mapComment,
-  mapPull,
-  mapReviews,
+  mapGqlPull,
+  mapGqlTask,
   mapTask,
   type ApiComment,
   type ApiIssue,
-  type ApiPull,
+  type GqlIssue,
+  type GqlPull,
 } from "./map";
 import { chuanHoa, docRepos, ghiRepos } from "./repos-store";
 import type { Actor, GhComment, GhLabel, GhRepo, GhTask, GithubSource, NewTaskInput } from "./types";
@@ -77,62 +76,86 @@ const docTatCa = cache(async (): Promise<GhTask[]> => {
   }
 });
 
-async function docRepo(token: string | undefined, repo: GhRepo): Promise<GhTask[]> {
-  const [issues, pulls] = await Promise.all([
-    ghGet<ApiIssue[]>(token, `/repos/${repo.full}/issues?state=all&per_page=${MOI_TRANG}`),
-    ghGet<ApiPull[]>(token, `/repos/${repo.full}/pulls?state=open&per_page=${MOI_TRANG}`),
-  ]);
+/**
+ * MỘT truy vấn cho cả repo: issue, PR, review, và trạng thái check.
+ *
+ * Đường REST cũ tốn `2 + 3 × số PR đang mở` lời gọi cho cùng màn hình này —
+ * repo 20 PR là 62 lời gọi, mỗi lần tải trang, và hạn mức REST là 5.000/giờ.
+ * Truy vấn dưới đây tốn **1 điểm** trong hạn mức 5.000 điểm/giờ (đo thật trên
+ * api.github.com). Đó là khác biệt giữa "dùng được cả ngày" và "cạn hạn mức
+ * lúc 3 giờ chiều".
+ *
+ * `orderBy: UPDATED_AT` chứ không phải mặc định: khi repo vượt 100 issue, 100
+ * cái ĐỘNG GẦN NHẤT mới là 100 cái đáng lấy — không phải 100 cái mới tạo.
+ */
+const TRUY_VAN = `
+query($owner:String!, $name:String!, $n:Int!) {
+  repository(owner:$owner, name:$name) {
+    issues(first:$n, orderBy:{field:UPDATED_AT, direction:DESC}) {
+      nodes {
+        number title body url state createdAt updatedAt
+        author { login avatarUrl }
+        labels(first:20) { nodes { name } }
+      }
+    }
+    pullRequests(first:$n, states:[OPEN], orderBy:{field:UPDATED_AT, direction:DESC}) {
+      nodes {
+        number title body url isDraft headRefOid
+        reviews(last:20) { nodes { state submittedAt author { login avatarUrl } } }
+        commits(last:1) { nodes { commit { statusCheckRollup { contexts(first:50) { nodes {
+          __typename
+          ... on StatusContext { context state }
+          ... on CheckRun { name status conclusion }
+        } } } } } }
+      }
+    }
+  }
+}`;
 
-  // PR ↔ issue. Một PR không tham chiếu issue nào vẫn là việc đang diễn ra, nên
-  // nó được giữ lại như một task riêng — bỏ nó đi là giấu mất công việc thật.
-  const theoIssue = new Map<number, ApiPull>();
-  const roiRac: ApiPull[] = [];
-  for (const p of pulls) {
+interface TraLoi {
+  repository: {
+    issues: { nodes: GqlIssue[] };
+    pullRequests: { nodes: GqlPull[] };
+  } | null;
+}
+
+async function docRepo(token: string | undefined, repo: GhRepo): Promise<GhTask[]> {
+  if (!token) {
+    // Nói ra ở đây thay vì để `ghGraphQL` ném một câu chung chung: thiếu token
+    // là lỗi CẤU HÌNH (OAuth app thiếu scope `repo`, hoặc phiên cũ chưa mang
+    // access_token), không phải lỗi mạng, và nó cần một hành động khác hẳn.
+    throw new Error(
+      "No GitHub token for the signed-in user. Sign out and back in — the OAuth app must request the `repo` scope.",
+    );
+  }
+  const [owner, name] = repo.full.split("/");
+  const data = await ghGraphQL<TraLoi>(token, TRUY_VAN, { owner, name, n: MOI_TRANG });
+  if (!data.repository) return [];
+
+  // PR ↔ issue qua từ khoá đóng trong body. Một PR không tham chiếu issue nào
+  // vẫn là việc đang diễn ra, nên nó được giữ lại như một task riêng — bỏ nó đi
+  // là giấu mất công việc thật.
+  const theoIssue = new Map<number, GqlPull>();
+  const roiRac: GqlPull[] = [];
+  for (const p of data.repository.pullRequests.nodes) {
     const n = issueCuaPr(p.body);
     if (n !== null && !theoIssue.has(n)) theoIssue.set(n, p);
     else if (n === null) roiRac.push(p);
   }
 
-  const dayDu = async (p: ApiPull) => {
-    const sha = String(p.head?.sha ?? "");
-    const [statuses, checkRuns, reviews] = await Promise.all([
-      ghGet<unknown>(token, `/repos/${repo.full}/commits/${sha}/status`).catch(() => null),
-      ghGet<unknown>(token, `/repos/${repo.full}/commits/${sha}/check-runs`).catch(() => null),
-      ghGet<unknown>(token, `/repos/${repo.full}/pulls/${String(p.number)}/reviews`).catch(
-        () => [],
-      ),
-    ]);
-    return mapPull(p, mapChecks(statuses, checkRuns), mapReviews(reviews));
-  };
+  // `issues` của GraphQL KHÔNG lẫn pull request — khác hẳn `GET /issues` của
+  // REST, nơi mỗi PR hiện thêm một lần như một task riêng. Không cần lọc.
+  const tasks = data.repository.issues.nodes.map((i) => {
+    const p = theoIssue.get(typeof i.number === "number" ? i.number : -1);
+    return mapGqlTask(repo.slug, i, p ? mapGqlPull(p) : null);
+  });
 
-  const dayDuTheoIssue = new Map<number, Awaited<ReturnType<typeof dayDu>>>();
-  await Promise.all(
-    [...theoIssue].map(async ([n, p]) => {
-      dayDuTheoIssue.set(n, await dayDu(p));
-    }),
-  );
-
-  const tasks = issues
-    .filter((i) => !laPullRequest(i))
-    .map((i) => mapTask(repo.slug, i, dayDuTheoIssue.get(Number(i.number ?? 0)) ?? null));
-
-  // PR không gắn issue: dựng một task từ chính nó, để nó vẫn hiện trên bảng.
-  const themVao = await Promise.all(
-    roiRac.map(async (p) => {
-      const pull = await dayDu(p);
-      return mapTask(
-        repo.slug,
-        {
-          number: p.number,
-          title: p.title,
-          body: p.body,
-          labels: [],
-          html_url: p.html_url,
-          state: "open",
-        },
-        pull,
-      );
-    }),
+  const themVao = roiRac.map((p) =>
+    mapGqlTask(
+      repo.slug,
+      { number: p.number, title: p.title, body: p.body, url: p.url, state: "OPEN" },
+      mapGqlPull(p),
+    ),
   );
 
   return [...tasks, ...themVao];

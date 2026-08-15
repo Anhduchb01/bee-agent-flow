@@ -1,6 +1,7 @@
 import http from "node:http";
 
 import { getActor } from "@/lib/auth";
+import { docRepos } from "@/lib/github/repos-store";
 
 /**
  * Cửa sổ phỏng vấn tạo task — cầu nối giữa trình duyệt và `bee-spec-chat`.
@@ -24,6 +25,31 @@ export async function POST(req: Request) {
   if (!actor) return new Response("forbidden", { status: 401 });
 
   const raw = await req.text();
+
+  // `task_id` đi thẳng vào đường dẫn cwd của tiến trình kia, và nó quyết định
+  // PHIÊN NÀO được nối lại. Cầu nối đã kiểm hình dạng, nhưng hình dạng không
+  // trả lời được câu quan trọng hơn: task đó có thuộc một dự án trên dashboard
+  // này không.
+  //
+  // Với hai người dùng cùng thấy mọi dự án thì hôm nay nó vô hại. Ngày thêm
+  // người thứ ba chỉ được vào một dự án, dòng dưới đây là thứ duy nhất ngăn họ
+  // đọc hội thoại của dự án kia — và lúc ấy sẽ không ai nhớ ra để thêm nó.
+  try {
+    const body = JSON.parse(raw || "{}") as { mode?: string; task_id?: string };
+    if (body.mode === "hoi-run") {
+      const slug = String(body.task_id ?? "").replace(/-\d+$/, "");
+      const biet = (await docRepos()).some((r) => r.slug === slug);
+      if (!biet) {
+        return new Response(
+          JSON.stringify({ type: "done", error: "Task này không thuộc dự án nào trên dashboard." }) + "\n",
+          { status: 403, headers: { "content-type": "application/x-ndjson" } },
+        );
+      }
+    }
+  } catch {
+    // Thân không phải JSON — cầu nối sẽ từ chối với thông báo của nó.
+  }
+
   if (raw.length > MAX_BYTES) {
     return new Response(JSON.stringify({ type: "done", error: "tin nhắn quá dài" }) + "\n", {
       status: 413,

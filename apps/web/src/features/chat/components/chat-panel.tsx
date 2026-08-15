@@ -125,7 +125,11 @@ export function ChatPanel({
           } else if (ev.type === "done") {
             if (ev.session_id) {
               setPhien(ev.session_id);
-              luuPhien?.(ev.session_id, raw);
+              // CHỈ ở lượt đầu. `luuPhien` đặt tiêu đề cho mục lịch sử, và gọi
+              // ở mọi lượt thì tiêu đề bị ghi đè bằng câu MỚI NHẤT — mục "Thêm
+              // trang điều khoản" biến thành "ok" sau ba lượt trả lời. Nó cũng
+              // là một lần ghi đĩa cho mỗi lượt chat, để đổi lấy một thứ sai.
+              if (dauTien) luuPhien?.(ev.session_id, raw);
             }
             if (ev.error) setHong(ev.error);
             // Claude in câu lỗi ra như một câu trả lời bình thường trước khi
