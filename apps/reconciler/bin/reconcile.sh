@@ -179,7 +179,7 @@ sweep_evidence() {
   (( DRY_RUN )) && return 0
   evidence_sweep_due 3600 || return 0
   for slug in $(enabled_repos); do
-    ( load_repo_config "$slug"; evidence_sweep "$slug" )
+    ( load_repo_config "$slug"; evidence_sweep "$slug"; runs_sweep "$slug" )
   done
 }
 

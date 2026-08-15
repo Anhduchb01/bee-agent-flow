@@ -98,16 +98,18 @@ step "Quyền trên $SRV — CHỈ ĐỌC"
 # setgid giữ cho mọi thư mục con sinh ra sau này cũng thuộc group ấy — và
 # `lib/evidence.sh` đọc group từ chính thư mục này nên hai bên không lệch nhau
 # được.
-if [[ -d "$SRV/evidence" ]]; then
-  chgrp "$WEB" "$SRV/evidence"
-  chmod 2750 "$SRV/evidence"
-  # Bằng chứng cũ đã ghi trước khi đổi group thì app không đọc nổi, và triệu
-  # chứng là "thư mục rỗng" chứ không phải một lỗi quyền.
-  chgrp -R "$WEB" "$SRV/evidence" 2>/dev/null || true
-  ok "$SRV/evidence → group $WEB (bee-orch vẫn ghi, $WEB đọc)"
-else
-  warn "chưa có $SRV/evidence — chạy lại installer của reconciler"
-fi
+for d in evidence runs; do
+  if [[ -d "$SRV/$d" ]]; then
+    chgrp "$WEB" "$SRV/$d"
+    chmod 2750 "$SRV/$d"
+    # Thư mục cũ ghi trước khi đổi group thì app không đọc nổi, và triệu chứng
+    # là "trống rỗng" chứ không phải một lỗi quyền.
+    chgrp -R "$WEB" "$SRV/$d" 2>/dev/null || true
+    ok "$SRV/$d → group $WEB (bee-orch vẫn ghi, $WEB đọc)"
+  else
+    warn "chưa có $SRV/$d — chạy lại installer của reconciler"
+  fi
+done
 
 # Mọi thứ khác dưới $SRV: app đọc qua quyền "other" (status.json và recent.jsonl
 # là 644). Không chown, không chmod: việc app không ghi được vào đó là tính năng.

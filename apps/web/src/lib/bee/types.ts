@@ -81,6 +81,16 @@ export interface BeeRecentRun {
    */
   stop_reason?: string | null;
   api_error_status?: number | null;
+
+  /**
+   * Phiên Claude của lần chạy này — thứ DUY NHẤT cho phép nối lại cuộc hội
+   * thoại đó. Bản chép đầy đủ nằm trong home của `bee-agent` và ở nguyên đó;
+   * chỉ cái tên đi ra ngoài.
+   *
+   * `null` khi lần chạy không gọi agent (rule 03), và vắng mặt ở những dòng ghi
+   * trước khi reconciler giữ lại trường này.
+   */
+  session_id?: string | null;
 }
 
 /**

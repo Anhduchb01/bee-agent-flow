@@ -297,3 +297,41 @@ evidence_sweep() {
   done
   rmdir -- "$root" 2>/dev/null || true
 }
+
+# Dọn `runs/` theo đúng luật của `evidence/`: PR/issue đóng thì xoá, quá tuổi
+# thì xoá. Log chạy nhỏ hơn video nhiều, nhưng nó tích theo LẦN CHẠY chứ không
+# theo SHA — một task bị thử lại năm lần để lại năm thư mục.
+#
+# Khác một điểm: thư mục ở đây đánh số theo issue HOẶC theo PR, tuỳ rule (07/08
+# dùng số issue, 02/04 dùng số PR). `gh pr view` trên một số issue trả về rỗng,
+# nên phải hỏi issue trước rồi mới tới PR — hỏi sai loại thì mọi thư mục đều
+# trông như "không hỏi được" và không bao giờ bị dọn.
+runs_sweep() {
+  local slug="$1" root numdir rundir num state age now
+  root="$(run_root)/$slug"
+  [[ -d "$root" ]] || return 0
+  now=$(now_epoch)
+
+  for numdir in "$root"/*; do
+    [[ -d "$numdir" ]] || continue
+    num=$(basename "$numdir")
+    [[ "$num" =~ ^[0-9]+$ ]] || continue
+
+    state=$(gh issue view "$num" --repo "$REPO_FULL" --json state --jq '.state' 2>/dev/null || true)
+    [[ -z "$state" ]] && state=$(gh pr view "$num" --repo "$REPO_FULL" --json state --jq '.state' 2>/dev/null || true)
+
+    if [[ "$state" == "CLOSED" || "$state" == "MERGED" ]]; then
+      rm -rf -- "$numdir"
+      info "runs: dọn $slug#$num ($state)"
+      continue
+    fi
+
+    for rundir in "$numdir"/*; do
+      [[ -d "$rundir" ]] || continue
+      age=$(( (now - $(stat -c %Y "$rundir" 2>/dev/null || echo "$now")) / 86400 ))
+      (( age > ${EVIDENCE_KEEP_DAYS:-90} )) && rm -rf -- "$rundir"
+    done
+    rmdir -- "$numdir" 2>/dev/null || true
+  done
+  rmdir -- "$root" 2>/dev/null || true
+}

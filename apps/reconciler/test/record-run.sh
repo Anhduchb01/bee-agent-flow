@@ -37,7 +37,11 @@ record_run "myapp-40" myapp 40 07-build ok 7 412
 kiem "trường cũ còn đủ" \
      '[.id,.repo,.number,.rule,.result,.turns,.duration_s]|join("|")' \
      'myapp-40|myapp|40|07-build|ok|7|412'
-kiem "không mọc thêm trường nào" '[keys[]]|length' '8'
+# Chín, không phải tám: `session_id` được thêm vào để nối lại được phiên của
+# lần chạy. Con số này cố ý cứng — hình dạng ở đây là hợp đồng mà
+# `apps/web/src/lib/bee/types.ts` đọc, và mọc thêm trường mà quên bên kia là
+# cách hai bên lệch nhau trong im lặng.
+kiem "đúng chín trường" '[keys[]]|length' '9'
 
 echo "2· có usage.json thì gộp phẳng vào cùng bản ghi"
 mkdir -p "$(state_dir myapp-41)"
@@ -80,5 +84,51 @@ if jq -e . "$BEE_SRV/state/recent.jsonl" >/dev/null; then
   printf '  ok   mọi dòng parse được\n'
 else printf '  ĐỎ   có dòng không parse được\n'; loi=1; fi
 
+echo
+echo "6· session_id được giữ lại — không có nó thì không nối lại phiên được"
+mkdir -p "$(state_dir shop-31)"
+printf 'abc-123' > "$(state_dir shop-31)/session_id"
+record_run "shop-31" shop 31 07-build ok 3 90
+kiem "session_id vào bản ghi" '.session_id' 'abc-123'
+record_run "shop-32" shop 32 03-run-ci ok 0 20
+kiem "không có phiên thì là null" '.session_id' 'null'
+
+echo
+echo "7· run_archive giữ lại chi tiết TRƯỚC khi claim_clear xoá"
+d=$(state_dir myapp-50); mkdir -p "$d"
+printf '{"type":"system"}\n{"type":"result"}\n' > "$d/run.jsonl"
+printf 'đã làm xong' > "$d/agent-output.txt"
+printf 'sess-xyz'   > "$d/session_id"
+printf '7'          > "$d/turns"
+printf '412'        > "$d/duration"
+run_archive myapp-50 myapp 50 07-build ok
+claim_clear myapp-50
+
+luu=$(find "$BEE_SRV/runs/myapp/50" -maxdepth 1 -type d -name 'myapp-50-*' | head -1)
+if [[ -n "$luu" ]]; then printf '  ok   %s\n' "có thư mục lưu"; else printf '  ĐỎ   không lưu được gì\n'; loi=1; fi
+kiem2() { if [[ "$2" == "$3" ]]; then printf '  ok   %s\n' "$1"
+          else printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$2" "$3"; loi=1; fi; }
+kiem2 "giữ log stream"  "$([[ -f "$luu/run.jsonl" ]] && echo CO)" CO
+kiem2 "giữ báo cáo"     "$(cat "$luu/output.txt" 2>/dev/null)" "đã làm xong"
+kiem2 "meta có phiên"   "$(jq -r '.session_id' "$luu/meta.json")" "sess-xyz"
+kiem2 "meta có kết quả" "$(jq -r '.result'     "$luu/meta.json")" "ok"
+kiem2 "meta có turns"   "$(jq -r '.turns'      "$luu/meta.json")" "7"
+# claim_clear xoá thư mục state; bản lưu phải sống sót — đó là toàn bộ mục đích.
+kiem2 "sống sau claim_clear" "$([[ -f "$luu/meta.json" ]] && echo CO)" CO
+kiem2 "không sót thư mục dang-ghi" \
+      "$(find "$BEE_SRV/runs" -name '*.dang-ghi' | wc -l)" "0"
+
+echo
+echo "8· log dài bị cắt ĐUÔI, và nói ra là đã cắt"
+d=$(state_dir myapp-51); mkdir -p "$d"
+RUN_LOG_MAX_LINES=10
+seq 1 100 | sed 's/^/{"n":/; s/$/}/' > "$d/run.jsonl"
+run_archive myapp-51 myapp 51 07-build ok
+luu2=$(find "$BEE_SRV/runs/myapp/51" -maxdepth 1 -type d -name 'myapp-51-*' | head -1)
+kiem2 "giữ 10 dòng cuối + 1 dòng báo" "$(wc -l < "$luu2/run.jsonl")" "11"
+kiem2 "nói ra đã bỏ bao nhiêu" "$(head -1 "$luu2/run.jsonl" | jq -r '.dropped')" "90"
+kiem2 "giữ ĐUÔI chứ không phải đầu" "$(tail -1 "$luu2/run.jsonl" | jq -r '.n')" "100"
+
+echo
 [[ $loi == 0 ]] && echo "→ xanh" || echo "→ ĐỎ"
 exit $loi

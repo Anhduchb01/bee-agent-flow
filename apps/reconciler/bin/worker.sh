@@ -279,7 +279,11 @@ $(head -c 1500 "$D/agent-output.txt" 2>/dev/null || true)"
 }
 
 # =============================================================================
-trap 'testenv_down "$ID"; claim_clear "$ID"' EXIT
+# `run_archive` PHẢI đứng trước `claim_clear` — nó chép từ chính thư mục mà
+# claim_clear sắp xoá. Đảo hai lệnh này là mất sạch chi tiết lần chạy, và mất
+# im lặng: dashboard vẫn có dòng trong `recent.jsonl`, chỉ là bấm vào không có
+# gì.
+trap 'testenv_down "$ID"; run_archive "$ID" "$SLUG" "$NUM" "$RULE" "${RUN_KET:-unknown}"; claim_clear "$ID"' EXIT
 
 # shellcheck source=/dev/null
 source "$RULE_FILE"

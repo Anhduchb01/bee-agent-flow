@@ -123,6 +123,17 @@ record_run() {
   local f="$BEE_SRV/state/recent.jsonl"
   local u; u="$(state_dir "$id")/usage.json"
   local extra='{}'
+  # `session_id` là thứ DUY NHẤT cho phép nối lại cuộc hội thoại của lần chạy
+  # này. Nó nằm trong thư mục state, mà thư mục đó bị xoá lúc worker thoát —
+  # nên không chép vào đây thì phiên vẫn còn trong home của agent nhưng không ai
+  # biết tên nó nữa.
+  local sid; sid=$(cat "$(state_dir "$id")/session_id" 2>/dev/null || true)
+
+  # Kết quả cuối cùng, để `run_archive` trong trap EXIT của worker biết dán nhãn
+  # gì. CỐ Ý không phải `local`: trap chạy sau khi rule_run đã trả về, nên nó
+  # cần một biến sống ở shell của worker. Rule nào cũng đi qua đây trước khi
+  # thoát, nên đây là chỗ duy nhất biết chắc.
+  RUN_KET="$result"
 
   # `jq -e .` chứ không phải `[[ -s ]]`: file có thể đứt giữa chừng nếu tiến
   # trình chết đúng lúc ghi, và một bản ghi lịch sử hỏng không đáng để làm đổ
@@ -132,11 +143,76 @@ record_run() {
   mkdir -p "$(dirname "$f")"
   jq -nc --arg id "$id" --arg repo "$repo" --argjson number "$num" --arg rule "$rule" \
          --arg result "$result" --argjson turns "$turns" --argjson duration_s "$dur" \
-         --arg at "$(now_iso)" --argjson extra "$extra" \
+         --arg at "$(now_iso)" --argjson extra "$extra" --arg sid "$sid" \
          '{id:$id,repo:$repo,number:$number,rule:$rule,result:$result,
-           turns:$turns,duration_s:$duration_s,at:$at} + $extra' >> "$f"
+           turns:$turns,duration_s:$duration_s,at:$at,
+           session_id:(if $sid == "" then null else $sid end)} + $extra' >> "$f"
   # Giữ file bounded — dashboard chỉ hiển thị vài dòng cuối.
   tail -n 200 "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+}
+
+# ---------------------------------------------------------------------------
+# Lưu lại một lần chạy — để người xem được agent đã làm gì, và nối lại được
+# phiên của nó.
+#
+# `claim_clear` xoá cả thư mục state khi worker thoát, nên `run.jsonl`,
+# `agent-output.txt` và `session_id` biến mất ngay sau khi lần chạy kết thúc.
+# Bản ghi duy nhất còn lại là một dòng trong `recent.jsonl` với tám con số.
+#
+# Bản chép đầy đủ nằm trong home của bee-agent (`~/.claude/projects/…`) và phải
+# ở nguyên đó: `bee-web` không được đọc home của agent, đó là ranh giới. Nên
+# orch chép phần cần thiết ra một chỗ app đọc được.
+run_root() { printf '%s/runs' "$BEE_SRV"; }
+run_dir()  { printf '%s/runs/%s/%s/%s' "$BEE_SRV" "$1" "$2" "$3"; }
+
+# `run.jsonl` là stream đầy đủ, có thể vài chục MB với một task dài. Giữ phần
+# ĐUÔI: khúc cuối là chỗ có kết quả, lỗi, và những lượt gần nhất — thứ người ta
+# mở log ra để xem. Khúc đầu là đọc file và tìm kiếm.
+RUN_LOG_MAX_LINES="${RUN_LOG_MAX_LINES:-4000}"
+
+# run_archive <id> <slug> <num> <rule> <result>
+run_archive() {
+  local id="$1" slug="$2" num="$3" rule="$4" ket="$5"
+  local d; d=$(state_dir "$id")
+  [[ -d "$d" ]] || return 0
+
+  local dest stage sid
+  sid=$(cat "$d/session_id" 2>/dev/null || true)
+  dest=$(run_dir "$slug" "$num" "$id-$(date -u +%Y%m%dT%H%M%SZ)")
+  stage="$dest.dang-ghi"
+  rm -rf -- "$stage"; mkdir -p "$stage"
+
+  if [[ -f "$d/run.jsonl" ]]; then
+    local n; n=$(wc -l < "$d/run.jsonl" 2>/dev/null || echo 0)
+    if (( n > RUN_LOG_MAX_LINES )); then
+      printf '{"type":"bee_truncated","dropped":%d,"kept":%d}\n' \
+        $(( n - RUN_LOG_MAX_LINES )) "$RUN_LOG_MAX_LINES" > "$stage/run.jsonl"
+      tail -n "$RUN_LOG_MAX_LINES" "$d/run.jsonl" >> "$stage/run.jsonl"
+    else
+      cp -- "$d/run.jsonl" "$stage/run.jsonl"
+    fi
+  fi
+  [[ -f "$d/agent-output.txt" ]] && cp -- "$d/agent-output.txt" "$stage/output.txt"
+  [[ -f "$d/usage.json"       ]] && cp -- "$d/usage.json"       "$stage/usage.json"
+
+  jq -nc --arg id "$id" --arg repo "$slug" --argjson number "$num" \
+         --arg rule "$rule" --arg result "$ket" --arg at "$(now_iso)" \
+         --arg session_id "$sid" \
+         --argjson turns "$(cat "$d/turns" 2>/dev/null || echo 0)" \
+         --argjson duration_s "$(cat "$d/duration" 2>/dev/null || echo 0)" \
+         '{id:$id,repo:$repo,number:$number,rule:$rule,result:$result,at:$at,
+           turns:$turns,duration_s:$duration_s,
+           session_id:(if $session_id == "" then null else $session_id end)}' \
+    > "$stage/meta.json"
+
+  # Group theo chính thư mục gốc, đúng cách `evidence_write` làm — installer
+  # quyết định group, và đọc tại chỗ thì hai bên không lệch nhau được.
+  local gr; gr=$(stat -c %G "$(run_root)" 2>/dev/null || printf '%s' "$BEE_GROUP")
+  chgrp -R "$gr" "$stage" 2>/dev/null || true
+  chmod -R g+rX,o-rwx "$stage" 2>/dev/null || true
+
+  mkdir -p "$(dirname "$dest")"
+  mv -- "$stage" "$dest"
 }
 
 # Cache quét: trả về 0 (đã đổi, cần quét lại) nếu token khác lần trước.

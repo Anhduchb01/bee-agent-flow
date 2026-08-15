@@ -141,6 +141,7 @@ function recentRun(v: unknown, path: string): BeeRecentRun {
     ...("api_error_status" in v
       ? { api_error_status: numOpt(v, "api_error_status") ?? null }
       : {}),
+    ...("session_id" in v ? { session_id: strOrNull(v.session_id) } : {}),
   };
 }
 

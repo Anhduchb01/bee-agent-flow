@@ -253,6 +253,9 @@ install -d -o "$ORCH" -g "$GRP" -m 2775 "$SRV/work"
 # bao giờ ghi vào /srv/bee, và "other" thì không được thấy gì cả (một PR private
 # có thể lộ toàn bộ màn hình sản phẩm qua video).
 install -d -o "$ORCH" -g "$GRP" -m 2750 "$SRV/evidence"
+# runs/: chi tiết từng lần chạy agent. Cùng luật với evidence — orch ghi,
+# bee-web đọc, "other" không thấy gì (log chạy có thể mang nội dung mã nguồn).
+install -d -o "$ORCH" -g "$GRP" -m 2750 "$SRV/runs"
 ok "$PREFIX, $ETC, $SRV"
 
 step "Mã nguồn"
