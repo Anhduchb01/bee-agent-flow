@@ -101,7 +101,13 @@ export function CreateTaskDialog({ slug }: { slug: string }) {
           const dong = dem.slice(0, i).trim();
           dem = dem.slice(i + 1);
           if (!dong) continue;
-          let ev: { type?: string; text?: string; session_id?: string; error?: string };
+          let ev: {
+            type?: string;
+            text?: string;
+            session_id?: string;
+            error?: string;
+            replaces_last?: boolean;
+          };
           try {
             ev = JSON.parse(dong) as typeof ev;
           } catch {
@@ -119,6 +125,13 @@ export function CreateTaskDialog({ slug }: { slug: string }) {
           } else if (ev.type === "done") {
             if (ev.session_id) setSessionId(ev.session_id);
             if (ev.error) setHong(ev.error);
+            // Claude in câu lỗi ra như một câu trả lời bình thường TRƯỚC khi
+            // đóng lượt, nên nó đã nằm sẵn trong bong bóng cuối. Không bỏ đi
+            // thì cùng một lỗi hiện hai lần, và người đọc mất vài giây để nhận
+            // ra hai dòng đó là một.
+            if (ev.replaces_last) {
+              setLoi((l) => l.slice(0, -1));
+            }
           }
         }
       }
@@ -174,7 +187,7 @@ export function CreateTaskDialog({ slug }: { slug: string }) {
 
           {hong ? (
             <Alert variant="destructive">
-              <AlertDescription>{hong}</AlertDescription>
+              <AlertDescription className="whitespace-pre-wrap">{hong}</AlertDescription>
             </Alert>
           ) : null}
           <div ref={cuoiRef} />

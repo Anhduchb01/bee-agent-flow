@@ -37,6 +37,31 @@ const MAX_BYTES = 32 * 1024;
 
 const log = (...a) => console.error(new Date().toISOString(), ...a);
 
+/**
+ * Dịch lỗi của Claude CLI thành câu nói được PHẢI LÀM GÌ.
+ *
+ * "401 OAuth access token has been revoked" là đúng và vô dụng: người đọc nó
+ * đang ngồi trong một ô chat trên trình duyệt, không biết `bee-agent` là gì và
+ * không có ssh vào máy. Câu nguyên văn vẫn được giữ ở cuối, vì người có ssh thì
+ * cần đúng chuỗi đó để tìm.
+ */
+function deHieu(raw) {
+  const t = String(raw ?? "");
+  if (/revoked|401|unauthoriz|not logged in|authenticate/i.test(t)) {
+    return (
+      "Agent chưa đăng nhập được vào Claude. Trên máy chạy bee:\n" +
+      "    sudo -u bee-agent -H claude      rồi gõ /login\n\n" +
+      "Hay gặp nhất sau khi cài bằng --claude-from: token bản copy bị thu hồi " +
+      "khi user nguồn làm mới phiên của họ.\n\n" +
+      `Nguyên văn: ${t}`
+    );
+  }
+  if (/rate.?limit|quota|usage limit/i.test(t)) {
+    return `Hết hạn mức Claude — chờ cửa sổ hạn mức reset rồi thử lại.\n\nNguyên văn: ${t}`;
+  }
+  return t;
+}
+
 function ndjson(res, obj) {
   res.write(JSON.stringify(obj) + "\n");
 }
@@ -120,7 +145,11 @@ function goiClaude({ res, message, sessionId, systemPrompt }) {
           // `is_error` bắt được đường mà `result` là một câu lỗi chứ không phải
           // câu trả lời — ví dụ "OAuth access token has been revoked", vốn vẫn
           // đi ra ở đúng chỗ này và trông y hệt một câu trả lời bình thường.
-          error: ev.is_error ? String(ev.result ?? "unknown error") : null,
+          error: ev.is_error ? deHieu(ev.result ?? "unknown error") : null,
+          // Câu lỗi đã đi ra một lần dưới dạng `text` (Claude in nó như một câu
+          // trả lời bình thường trước khi đóng lượt). Cờ này để client bỏ bong
+          // bóng đó đi thay vì hiện cùng một lỗi hai lần.
+          replaces_last: ev.is_error === true,
           turns: ev.num_turns ?? 0,
           cost_usd: ev.total_cost_usd ?? 0,
         });
