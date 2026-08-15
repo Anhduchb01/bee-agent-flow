@@ -2,14 +2,53 @@ import { expect, test } from "@playwright/test";
 
 import { dangNhap } from "./helpers";
 
-const HOP_LE = {
-  title: "Thêm tìm kiếm theo mã đơn",
-  goal: "Người vận hành tìm được đơn bằng mã đơn thay vì cuộn hết trang.",
-  acceptance: "- [ ] Given mã đơn hợp lệ, When gõ vào ô tìm, Then đơn đó hiện ra.",
-  constraints: "Chỉ đụng module đơn hàng.",
-  out_of_scope: "Không làm tìm kiếm mờ.",
-  ui_reference: "Ô tìm kiếm trên đầu bảng.",
-};
+const KHOI = `# Thêm tìm kiếm theo mã đơn
+
+### Goal
+
+Người vận hành tìm được đơn bằng mã đơn thay vì cuộn hết trang.
+
+### Acceptance Criteria
+
+- [ ] Given mã đơn hợp lệ, When gõ vào ô tìm, Then đơn đó hiện ra.
+
+### Technical constraints
+
+Chỉ đụng module đơn hàng.
+
+### Out of scope
+
+Không làm tìm kiếm mờ.
+
+### UI Reference
+
+Ô tìm kiếm trên đầu bảng.`;
+
+/**
+ * Chặn `/api/spec-chat` và trả về một luồng NDJSON dựng sẵn.
+ *
+ * Bài test này KHÔNG kiểm chất lượng câu hỏi của agent — thứ đó không kiểm được
+ * bằng test, và một bài test gọi model thật thì vừa chậm vừa flake vừa tốn hạn
+ * mức. Thứ nó kiểm là phần cơ khí: gom NDJSON theo dòng, bóc khối ```task, dựng
+ * thẻ hợp đồng, và tạo issue dưới tên người bấm.
+ *
+ * Cắt câu trả lời làm nhiều chunk có chủ ý, và cắt NGANG một dòng JSON — đó là
+ * chuyện bình thường của mạng, và là chỗ một bộ gom viết ẩu sẽ vỡ.
+ */
+async function gaAgent(page: import("@playwright/test").Page, tra: string) {
+  await page.route("**/api/spec-chat", async (route) => {
+    const dong = [
+      JSON.stringify({ type: "text", text: tra }),
+      JSON.stringify({ type: "done", session_id: "11111111-2222-3333-4444-555555555555" }),
+    ].join("\n") + "\n";
+    const cat = Math.floor(dong.length / 2);
+    await route.fulfill({
+      status: 200,
+      headers: { "content-type": "application/x-ndjson" },
+      body: dong.slice(0, cat) + dong.slice(cat),
+    });
+  });
+}
 
 /** Mở modal tạo task từ chi tiết dự án — không còn màn hình riêng. */
 async function moModalTaoTask(page: import("@playwright/test").Page, slug = "myapp") {
@@ -18,49 +57,65 @@ async function moModalTaoTask(page: import("@playwright/test").Page, slug = "mya
   await expect(page.getByRole("dialog")).toBeVisible();
 }
 
-async function dienForm(page: import("@playwright/test").Page, bo: Partial<typeof HOP_LE> = {}) {
-  const gia = { ...HOP_LE, ...bo };
-  await page.getByLabel("Title").fill(gia.title);
-  await page.getByLabel("Goal").fill(gia.goal);
-  await page.getByLabel("Acceptance Criteria").fill(gia.acceptance);
-  await page.getByLabel("Technical constraints").fill(gia.constraints);
-  await page.getByLabel("Out of scope").fill(gia.out_of_scope);
-  await page.getByLabel("UI Reference").fill(gia.ui_reference);
+async function noi(page: import("@playwright/test").Page, text: string) {
+  await page.getByRole("dialog").getByRole("textbox").fill(text);
+  await page.getByRole("dialog").getByRole("button", { name: "Send" }).click();
 }
 
-// Mục tiêu là làm form này DỄ ĐIỀN hơn form GitHub, không phải lỏng hơn.
-test("form không cho bỏ qua mục bắt buộc nào", async ({ page }) => {
+// Không còn ô nào để điền. Đây là thứ thay thế cả cái form năm mục.
+test("tạo task bắt đầu bằng một câu, không phải một cái form", async ({ page }) => {
   await dangNhap(page, "pm-linh");
+  await gaAgent(page, "Q: bạn muốn tìm theo mã hay theo tên?\nGUESS: theo mã.");
   await moModalTaoTask(page);
 
-  await dienForm(page, { out_of_scope: "" });
-  await page.getByRole("dialog").getByRole("button", { name: "Create task" }).click();
+  // Không có ô Goal / Acceptance Criteria / … nào cả.
+  for (const nhan of ["Goal", "Acceptance Criteria", "Out of scope", "UI Reference"]) {
+    await expect(page.getByRole("dialog").getByLabel(nhan)).toHaveCount(0);
+  }
 
-  await expect(page.locator("form").getByRole("alert")).toContainText("Out of scope");
-  // Modal vẫn mở: không đá người dùng ra khỏi thứ họ đang gõ dở.
-  await expect(page.getByRole("dialog")).toBeVisible();
+  await noi(page, "Danh sách đơn khó tìm quá");
+  await expect(page.getByRole("dialog")).toContainText("bạn muốn tìm theo mã hay theo tên?");
+  // Chưa có hợp đồng thì chưa có nút tạo — không tạo được task rỗng.
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Create task" })).toHaveCount(0);
 });
 
-test("AC phải là checkbox, không phải văn xuôi", async ({ page }) => {
+test("khối task thành thẻ hợp đồng, không phải markdown thô", async ({ page }) => {
   await dangNhap(page, "pm-linh");
+  await gaAgent(page, `Đủ rồi, đây là bản nháp:\n\n\`\`\`task\n${KHOI}\n\`\`\`\n`);
   await moModalTaoTask(page);
+  await noi(page, "Tìm theo mã đơn");
 
-  await dienForm(page, { acceptance: "Tìm được đơn theo mã và kết quả chính xác." });
-  await page.getByRole("dialog").getByRole("button", { name: "Create task" }).click();
+  const hopDong = page.getByRole("dialog");
+  await expect(hopDong).toContainText("Draft contract");
+  await expect(hopDong).toContainText("Thêm tìm kiếm theo mã đơn");
+  await expect(hopDong).toContainText("Không làm tìm kiếm mờ.");
+  // Khối thô bị cắt khỏi bong bóng chat — hiện cùng một thứ hai lần là thừa.
+  await expect(hopDong).not.toContainText("```task");
+  await expect(hopDong).not.toContainText("### Goal");
+});
 
-  await expect(page.locator("form").getByRole("alert")).toContainText("checkbox");
+test("thiếu mục thì nói tên mục, không tạo hợp đồng rỗng", async ({ page }) => {
+  await dangNhap(page, "pm-linh");
+  const thieu = KHOI.replace(/### Out of scope[\s\S]*?(?=### UI)/, "");
+  await gaAgent(page, `\`\`\`task\n${thieu}\n\`\`\``);
+  await moModalTaoTask(page);
+  await noi(page, "Tìm theo mã đơn");
+
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Out of scope");
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Create task" })).toHaveCount(0);
 });
 
 test("tạo task → issue mới mang tên người tạo, gắn status:ready-for-spec", async ({ page }) => {
   await dangNhap(page, "pm-linh");
+  await gaAgent(page, `\`\`\`task\n${KHOI}\n\`\`\``);
   await moModalTaoTask(page);
+  await noi(page, "Tìm theo mã đơn");
 
-  await dienForm(page);
   await page.getByRole("dialog").getByRole("button", { name: "Create task" }).click();
 
   // Dự án lấy từ chỗ đang đứng, không phải từ một ô chọn lặp lại điều đó.
   await expect(page).toHaveURL(/\/t\/myapp\/\d+/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(HOP_LE.title);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Thêm tìm kiếm theo mã đơn");
   await expect(page.getByText("opened by Nguyễn Thị Linh")).toBeVisible();
   await expect(page.getByText("status:ready-for-spec")).toBeVisible();
   // Cả năm mục nằm nguyên trong body — đây là hợp đồng rule 08 đọc.

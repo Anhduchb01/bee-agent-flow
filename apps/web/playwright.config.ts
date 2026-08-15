@@ -20,7 +20,16 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "pnpm build && pnpm exec next start --port 3187",
+    // Chạy ĐÚNG artifact mà install.sh cài, không phải `next start`.
+    //
+    // `next start` với `output: standalone` in ra cảnh báo "does not work" rồi
+    // vẫn chạy — nghĩa là cả bộ e2e kiểm một server khác với server thật, và
+    // khác ở đúng chỗ dễ sai nhất: bản standalone không tự mang `.next/static`,
+    // nên thiếu bước copy là trang lên mà không có CSS lẫn JS. Đó là thứ phải
+    // đỏ ở đây, không phải sau khi đã cài lên máy.
+    command:
+      "pnpm build && cp -r .next/static .next/standalone/apps/web/.next/ && " +
+      "PORT=3187 HOSTNAME=127.0.0.1 node .next/standalone/apps/web/server.js",
     url: "http://127.0.0.1:3187",
     // KHÔNG dùng lại server đang chạy. Một server mồ côi từ lượt trước vẫn trả
     // HTML mới nhưng phục vụ chunk của bản build cũ, nên trang lên bình thường
