@@ -26,6 +26,23 @@ AGENT_TIMEOUT="${AGENT_TIMEOUT:-30m}"
 command -v claude >/dev/null 2>&1 || {
   echo "agent-exec: chưa cài claude, hoặc chưa đăng nhập dưới user này" >&2; exit 2; }
 
+# Token dài hạn, nếu có. File là 0640 root:bee-agent — bee-orch KHÔNG đọc được,
+# và việc nạp nó xảy ra ở đây, SAU khi sudo đã đổi sang bee-agent.
+#
+# Đó là điểm mấu chốt: nếu worker.sh (chạy dưới bee-orch) nạp file này rồi
+# truyền xuống qua môi trường thì orch đã cầm credential Claude, và ranh giới
+# hai UID mất đúng nửa ý nghĩa của nó. sudo dọn sạch môi trường trước khi chạy
+# file này, nên đây là chỗ duy nhất token đi vào tiến trình.
+#
+# `set -a` để nó được EXPORT sang `claude` — biến của shell thì tiến trình con
+# không thấy. (Cùng lỗi từng làm `be doctor` báo sai về GH_TOKEN.)
+if [[ -r /etc/bee/agent.env ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source /etc/bee/agent.env
+  set +a
+fi
+
 cd "$WORKTREE"
 
 # Ba chốt chặn: timeout bash · TimeoutStartSec ở systemd · --max-turns.

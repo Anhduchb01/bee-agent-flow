@@ -19,6 +19,14 @@ Group=bee-web
 RuntimeDirectory=bee
 RuntimeDirectoryMode=0750
 
+# Token dài hạn của Claude. systemd đọc file này dưới quyền root rồi đưa vào
+# môi trường của tiến trình, nên quyền 0640 root:bee-agent vẫn hoạt động — và
+# bee-orch lẫn bee-web vẫn không đọc được nó.
+#
+# Dấu `-` ở đầu: chưa cấu hình token thì unit vẫn lên, và `claude` lùi về
+# `.credentials.json` như cũ.
+EnvironmentFile=-/etc/bee/agent.env
+
 Environment=BEE_SPEC_SOCKET=/run/bee/spec-chat.sock
 Environment=BEE_SPEC_PROMPT=/opt/bee/prompts/spec-chat.md
 ExecStart=/usr/bin/node /opt/bee/bin/spec-chat.mjs

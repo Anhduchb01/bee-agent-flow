@@ -132,6 +132,39 @@ cmd_doctor() {
   } || cw "chưa có orch.env — chưa cấu hình GH_TOKEN"
 
   sect "Đăng nhập"
+
+  # Token dài hạn: cách duy nhất chia được quyền gọi model mà không có hai bên
+  # tranh nhau làm mới một token xoay vòng.
+  local agent_env="$BEE_ETC/agent.env" tok=""
+  if [[ ! -f "$agent_env" ]]; then
+    cw "chưa có $agent_env — chạy lại installer"
+  else
+    [[ "$(stat -c '%U:%G %a' "$agent_env")" == "root:$AGENT_USER 640" ]] \
+      && ck "agent.env 640 root:$AGENT_USER" \
+      || cx "agent.env phải là 640 root:$AGENT_USER (đang $(stat -c '%U:%G %a' "$agent_env"))"
+
+    # Kiểm CẢ HAI chiều. "agent đọc được" là chức năng; "orch và web KHÔNG đọc
+    # được" là ranh giới, và ranh giới thì không có triệu chứng khi nó hỏng.
+    if sudo -n -u "$ORCH_USER" test -r "$agent_env" 2>/dev/null \
+       || sudo -n -u bee-web test -r "$agent_env" 2>/dev/null; then
+      cx "NGUY HIỂM: $ORCH_USER hoặc bee-web đọc được agent.env — đó là quyền gọi model"
+    else
+      ck "chỉ $AGENT_USER đọc được agent.env"
+    fi
+
+    tok=$(sudo -n grep -oP '(?<=^CLAUDE_CODE_OAUTH_TOKEN=).*' "$agent_env" 2>/dev/null | tr -d '[:space:]' || true)
+    if [[ -n "$tok" ]]; then
+      ck "có token dài hạn (${#tok} ký tự)"
+    elif [[ -f "/home/$AGENT_USER/.claude/.credentials.json" ]]; then
+      # Đây là bản copy từ --claude-from. Nó CHẠY, cho tới lúc user nguồn làm
+      # mới phiên của họ — và lúc đó nó hỏng giữa một lần chạy agent.
+      cw "chưa có token dài hạn, đang dùng bản copy .credentials.json"
+      cw "   bản copy sẽ bị thu hồi khi user nguồn làm mới phiên. Sửa: be token"
+    else
+      cw "chưa có token dài hạn và cũng chưa có credential — be token"
+    fi
+  fi
+
   sudo -u "$AGENT_USER" -H bash -lc 'command -v claude >/dev/null && claude -p "ok" --max-turns 1' \
        >/dev/null 2>&1 \
     && ck "claude đã đăng nhập dưới $AGENT_USER" \
@@ -388,6 +421,67 @@ repo_remove() {
 }
 
 # ---------------------------------------------------------------------------
+# be token <token>  — đặt token dài hạn của Claude cho bee-agent.
+#
+# Vì sao cần một lệnh riêng thay vì "mở file ra sửa": file là 0640 root:bee-agent,
+# nên sửa tay là `sudo $EDITOR` — và một token dán nhầm chỗ trong một file có
+# chú thích dài là lỗi im lặng (biến rỗng, agent lùi về .credentials.json, mọi
+# thứ trông vẫn bình thường cho tới lần chạy sau).
+#
+# Nhận token qua STDIN được: `claude setup-token | sudo be token -` để nó không
+# nằm lại trong lịch sử shell.
+cmd_token() {
+  local tok="${1:-}"
+  local f="$BEE_ETC/agent.env"
+
+  [[ $EUID -eq 0 ]] || die "cần root: sudo be token <token>"
+
+  if [[ -z "$tok" ]]; then
+    cat <<EOF
+Đặt token dài hạn cho $AGENT_USER.
+
+  1. Dưới user CỦA BẠN (không phải root, không phải $AGENT_USER):
+        claude setup-token
+
+  2. Rồi một trong hai:
+        sudo be token <token vừa in ra>
+        claude setup-token | sudo be token -      # không lưu vào lịch sử shell
+
+Vì sao không chép ~/.claude/.credentials.json sang: file đó giữ token XOAY
+VÒNG. Hai user cùng giữ một bản sao là hai bên tranh nhau làm mới, và bên làm
+mới sau thu hồi token của bên kia — kể cả khi bên kia là chính bạn.
+EOF
+    return 0
+  fi
+
+  [[ "$tok" == "-" ]] && { read -r tok; }
+  tok="${tok//[[:space:]]/}"
+  [[ -n "$tok" ]] || die "token rỗng"
+  # Bắt theo hình dạng chứ không theo tiền tố cụ thể: tiền tố có thể đổi, còn
+  # "dán nhầm cả câu hướng dẫn vào" thì luôn ngắn hoặc có khoảng trắng.
+  (( ${#tok} >= 20 )) || die "token trông quá ngắn (${#tok} ký tự) — dán nhầm?"
+
+  [[ -f "$f" ]] || install -o root -g "$AGENT_USER" -m 640 /dev/null "$f"
+  if grep -q "^CLAUDE_CODE_OAUTH_TOKEN=" "$f" 2>/dev/null; then
+    sed -i "s|^CLAUDE_CODE_OAUTH_TOKEN=.*|CLAUDE_CODE_OAUTH_TOKEN=$tok|" "$f"
+  else
+    printf 'CLAUDE_CODE_OAUTH_TOKEN=%s\n' "$tok" >> "$f"
+  fi
+  chown root:"$AGENT_USER" "$f"; chmod 640 "$f"
+  ck "đã ghi token vào $f (0640 root:$AGENT_USER)"
+
+  # Bản copy cũ mà còn nằm đó thì không biết lần chạy sau dùng cái nào — và
+  # "không biết dùng cái nào" là cách một lỗi trốn được hàng tuần.
+  if [[ -f "/home/$AGENT_USER/.claude/.credentials.json" ]]; then
+    cw "vẫn còn /home/$AGENT_USER/.claude/.credentials.json từ --claude-from"
+    cw "   token trong môi trường được ưu tiên, nhưng nên xoá cho khỏi nhập nhằng:"
+    cw "   sudo rm /home/$AGENT_USER/.claude/.credentials.json"
+  fi
+
+  systemctl restart bee-spec-chat.service 2>/dev/null || true
+  info "thử lại: sudo be doctor"
+}
+
 cmd_uninstall() {
   printf 'Sẽ gỡ: systemd unit, sudoers, /opt/bee, user %s và %s.\n' "$ORCH_USER" "$AGENT_USER"
   printf 'GIỮ LẠI: %s (state, log, bare clone).\n' "$BEE_SRV"
@@ -435,6 +529,8 @@ ${C_BOLD}be${C_RESET} 🐝 — điều phối agent      ${C_DIM}(gõ \`bee\` c�
 
   ${C_BOLD}be ra${C_RESET} org/name ${C_DIM}· repo add${C_RESET}
   ${C_BOLD}be repo${C_RESET} list | enable | disable | remove <slug>
+  ${C_BOLD}be token${C_RESET} <token> ${C_DIM}· token Claude dài hạn cho bee-agent${C_RESET}
+                         sinh bằng `claude setup-token` dưới user của bạn
 
   ${C_BOLD}be uninstall${C_RESET}             gỡ hệ thống, giữ lại state và log
 
@@ -455,6 +551,7 @@ case "${1:-}" in
   repo)             shift; cmd_repo "$@" ;;
   p|pause)          shift || true; cmd_pause ;;
   r|resume)         shift || true; cmd_resume ;;
+  token)            shift; cmd_token "$@" ;;
   uninstall)        shift; cmd_uninstall ;;
   -h|--help|help)   usage ;;
   *) die "lệnh không biết: $1  (bee --help)" ;;

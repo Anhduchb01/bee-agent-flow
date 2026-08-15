@@ -91,6 +91,9 @@ apt_refresh() {
 #
 #   2. `.credentials.json` — đúng một file.
 #
+# CÁCH NÀY CHỈ ĐỂ CHẠY THỬ. Bản copy sẽ bị thu hồi, xem cảnh báo cuối hàm.
+# Đường dùng lâu dài là token dài hạn: `be token` (hoặc `claude setup-token`).
+#
 # TUYỆT ĐỐI không chép cả thư mục `~/.claude/`, và không chép `~/.claude.json`.
 # File đó giữ cấu hình MCP server (có thể chứa API key của dịch vụ khác), lịch
 # sử mọi dự án, và session cũ. Đưa nguyên chỗ đó cho một user chạy
@@ -129,6 +132,11 @@ claude_from_user() {
     warn "Dùng --claude-from để CHẠY THỬ cho nhanh. Trước khi giao việc thật thì"
     warn "đăng nhập riêng, cùng tài khoản cũng được — mỗi lần đăng nhập là một"
     warn "token riêng, và chúng không thu hồi lẫn nhau:"
+    warn "      claude setup-token            (dưới user của bạn) rồi:"
+    warn "      sudo be token <token vừa sinh>"
+    warn ""
+    warn "Hoặc đăng nhập riêng dưới $AGENT — cũng được, chỉ là phải làm lại"
+    warn "mỗi khi phiên hết hạn:"
     warn "      sudo -u $AGENT -H claude      rồi gõ /login"
   else
     warn "không thấy $cred — $u đã chạy \`claude\` rồi \`/login\` chưa?"
@@ -229,6 +237,13 @@ fi
 step "Thư mục"
 install -d -m 755 "$PREFIX" "$PREFIX/bin" "$PREFIX/lib" "$PREFIX/rules" "$PREFIX/prompts"
 install -d -m 755 "$ETC" "$ETC/repos.d"
+# agent.env: file DUY NHẤT mà bee-orch không đọc được. Nó cầm quyền gọi model,
+# orch cầm GH_TOKEN, và hai thứ ở hai UID là toàn bộ lý do có hai user.
+if [[ ! -f "$ETC/agent.env" ]]; then
+  install -o root -g "$AGENT" -m 640 "$SRC/config/agent.env.example" "$ETC/agent.env"
+else
+  chown root:"$AGENT" "$ETC/agent.env"; chmod 640 "$ETC/agent.env"
+fi
 install -d -o "$ORCH" -g "$GRP" -m 775 "$SRV" "$SRV/repos" "$SRV/state" "$SRV/attempts" \
                                         "$SRV/reviewed" "$SRV/public"
 # setgid trên work/: mọi worktree tạo ra tự thuộc group bee, nên agent
