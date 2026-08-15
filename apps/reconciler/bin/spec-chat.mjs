@@ -81,6 +81,18 @@ function goiClaude({ res, message, sessionId, systemPrompt }) {
 
   let buf = "";
   let stderr = "";
+  // Đúng MỘT `done` cho mỗi lượt.
+  //
+  // Claude in dòng `result` rồi thoát với mã 1 khi lượt đó là lỗi, nên hai
+  // nhánh dưới cùng bắn `done` — client nhận hai lần và ghi đè thông báo lỗi
+  // đầu (thứ nói rõ chuyện gì) bằng thông báo thứ hai ("claude thoát với mã 1",
+  // đúng nhưng vô dụng). Gặp thật ngay lượt chạy đầu tiên.
+  let xong = false;
+  const done = (obj) => {
+    if (xong) return;
+    xong = true;
+    ndjson(res, { type: "done", ...obj });
+  };
   child.stderr.on("data", (d) => { stderr += d.toString(); });
 
   child.stdout.on("data", (d) => {
@@ -103,8 +115,7 @@ function goiClaude({ res, message, sessionId, systemPrompt }) {
           .join("");
         if (text) ndjson(res, { type: "text", text });
       } else if (ev.type === "result") {
-        ndjson(res, {
-          type: "done",
+        done({
           session_id: ev.session_id ?? null,
           // `is_error` bắt được đường mà `result` là một câu lỗi chứ không phải
           // câu trả lời — ví dụ "OAuth access token has been revoked", vốn vẫn
@@ -118,16 +129,15 @@ function goiClaude({ res, message, sessionId, systemPrompt }) {
   });
 
   child.on("error", (e) => {
-    ndjson(res, { type: "done", error: `không chạy được claude: ${e.message}` });
+    done({ error: `không chạy được claude: ${e.message}` });
     res.end();
   });
 
   child.on("close", (code) => {
+    // Chỉ nói gì khi CHƯA có `done` nào — mã thoát khác 0 sau một dòng `result`
+    // đã mang lý do thật thì không thêm được thông tin nào.
     if (code !== 0) {
-      ndjson(res, {
-        type: "done",
-        error: stderr.trim().slice(0, 500) || `claude thoát với mã ${code}`,
-      });
+      done({ error: stderr.trim().slice(0, 500) || `claude thoát với mã ${code}` });
     }
     res.end();
   });

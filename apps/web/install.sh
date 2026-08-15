@@ -169,6 +169,36 @@ ok "$PREFIX ($(du -sh "$PREFIX" | cut -f1), thuộc root — $WEB chỉ đọc)"
 step "systemd"
 install -m 644 "$SRC/systemd/bee-web.service" /etc/systemd/system/
 systemctl daemon-reload
+
+# bee-spec-chat: cửa sổ phỏng vấn tạo task.
+#
+# Unit do installer của reconciler cài (nó nằm cùng chỗ với các unit khác), còn
+# BẬT thì ở đây — vì socket thuộc group `bee-web`, mà group đó chỉ tồn tại sau
+# khi file này chạy.
+#
+# ĐỌC KỸ TRƯỚC KHI BẬT. Dịch vụ này chạy dưới `bee-agent`, user duy nhất cầm
+# login Claude, và nó mở một socket cho `bee-web` — user đưa ra internet. Đó là
+# một cây cầu bắc qua đúng ranh giới hai UID mà cả thiết kế này dựng lên.
+#
+# Cây cầu được bó hẹp: không tool nào được bật, không TCP, `InaccessiblePaths`
+# chặn /srv/bee và cả hai file env, trần 2 phiên đồng thời. Nhưng nó vẫn có
+# nghĩa là: ai chiếm được app web sẽ tiêu được hạn mức Claude của bạn và điều
+# khiển được một LLM. Họ KHÔNG đọc được credential, KHÔNG đụng /srv/bee, KHÔNG
+# chạy được lệnh nào.
+#
+# Không muốn cây cầu đó thì: `sudo systemctl disable --now bee-spec-chat` — app
+# vẫn chạy, chỉ là ô chat báo "chưa bật dịch vụ phỏng vấn".
+if [[ -f /etc/systemd/system/bee-spec-chat.service ]]; then
+  systemctl enable bee-spec-chat.service >/dev/null 2>&1 || true
+  systemctl restart bee-spec-chat.service >/dev/null 2>&1 || true
+  if systemctl is-active --quiet bee-spec-chat.service; then
+    ok "bee-spec-chat.service đang chạy (cửa sổ phỏng vấn tạo task)"
+  else
+    warn "bee-spec-chat chưa lên — journalctl -u bee-spec-chat -n 30"
+  fi
+else
+  warn "chưa có bee-spec-chat.service — chạy lại apps/reconciler/install.sh"
+fi
 systemctl enable bee-web.service >/dev/null 2>&1 || true
 # `restart`, KHÔNG phải `enable --now`. `--now` chỉ khởi động unit đang DỪNG;
 # unit đang chạy thì nó không làm gì cả — nên cài đè lên một bản đang chạy sẽ
@@ -235,6 +265,20 @@ if runuser -u bee-agent -- cat "$ETC/web.env" >/dev/null 2>&1; then
   die "bee-agent ĐỌC ĐƯỢC $ETC/web.env — kiểm primary group của $WEB"
 else
   ok "bee-agent không đọc được web.env"
+fi
+
+# Socket phỏng vấn: $WEB phải MỞ ĐƯỢC, và không ai khác được mở.
+SOCK=/run/bee/spec-chat.sock
+if [[ -S "$SOCK" ]]; then
+  runuser -u "$WEB" -- test -w "$SOCK" \
+    && ok "$WEB mở được socket phỏng vấn" \
+    || warn "$WEB KHÔNG mở được $SOCK — ô chat sẽ báo lỗi kết nối"
+  # `nobody` đại diện cho "một user bất kỳ khác trên máy". Mở được nghĩa là ai
+  # trên máy cũng nói chuyện được với login Claude qua đường này.
+  if runuser -u nobody -- test -w "$SOCK" 2>/dev/null; then
+    die "socket $SOCK mở cho cả user ngoài — kiểm chmod trong spec-chat.mjs"
+  fi
+  ok "user khác không mở được socket"
 fi
 
 # In ĐÚNG địa chỉ phải mở, lấy từ AUTH_URL. `localhost` và `127.0.0.1` là hai
