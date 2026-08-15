@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
+import { listRunsIn, readRunIn } from "./runs-fs";
 import { parseClaudeRateLimit, parseRecentLine, parseStatus } from "./parse";
 import type { BeeClaudeRateLimit, BeeRecentRun, BeeSource, StatusRead } from "./types";
 
@@ -71,6 +72,9 @@ export function createDiskBeeSource(): BeeSource {
         return null;
       }
     },
+
+    listRuns: (slug, num) => listRunsIn(path.join(root(), "runs"), slug, num),
+    readRun: (slug, num, dir) => readRunIn(path.join(root(), "runs"), slug, num, dir),
 
     listEvidence: (slug, num) => listEvidenceIn(path.join(root(), "evidence"), slug, num),
     readEvidenceFile: (segments) => readEvidenceFileIn(path.join(root(), "evidence"), segments),

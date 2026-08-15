@@ -145,6 +145,49 @@ export type StatusRead =
   | { ok: true; status: BeeStatus; dropped: number }
   | { ok: false; reason: "missing" | "unreadable" | "malformed"; detail: string };
 
+/**
+ * Một lần agent chạy, đã được `run_archive` giữ lại.
+ *
+ * Khác `BeeRecentRun` ở chỗ: bản ghi kia là một DÒNG trong `recent.jsonl` (giữ
+ * 200 dòng cuối cho cả máy), còn cái này là một THƯ MỤC gắn với đúng một task
+ * và sống tới khi task đóng. Cùng dữ liệu ở phần đầu, khác vòng đời.
+ */
+export interface BeeRun {
+  /** Tên thư mục — khoá để đọc chi tiết. `<id>-<lúc ISO gọn>`. */
+  dir: string;
+  id: string;
+  repo: string;
+  number: number;
+  rule: string;
+  result: string;
+  at: string;
+  turns: number;
+  duration_s: number;
+  /** Tên phiên Claude, để nối lại hội thoại. `null` khi rule không gọi agent. */
+  session_id: string | null;
+}
+
+/** Một bước trong lần chạy. `cat` = ghi chú của chính bee, không phải của agent. */
+export interface BeeRunStep {
+  kind: "noi" | "tool" | "cat";
+  text: string;
+}
+
+export interface BeeRunDetail extends BeeRun {
+  /** Báo cáo cuối cùng — đúng thứ được đăng lên issue. */
+  output: string;
+  steps: BeeRunStep[];
+  usage: {
+    tokens_in?: number;
+    tokens_out?: number;
+    tokens_cache_read?: number;
+    tokens_cache_write?: number;
+    cost_usd?: number;
+    stop_reason?: string | null;
+    api_error_status?: number | null;
+  } | null;
+}
+
 export interface EvidenceFile {
   /** Đường dẫn tương đối tính từ `<slug>/<num>/<sha>/`. */
   rel: string;
@@ -170,6 +213,9 @@ export interface BeeSource {
    * nó nằm trong kiểu trả về chứ không ném ra ngoài.
    */
   readClaudeRateLimit(): Promise<BeeClaudeRateLimit | null>;
+  /** Các lần agent đã chạy cho task này, mới nhất trước. */
+  listRuns(slug: string, num: number): Promise<BeeRun[]>;
+  readRun(slug: string, num: number, dir: string): Promise<BeeRunDetail | null>;
   listEvidence(slug: string, num: number): Promise<EvidenceRun[]>;
   /** `null` khi đường dẫn không hợp lệ hoặc file không tồn tại — cùng một câu trả lời. */
   readEvidenceFile(
