@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { auth, signIn } from "@/lib/auth";
+import { auth, signIn, signOut } from "@/lib/auth";
 
 const isLive = process.env.GITHUB_SOURCE === "live";
 
@@ -65,14 +65,22 @@ export default async function DangNhapPage({
 }) {
   const session = await auth();
   const thieu = thieuGi();
-  const { "tiep-tuc": next } = await searchParams;
+  const { "tiep-tuc": next, "het-han": hetHan } = await searchParams;
   const target = typeof next === "string" && next.startsWith("/") ? next : "/";
 
-  if (session?.login) redirect(target);
+  // `het-han` nghĩa là GitHub đã từ chối token của phiên này. Phiên vẫn giải mã
+  // được, nên KHÔNG được chuyển hướng vào trong: cookie hỏng còn nguyên đó và
+  // trang trong lại ném ngược ra đây, lặp mãi. Chỉ có đăng xuất mới xoá được nó.
+  if (session?.login && !hetHan) redirect(target);
 
   async function vaoBangGithub() {
     "use server";
     await signIn("github", { redirectTo: target });
+  }
+
+  async function raNgoai() {
+    "use server";
+    await signOut({ redirectTo: "/dang-nhap" });
   }
 
   async function vaoBangTenThu(formData: FormData) {
@@ -94,7 +102,20 @@ export default async function DangNhapPage({
           </p>
         </div>
 
-        {isLive && thieu.length > 0 ? (
+        {hetHan && session?.login ? (
+          <div className="flex flex-col gap-3 rounded-card border border-border bg-card p-5">
+            <p className="eyebrow text-destructive">GitHub session expired</p>
+            <p className="text-sm text-body">
+              You are still signed in as <code>{session.login}</code>, but GitHub no longer
+              accepts the token for that session. Sign out and back in to get a new one.
+            </p>
+            <form action={raNgoai}>
+              <Button type="submit" className="w-full">
+                Sign out
+              </Button>
+            </form>
+          </div>
+        ) : isLive && thieu.length > 0 ? (
           // Không hiện nút. Một nút dẫn tới trang 404 của GitHub tệ hơn hẳn
           // không có nút: nó nói rằng đăng nhập là chuyện khả thi.
           <div className="flex flex-col gap-3 rounded-card border border-destructive/40 bg-card p-5">

@@ -36,6 +36,21 @@ export async function taoTask(raw: Record<string, string>): Promise<KetQuaTao> {
     return { ok: false, errors };
   }
 
-  const task = await getGithub().createTask(parsed.data, actor);
-  return { ok: true, slug: task.slug, number: task.number, url: task.url };
+  // Đường GHI cũng gặp 401 như đường đọc, và ở đây nó đắt hơn: người dùng vừa
+  // phỏng vấn xong cả một hợp đồng. Trả về lỗi đọc được thay vì ném ra error
+  // boundary — nội dung chat vẫn còn nguyên trên màn hình để họ bấm lại.
+  try {
+    const task = await getGithub().createTask(parsed.data, actor);
+    return { ok: true, slug: task.slug, number: task.number, url: task.url };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return {
+      ok: false,
+      errors: {
+        slug: /401|rejected the token/i.test(msg)
+          ? "GitHub no longer accepts your session. Sign out and back in, then press Create task again — the draft above stays."
+          : msg,
+      },
+    };
+  }
 }

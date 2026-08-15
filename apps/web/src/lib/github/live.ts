@@ -1,10 +1,11 @@
 import "server-only";
 
+import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { getActorWithToken } from "@/lib/auth/token";
 
-import { ghGet, ghSend } from "./api";
+import { ghGet, GithubError, ghSend } from "./api";
 import {
   issueCuaPr,
   laPullRequest,
@@ -47,11 +48,33 @@ async function tokenCuaNguoiXem(): Promise<string | undefined> {
  * đúng phạm vi cần, và tự hết hạn khi request kết thúc, nên một thao tác ghi
  * xong là lần đọc sau đã thấy dữ liệu mới.
  */
+/**
+ * GitHub từ chối token (401) là chuyện SẼ xảy ra: token OAuth bị thu hồi khi
+ * người dùng gỡ quyền app, khi client secret được sinh lại, hoặc khi họ đăng
+ * nhập lại ở nơi khác. Phiên trong cookie vẫn giải mã được — nên app vẫn tưởng
+ * người dùng đã đăng nhập, và mọi trang đổ với một stack trace.
+ *
+ * Gặp thật: tạo task xong thì token còn tốt (issue được tạo), 40 phút sau mọi
+ * trang 401. Người dùng không có cách nào đoán ra phải đăng xuất.
+ *
+ * Nên: ném người dùng về trang đăng nhập kèm dấu `het-han`. Trang đó thấy dấu
+ * này thì KHÔNG chuyển hướng ngược lại (phiên cũ vẫn còn nên nó sẽ lặp) mà hiện
+ * nút đăng xuất — thứ duy nhất xoá được cookie hỏng.
+ */
+function neuTokenHong(e: unknown): never {
+  if (e instanceof GithubError && e.status === 401) redirect("/dang-nhap?het-han=1");
+  throw e;
+}
+
 const docTatCa = cache(async (): Promise<GhTask[]> => {
-  const token = await tokenCuaNguoiXem();
-  const repos = await docRepos();
-  const theoRepo = await Promise.all(repos.map((r) => docRepo(token, r)));
-  return theoRepo.flat();
+  try {
+    const token = await tokenCuaNguoiXem();
+    const repos = await docRepos();
+    const theoRepo = await Promise.all(repos.map((r) => docRepo(token, r)));
+    return theoRepo.flat();
+  } catch (e) {
+    neuTokenHong(e);
+  }
 });
 
 async function docRepo(token: string | undefined, repo: GhRepo): Promise<GhTask[]> {
