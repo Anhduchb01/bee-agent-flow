@@ -1,10 +1,13 @@
 export { themDuAn } from "./api/actions";
+export { docLichSuChat, ghiNhoPhien } from "./api/chat";
 export { loadProject, loadProjects } from "./api/load";
 export type { ProjectView } from "./api/load";
 export { AddProjectDialog } from "./components/add-project-dialog";
 export { ProjectCard } from "./components/project-card";
 export { ProjectKanban, ProjectTaskTable } from "./components/project-tasks";
 export { QueueList } from "./components/queue-list";
+export { ProjectChat } from "./components/project-chat";
 export { docViewMode, ViewSwitch } from "./components/view-switch";
 export type { ViewMode } from "./components/view-switch";
+export { anhChupDuAn } from "./lib/snapshot";
 export { thongKeDuAn, thongKeMotDuAn } from "./lib/stats";

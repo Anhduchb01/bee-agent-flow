@@ -32,16 +32,25 @@ export function ChatPanel({
   goiY,
   duoi,
   luuPhien,
+  boiCanh,
 }: {
-  mode: "spec" | "hoi-run";
+  mode: "spec" | "hoi-run" | "du-an";
   taskId?: string;
   /** Phiên để nối lại. `hoi-run` không có nó thì agent không nhớ gì. */
   sessionId?: string | null;
   moDau: string;
   goiY?: string[];
   duoi?: (toanBoLoiAgent: string) => ReactNode;
-  /** Gọi khi Claude cấp phiên mới — màn dự án dùng để lưu lịch sử. */
-  luuPhien?: (id: string) => void;
+  /** Gọi khi Claude cấp phiên — màn dự án dùng để lưu lịch sử. */
+  luuPhien?: (id: string, cauDau: string) => void;
+  /**
+   * Ảnh chụp trạng thái dự án, ghép vào tin nhắn ĐẦU TIÊN.
+   *
+   * Một lần thôi: từ lượt hai trở đi nó đã nằm trong phiên, và gửi lại mỗi lượt
+   * là trả tiền cho cùng một đoạn văn nhiều lần — và làm model tưởng trạng thái
+   * vừa được cập nhật.
+   */
+  boiCanh?: string;
 }) {
   const [loi, setLoi] = useState<LoiChat[]>([]);
   const [nhap, setNhap] = useState("");
@@ -60,12 +69,17 @@ export function ChatPanel({
     .join("\n\n");
 
   async function gui(text: string) {
-    const message = text.trim();
-    if (!message || dangHoi) return;
+    const raw = text.trim();
+    if (!raw || dangHoi) return;
+    const dauTien = loi.length === 0;
+    const message = dauTien && boiCanh ? `${boiCanh}\n\n${raw}` : raw;
 
     setNhap("");
     setHong(null);
-    setLoi((l) => [...l, { vai: "toi", text: message }, { vai: "agent", text: "" }]);
+    // Hiện câu NGƯỜI DÙNG gõ, không phải chuỗi đã ghép bối cảnh. Đẩy cả ảnh
+    // chụp trạng thái vào bong bóng chat là biến một câu hỏi ba chữ thành ba
+    // mươi dòng, và người ta phải cuộn qua nó ở mọi lượt sau.
+    setLoi((l) => [...l, { vai: "toi", text: raw }, { vai: "agent", text: "" }]);
     setDangHoi(true);
 
     try {
@@ -111,7 +125,7 @@ export function ChatPanel({
           } else if (ev.type === "done") {
             if (ev.session_id) {
               setPhien(ev.session_id);
-              luuPhien?.(ev.session_id);
+              luuPhien?.(ev.session_id, raw);
             }
             if (ev.error) setHong(ev.error);
             // Claude in câu lỗi ra như một câu trả lời bình thường trước khi

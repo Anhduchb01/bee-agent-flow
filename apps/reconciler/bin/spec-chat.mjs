@@ -38,6 +38,7 @@ const WORK_DIR = process.env.BEE_WORK_DIR ?? "/srv/bee/work";
 const VAI = {
   spec: "spec-chat.md",
   "hoi-run": "ask-run.md",
+  "du-an": "project-chat.md",
 };
 const MAX_TURNS = Number(process.env.BEE_SPEC_MAX_TURNS ?? 12);
 

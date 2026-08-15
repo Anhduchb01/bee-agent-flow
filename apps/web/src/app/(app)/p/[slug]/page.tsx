@@ -4,8 +4,11 @@ import { Eyebrow } from "@/components/eyebrow";
 import { StatGrid } from "@/components/stat-grid";
 import { StatusDot } from "@/components/status-dot";
 import {
+  anhChupDuAn,
+  docLichSuChat,
   docViewMode,
   loadProject,
+  ProjectChat,
   ProjectKanban,
   ProjectTaskTable,
   QueueList,
@@ -29,6 +32,8 @@ export default async function DuAnChiTietPage({
 
   const project = await loadProject(slug);
   if (!project) notFound();
+
+  const lichSu = await docLichSuChat(project.slug);
 
   return (
     <>
@@ -55,7 +60,9 @@ export default async function DuAnChiTietPage({
         <CreateTaskDialog slug={project.slug} />
       </PageHeader>
 
-      <div className="flex flex-col gap-6 p-4 sm:p-6">
+      {/* Hai cột như trang task: bảng bên trái cuộn, chat bên phải đứng yên. */}
+      <div className="grid gap-6 p-4 sm:p-6 xl:h-[calc(100dvh-var(--spacing)*24)] xl:grid-cols-[minmax(0,1fr)_26rem] xl:overflow-hidden">
+      <div className="flex min-w-0 flex-col gap-6 xl:overflow-y-auto xl:pr-2">
       <StatGrid stats={thongKeMotDuAn(project)} />
 
       <section className="flex flex-col gap-4">
@@ -75,6 +82,15 @@ export default async function DuAnChiTietPage({
         <Eyebrow>Machine queue</Eyebrow>
         <QueueList items={project.repo?.queue ?? []} slug={slug} />
       </section>
+      </div>
+
+      <aside className="flex min-h-0 min-w-0 flex-col rounded-card border border-border bg-card p-4 xl:h-full">
+        <ProjectChat
+          slug={project.slug}
+          boiCanh={anhChupDuAn(project.slug, project.tasks, new Date(project.readAt))}
+          lichSu={lichSu}
+        />
+      </aside>
       </div>
     </>
   );
