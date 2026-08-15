@@ -529,7 +529,7 @@ ${C_BOLD}be${C_RESET} 🐝 — điều phối agent      ${C_DIM}(gõ \`bee\` c�
 
   ${C_BOLD}be ra${C_RESET} org/name ${C_DIM}· repo add${C_RESET}
   ${C_BOLD}be repo${C_RESET} list | enable | disable | remove <slug>
-  ${C_BOLD}be token${C_RESET} <token> ${C_DIM}· token Claude dài hạn cho bee-agent${C_RESET}
+  ${C_BOLD}be tk${C_RESET} <token> ${C_DIM}· token Claude dài hạn cho bee-agent${C_RESET}
                          sinh bằng `claude setup-token` dưới user của bạn
 
   ${C_BOLD}be uninstall${C_RESET}             gỡ hệ thống, giữ lại state và log
@@ -537,6 +537,29 @@ ${C_BOLD}be${C_RESET} 🐝 — điều phối agent      ${C_DIM}(gõ \`bee\` c�
 Kill switch còn một tầng nữa nằm phía repo: tạo file .agent/PAUSE trên nhánh
 main qua giao diện web GitHub — không cần SSH, và lưu vết ai dừng lúc nào.
 EOF
+}
+
+# Gõ sai một chữ thì nói ra thứ ở ngay cạnh, đừng chỉ về `--help`.
+#
+# `be toke` là thiếu một chữ cái, và câu "lệnh không biết: toke (bee --help)"
+# bắt người ta mở trang trợ giúp rồi tự dò lại — cho một thứ máy nhìn ra ngay.
+# Bắt hai kiểu gõ sai hay gặp nhất: gõ thiếu (`toke`) và gõ thừa (`tokens`).
+CAC_LENH="status watch doctor dry-run logs repo token pause resume uninstall help"
+
+goi_y() {
+  local go="$1" l gan="" go_tran
+  # So thêm một lượt sau khi bỏ dấu gạch ngang: `dryrun` là một kiểu gõ sai
+  # riêng, không phải gõ thiếu, nên so tiền tố không bắt được nó.
+  go_tran="${go//-/}"
+  for l in $CAC_LENH; do
+    if [[ "$l" == "$go"* || "$go" == "$l"* ]]; then gan="$l"; break; fi
+    if [[ "${l//-/}" == "$go_tran" ]]; then gan="$l"; break; fi
+  done
+  if [[ -n "$gan" ]]; then
+    printf 'lệnh không biết: %s — ý bạn là `be %s`?' "$go" "$gan"
+  else
+    printf 'lệnh không biết: %s  (bee --help)' "$go"
+  fi
 }
 
 case "${1:-}" in
@@ -551,8 +574,8 @@ case "${1:-}" in
   repo)             shift; cmd_repo "$@" ;;
   p|pause)          shift || true; cmd_pause ;;
   r|resume)         shift || true; cmd_resume ;;
-  token)            shift; cmd_token "$@" ;;
+  tk|token)         shift; cmd_token "$@" ;;
   uninstall)        shift; cmd_uninstall ;;
   -h|--help|help)   usage ;;
-  *) die "lệnh không biết: $1  (bee --help)" ;;
+  *) die "$(goi_y "$1")" ;;
 esac
