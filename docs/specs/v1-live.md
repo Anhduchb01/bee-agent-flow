@@ -1,5 +1,11 @@
 # SPEC — V1 Live
 
+> ⚠️ **Đóng băng (17/08/2026).** Spec này viết cho PRD 2.0 (mô hình hai UID).
+> PRD 3.0 chuyển sang mô hình session-first một UID — spec đang hiệu lực là
+> [`session-first.md`](session-first.md). Phần còn giá trị và đã được chuyển
+> nguyên sang spec mới: **§3.2** (FIFO read-write, stream-json hai chiều) và
+> **§4.2** (SSE tail theo offset). Giữ nguyên văn làm tham chiếu fallback.
+
 Đặc tả kỹ thuật cho mốc **V1 — Live** của [`docs/PRD_bee-agent-flow.md`](../PRD_bee-agent-flow.md):
 FR-1.2 · FR-1.3 · FR-1.4 · FR-1.5 · FR-5.2 · FR-6.2.
 

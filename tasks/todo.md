@@ -2,106 +2,76 @@
 
 Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖 = tôi làm được
 
-**Mốc đang làm:** V1 Live — [`docs/specs/v1-live.md`](../docs/specs/v1-live.md)
-**Thứ tự:** gỡ ẩn số (L0) → bash và web chạy song song (L1 ∥ L2) → nối (L3) → cửa và truy cập (L4)
+**Mốc đang làm:** V1 Sessions Live — [`docs/specs/session-first.md`](../docs/specs/session-first.md)
+**Thứ tự:** gỡ ẩn số (S0) → runner ∥ web (S1 ∥ S2) → nối (S3) → máy thật (S4) → internet (S5)
 
 ---
 
-## L0 · Gỡ ẩn số ← làm trước mọi thứ
+## S0 · Gỡ hai ẩn số ← làm trước mọi thứ
 
-- [ ] 🤖 **L0.1** Rig `stream-json` hai chiều — gõ chen lúc agent đang giữa một
-      tool call thì CLI xếp hàng hay bỏ?
-      → Trả về hai thứ: câu trả lời, và một `run.jsonl` **thật** làm fixture cho
-      toàn bộ L2. Nếu CLI bỏ tin nhắn thì **dừng và báo** — UI phải hứa khác.
+- [ ] 🤖 **S0.1** Rig `stream-json` hai chiều — gõ chen lúc agent giữa tool call:
+      CLI xếp hàng hay bỏ? Nếu bỏ → **dừng và báo**, ô gõ phải hứa khác.
+- [ ] 🤖 **S0.2** Rig phỏng vấn `--allowedTools ""` → kết thúc → `--resume` với
+      đủ tool: phiên có nhớ ngữ cảnh phỏng vấn không? Nếu không → "ok làm đi"
+      phải thiết kế lại (hai phiên + bàn giao hợp đồng).
+      → Cả hai rig trả thêm một `run.jsonl` **thật** làm fixture cho S2.
 
-## L1 · Bản ghi sống trên đĩa (bash) ← song song được với L2
+## S1 · `apps/runner/` — bash ← song song với S2
 
-- [ ] 🤖 **L1.1** Tách `run_archive` → `run_open` + `run_close`; thư mục run ra
-      đời **lúc bắt đầu**, `meta.json` mang `status` + `started_at`
-      → `lib/bee/types.ts` phải đổi trong **cùng commit**.
-- [ ] 🤖 **L1.2** `agent-exec.sh` ghi `run.jsonl` thẳng vào thư mục bền
-      → `kill -9` giữa chừng: `meta.json` không được kẹt ở `running`.
+- [ ] 🤖 **S1.1** `session-run.sh`: đọc `session.json` → PAUSE check → fetch →
+      branch `bee/<slug>-<n>` → worktree → sự kiện vòng đời → claude FIFO/run.jsonl
+      → thấy `result` thì đóng FIFO, ghi `meta.json`. Port từ `agent-exec.sh` cũ.
+- [ ] 🤖 **S1.2** `units/` + install.sh: `bee-session@.service` (user unit),
+      linger, timer. Installer idempotent, tạo sẵn PAUSE như installer cũ.
+- [ ] 🤖 **S1.3** `reaper.sh`: `meta.json` running ∧ unit không active → đóng sổ
+      `failed`, dọn FIFO, `attempt`; ≥ 2 → `needs_human`. + heartbeat.
+- [ ] 🤖 **S1.4** `doctor.sh`: checklist A+ (PRD §4.2) — PAT hẹp, branch
+      protection, không secret lạ, linger, timer. Ghi `doctor.json` cho web đọc.
 
-> **✅ Checkpoint A** — `tail -f` được một phiên đang chạy, từ user ngoài group `bee`.
-> Review riêng phần bash trước khi đi tiếp.
+> **✅ Checkpoint** — review riêng phần bash trước khi đi tiếp.
 
-## L2 · Web đọc luồng đang chảy ← không cần máy Ubuntu
+## S2 · Web đọc luồng ← không cần máy Ubuntu
 
-- [ ] 🤖 **L2.1** `run-stream.ts` + `parse-events.ts` — thuần, test bằng fixture
-      của L0.1 · **dòng JSON cắt đôi không được phát nửa dòng**
-- [ ] 🤖 **L2.2** Route SSE — `Last-Event-ID` · `bee_replayed` · đóng khi phiên
-      xong · từ chối `../` và request không session
-- [ ] 🤖 **L2.3** Màn hình live — dòng sự kiện · mất kết nối không xoá màn hình ·
-      chạy được trên điện thoại
+- [ ] 🤖 **S2.1** `features/sessions/lib/parse-events.ts` — thuần, fixture từ S0,
+      khoan dung dòng rác · **dòng JSON cắt đôi không phát nửa dòng**
+- [ ] 🤖 **S2.2** Route SSE `api/session/[id]/stream` — `Last-Event-ID` ·
+      `bee_replayed` · đóng khi phiên xong · từ chối `../` và thiếu session
+- [ ] 🤖 **S2.3** Màn live (plain text, mobile-first, mất mạng không xoá màn) +
+      **session list nhóm theo repo** — màn hình gốc mới của app
 
-> **✅ Checkpoint B** — demo được trên fixture, chưa cần một máy Ubuntu nào.
-> Bạn duyệt bố cục màn live trước khi nối vào máy thật.
+> **✅ Checkpoint** — bạn duyệt bố cục trên fixture.
 
-## L3 · Đường điều khiển và đường vào
+## S3 · Nối điều khiển
 
-- [ ] 🤖 **L3.1** `bee-request.path` → `bee-request.service` — web ghi file, orch
-      khởi động
-      → **web không được cấp sudo hay polkit.** Đây là chỗ spec đã sai một lần.
-      Rig 6 file yêu cầu (2 hợp lệ, 4 độc) → đúng 2 unit chạy.
-- [ ] 🤖 **L3.2** Web ghi file yêu cầu · `StateDirectory=bee-web` · vẫn không ghi
-      được vào `/srv/bee/**`
-- [ ] 🤖 **L3.3** FIFO mở read-write + `--input-format stream-json` + `--session-id`
-- [ ] 🤖 **L3.4** Lệnh `say` ở cầu nối + ô gõ trong màn live
+- [ ] 🤖 **S3.1** Server actions `start`/`say`/`stop`: ghi `session.json` +
+      `systemctl --user` + ghi FIFO. Id qua regex UUID trước khi thành tên unit.
+- [ ] 🤖 **S3.2** "Ok làm đi": một nút → `phase:"work"` → runner restart claude
+      `--resume` với đủ tool. Cùng session-id, cùng màn hình.
+- [ ] 🤖 **S3.3** Skills `bee-create-issue` · `bee-push-pr` · `bee-update-pr`
+      (`gh` trực tiếp; push-pr từ chối branch ≠ `bee/*`)
 
-> **✅ Checkpoint C** — vòng live khép kín trên máy thật: xem · gõ chen · dừng ·
-> `systemctl restart bee-web` giữa chừng mà phiên không hề hấn.
+## S4 · Máy thật + vệ sinh A+
 
-## L4 · Cửa duy nhất và truy cập thật
+- [ ] 🧑 **S4.1** Tạo fine-grained PAT (contents + PR + issues, đúng danh sách
+      repo) · bật branch protection `main` từng repo · thử push main phải bị từ chối
+- [ ] 🧑 **S4.2** Cài `apps/runner` lên máy · login Claude dưới user `bee` ·
+      `loginctl enable-linger bee` · `doctor.sh` xanh toàn bộ
+- [ ] 🤖 **S4.3** Chạy 6 bài rig của spec §8 trên máy thật — nghiệm thu thật
 
-- [ ] 🤖 **L4.1** "Ok làm đi" — một nút, bốn bước, **chữ chạy trong < 5 giây**
-      → Hỏng bước nào phải nói ra **bước đó**.
-- [ ] 🤖 **L4.2** Nút Dừng — < 5 giây, worktree sạch, không FIFO mồ côi
-- [ ] 🧑 **L4.3** OAuth app thật + Cloudflare Access ← làm song song bất cứ lúc nào
-- [ ] 🧑 **L4.4** Nghiệm thu V1 — [spec §10](../docs/specs/v1-live.md), 15 mục,
-      làm **trên điện thoại, ngoài mạng nhà**
+## S5 · Ra internet
 
-> **✅ Checkpoint D** — V1 xong.
-
----
-
-## Nợ cũ — mang sang từ plan 13/08
-
-Ba việc còn treo. **Hai trong ba đã đổi nghĩa** vì PRD 2.0 lật mô hình:
-
-- [ ] 🧑 **P1.3** Sửa `prompts/build.md` theo từng lần phải can thiệp tay
-      → **Vẫn đúng nguyên**, và quan trọng hơn trước: phiên live dùng chung prompt đó.
-- [ ] 🧑 **P1.2** ~~Bốn task nữa qua rule 07, 3/5 không can thiệp tay~~
-      → **Đổi nghĩa.** Rule 07 (nhận việc theo nhãn) sẽ bị thay ở V4. Thước đo
-      "3/5 ra PR không can thiệp" chuyển sang đo **phiên live** ở L4.4.
-- [ ] 🧑 **P4.2** ~~TL comment thật → agent sửa đúng chỗ nhờ `--resume`~~
-      → **Đổi nghĩa.** Rule 02 vẫn giữ làm đường chậm, nhưng đường chính giờ là
-      gõ chen trực tiếp (L3.4). Nghiệm thu gộp vào checkpoint C.
-- [x] 🤖 **B1 · B2 · B6** Đọc `/srv/bee` thật · map GitHub · cộng dồn hạn mức
-- [ ] 🧑 **B3** Ghi thật (tạo issue, comment, approve mang tên người bấm)
-      → Gộp vào **L4.1** và **L4.4**, không còn là task riêng.
-- [ ] 🧑 **B4** OAuth + Cloudflare Access → đổi tên thành **L4.3**, và giờ là
-      **P0 của V1**: không có nó thì "giao việc từ điện thoại" không tồn tại.
-- [ ] 🧑 **B5** Nghiệm thu → đổi tên thành **L4.4**
-
-## Việc đã xong, giữ lại để không làm lại
-
-- [x] 🤖 **W1–W11 · W13–W18** Web trên fixture: hộp thư · trang dự án · trang
-      task · tạo task bằng phỏng vấn · chat · bằng chứng · Slack · Geist · kanban
-- [x] 🧑 **P0.1–P0.5** Cài máy, ranh giới token, kill switch hai tầng, khoá unit
-- [x] 🧑 **P1.1** Một task nhỏ → draft PR sạch (PR #6)
-- [x] 🧑 **P2.1–P2.3** Rút điện → rule 01 dọn 44s · `bee/test` xanh 21s · dashboard sống
-- [x] 🤖 **R3.1 · R3.2 · R4.1 · R4.3** Bằng chứng trên đĩa · dọn `evidence/` ·
-      rule 02 quét ba nguồn · giữ `usage`/`stop_reason`
-- [ ] 🧑 **W12** ~~Duyệt giao diện qua 5 cảnh dữ liệu~~
-      → Thay bằng **checkpoint B**: duyệt màn live, vì đó mới là màn hình mới.
+- [ ] 🤖 **S5.1** GitHub OAuth + allowlist login; ngoài allowlist thấy trang
+      trống nói thẳng, không lộ dữ liệu
+- [ ] 🧑 **S5.2** Cloudflare Access trước app
+- [ ] 🧑 **S5.3** Nghiệm thu toàn bộ checklist spec §10 **từ điện thoại, ngoài
+      mạng nhà** → V1 xong
 
 ---
 
-## Nhắc hai điều dễ quên
+## Treo — không thuộc V1, đừng quên
 
-**Không component nào, không hook nào được biết mình đang chạy trên fixture.**
-Một `if (isFixture)` lọt vào tầng UI là đường ranh đã hỏng.
-
-**V1 không gỡ rule 07.** Hai mô hình cùng tồn tại trong suốt V1–V3, và đó là có
-chủ ý: gỡ đường cũ trước khi đường mới chạy thật là cách nhanh nhất để mất cả
-hai. Dọn ở V4.
+- [ ] V4: gỡ cầu socket, rule 07/08, hộp thư 5 loại, hai user thừa; đồng bộ
+      `architecture.html`, `AGENTS.md`, `README.md` về mô hình mới
+- [ ] `docs/architecture.html` hiện mô tả mô hình hai UID — đã ghi chú trong
+      PRD 3.0 phụ lục là *tham chiếu fallback*; vẽ lại sau khi V1 nghiệm thu
+- [ ] Trần `run.jsonl` theo byte lúc đang ghi (spec §11)
