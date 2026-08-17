@@ -1,0 +1,9 @@
+[Unit]
+Description=bee heartbeat check moi 5 phut
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=5min
+
+[Install]
+WantedBy=timers.target

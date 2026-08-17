@@ -1,0 +1,11 @@
+[Unit]
+Description=bee reaper moi 30s
+
+[Timer]
+# Đếm từ lúc tick trước KẾT THÚC — hai tick không bao giờ chồng nhau,
+# không cần flock. Giữ nguyên bài của mô hình cũ.
+OnBootSec=30s
+OnUnitInactiveSec=30s
+
+[Install]
+WantedBy=timers.target

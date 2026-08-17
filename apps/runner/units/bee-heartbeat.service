@@ -1,0 +1,7 @@
+[Unit]
+Description=bee heartbeat check — bat cai chet im lang cua reaper
+
+[Service]
+Type=oneshot
+ExecStart=/opt/bee/bin/heartbeat.sh
+TimeoutStartSec=30

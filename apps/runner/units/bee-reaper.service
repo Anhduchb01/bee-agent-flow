@@ -1,0 +1,9 @@
+# Một tick dọn xác. Oneshot + timeout ngắn là cái bẫy cố ý: nhét việc dài
+# vào đây thì systemd giết và bug lộ ngay thay vì âm ỉ.
+[Unit]
+Description=bee reaper — don xac phien + heartbeat
+
+[Service]
+Type=oneshot
+ExecStart=/opt/bee/bin/reaper.sh
+TimeoutStartSec=60

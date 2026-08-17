@@ -86,9 +86,13 @@ bee-session@<id> → session-run.sh
 4. **stderr tách file riêng** — `run.jsonl` là JSONL mà web `JSON.parse` từng
    dòng; một warning của node chen vào là một dòng hỏng.
 
-**Kết thúc phiên:** thấy sự kiện `result` → runner đóng fd FIFO → claude nhận
-EOF → thoát → runner ghi `meta.json` thành `done`, dọn FIFO. Muốn hỏi tiếp sau
-khi xong: mở phiên mới với `resume` (FR-1.8) — không giữ phiên treo.
+**Kết thúc phiên:** `result` **không** phải tín hiệu kết thúc — ở chế độ
+stream-json hai chiều, mỗi lượt trả lời sinh một `result` rồi CLI chờ input
+tiếp (phiên là hội thoại nhiều lượt). Phiên kết thúc khi: người bấm **Dừng**
+(`systemctl --user stop` → trap ghi `stopped`), claude tự thoát (`done`/`failed`
+theo mã thoát), hoặc chạm trần `RuntimeMaxSec` của unit. Đóng fd FIFO là cách
+runner kết thúc *một pha* sạch sẽ (claude nhận EOF, thoát không mất state) —
+dùng khi chuyển chế độ phỏng vấn→làm.
 
 **Câu gõ chen phải được app tự ghi sổ** *(phát hiện rig S0.1 — xem
 [`apps/runner/rig/FINDINGS.md`](../../apps/runner/rig/FINDINGS.md))*: CLI

@@ -1,0 +1,14 @@
+# Một phiên agent = một instance của template này. Instance name = UUID phiên.
+# Khoá trùng, liệt kê, tách log — cả ba systemd cho miễn phí.
+[Unit]
+Description=bee session %i
+
+[Service]
+Type=simple
+ExecStart=/opt/bee/bin/session-run.sh %i
+# Trần cứng cho một phiên — phanh cuối khi mọi thứ khác quên dừng.
+RuntimeMaxSec=6h
+# systemctl stop = nút Dừng: TERM cho session-run.sh, trap đóng sổ "stopped";
+# 20 giây sau mới KILL cả nhóm nếu còn sót.
+KillMode=mixed
+TimeoutStopSec=20
