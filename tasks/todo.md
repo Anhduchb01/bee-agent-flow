@@ -2,77 +2,106 @@
 
 Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖 = tôi làm được
 
-**Thứ tự:** web trên fixture trước (A) → nghiệm thu reconciler song song (C) →
-nối vào dữ liệu thật (B, cần cả hai).
+**Mốc đang làm:** V1 Live — [`docs/specs/v1-live.md`](../docs/specs/v1-live.md)
+**Thứ tự:** gỡ ẩn số (L0) → bash và web chạy song song (L1 ∥ L2) → nối (L3) → cửa và truy cập (L4)
 
 ---
 
-## A · Web trên fixture ← chỉ còn W12 (bạn duyệt)
+## L0 · Gỡ ẩn số ← làm trước mọi thứ
 
-- [x] 🤖 **W1** Bộ khung — 4 cổng chất lượng xanh trước khi có code để bảo vệ
-- [x] 🤖 **W2** Đường ranh dữ liệu + fixture sinh từ schema thật
-- [x] 🤖 **W3** Đăng nhập · người ngoài allowlist thấy trống · token không lộ ra client
-- [x] 🤖 **W4** Sức khoẻ hệ thống · heartbeat cũ báo đỏ · JSON hỏng không crash
-- [x] 🤖 **W5** Hộp thư "đang chờ bạn" — màn hình chính
-- [x] 🤖 **W6** Trang task — issue + PR thành một trang
-- [x] 🤖 **W7** Tạo task theo hợp đồng 5 mục
-- [x] 🤖 **W8** Chat vào task — không spinner vô tận
-- [x] 🤖 **W9** Xem bằng chứng — **chặn path traversal ngay từ đầu**
-- [x] 🤖 **W10** PM duyệt · không có nút merge ở bất kỳ đâu
-- [x] 🤖 **W11** Slack — gộp, không spam, không bắn lại
-- [x] 🤖 **W13** Design system Geist (Vercel) — [`docs/design/vercel-geist.md`](../docs/design/vercel-geist.md)
-- [x] 🤖 **W14** Bảng việc có bộ lọc từng cột · dải thống kê mọi màn
-- [x] 🤖 **W15** Dự án: thêm dự án · danh sách task · hai kiểu xem bảng/kanban
-- [x] 🤖 **W16** Tạo task bằng modal trong chi tiết dự án
-- [x] 🤖 **W18** New Task là một cuộc phỏng vấn — không còn ô nào để điền
-      → `bee-spec-chat` chạy dưới bee-agent, mở socket cho bee-web. Đây là cây
-      cầu DUY NHẤT bắc qua ranh giới hai UID; gỡ bằng
-      `systemctl disable --now bee-spec-chat` thì app vẫn chạy.
-- [x] 🤖 **W17** Giao diện chuyển hết sang tiếng Anh · vá lệch tên năm mục hợp đồng
-- [ ] 🧑 **W12** Bạn duyệt giao diện qua đủ 5 cảnh dữ liệu
-      → ảnh đã chụp sẵn 44 tấm qua 9 cảnh, xem trang duyệt (link trong hội thoại).
-      Chụp lại bằng `CHUP_ANH=<thư mục> pnpm exec playwright test chup-anh`.
+- [ ] 🤖 **L0.1** Rig `stream-json` hai chiều — gõ chen lúc agent đang giữa một
+      tool call thì CLI xếp hàng hay bỏ?
+      → Trả về hai thứ: câu trả lời, và một `run.jsonl` **thật** làm fixture cho
+      toàn bộ L2. Nếu CLI bỏ tin nhắn thì **dừng và báo** — UI phải hứa khác.
 
-> **✅ Checkpoint A** — demo được cho cả đội mà không cần máy Ubuntu nào
+## L1 · Bản ghi sống trên đĩa (bash) ← song song được với L2
 
-## C · Nghiệm thu reconciler ← M0 xong · M1 còn 4 task · M2 xong · M3/M4 code xong
+- [ ] 🤖 **L1.1** Tách `run_archive` → `run_open` + `run_close`; thư mục run ra
+      đời **lúc bắt đầu**, `meta.json` mang `status` + `started_at`
+      → `lib/bee/types.ts` phải đổi trong **cùng commit**.
+- [ ] 🤖 **L1.2** `agent-exec.sh` ghi `run.jsonl` thẳng vào thư mục bền
+      → `kill -9` giữa chừng: `meta.json` không được kẹt ở `running`.
 
-- [x] 🧑 **P0.1** Cài lên máy Ubuntu
-- [x] 🧑 **P0.2** Ba lệnh ranh giới token
-- [x] 🧑 **P0.3** `be repo add` — `origin/HEAD` phân giải được
-- [x] 🧑 **P0.4** Kill switch cả hai tầng — tầng repo từng là **cửa một chiều**, đã vá
-- [x] 🧑 **P0.5** Khoá unit, tick không chồng, `be dry-run` không ghi gì
-- [x] 🧑 **P1.1** Một task nhỏ → draft PR sạch (PR #6, 4 file, không lọt rác)
-- [ ] 🧑 **P1.2** Bốn task nữa — 3/5 không can thiệp tay
-- [ ] 🧑 **P1.3** Sửa prompt — cần P1.2 trước. Ba điều task đầu dạy được đã vào `build.md`
-- [x] 🧑 **P2.1** Rút điện → rule 01 dọn trong 44s; lần hai → `needs-human`
-- [x] 🧑 **P2.2** Rule 03 đẩy `bee/test` — xanh 21s trên PR thật
-- [x] 🧑 **P2.3** Dashboard vẫn lên khi reconciler đã chết, dải đỏ báo heartbeat cũ
-- [x] 🤖 **R3.1** Bằng chứng sang `/srv/bee/evidence/…` · mốc scan là thư mục · **hết MinIO**
-- [x] 🤖 **R3.2** Dọn `evidence/` — PR đóng, và 90 ngày cho PR không bao giờ đóng
-- [x] 🤖 **R4.3** `run_agent` giữ `usage`/`stop_reason` · hạn mức ra file riêng
-- [x] 🤖 **R4.1** Rule 02 quét cả ba chỗ GitHub cất comment · mốc là vân tay, không phải số đếm
-- [ ] 🧑 **P4.2** TL comment thật → agent sửa đúng chỗ
+> **✅ Checkpoint A** — `tail -f` được một phiên đang chạy, từ user ngoài group `bee`.
+> Review riêng phần bash trước khi đi tiếp.
 
-> **✅ Checkpoint C** — reconciler xong M0–M4
+## L2 · Web đọc luồng đang chảy ← không cần máy Ubuntu
 
-## B · Nối vào dữ liệu thật ← code xong, nghiệm thu chờ B4
+- [ ] 🤖 **L2.1** `run-stream.ts` + `parse-events.ts` — thuần, test bằng fixture
+      của L0.1 · **dòng JSON cắt đôi không được phát nửa dòng**
+- [ ] 🤖 **L2.2** Route SSE — `Last-Event-ID` · `bee_replayed` · đóng khi phiên
+      xong · từ chối `../` và request không session
+- [ ] 🤖 **L2.3** Màn hình live — dòng sự kiện · mất kết nối không xoá màn hình ·
+      chạy được trên điện thoại
 
-- [x] 🤖 **B1** `lib/bee/disk.ts` — đối chiếu `/srv/bee` thật, `dropped: 0`, không lệch trường nào
-- [x] 🤖 **B6** `lib/claude/live.ts` — cộng dồn `recent.jsonl` + đọc file hạn mức
-      → đường có `usage` thật vẫn chưa được chứng kiến: mọi bản ghi hiện có đều
-      ghi trước lúc cài R4.3, hoặc của rule không gọi agent.
-- [x] 🤖 **B2** `lib/github/live.ts` — map kiểm bằng payload thật (`__real__/`)
-      → chạy qua mạng thì chưa: cần OAuth app ở B4.
-- [ ] 🧑 **B3** Ghi thật: tạo issue, comment, approve — mang tên người bấm
-      → phần code xong (dùng `getActorWithToken`), còn nghiệm thu, cần B4.
-- [ ] 🧑 **B4** OAuth + Cloudflare Access thật
-- [ ] 🧑 **B5** Nghiệm thu V1 — một tuần không ai mở GitHub Issues
+> **✅ Checkpoint B** — demo được trên fixture, chưa cần một máy Ubuntu nào.
+> Bạn duyệt bố cục màn live trước khi nối vào máy thật.
+
+## L3 · Đường điều khiển và đường vào
+
+- [ ] 🤖 **L3.1** `bee-request.path` → `bee-request.service` — web ghi file, orch
+      khởi động
+      → **web không được cấp sudo hay polkit.** Đây là chỗ spec đã sai một lần.
+      Rig 6 file yêu cầu (2 hợp lệ, 4 độc) → đúng 2 unit chạy.
+- [ ] 🤖 **L3.2** Web ghi file yêu cầu · `StateDirectory=bee-web` · vẫn không ghi
+      được vào `/srv/bee/**`
+- [ ] 🤖 **L3.3** FIFO mở read-write + `--input-format stream-json` + `--session-id`
+- [ ] 🤖 **L3.4** Lệnh `say` ở cầu nối + ô gõ trong màn live
+
+> **✅ Checkpoint C** — vòng live khép kín trên máy thật: xem · gõ chen · dừng ·
+> `systemctl restart bee-web` giữa chừng mà phiên không hề hấn.
+
+## L4 · Cửa duy nhất và truy cập thật
+
+- [ ] 🤖 **L4.1** "Ok làm đi" — một nút, bốn bước, **chữ chạy trong < 5 giây**
+      → Hỏng bước nào phải nói ra **bước đó**.
+- [ ] 🤖 **L4.2** Nút Dừng — < 5 giây, worktree sạch, không FIFO mồ côi
+- [ ] 🧑 **L4.3** OAuth app thật + Cloudflare Access ← làm song song bất cứ lúc nào
+- [ ] 🧑 **L4.4** Nghiệm thu V1 — [spec §10](../docs/specs/v1-live.md), 15 mục,
+      làm **trên điện thoại, ngoài mạng nhà**
+
+> **✅ Checkpoint D** — V1 xong.
 
 ---
 
-## Nhắc một điều dễ quên khi làm trên fixture
+## Nợ cũ — mang sang từ plan 13/08
 
-Không component nào, không hook nào được biết mình đang chạy trên fixture. Một
-`if (isFixture)` lọt vào tầng UI là đường ranh đã hỏng, và pha B sẽ biến thành
-viết lại thay vì đổi một biến môi trường.
+Ba việc còn treo. **Hai trong ba đã đổi nghĩa** vì PRD 2.0 lật mô hình:
+
+- [ ] 🧑 **P1.3** Sửa `prompts/build.md` theo từng lần phải can thiệp tay
+      → **Vẫn đúng nguyên**, và quan trọng hơn trước: phiên live dùng chung prompt đó.
+- [ ] 🧑 **P1.2** ~~Bốn task nữa qua rule 07, 3/5 không can thiệp tay~~
+      → **Đổi nghĩa.** Rule 07 (nhận việc theo nhãn) sẽ bị thay ở V4. Thước đo
+      "3/5 ra PR không can thiệp" chuyển sang đo **phiên live** ở L4.4.
+- [ ] 🧑 **P4.2** ~~TL comment thật → agent sửa đúng chỗ nhờ `--resume`~~
+      → **Đổi nghĩa.** Rule 02 vẫn giữ làm đường chậm, nhưng đường chính giờ là
+      gõ chen trực tiếp (L3.4). Nghiệm thu gộp vào checkpoint C.
+- [x] 🤖 **B1 · B2 · B6** Đọc `/srv/bee` thật · map GitHub · cộng dồn hạn mức
+- [ ] 🧑 **B3** Ghi thật (tạo issue, comment, approve mang tên người bấm)
+      → Gộp vào **L4.1** và **L4.4**, không còn là task riêng.
+- [ ] 🧑 **B4** OAuth + Cloudflare Access → đổi tên thành **L4.3**, và giờ là
+      **P0 của V1**: không có nó thì "giao việc từ điện thoại" không tồn tại.
+- [ ] 🧑 **B5** Nghiệm thu → đổi tên thành **L4.4**
+
+## Việc đã xong, giữ lại để không làm lại
+
+- [x] 🤖 **W1–W11 · W13–W18** Web trên fixture: hộp thư · trang dự án · trang
+      task · tạo task bằng phỏng vấn · chat · bằng chứng · Slack · Geist · kanban
+- [x] 🧑 **P0.1–P0.5** Cài máy, ranh giới token, kill switch hai tầng, khoá unit
+- [x] 🧑 **P1.1** Một task nhỏ → draft PR sạch (PR #6)
+- [x] 🧑 **P2.1–P2.3** Rút điện → rule 01 dọn 44s · `bee/test` xanh 21s · dashboard sống
+- [x] 🤖 **R3.1 · R3.2 · R4.1 · R4.3** Bằng chứng trên đĩa · dọn `evidence/` ·
+      rule 02 quét ba nguồn · giữ `usage`/`stop_reason`
+- [ ] 🧑 **W12** ~~Duyệt giao diện qua 5 cảnh dữ liệu~~
+      → Thay bằng **checkpoint B**: duyệt màn live, vì đó mới là màn hình mới.
+
+---
+
+## Nhắc hai điều dễ quên
+
+**Không component nào, không hook nào được biết mình đang chạy trên fixture.**
+Một `if (isFixture)` lọt vào tầng UI là đường ranh đã hỏng.
+
+**V1 không gỡ rule 07.** Hai mô hình cùng tồn tại trong suốt V1–V3, và đó là có
+chủ ý: gỡ đường cũ trước khi đường mới chạy thật là cách nhanh nhất để mất cả
+hai. Dọn ở V4.

@@ -8,11 +8,17 @@ Gồm **ba phần dùng được độc lập**:
 | Phần | Là gì | Trạng thái |
 |---|---|---|
 | **Template cho Claude Code** — [`.claude/`](.claude/) | Bộ slash command và agent skill. Copy vào repo của bạn là dùng được ngay | Dùng được |
-| **`bee` — reconciler** — [`apps/reconciler/`](apps/reconciler/) | Điều phối agent chạy tự động trên một máy Ubuntu. GitHub là nguồn sự thật, agent tự nhận issue và mở PR kèm bằng chứng | Code xong, **chưa nghiệm thu trên máy thật** |
-| **`web` — app cho PM & Techlead** — [`docs/specs/web.md`](docs/specs/web.md) | Mặt người dùng đặt lên trên `bee`: mở nó thay vì mở GitHub Issues | Mới có spec |
+| **`bee` — sân chạy agent** — [`apps/reconciler/`](apps/reconciler/) | Chỗ agent chạy an toàn trên một máy Ubuntu: sandbox hai UID, worktree, bằng chứng, tự dọn khi chết | 9 rule code xong · M0/M2 đã nghiệm thu trên máy thật |
+| **`web` — mặt điều khiển** — [`apps/web/`](apps/web/) | Chỗ bạn nói chuyện để giao việc, xem agent làm, duyệt kết quả — từ bất cứ đâu, kể cả điện thoại | Chạy được trên fixture · **đang đổi mô hình theo PRD 2.0** |
 
-> **Bắt đầu đọc ở đâu:** [`docs/architecture.html`](docs/architecture.html) — toàn
-> bộ hệ thống trong một bản đồ, mở bằng trình duyệt.
+> **Bắt đầu đọc ở đâu:** [`docs/PRD_bee-agent-flow.md`](docs/PRD_bee-agent-flow.md)
+> — muốn gì và repo còn lệch chỗ nào · [`docs/architecture.html`](docs/architecture.html)
+> — toàn bộ hệ thống trong một bản đồ *(vẽ theo mô hình cũ)*.
+
+> ⚠️ **Repo đang giữa một lần đổi mô hình.** PRD 2.0 (17/08) lật ba thứ so với
+> những gì viết bên dưới: hàng đợi rời khỏi nhãn GitHub · agent chạy live xem
+> được thay vì chờ tick 30 giây · có nút merge trong app. Phần chưa sửa được
+> đánh dấu *(mô hình cũ)*.
 
 ---
 
@@ -29,13 +35,14 @@ bee-agent-flow/
 │   │   ├── prompts/           # prompt của 4 vai trò agent
 │   │   ├── public/            # dashboard tĩnh
 │   │   └── systemd/ sudoers/  # unit, ranh giới quyền
-│   └── web/                   # Next.js 16 — chưa scaffold, xem docs/specs/web.md
+│   └── web/                   # Next.js 16 — 15 feature slice, chạy trên fixture
 │
 ├── docs/
-│   ├── architecture.html      # ← bản đồ toàn hệ thống
+│   ├── PRD_bee-agent-flow.md  # ← NGUỒN Ý ĐỊNH: muốn gì, repo lệch chỗ nào
+│   ├── architecture.html      # bản đồ toàn hệ thống (mô hình cũ)
 │   ├── design/                # lý lẽ: vì sao chọn từng phương án
-│   ├── specs/                 # đặc tả từng phần
-│   ├── intent/                # ý định đã chốt qua phỏng vấn
+│   ├── specs/                 # đặc tả từng phần (web.md đã lỗi thời)
+│   ├── intent/                # ý định cũ, giữ làm lịch sử
 │   ├── mockups/               # bản duyệt giao diện (sinh tự động)
 │   └── templates/             # mẫu để copy
 │
@@ -110,6 +117,10 @@ với thực tế rồi làm **đúng một việc** để kéo hai bên về g�
 Actions, không webhook — hàng đợi chính là label trên issue, nên máy tắt ba tiếng
 cũng không mất việc nào.
 
+> *(mô hình cũ — phần "hàng đợi là label trên issue")* PRD 2.0 chuyển hàng đợi
+> về cho app sở hữu; `bee` giữ lại vai **sân chạy an toàn**: sandbox hai UID,
+> worktree, bằng chứng, tự dọn phiên chết, CI. Phần đó không đổi một dòng.
+
 ### Cài
 
 ```bash
@@ -140,15 +151,19 @@ be doctor && be dry-run && be resume
 | `be pause` | kill switch |
 
 Kill switch có hai tầng: `/etc/bee/PAUSE` (ngay, cần SSH) và `.agent/PAUSE` trên
-nhánh `main` của từng repo (PM tạo qua web GitHub trong 10 giây, lưu vết trong
+nhánh `main` của từng repo (tạo qua web GitHub trong 10 giây, lưu vết trong
 lịch sử git).
 
-### Vòng đời một task
+### Vòng đời một task *(mô hình cũ)*
 
-PM tạo issue → agent chấm độ rõ của spec → người duyệt → agent build và mở draft
-PR → CI + E2E quay video → PM xem video, Techlead soi diff → cả hai approve →
+Tạo issue → agent chấm độ rõ của spec → người duyệt → agent build và mở draft
+PR → CI + E2E quay video → người xem video và soi diff → approve →
 **người bấm merge**. Agent không bao giờ được merge, và không cầm credential nào
 để push thẳng `main`.
+
+> PRD 2.0 rút chuỗi này còn: **nói ý tưởng → "ok làm đi" → xem agent làm live →
+> duyệt và merge**. Hai luật cuối giữ nguyên tuyệt đối: agent không merge, agent
+> không có credential đẩy thẳng `main`.
 
 ### Nghiệm thu M0 — làm trước khi cho agent chạy thật
 
@@ -183,31 +198,35 @@ kiến trúc: [`docs/architecture.html`](docs/architecture.html)
 
 ---
 
-## 💻 `web` — app cho PM & Techlead
+## 💻 `web` — mặt điều khiển
 
-Máy chạy 24/7. **Người mới là chỗ nghẽn** — nghẽn ở đúng ba cửa: duyệt spec, cho
-phép agent nhận task, approve PR. Agent làm xong lúc 2 giờ sáng rồi nằm chờ tới 9
-giờ, không phải vì máy chậm mà vì không ai biết.
+Máy chạy 24/7, **chỗ nghẽn là người**. Bản đầu giải quyết bằng cách xếp việc chờ
+thành một hộp thư; PRD 2.0 đi xa hơn — **bỏ bớt cửa chặn thay vì xếp hàng trước
+cửa**. Còn đúng một cửa rưỡi: *"ok làm đi"* nói ngay trong cuộc trò chuyện, rồi
+*xem kết quả và bấm*.
 
-Nên màn hình chính không phải một cái board. Nó là **hộp thư "đang chờ bạn"**,
-xếp theo thời gian đã chờ, cộng một tin Slack để bạn không phải nhớ mở app.
-
-| Làm được | Không làm |
+| Muốn có | Không làm |
 |---|---|
-| Hộp thư chờ bạn, mọi dự án | Xem diff |
-| Tạo task theo hợp đồng 5 mục | Comment theo dòng |
-| Chat vào task — nối lại đúng phiên agent cũ | Merge |
-| Xem video bằng chứng ngay trong trang | |
-| PM duyệt bằng token GitHub của chính mình | |
+| Nói một câu → agent phỏng vấn → thành task | Xem diff (đưa link sang GitHub) |
+| "Ok làm đi" ngay trong hội thoại | Comment theo dòng |
+| **Xem agent làm live**, dừng được | Quản dự án không có repo |
+| Thả một xấp việc rồi đi ngủ, có ngân sách hạn mức | Chạy khi máy agent tắt |
+| Duyệt trong một phút trên điện thoại, **có nút merge** | |
 
 Chạy trên chính máy agent dưới user riêng `bee-web`: thuộc group `bee` để đọc,
 **không có `GH_TOKEN`, không sudo, không docker.** Mọi thao tác ghi lên GitHub
 dùng token OAuth của đúng người vừa bấm — không có token bot dùng chung, nên lịch
 sử GitHub luôn nói đúng ai đã làm gì.
 
-Ý định đã chốt: [`docs/intent/pm-app.md`](docs/intent/pm-app.md) ·
-đặc tả: [`docs/specs/web.md`](docs/specs/web.md) ·
-mockup dashboard: [`docs/mockups/dashboard.html`](docs/mockups/dashboard.html)
+**Hôm nay đang có gì:** 15 feature slice chạy trên fixture — hộp thư, trang dự án,
+trang task, tạo task bằng phỏng vấn, chat, xem bằng chứng, dashboard. Chưa có:
+xem phiên live, hàng đợi của app, chế độ đi ngủ, nút merge. Đối chiếu đầy đủ ở
+[`PRD §8`](docs/PRD_bee-agent-flow.md).
+
+Nguồn ý định: [`docs/PRD_bee-agent-flow.md`](docs/PRD_bee-agent-flow.md) ·
+lịch sử: [`docs/intent/pm-app.md`](docs/intent/pm-app.md) *(đã thay thế)* ·
+[`docs/specs/web.md`](docs/specs/web.md) *(lỗi thời)* ·
+mockup: [`docs/mockups/dashboard.html`](docs/mockups/dashboard.html)
 
 ---
 

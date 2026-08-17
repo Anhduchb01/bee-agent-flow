@@ -4,7 +4,11 @@
 
 **Đầu vào đã chốt:** [`docs/intent/pm-app.md`](../intent/pm-app.md) (ý định,
 đã xác nhận) · [`AGENTS.md`](../../AGENTS.md) (quy ước code, ranh giới)
-**Trạng thái:** bản nháp đầu, chờ duyệt. Chưa viết dòng code nào.
+**Trạng thái:** ⚠️ **lỗi thời ở hai mặt** (17/08/2026).
+1. *Sự thật:* dòng "chưa viết dòng code nào" bên dưới sai — pha A gần xong, xem
+   [`tasks/todo.md`](../../tasks/todo.md).
+2. *Ý định:* mô hình sản phẩm trong spec này đã bị
+   [`docs/PRD_bee-agent-flow.md`](../PRD_bee-agent-flow.md) lật. Spec mới chưa viết.
 
 ---
 

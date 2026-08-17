@@ -1,7 +1,18 @@
 # Intent — App quản lý dự án cho PM & Techlead
 
+> ## ⛔ ĐÃ BỊ THAY THẾ — 2026-08-17
+>
+> Một lượt phỏng vấn mới đã lật mô hình sản phẩm: không có PM và Techlead, chỉ
+> một người; hàng đợi rời khỏi nhãn GitHub; agent chạy live xem được, có thêm
+> chế độ tự chạy qua đêm; có nút merge trong app.
+>
+> **Nguồn ý định hiện hành:** [`docs/PRD_bee-agent-flow.md`](../PRD_bee-agent-flow.md)
+>
+> File này giữ lại nguyên văn làm lịch sử — nó ghi đúng thứ đã được nói ngày
+> 13/08 và vì sao lúc đó nó hợp lý. Đừng dùng nó để quyết định gì nữa.
+
 > Kết quả của một lượt phỏng vấn (`interview-me`), đã được xác nhận.
-> **Ngày chốt:** 2026-08-13 · **Trạng thái:** đã xác nhận, chưa có spec.
+> **Ngày chốt:** 2026-08-13 · **Trạng thái:** đã bị thay thế bởi PRD 2.0.
 >
 > Đây là *ý định*, không phải thiết kế. Nó tồn tại để lần sau không phải phỏng
 > vấn lại, và để mọi spec/plan phía sau có chỗ đối chiếu khi phân vân.

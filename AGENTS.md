@@ -16,9 +16,9 @@ Three parts, deliberately independent. Know which one you are in before you edit
 | Path | What it is | Stack |
 |---|---|---|
 | `.claude/` | Slash commands + skills. **A distributable artifact** — people copy it into their own repos. It also configures this repo (dogfooding) | Markdown only |
-| `apps/reconciler/` | `bee` — polls GitHub every 30s and dispatches agent work on one Ubuntu machine | bash + systemd + `gh` + `jq` |
-| `apps/web/` | The human face of `bee` — PM and Techlead open this instead of GitHub Issues | Next.js 16 |
-| `docs/` | Design, specs, confirmed intent | Markdown + standalone HTML |
+| `apps/reconciler/` | `bee` — the safe run surface for agent work on one Ubuntu machine. Today it also polls GitHub every 30s and dispatches work | bash + systemd + `gh` + `jq` |
+| `apps/web/` | The control surface — where the owner talks to agents, watches them work, and approves the result | Next.js 16 |
+| `docs/` | Design, specs, the PRD | Markdown + standalone HTML |
 
 **Never mix concerns across these.** A change that touches both the reconciler and
 the web app in one commit is almost always two changes.
@@ -27,9 +27,21 @@ the web app in one commit is almost always two changes.
 
 ## 2. Repo-wide rules
 
+- **`docs/PRD_bee-agent-flow.md` is the source of intent.** It answers *what the
+  owner wants*; specs answer *how*; code answers *what is true today*. When they
+  disagree, that is the order of precedence.
+- **The product model changed on 2026-08-17 and the change is not finished.**
+  PRD 2.0 replaced the "PM & Techlead read GitHub through a nicer window" model
+  with "one owner talks to agents, watches them run live, and can also let them
+  run overnight." Three consequences are already decided but **not yet built**:
+  the queue leaves GitHub labels and moves into the app · agent sessions become
+  live and interruptible instead of tick-driven and silent · the app gets a merge
+  button. Until they land, the repo contains both models. Before building
+  anything here, check `PRD §8` for which side of that line you are on.
 - **Read before you write.** `docs/architecture.html` is the whole system in one
-  map; `docs/design/reconciler.md` is the detailed rationale. Most "why is it like
-  this?" questions are answered there, usually with the trade-off spelled out.
+  map *(drawn for the old model)*; `docs/design/reconciler.md` is the detailed
+  rationale. Most "why is it like this?" questions are answered there, usually
+  with the trade-off spelled out.
 - **`.claude/` stays stack-agnostic.** It describes *how to work* — spec first,
   tests lead, evidence before merge — so it applies to any language. Never add a
   framework, a language guide, or a product convention to it. That was removed
@@ -116,9 +128,16 @@ This app must not become the hole in the reconciler's security design.
 |---|---|
 | Read `/srv/bee/**` | Write anything under `/srv/bee/**` |
 | Call GitHub **as the signed-in user** | Hold or read `GH_TOKEN` |
-| Create issues, comments, labels, approvals | Merge a pull request |
-| Read repo files to answer questions | Write to any worktree |
-| — | Run `docker`, `systemctl`, `sudo`, or `bee` |
+| Create issues, comments, labels, approvals | Write to any worktree |
+| **Merge a pull request as the signed-in user** | Merge on behalf of anyone else, ever |
+| Read repo files to answer questions | Run `docker`, `systemctl`, `sudo`, or `bee` |
+
+**The merge line reversed on 2026-08-17.** The old rule — no merge button
+anywhere — protected the audit trail when two different people held two different
+review roles. There is one owner, so it bought a trip to another tab and nothing
+else. What it protected still holds and is not negotiable: **the agent never
+merges, and the merge is signed by the human who clicked it.** The button does
+not exist yet; see `PRD FR-4.2`.
 
 Three consequences people break by accident:
 
@@ -295,16 +314,17 @@ Mock with **MSW**, never hand-stub `fetch`.
 
 | Folder | Holds | Rule |
 |---|---|---|
-| `docs/architecture.html` | The whole system in one map | Entry point. Keep it accurate or delete it |
+| `docs/PRD_*.md` | **What the owner wants**, confirmed in an interview | Entry point. **Never edit without re-confirming with the user** |
+| `docs/architecture.html` | The whole system in one map | Drawn for the old model; keep it accurate or delete it |
 | `docs/design/` | Why each decision was made | Append; don't rewrite history of a decision |
-| `docs/specs/` | One spec per component | Confirmed before code exists |
-| `docs/intent/` | Confirmed product intent from an interview | **Never edit without re-confirming with the user** |
+| `docs/specs/` | One spec per component | Confirmed before code exists. `web.md` is stale |
+| `docs/intent/` | Superseded intent, kept as history | Read-only. Superseded by `docs/PRD_bee-agent-flow.md` |
 | `docs/mockups/` | Generated review artifacts | Generated, not hand-written — see the generator beside the source |
 | `docs/templates/` | Things people copy | — |
 
-Design docs argue; specs decide; intent records what the user actually said. When
-they disagree, intent wins on *what*, specs win on *how*, and code wins on *what
-is true today*.
+Design docs argue; specs decide; the PRD records what the owner actually said.
+When they disagree, the PRD wins on *what*, specs win on *how*, and code wins on
+*what is true today*.
 
 ---
 
@@ -316,8 +336,10 @@ is true today*.
 - **The dashboard is a static file not served by the reconciler.** If the
   reconciler served its own status page, the page would go down exactly when you
   need it. Separate fates, stale heartbeat as the alarm.
-- **No diff viewer and no line comments in `apps/web/`.** The Techlead reviews
-  diffs on GitHub; building a worse one costs weeks.
-- **No merge button anywhere.** Merge is a human action on GitHub. Always.
+- **No diff viewer and no line comments in `apps/web/`.** Diffs get reviewed on
+  GitHub; building a worse viewer costs weeks.
+- **Merge is a human action, always** — but as of PRD 2.0 the human may perform
+  it from this app, signed by their own token. See §4; the older absolute "no
+  merge button anywhere" is gone.
 - **Rule 04 self-disables** in repos without `e2e-evidence-capture`. A rule that
   complains every 30 seconds is the fastest way to make people stop reading logs.
