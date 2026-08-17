@@ -17,39 +17,43 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       → 3 fixture thật ở `apps/runner/rig/fixtures/` cho S2. Chi tiết:
       [`apps/runner/rig/FINDINGS.md`](../apps/runner/rig/FINDINGS.md)
 
-## S1 · `apps/runner/` — bash ← song song với S2
+## S1 · `apps/runner/` — bash ✅ code xong 17/08 (nghiệm thu máy thật = S4)
 
-- [ ] 🤖 **S1.1** `session-run.sh`: đọc `session.json` → PAUSE check → fetch →
-      branch `bee/<slug>-<n>` → worktree → sự kiện vòng đời → claude FIFO/run.jsonl
-      → thấy `result` thì đóng FIFO, ghi `meta.json`. Port từ `agent-exec.sh` cũ.
-- [ ] 🤖 **S1.2** `units/` + install.sh: `bee-session@.service` (user unit),
-      linger, timer. Installer idempotent, tạo sẵn PAUSE như installer cũ.
-- [ ] 🤖 **S1.3** `reaper.sh`: `meta.json` running ∧ unit không active → đóng sổ
-      `failed`, dọn FIFO, `attempt`; ≥ 2 → `needs_human`. + heartbeat.
-- [ ] 🤖 **S1.4** `doctor.sh`: checklist A+ (PRD §4.2) — PAT hẹp, branch
-      protection, không secret lạ, linger, timer. Ghi `doctor.json` cho web đọc.
+- [x] 🤖 **S1.1** `session-run.sh` — vòng lặp pha phỏng vấn⇄làm cùng session-id;
+      kết thúc pha bằng đóng fd FIFO (không kill). *Lưu ý: `result` KHÔNG phải
+      tín hiệu kết thúc — spec §2.2 đã sửa theo.*
+- [x] 🤖 **S1.2** `units/` + `install.sh` — user units, PAUSE tạo sẵn, in 8 việc-cần-người.
+- [x] 🤖 **S1.3** `reaper.sh` + `heartbeat.sh` — rig-03 offline xanh 9/9
+      (id bẩn, PAUSE, xác, attempt, needs_human, FIFO mồ côi, heartbeat).
+- [x] 🤖 **S1.4** `doctor.sh` — chạy thử trên máy dev báo đỏ đúng chỗ (token
+      `gho_`, SSH key, chưa linger). Ghi `doctor.json`.
 
-> **✅ Checkpoint** — review riêng phần bash trước khi đi tiếp.
+> **✅ Checkpoint** — bash đã có rig-03; bạn review lại `session-run.sh` khi rảnh.
 
-## S2 · Web đọc luồng ← không cần máy Ubuntu
+## S2 · Web đọc luồng ✅ xong 17/08 — 4 cổng xanh (lint · typecheck · 293 test · build)
 
-- [ ] 🤖 **S2.1** `features/sessions/lib/parse-events.ts` — thuần, fixture từ S0,
-      khoan dung dòng rác · **dòng JSON cắt đôi không phát nửa dòng**
-- [ ] 🤖 **S2.2** Route SSE `api/session/[id]/stream` — `Last-Event-ID` ·
-      `bee_replayed` · đóng khi phiên xong · từ chối `../` và thiếu session
-- [ ] 🤖 **S2.3** Màn live (plain text, mobile-first, mất mạng không xoá màn) +
-      **session list nhóm theo repo** — màn hình gốc mới của app
+- [x] 🤖 **S2.1** `parse-events.ts` (whitelist + text_delta) + `docTiep` (không
+      phát nửa dòng) — test trên fixture stream-json THẬT từ rig S0.
+- [x] 🤖 **S2.2** `BeeSource` + sessions-fs (unknown-narrowing, meta hỏng không
+      làm trắng danh sách) + route SSE (`Last-Event-ID`, `bee_replayed`, đóng
+      khi hết running, từ chối id bẩn/không session).
+- [x] 🤖 **S2.3** LiveView mobile-first + SessionList nhóm theo repo + sidebar.
+      Plain text có test chống HTML injection. Fixture demo stream được từ
+      run.jsonl thật.
 
-> **✅ Checkpoint** — bạn duyệt bố cục trên fixture.
+## S3 · Nối điều khiển ✅ xong 17/08
 
-## S3 · Nối điều khiển
+- [x] 🤖 **S3.1** Actions `batDauPhien`/`guiVaoPhien`/`dungPhienAction` —
+      UUID regex trước khi thành tên unit; FIFO mở O_NONBLOCK (phiên chết →
+      lỗi ngay, không treo); `bee_user_say` ghi SAU khi FIFO nhận thật.
+- [x] 🤖 **S3.2** "OK, do it" → `phase:"work"` → watcher của runner restart
+      claude `--resume` đủ tool.
+- [x] 🤖 **S3.3** 3 skill `gh` trực tiếp, install.sh copy vào `~/.claude/skills/`.
 
-- [ ] 🤖 **S3.1** Server actions `start`/`say`/`stop`: ghi `session.json` +
-      `systemctl --user` + ghi FIFO. Id qua regex UUID trước khi thành tên unit.
-- [ ] 🤖 **S3.2** "Ok làm đi": một nút → `phase:"work"` → runner restart claude
-      `--resume` với đủ tool. Cùng session-id, cùng màn hình.
-- [ ] 🤖 **S3.3** Skills `bee-create-issue` · `bee-push-pr` · `bee-update-pr`
-      (`gh` trực tiếp; push-pr từ chối branch ≠ `bee/*`)
+**Nợ test ghi nhận (làm ở S4 hoặc trước):**
+- [ ] 🤖 Unit test riêng cho route SSE (MSW) — logic mỏng, các tầng dưới đã test,
+      nhưng spec §8 có hàng Route.
+- [ ] 🤖 E2E Playwright cho flow: mở phiên → chữ chạy → gõ chen → dừng (trên fixture).
 
 ## S4 · Máy thật + vệ sinh A+
 
