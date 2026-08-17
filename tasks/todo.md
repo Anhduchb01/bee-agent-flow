@@ -9,12 +9,13 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 
 ## S0 · Gỡ hai ẩn số ← làm trước mọi thứ
 
-- [ ] 🤖 **S0.1** Rig `stream-json` hai chiều — gõ chen lúc agent giữa tool call:
-      CLI xếp hàng hay bỏ? Nếu bỏ → **dừng và báo**, ô gõ phải hứa khác.
-- [ ] 🤖 **S0.2** Rig phỏng vấn `--allowedTools ""` → kết thúc → `--resume` với
-      đủ tool: phiên có nhớ ngữ cảnh phỏng vấn không? Nếu không → "ok làm đi"
-      phải thiết kế lại (hai phiên + bàn giao hợp đồng).
-      → Cả hai rig trả thêm một `run.jsonl` **thật** làm fixture cho S2.
+- [x] 🤖 **S0.1** ~~Rig `stream-json` hai chiều~~ **XONG 17/08 — CLI XẾP HÀNG**,
+      ô gõ được hứa "agent sẽ đọc". Phát hiện phụ: input không được echo →
+      `say` phải tự ghi `bee_user_say` vào run.jsonl (đã vào spec §2.2).
+- [x] 🤖 **S0.2** ~~Rig phỏng vấn → resume với tool~~ **XONG 17/08 — NHỚ NGỮ
+      CẢNH**, một-phiên-hai-chế-độ đứng vững.
+      → 3 fixture thật ở `apps/runner/rig/fixtures/` cho S2. Chi tiết:
+      [`apps/runner/rig/FINDINGS.md`](../apps/runner/rig/FINDINGS.md)
 
 ## S1 · `apps/runner/` — bash ← song song với S2
 

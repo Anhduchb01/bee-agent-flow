@@ -90,6 +90,15 @@ bee-session@<id> → session-run.sh
 EOF → thoát → runner ghi `meta.json` thành `done`, dọn FIFO. Muốn hỏi tiếp sau
 khi xong: mở phiên mới với `resume` (FR-1.8) — không giữ phiên treo.
 
+**Câu gõ chen phải được app tự ghi sổ** *(phát hiện rig S0.1 — xem
+[`apps/runner/rig/FINDINGS.md`](../../apps/runner/rig/FINDINGS.md))*: CLI
+**không echo** message đưa vào stdin ra stream đầu ra, nên nếu chỉ tail
+`run.jsonl` thì mở lại trang sẽ mất sạch những câu đã gõ. Server action `say`
+append một dòng `{"type":"bee_user_say","text":…,"ts":…}` vào `run.jsonl`
+(O_APPEND, dòng ngắn — append nguyên tử) ngay khi ghi FIFO. Đây là ngoại lệ
+duy nhất cho quy tắc "runner là người ghi run.jsonl", và nó được phép tồn tại
+vì A+ cùng UID.
+
 ### 2.3 Hai chế độ trong một phiên — "ok làm đi"
 
 | Chế độ | Cách chạy | Tool |
@@ -336,8 +345,9 @@ protection để "tiện" · render markdown từ đầu ra agent ở V1 · `if 
 
 | | Ghi chú |
 |---|---|
-| Gõ chen lúc agent giữa tool call | CLI nhận vào hàng đợi hay bỏ? **Rig trước khi viết UI** — quyết định lời hứa của ô gõ |
-| Chuyển chế độ bằng `control_request` thay vì restart+resume | Mượt hơn nhưng chưa kiểm chứng; V1 đi đường resume, rig thử đường này sau |
+| ~~Gõ chen lúc agent giữa tool call~~ | **ĐÃ GỠ (rig S0.1, 17/08):** CLI xếp hàng và tiếp thu sau khi tool xong — ô gõ được hứa "agent sẽ đọc". Kèm phát hiện: input không được echo → sinh yêu cầu `bee_user_say` ở §2.2 |
+| ~~Phỏng vấn → resume với tool có nhớ ngữ cảnh?~~ | **ĐÃ GỠ (rig S0.2, 17/08):** nhớ đủ — chỉ nói "ok làm đi" là thực hiện đúng hợp đồng. Một-phiên-hai-chế-độ đứng vững |
+| Chuyển chế độ bằng `control_request` thay vì restart+resume | Mượt hơn nhưng chưa kiểm chứng; V1 đi đường resume (đã chứng minh), rig thử đường này sau |
 | Trần `--max-turns` phiên tương tác | 80 là trần phiên tự hành; gõ chen làm phiên dài hơn hẳn. Chốt số + báo khi còn 10 lượt |
 | Số phiên song song tối đa | `bee.slice`-tương-đương cho user units; đề xuất trần 3, đọc từ config |
 | `run.jsonl` phình lúc đang chạy | Trần theo byte lúc ghi (phiên 3 tiếng không được ăn hết đĩa) |
