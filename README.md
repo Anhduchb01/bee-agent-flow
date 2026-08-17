@@ -1,24 +1,38 @@
 # 🐝 bee-agent-flow
 
-Nền tảng để AI agent tự chạy vòng đời phát triển phần mềm — từ ý tưởng → spec →
-plan → build → review → ship — theo một bộ quy ước nhất quán.
+**Claude Code trên web — treo 24/7, mở từ bất cứ đâu kể cả điện thoại.** Quản
+lý n phiên agent theo từng repo: nói ý tưởng, agent phỏng vấn, nói *"ok làm
+đi"*, nhìn nó làm live, gõ chen, dừng — hoặc thả việc rồi đi ngủ. Issue, PR,
+push là việc agent tự làm bằng skill.
 
-Gồm **ba phần dùng được độc lập**:
+Gồm các phần dùng được độc lập:
 
 | Phần | Là gì | Trạng thái |
 |---|---|---|
 | **Template cho Claude Code** — [`.claude/`](.claude/) | Bộ slash command và agent skill. Copy vào repo của bạn là dùng được ngay | Dùng được |
-| **`bee` — sân chạy agent** — [`apps/reconciler/`](apps/reconciler/) | Chỗ agent chạy an toàn trên một máy Ubuntu: sandbox hai UID, worktree, bằng chứng, tự dọn khi chết | 9 rule code xong · M0/M2 đã nghiệm thu trên máy thật |
-| **`web` — mặt điều khiển** — [`apps/web/`](apps/web/) | Chỗ bạn nói chuyện để giao việc, xem agent làm, duyệt kết quả — từ bất cứ đâu, kể cả điện thoại | Chạy được trên fixture · **đang đổi mô hình theo PRD 2.0** |
+| **`runner` — nền chạy phiên** — [`apps/runner/`](apps/runner/) | Phiên agent là systemd unit: sống qua đóng trình duyệt, tự dọn khi chết, kiểm vệ sinh A+ | **Đang xây** — S0 (rig hai ẩn số) đã xong |
+| **`web` — mặt điều khiển** — [`apps/web/`](apps/web/) | Danh sách phiên theo repo, xem live, gõ chen, dừng, duyệt | 15 feature slice trên fixture · đang chuyển sang session-first |
+| **`bee` reconciler** — [`apps/reconciler/`](apps/reconciler/) | Mô hình cũ (hai UID, hàng đợi nhãn, tick 30s) | **Đóng băng làm fallback** — nhánh `feat/bee-m3-and-web-spec` |
 
 > **Bắt đầu đọc ở đâu:** [`docs/PRD_bee-agent-flow.md`](docs/PRD_bee-agent-flow.md)
-> — muốn gì và repo còn lệch chỗ nào · [`docs/architecture.html`](docs/architecture.html)
-> — toàn bộ hệ thống trong một bản đồ *(vẽ theo mô hình cũ)*.
+> (3.0 — muốn gì, và vì sao chọn mô hình một UID) ·
+> [`docs/specs/session-first.md`](docs/specs/session-first.md) (làm thế nào) ·
+> [`docs/architecture.html`](docs/architecture.html) (toàn hệ thống trong một bản đồ).
 
-> ⚠️ **Repo đang giữa một lần đổi mô hình.** PRD 2.0 (17/08) lật ba thứ so với
-> những gì viết bên dưới: hàng đợi rời khỏi nhãn GitHub · agent chạy live xem
-> được thay vì chờ tick 30 giây · có nút merge trong app. Phần chưa sửa được
-> đánh dấu *(mô hình cũ)*.
+---
+
+## 🧭 Mô hình trong ba câu
+
+1. **Phiên là đối tượng gốc.** Một phiên = một lần Claude Code chạy trong một
+   worktree, sống như một systemd unit — web chỉ là người đọc file và bấm nút.
+   Task, issue, PR là *sản phẩm phụ* của phiên, do agent tự tạo bằng `gh`.
+2. **Ranh giới là vỏ máy + hàng rào phía GitHub, không phải UID.** Máy chuyên
+   dụng không chứa gì đáng lấy; agent cầm fine-grained PAT phạm vi hẹp; `main`
+   có branch protection — đường duy nhất vào main là nút merge người bấm.
+   Quyết định này (gọi là **A+**) kèm cái giá chấp nhận có ý thức và **5 cò
+   súng** buộc quay về mô hình hai UID — xem [PRD §0](docs/PRD_bee-agent-flow.md).
+3. **Trạng thái sống trên đĩa.** Đầu ra phiên rơi thẳng xuống `run.jsonl`,
+   đầu vào qua FIFO — đóng trình duyệt, restart web, `kill -9` đều không mất gì.
 
 ---
 
@@ -30,33 +44,29 @@ bee-agent-flow/
 ├── README.md                  # ← Bạn đang ở đây
 │
 ├── apps/
-│   ├── reconciler/            # `bee` — bash + systemd, cài lên máy Ubuntu
-│   │   ├── bin/ lib/ rules/   # dispatcher, worker, 9 rule
-│   │   ├── prompts/           # prompt của 4 vai trò agent
-│   │   ├── public/            # dashboard tĩnh
-│   │   └── systemd/ sudoers/  # unit, ranh giới quyền
-│   └── web/                   # Next.js 16 — 15 feature slice, chạy trên fixture
+│   ├── runner/                # MỚI — nền chạy phiên (bash + systemd user units)
+│   │   └── rig/               # rig gỡ ẩn số + fixture run.jsonl thật (S0 ✓)
+│   ├── web/                   # Next.js 16 — mặt điều khiển
+│   └── reconciler/            # mô hình cũ — đóng băng làm fallback
 │
 ├── docs/
-│   ├── PRD_bee-agent-flow.md  # ← NGUỒN Ý ĐỊNH: muốn gì, repo lệch chỗ nào
-│   ├── architecture.html      # bản đồ toàn hệ thống (mô hình cũ)
+│   ├── PRD_bee-agent-flow.md  # ← NGUỒN Ý ĐỊNH (3.0, session-first)
+│   ├── specs/session-first.md # ← SPEC ĐANG HIỆU LỰC
+│   ├── specs/v1-live.md       # spec mô hình cũ (đóng băng, §3 còn giá trị)
+│   ├── architecture.html      # bản đồ toàn hệ thống
 │   ├── design/                # lý lẽ: vì sao chọn từng phương án
-│   ├── specs/                 # đặc tả từng phần (web.md đã lỗi thời)
-│   ├── intent/                # ý định cũ, giữ làm lịch sử
-│   ├── mockups/               # bản duyệt giao diện (sinh tự động)
-│   └── templates/             # mẫu để copy
+│   ├── intent/ mockups/ templates/
+│   └── …
 │
+├── tasks/                     # plan.md (S0→S5) + todo.md
 ├── .claude/                   # template: commands/ + skills/
-└── .github/                   # issue template, PR template (KHÔNG có workflows/)
+└── .github/                   # issue/PR template (KHÔNG có workflows/)
 ```
 
-`.github/` không có `workflows/` — hệ quả trực tiếp của việc chọn reconciler thay
-vì GitHub Actions.
-
-**`.claude/` vừa là template vừa là cấu hình của chính repo này.** Nó cố ý không
-mang stack nào: skill và slash command ở đó nói về *cách làm việc*, dùng được với
-Python, TypeScript, Go hay bất cứ thứ gì. Quy ước riêng của từng dự án nằm trong
-`AGENTS.md` của chính repo đó.
+**`.claude/` vừa là template vừa là cấu hình của chính repo này.** Nó cố ý
+không mang stack nào: skill và slash command nói về *cách làm việc*, dùng được
+với mọi ngôn ngữ. Quy ước riêng của từng dự án nằm trong `AGENTS.md` của chính
+repo đó.
 
 ---
 
@@ -74,14 +84,12 @@ Python, TypeScript, Go hay bất cứ thứ gì. Quy ước riêng của từng 
 | `/review` | Review 5 trục: correctness, readability, architecture, security, performance | `code-review-and-quality` |
 | `/code-simplify` | Giảm độ phức tạp mà không đổi hành vi | `code-simplification` |
 | `/webperf` | Audit hiệu năng web | persona `web-performance-auditor` |
-| `/ship` | Fan-out 3 persona → quyết định go/no-go + kế hoạch rollback | `shipping-and-launch` |
+| `/ship` | Fan-out 3 persona → go/no-go + kế hoạch rollback | `shipping-and-launch` |
 
 ```
 /spec  →  /plan  →  /build (lặp)  →  /test  →  /review  →  /ship
                                             ↘  /code-simplify  /webperf  (khi cần)
 ```
-
-> `/ship` và `/webperf` cần thư mục `agents/` chứa persona — template chưa kèm sẵn.
 
 ---
 
@@ -107,158 +115,65 @@ phù hợp, hoặc bạn yêu cầu theo tên.
 
 ---
 
-## 🐝 `bee` — chạy agent tự động
+## 🖥️ Vòng đời một phiên
 
-Phần trên là bạn ngồi gõ slash command. Phần này là để agent tự làm, không cần ai
-ngồi trước máy.
-
-Một tiến trình trên máy Ubuntu, cứ **30 giây** đối chiếu trạng thái trên GitHub
-với thực tế rồi làm **đúng một việc** để kéo hai bên về gần nhau. Không GitHub
-Actions, không webhook — hàng đợi chính là label trên issue, nên máy tắt ba tiếng
-cũng không mất việc nào.
-
-> *(mô hình cũ — phần "hàng đợi là label trên issue")* PRD 2.0 chuyển hàng đợi
-> về cho app sở hữu; `bee` giữ lại vai **sân chạy an toàn**: sandbox hai UID,
-> worktree, bằng chứng, tự dọn phiên chết, CI. Phần đó không đổi một dòng.
-
-### Cài
-
-```bash
-git clone git@github.com:org/bee-agent-flow.git ~/bee-src
-sudo ~/bee-src/apps/reconciler/install.sh      # idempotent, --no-deps để bỏ qua cài gói
+```
+Mở app → chọn repo → New session
+  → CHẾ ĐỘ PHỎNG VẤN (không tool): nói ý tưởng, agent hỏi lại
+  → "ok làm đi"                        ← cửa chặn duy nhất = chuyển chế độ
+  → CHẾ ĐỘ LÀM (đủ tool, cùng phiên): sửa code trong worktree, chạy test,
+    tự tạo issue, tự push branch bee/<slug>-<n>, tự mở draft PR
+  → xem live · gõ chen · dừng — từ điện thoại
+  → duyệt và merge (V2), mang tên người bấm
 ```
 
-Cài xong hệ thống **nằm im** (`/etc/bee/PAUSE` được tạo sẵn). Còn 5 việc cần
-người, script in ra ở cuối:
+Hai điểm đã **chứng minh bằng rig trên máy thật** (S0, 17/08 —
+[`apps/runner/rig/FINDINGS.md`](apps/runner/rig/FINDINGS.md)):
 
-```bash
-sudo -u bee-agent -H claude        # /login  ← ĐÚNG user này
-sudo -u bee-orch  -H gh auth login
-sudo $EDITOR /etc/bee/orch.env     # GH_TOKEN fine-grained, KHÔNG cấp Workflows
-be repo add org/ten-repo
-be doctor && be dry-run && be resume
-```
+- Gõ chen lúc agent đang giữa một tool call: **CLI xếp hàng và tiếp thu** — ô
+  gõ được phép hứa "agent sẽ đọc".
+- Phỏng vấn không tool → `--resume` với đủ tool: **phiên nhớ nguyên hợp đồng**
+  — "ok làm đi" thật sự là một phiên, hai chế độ.
 
-### Dùng hằng ngày
+## 🔒 Vệ sinh A+ — điều kiện tiên quyết, `doctor` kiểm
 
-| Lệnh | |
-|---|---|
-| `bee` | trạng thái — gõ trống là ra ngay |
-| `bee -w` | theo dõi liên tục trong terminal |
-| `be doctor` | kiểm tra toàn bộ, gồm cả các ranh giới bảo mật |
-| `be dry-run` | xem nó **định** làm gì mà chưa làm gì |
-| `be logs myapp-42` | log của một task |
-| `be pause` | kill switch |
+1. Máy chuyên dụng đúng nghĩa: không SSH key đi nơi khác, không secret nào
+   ngoài PAT + login Claude; `.env` production không nằm trên máy, không nằm trong repo.
+2. Fine-grained PAT: đúng danh sách repo, đúng 3 quyền (contents · PR · issues).
+3. Branch protection `main` từng repo — push thẳng bị từ chối với **mọi** token.
+4. Cloudflare Access + GitHub OAuth allowlist ở cửa trước.
+5. Xem billing Claude + audit log GitHub mỗi sáng.
 
-Kill switch có hai tầng: `/etc/bee/PAUSE` (ngay, cần SSH) và `.agent/PAUSE` trên
-nhánh `main` của từng repo (tạo qua web GitHub trong 10 giây, lưu vết trong
-lịch sử git).
-
-### Vòng đời một task *(mô hình cũ)*
-
-Tạo issue → agent chấm độ rõ của spec → người duyệt → agent build và mở draft
-PR → CI + E2E quay video → người xem video và soi diff → approve →
-**người bấm merge**. Agent không bao giờ được merge, và không cầm credential nào
-để push thẳng `main`.
-
-> PRD 2.0 rút chuỗi này còn: **nói ý tưởng → "ok làm đi" → xem agent làm live →
-> duyệt và merge**. Hai luật cuối giữ nguyên tuyệt đối: agent không merge, agent
-> không có credential đẩy thẳng `main`.
-
-### Nghiệm thu M0 — làm trước khi cho agent chạy thật
-
-```bash
-be doctor                                 # mọi mục ✓
-be dry-run                                # in ra nó ĐỊNH làm gì
-
-sudo -u bee-agent env | grep -i token     # phải RỖNG
-id -nG bee-agent | grep -w docker         # phải RỖNG
-sudo -u bee-agent -n true                 # phải FAIL
-
-systemctl start bee-task@test-1           # lần 2 khi đang chạy: BỊ TỪ CHỐI
-journalctl -u bee-reconcile -n 50         # tick đều, không chồng nhau
-```
-
-Bỏ qua mốc này thì lúc agent ra kết quả sai bạn sẽ không phân biệt được lỗi ở
-prompt hay ở hạ tầng của chính mình — debug hai ẩn số cùng lúc.
-
-### Đã làm tới đâu
-
-| Rule | |
-|---|---|
-| 01 recover · 02 review · 03 CI · 04 evidence · 05 approvals · 07 build · 08 spec · 09 reindex | có |
-| 06 preview | mốc M6 — mới có phần scan |
-
-Repo đích cần thêm: `scripts/ci.sh` (rule 03), `infra/docker-compose.test.yml`
-(nếu test cần Postgres/Redis), `.claude/skills/e2e-evidence-capture/` (rule 04 —
-thiếu thì rule tự tắt, không cảnh báo).
-
-Chi tiết thiết kế: [`docs/design/reconciler.md`](docs/design/reconciler.md) ·
-kiến trúc: [`docs/architecture.html`](docs/architecture.html)
-
----
-
-## 💻 `web` — mặt điều khiển
-
-Máy chạy 24/7, **chỗ nghẽn là người**. Bản đầu giải quyết bằng cách xếp việc chờ
-thành một hộp thư; PRD 2.0 đi xa hơn — **bỏ bớt cửa chặn thay vì xếp hàng trước
-cửa**. Còn đúng một cửa rưỡi: *"ok làm đi"* nói ngay trong cuộc trò chuyện, rồi
-*xem kết quả và bấm*.
-
-| Muốn có | Không làm |
-|---|---|
-| Nói một câu → agent phỏng vấn → thành task | Xem diff (đưa link sang GitHub) |
-| "Ok làm đi" ngay trong hội thoại | Comment theo dòng |
-| **Xem agent làm live**, dừng được | Quản dự án không có repo |
-| Thả một xấp việc rồi đi ngủ, có ngân sách hạn mức | Chạy khi máy agent tắt |
-| Duyệt trong một phút trên điện thoại, **có nút merge** | |
-
-Chạy trên chính máy agent dưới user riêng `bee-web`: thuộc group `bee` để đọc,
-**không có `GH_TOKEN`, không sudo, không docker.** Mọi thao tác ghi lên GitHub
-dùng token OAuth của đúng người vừa bấm — không có token bot dùng chung, nên lịch
-sử GitHub luôn nói đúng ai đã làm gì.
-
-**Hôm nay đang có gì:** 15 feature slice chạy trên fixture — hộp thư, trang dự án,
-trang task, tạo task bằng phỏng vấn, chat, xem bằng chứng, dashboard. Chưa có:
-xem phiên live, hàng đợi của app, chế độ đi ngủ, nút merge. Đối chiếu đầy đủ ở
-[`PRD §8`](docs/PRD_bee-agent-flow.md).
-
-Nguồn ý định: [`docs/PRD_bee-agent-flow.md`](docs/PRD_bee-agent-flow.md) ·
-lịch sử: [`docs/intent/pm-app.md`](docs/intent/pm-app.md) *(đã thay thế)* ·
-[`docs/specs/web.md`](docs/specs/web.md) *(lỗi thời)* ·
-mockup: [`docs/mockups/dashboard.html`](docs/mockups/dashboard.html)
+Vi phạm dòng nào trong **5 cò súng** ([PRD §0.2](docs/PRD_bee-agent-flow.md)) —
+repo public, thêm người, đọc comment người ngoài, máy chứa secret khác, code
+cho khách — thì dừng nhận việc và quay về mô hình hai UID ở nhánh fallback.
 
 ---
 
 ## 🏁 Bắt đầu
 
-**Dùng template trong dự án của bạn** — copy `.claude/` vào repo đích (thêm
-`.github/` nếu repo đó sẽ do `bee` quản):
+**Dùng template trong dự án của bạn** — copy `.claude/` vào repo đích:
 
 1. **Viết PRD:** copy [`docs/templates/prd.md`](docs/templates/prd.md) →
-   `docs/PRD_<tinh-nang>.md` rồi điền vào.
-2. **Khởi động:** `/spec` (biến PRD thành spec kỹ thuật) → `/plan`.
-3. **Build:** lặp `/build`, hoặc `/build auto` sau khi đã duyệt plan.
+   `docs/PRD_<tinh-nang>.md` rồi điền.
+2. **Khởi động:** `/spec` → `/plan`.
+3. **Build:** lặp `/build`, hoặc `/build auto` sau khi duyệt plan.
 4. **Kiểm tra & ship:** `/test` → `/review` → `/ship`.
 
-> Quy ước riêng của dự án — layering, thư viện được phép dùng, những gì đã thử và
-> fail — viết vào `AGENTS.md` của **chính repo đó**, không viết vào template.
-
-**Chạy `bee` để agent tự làm** — xem mục trên.
+**Chạy hệ thống phiên** — đang xây theo [`tasks/plan.md`](tasks/plan.md)
+(S0 ✓ → S1 runner ∥ S2 web → S3 nối → S4 máy thật → S5 internet). Hướng dẫn
+cài sẽ nằm ở `apps/runner/install.sh` khi S1 xong.
 
 ---
 
 ## 🧱 Chạy trên gì
 
-Chỉ phần điều phối mới có stack cố định, và nó cố ý mỏng: **bash + systemd + `gh`
-+ `jq`**, cộng Docker để dựng service test và Playwright để quay bằng chứng. Không
-framework, không runtime, không cơ sở dữ liệu — kể cả dashboard cũng chỉ là một
-file `status.json` tĩnh do reconciler ghi ra.
+Phần nền cố ý mỏng: **bash + systemd user units + `gh` + `jq`** — không
+framework, không database, không webhook. Trạng thái là file trên đĩa. Chọn
+vậy vì thứ này phải sống sót reboot, mất điện và những đêm không ai trông;
+càng ít bộ phận chuyển động thì càng ít thứ hỏng lúc 2 giờ sáng.
 
-Chọn vậy vì thứ này phải sống sót qua reboot, mất điện và những đêm không ai
-trông; càng ít bộ phận chuyển động thì càng ít thứ hỏng lúc 2 giờ sáng.
+`apps/web/` là Next.js — app cho người, chạy cùng máy cùng user, đọc đĩa trực
+tiếp; máy tắt thì cả hai cùng dừng nên nó không thêm chế độ hỏng mới.
 
-`apps/web/` là Next.js — nó là app cho người, không nằm trong đường găng của
-agent, và máy tắt thì cả hai đều dừng nên nó không thêm chế độ hỏng mới.
-
-Dự án mà `bee` quản thì dùng stack gì cũng được.
+Dự án mà hệ thống này quản thì dùng stack gì cũng được.

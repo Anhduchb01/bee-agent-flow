@@ -7,7 +7,7 @@
 
 | | |
 | --- | --- |
-| **Trạng thái** | Draft — chờ duyệt |
+| **Trạng thái** | Đang hiệu lực — chốt 17/08/2026, S0 (rig hai ẩn số) đã nghiệm thu |
 | **Phiên bản** | 3.0 — session-first, mô hình một UID ("A+") |
 | **Người tạo (Product Owner)** | Đức |
 | **Team tham gia** | Một người |
@@ -276,7 +276,7 @@ tên người · `usage`/`stop_reason` mỗi lần chạy.
 | A+ trôi thành A cẩu thả | **Cao** | `doctor` kiểm checklist §4.2 mỗi lần chạy, fail là báo đỏ trên app |
 | Hạn mức cháy trong đêm | Cao | FR-3.3 là P0 của V3; V1 chưa tự chạy nên chưa lộ |
 | Hai mô hình cùng tồn tại trong repo | Trung bình | Nhánh này chỉ build mô hình mới; nhánh cũ đóng băng làm fallback; V4 xoá dứt điểm |
-| Gõ chen lúc agent đang giữa tool call — CLI xử lý thế nào chưa rõ | Trung bình | Rig-test trước khi viết UI (spec §11) |
+| ~~Gõ chen lúc agent giữa tool call — CLI xử lý thế nào chưa rõ~~ | ~~Trung bình~~ | **Đã gỡ (rig S0.1, 17/08):** CLI xếp hàng và tiếp thu. Kèm phát hiện: input không được echo → spec thêm `bee_user_say`. Xem [rig/FINDINGS.md](../apps/runner/rig/FINDINGS.md) |
 
 ---
 
@@ -305,6 +305,10 @@ rule 08 (spec) · hộp thư 5 loại suy từ nhãn · orch/agent tách user.
 Runner mới (`bee-session@` user unit + session-run.sh) · màn session manager
 (n phiên theo repo) · chuyển chế độ phỏng vấn→làm trong một phiên · skills
 issue/PR/push · doctor checklist A+ · OAuth + Cloudflare Access thật.
+
+**Đã xong (17/08):** S0 — hai ẩn số gỡ bằng rig, cả hai thuận
+([rig/FINDINGS.md](../apps/runner/rig/FINDINGS.md)); 3 fixture `run.jsonl`
+thật sẵn cho phần web.
 
 ---
 
