@@ -12,6 +12,7 @@ import type {
   BeeRecentRun,
   BeeRun,
   BeeRunDetail,
+  BeeSession,
   BeeSource,
   StatusRead,
 } from "./types";
@@ -139,5 +140,79 @@ export function createFixtureBeeSource(): BeeSource {
 
     listEvidence: (slug, num) => listEvidenceIn(EVIDENCE_ROOT, slug, num),
     readEvidenceFile: (segments) => readEvidenceFileIn(EVIDENCE_ROOT, segments),
+
+    /*
+     * Ba phiên mẫu phủ ba trạng thái màn danh sách phải vẽ khác nhau: đang
+     * chạy (mở được live), đã xong, và chết cần người. Phiên đang chạy dùng
+     * đúng id PHIEN_DEMO mà session-ctl trả về ở fixture mode — bấm "New
+     * session" trên fixture là rơi vào trang live có chữ thật để xem.
+     */
+    async listSessions(): Promise<BeeSession[]> {
+      if (chuaChayLanNao(await currentScene())) return [];
+      return [phienDemoDangChay(), phienDemoXong(), phienDemoChet()];
+    },
+
+    async readSession(id): Promise<BeeSession | null> {
+      const ds = await this.listSessions();
+      return ds.find((p) => p.id === id) ?? null;
+    },
+
+    sessionRunPath(id): string | null {
+      // Mọi phiên fixture stream cùng một run.jsonl thật ghi từ rig S0 —
+      // hình dạng thật, không phải bịa.
+      if (!id.startsWith("de3")) return null;
+      return path.join(process.cwd(), "src", "lib", "fixtures", "bee", "session-run-demo.jsonl");
+    },
+  };
+}
+
+function phienDemoDangChay(): BeeSession {
+  return {
+    id: "de300000-0000-4000-8000-000000000001",
+    slug: "myapp",
+    num: 41,
+    repo: "you/myapp",
+    title: "Add CSV export to the report screen",
+    phase: "work",
+    status: "running",
+    created_at: "2026-08-17T09:58:00Z",
+    started_at: "2026-08-17T09:58:04Z",
+    ended_at: null,
+    attempt: 0,
+    needs_human: false,
+  };
+}
+
+function phienDemoXong(): BeeSession {
+  return {
+    id: "de300000-0000-4000-8000-000000000002",
+    slug: "myapp",
+    num: 40,
+    repo: "you/myapp",
+    title: "Legal pages share one layout",
+    phase: "work",
+    status: "done",
+    created_at: "2026-08-13T09:00:00Z",
+    started_at: "2026-08-13T09:00:05Z",
+    ended_at: "2026-08-13T09:12:00Z",
+    attempt: 0,
+    needs_human: false,
+  };
+}
+
+function phienDemoChet(): BeeSession {
+  return {
+    id: "de300000-0000-4000-8000-000000000003",
+    slug: "blog",
+    num: 7,
+    repo: "you/blog",
+    title: "Fix RSS feed encoding",
+    phase: "work",
+    status: "failed",
+    created_at: "2026-08-16T22:10:00Z",
+    started_at: "2026-08-16T22:10:03Z",
+    ended_at: "2026-08-16T23:41:00Z",
+    attempt: 2,
+    needs_human: true,
   };
 }

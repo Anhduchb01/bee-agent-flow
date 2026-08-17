@@ -203,8 +203,46 @@ export interface EvidenceRun {
   files: EvidenceFile[];
 }
 
+/* ── Phiên — đối tượng gốc của mô hình session-first (PRD 3.0) ─────────────
+ * Đồng bộ tay với apps/runner: session.json do web ghi lúc mở phiên,
+ * meta.json do session-run.sh và reaper.sh ghi (status/attempt/needs_human).
+ */
+
+export type PhaCuaPhien = "interview" | "work";
+
+/**
+ * `starting` không nằm trên đĩa — nó là "session.json đã có mà meta.json
+ * chưa": khoảnh khắc giữa lúc web ghi xong và lúc runner mở sổ. Vẽ nó ra
+ * là cách duy nhất để nút vừa bấm không trông như không làm gì.
+ */
+export type TrangThaiPhien = "starting" | "running" | "done" | "stopped" | "failed";
+
+export interface BeeSession {
+  id: string;
+  slug: string;
+  num: number;
+  repo: string;
+  title: string | null;
+  phase: PhaCuaPhien;
+  status: TrangThaiPhien;
+  created_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  attempt: number;
+  needs_human: boolean;
+}
+
 /** Toàn bộ đường ra vào `/srv/bee/`. Không module nào khác được chạm đĩa. */
 export interface BeeSource {
+  /** Mọi phiên trên máy, mới nhất trước. */
+  listSessions(): Promise<BeeSession[]>;
+  readSession(id: string): Promise<BeeSession | null>;
+  /**
+   * Đường dẫn tuyệt đối tới `run.jsonl` của phiên — cho route SSE tail.
+   * `null` khi id không hợp lệ. Đồng bộ vì chỉ là dựng đường dẫn; tồn tại
+   * hay không là chuyện của người đọc file.
+   */
+  sessionRunPath(id: string): string | null;
   readStatus(): Promise<StatusRead>;
   readRecent(limit?: number): Promise<BeeRecentRun[]>;
   /**
