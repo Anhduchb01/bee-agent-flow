@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleGaugeIcon, InboxIcon, LogOutIcon, PlusIcon } from "lucide-react";
+import { CircleGaugeIcon, InboxIcon, LogOutIcon, PlusIcon, TerminalIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -118,6 +118,16 @@ export function AppSidebar({
                 {soViecChoBan > 0 ? (
                   <SidebarMenuBadge>{soViecChoBan}</SidebarMenuBadge>
                 ) : null}
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname.startsWith("/sessions")}
+                  tooltip="Sessions"
+                  render={<Link href="/sessions" />}
+                >
+                  <TerminalIcon />
+                  <span>Sessions</span>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
