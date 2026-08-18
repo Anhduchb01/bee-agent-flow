@@ -19,17 +19,26 @@ $SUDO chmod +x "$PREFIX"/bin/*.sh
 
 echo "== 2 · Thư mục dữ liệu $BEE_ROOT =="
 if [[ ! -d "$BEE_ROOT" ]]; then
-  sudo mkdir -p "$BEE_ROOT"
-  sudo chown "$USER:$USER" "$BEE_ROOT"
+  # sudo only when a plain mkdir cannot (e.g. /srv) — a user-owned
+  # BEE_ROOT must install without ever prompting.
+  if ! mkdir -p "$BEE_ROOT" 2>/dev/null; then
+    sudo mkdir -p "$BEE_ROOT"
+    sudo chown "$USER:$USER" "$BEE_ROOT"
+  fi
 fi
 mkdir -p "$BEE_ROOT"/{repos,repos.d,work,sessions}
 # Nằm im cho tới khi có người chủ động gỡ — giống installer của mô hình cũ.
 [[ -e "$BEE_ROOT/PAUSE" ]] || touch "$BEE_ROOT/PAUSE"
 
 echo "== 3 · User units =="
+# Units are templates: @PREFIX@/@BEE_ROOT@ are rendered here so BEE_PREFIX
+# and BEE_ROOT overrides actually reach systemd — a hardcoded /opt/bee in
+# ExecStart silently ignored both.
 UDIR="$HOME/.config/systemd/user"
 mkdir -p "$UDIR"
-cp "$NGUON"/units/*.service "$NGUON"/units/*.timer "$UDIR/"
+for f in "$NGUON"/units/*.service "$NGUON"/units/*.timer; do
+  sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g" "$f" > "$UDIR/$(basename "$f")"
+done
 systemctl --user daemon-reload
 systemctl --user enable --now bee-reaper.timer bee-heartbeat.timer
 

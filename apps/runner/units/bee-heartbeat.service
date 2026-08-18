@@ -2,6 +2,7 @@
 Description=bee heartbeat check — bat cai chet im lang cua reaper
 
 [Service]
+Environment=BEE_ROOT=@BEE_ROOT@
 Type=oneshot
-ExecStart=/opt/bee/bin/heartbeat.sh
+ExecStart=@PREFIX@/bin/heartbeat.sh
 TimeoutStartSec=30

@@ -4,6 +4,7 @@
 Description=bee reaper — don xac phien + heartbeat
 
 [Service]
+Environment=BEE_ROOT=@BEE_ROOT@
 Type=oneshot
-ExecStart=/opt/bee/bin/reaper.sh
+ExecStart=@PREFIX@/bin/reaper.sh
 TimeoutStartSec=60

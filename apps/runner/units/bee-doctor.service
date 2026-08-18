@@ -5,6 +5,7 @@
 Description=bee doctor — A+ hygiene checklist to doctor.json
 
 [Service]
+Environment=BEE_ROOT=@BEE_ROOT@
 Type=oneshot
-ExecStart=/opt/bee/bin/doctor.sh
+ExecStart=@PREFIX@/bin/doctor.sh
 TimeoutStartSec=120

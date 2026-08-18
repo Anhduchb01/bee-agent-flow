@@ -4,8 +4,9 @@
 Description=bee session %i
 
 [Service]
+Environment=BEE_ROOT=@BEE_ROOT@
 Type=simple
-ExecStart=/opt/bee/bin/session-run.sh %i
+ExecStart=@PREFIX@/bin/session-run.sh %i
 # Trần cứng cho một phiên — phanh cuối khi mọi thứ khác quên dừng.
 RuntimeMaxSec=6h
 # systemctl stop = nút Dừng: TERM cho session-run.sh, trap đóng sổ "stopped";
