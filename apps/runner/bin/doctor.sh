@@ -27,6 +27,13 @@ else
   ghi "pat" false "token KHÔNG phải fine-grained (tiền tố $(cut -c1-4 <<<"$TOKEN")…) — tạo PAT hẹp, thu hồi token này"
 fi
 
+# ── 1b · Claude login under this user — sessions cannot run without it ────
+if [[ -f "$HOME/.claude/.credentials.json" ]]; then
+  ghi "claude" true "đã login"
+else
+  ghi "claude" false "chưa login — chạy \`claude\` rồi /login dưới user này"
+fi
+
 # ── 2 · Branch protection main trên từng repo trong repos.d ────────────────
 if compgen -G "$BEE_ROOT/repos.d/*.env" >/dev/null; then
   for f in "$BEE_ROOT"/repos.d/*.env; do

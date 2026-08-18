@@ -106,6 +106,12 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       Login tự redirect về /setup khi máy chưa verify hoặc doctor đỏ
       (`postLoginTarget`; fixture doctor theo cảnh: binh-thuong xanh,
       co-su-co đỏ+PAUSE, vua-cai null).
+- [x] 🤖 **S4.0b** ~~Setup tương tác~~ **XONG 18/08** — hết copy-paste trừ
+      install.sh + login claude: nút linger, form dán PAT (stdin, chặn
+      classic 2 lớp), đăng ký/gỡ repo trên web (repos.d tmp+rename, chặn
+      slug trùng), toggle PAUSE khoá tới khi doctor xanh, mỗi action tự
+      chạy lại doctor. Branch protection cố ý để GitHub-side (PAT không
+      admin) — có deep-link + doctor kiểm. doctor.sh thêm check claude.
 - [ ] 🧑 **S4.1** Tạo fine-grained PAT (contents + PR + issues, đúng danh sách
       repo) · bật branch protection `main` từng repo · thử push main phải bị từ chối
       → làm theo trang `/setup`, doctor phải xanh trên đó

@@ -259,21 +259,35 @@ GitHub OAuth (allowlist login) + Cloudflare Access ở rìa. Route nào cũng t�
 kiểm — giữ nguyên kỷ luật cũ. Ngoài allowlist: đăng nhập được, thấy trang
 trống nói thẳng "bạn không có quyền", không lộ dữ liệu.
 
-### 4.6 Màn onboarding `/setup` (thêm 18/08)
+### 4.6 Màn onboarding `/setup` (thêm 18/08, tương tác hoá cùng ngày)
 
-Người mới cài máy làm theo MỘT trang, kiểm chứng ngay trên web:
+Người mới cài máy làm theo MỘT trang; setup và kiểm chứng **trên web**,
+chỉ hai thứ bắt buộc ở máy:
 
-1. Năm bước người-làm theo đúng thứ tự install.sh, mỗi bước một khối lệnh
-   copy-paste (install runner → login claude/gh → đăng ký repo + branch
-   protection → doctor → gỡ PAUSE).
-2. Checklist doctor SỐNG từ `doctor.json` (`readDoctor()`): từng mục ✓/✗ kèm
-   cách sửa, banner PAUSE, nút "Run doctor again" (unit `bee-doctor.service`
-   oneshot — doctor exit 1 vẫn tính là chạy thành công, kết quả đỏ nằm trong
-   file). Chưa từng chạy doctor → nói thẳng "chưa chạy", chỉ về bước 1 —
-   không giả xanh.
-3. Danh sách repo đã đăng ký — cùng nguồn `listRepos()` với form phiên.
+1. **Ở máy (2 việc):** `install.sh` (bootstrap cả web nên không thể tự cài
+   mình) và login `claude` (OAuth tương tác — cần terminal; web chỉ phát
+   hiện qua doctor check `claude`, tự động hoá để sau V2 cùng PTY).
+2. **Trên web (mọi thứ còn lại), qua `machine-ctl.ts`** — kỷ luật như
+   session-ctl: allowlist regex trước mọi đường dẫn/argv, lỗi là dữ liệu:
+   - Linger: nút → `loginctl enable-linger`.
+   - PAT: form dán token → `gh auth login --with-token` (token đi qua
+     **stdin**, không argv — ps/log không thấy) + `gh auth setup-git`.
+     Chặn token classic ở cả client lẫn server (`validatePat`).
+   - Repo: form đăng ký/gỡ → ghi `repos.d/<slug>.env` (tmp+rename, REPO_RE,
+     chặn slug trùng trỏ repo khác); mỗi repo kèm verdict protection của
+     doctor + deep-link `github.com/<repo>/settings/branches`.
+   - PAUSE: toggle go-live/pause — nút go-live **khoá tới khi doctor xanh
+     toàn bộ** và nói rõ lý do.
+   - **Branch protection cố ý KHÔNG làm từ web**: cần quyền admin repo,
+     mà PAT máy chỉ có contents+PR+issues (A+). Làm bằng tay GitHub-side,
+     doctor kiểm.
+3. Mỗi action kết thúc bằng một lượt doctor mới (`bee-doctor.service`
+   oneshot — exit 1 vẫn là chạy thành công, kết quả đỏ nằm trong file) —
+   trang luôn hiện sự thật đã kiểm, không hiện hy vọng. Chưa từng chạy
+   doctor → nói thẳng, chỉ về bước 1 — không giả xanh.
 4. Bước cuối nhúng chính `NewSessionForm`: test kết thúc ở chỗ sử dụng
    bắt đầu.
+5. Login tự đổ về đây khi máy chưa verify / doctor đỏ (xem mục dưới).
 5. Login tự đổ về đây: máy chưa từng chạy doctor (null) hoặc doctor đỏ →
    đích sau đăng nhập là `/setup` thay vì Overview trống (`postLoginTarget`
    thuần, có test; `?next=` nội bộ vẫn thắng, chặn `//host` open

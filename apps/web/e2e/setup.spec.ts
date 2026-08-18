@@ -3,11 +3,11 @@ import { expect, test } from "@playwright/test";
 import { dangNhap, datCanh } from "./helpers";
 
 /**
- * Onboarding screen: install steps + the machine's own doctor.json as live
- * proof. The co-su-co scene mixes green and red on purpose — both shapes
- * must render, and the red one must carry its fix hint.
+ * Onboarding screen: everything but install.sh and the interactive claude
+ * login is done HERE — buttons and forms, verified by the machine's own
+ * doctor.json. The co-su-co scene mixes green and red on purpose.
  */
-test("setup page walks the install and shows live doctor checks", async ({ page }) => {
+test("setup page: interactive steps + live doctor checks", async ({ page }) => {
   await dangNhap(page, "pm-linh");
   await datCanh(page, "co-su-co");
   await page.goto("/setup");
@@ -17,30 +17,53 @@ test("setup page walks the install and shows live doctor checks", async ({ page 
   // The five steps, in order.
   for (const step of [
     "Install the runner",
-    "Sign in on the machine",
-    "Register each repo",
+    "Sign in",
+    "Register repos",
     "Verify",
-    "Un-pause and test",
+    "Go live",
   ]) {
     await expect(page.getByRole("heading", { name: new RegExp(step) })).toBeVisible();
   }
 
-  // Live doctor checks from the fixture: a pass, a fail WITH its fix hint,
-  // and the PAUSE banner.
+  // Sign-in step is interactive: PAT form refuses a classic token client-side.
+  const pat = page.getByLabel("Fine-grained PAT");
+  await pat.fill("ghp_classictoken");
+  await page.getByRole("button", { name: "Save PAT" }).click();
+  await expect(page.getByText(/not a fine-grained pat/i)).toBeVisible();
+
+  // Repo registry: a malformed repo is rejected with the server's reason
+  // (validation runs before the fixture no-op).
+  await page.getByLabel("Repository to register").fill("not-a-repo");
+  await page.getByRole("button", { name: "Add repo" }).click();
+  await expect(page.getByText(/must be owner\/name/i)).toBeVisible();
+
+  // Registered repos show doctor's protection verdict + a settings deep-link.
+  const dsRepo = page.getByRole("list", { name: "Registered repos" });
+  await expect(dsRepo).toContainText("you/myapp");
+  await expect(page.getByRole("link", { name: /protect main/i }).first()).toHaveAttribute(
+    "href",
+    /github\.com\/you\/.*\/settings\/branches/,
+  );
+
+  // Live doctor checks: a pass, a fail WITH its fix hint.
   const checks = page.getByRole("list", { name: "Doctor checks" });
   await expect(checks).toContainText("fine-grained PAT");
   await expect(checks).toContainText("CHƯA có branch protection");
-  await expect(page.getByText(/PAUSED — the machine takes no new sessions/)).toBeVisible();
 
-  // Registered repos come from the same source the session form uses.
-  await expect(page.getByRole("list", { name: "Registered repos" })).toContainText("you/myapp");
-
-  // Re-run from the web must not blow up (fixture no-op).
-  await page.getByRole("button", { name: "Run doctor again" }).click();
-  await expect(checks).toBeVisible();
+  // Doctor red → going live is locked, and it says why.
+  await expect(page.getByRole("button", { name: /remove pause/i })).toBeDisabled();
+  await expect(page.getByText(/until every doctor check is green/i)).toBeVisible();
 
   // The final step embeds the real session form — test ends where usage begins.
   await expect(page.getByRole("combobox", { name: "Repository" })).toBeVisible();
+});
+
+test("machine ready: go-live button is armed", async ({ page }) => {
+  await dangNhap(page, "pm-linh");
+  // binh-thuong scene: doctor all green but... paused=false → shows live state.
+  await page.goto("/setup");
+  await expect(page.getByText(/machine is live/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /pause machine/i })).toBeEnabled();
 });
 
 /**
