@@ -80,6 +80,8 @@ describe("gopSuKien trên fixture thật", () => {
     const { suKien, dongRac } = gopSuKien(docFixture("fixture-resume-work.jsonl"));
     expect(dongRac).toBe(0);
     expect(suKien.some((s) => s.loai === "tool" && s.ten === "Write")).toBe(true);
-    expect(suKien.filter((s) => s.loai === "ket-qua")).toEqual([{ loai: "ket-qua", loi: false }]);
+    expect(suKien.filter((s) => s.loai === "ket-qua")).toEqual([
+      { loai: "ket-qua", loi: false, luot: 2 },
+    ]);
   });
 });

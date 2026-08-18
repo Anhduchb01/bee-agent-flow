@@ -19,7 +19,7 @@ import { EventStream } from "./event-stream";
  * trong ≤ 500ms) — một nguồn sự thật duy nhất, không lo hiện đúp.
  */
 export function LiveView({ phien }: { phien: BeeSession }) {
-  const { suKien, dangGo, trangThai, ketThuc, boQua } = useSessionStream(phien.id);
+  const { suKien, dangGo, dangNghi, trangThai, ketThuc, boQua } = useSessionStream(phien.id);
   const [nhap, setNhap] = useState("");
   const [loi, setLoi] = useState("");
   const [okDaBam, setOkDaBam] = useState(phien.phase === "work");
@@ -84,12 +84,12 @@ export function LiveView({ phien }: { phien: BeeSession }) {
 
       {/* dòng sự kiện */}
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-        {suKien.length === 0 && dangGo === "" ? (
+        {suKien.length === 0 && dangGo === "" && dangNghi === "" ? (
           <p className="text-sm text-muted-foreground">
             {trangThai === "dang-noi" ? "Connecting…" : "Waiting for the session to speak…"}
           </p>
         ) : (
-          <EventStream suKien={suKien} dangGo={dangGo} />
+          <EventStream suKien={suKien} dangGo={dangGo} dangNghi={dangNghi} />
         )}
       </div>
 

@@ -25,7 +25,7 @@ export default async function CanvasPage() {
         </p>
       ) : (
         <div className="min-h-0 flex-1">
-          <CanvasView nodes={nodes} edges={edges} />
+          <CanvasView nodes={nodes} edges={edges} phien={nhom.flatMap((g) => g.phien)} />
         </div>
       )}
     </div>

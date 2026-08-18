@@ -57,8 +57,12 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       trong dòng sự kiện.
 - [x] 🤖 `BeeSource.sessionArtifacts` + `build-graph` thuần (test layout) +
       trang `/canvas` React Flow (MIT — không dính BUSL của nodeterm) + sidebar.
+- [x] 🤖 **Panel VSCode-style** (17/08): thẻ tool ghép cặp theo `tool_use.id`
+      (`ghep-the.ts` thuần + test fixture thật) — ● → ✓/✗, lỗi tự mở, kết quả
+      mồ côi sau replay vẫn hiện; thinking gập, buffer riêng; num_turns.
+      Click node phiên trên canvas → Sheet chứa LiveView tại chỗ.
 - [ ] Sau: lưu vị trí node · node evidence · rig hook-reply approvals
-      (session-first §11).
+      (session-first §11) · terminal node thật (xterm+PTY, sau V2 — canvas.md §4).
 
 **Nợ test ghi nhận (làm ở S4 hoặc trước):**
 - [ ] 🤖 Unit test riêng cho route SSE (MSW) — logic mỏng, các tầng dưới đã test,

@@ -10,6 +10,8 @@ export interface LuongPhien {
   suKien: SuKien[];
   /** Chữ đang gõ dở của agent — từ text_delta, để màn hình chạy mượt. */
   dangGo: string;
+  /** Thinking đang chảy — buffer riêng, khối trọn vẹn trong message thay thế. */
+  dangNghi: string;
   trangThai: TrangThaiKetNoi;
   /** Trạng thái cuối khi phiên đóng (done/stopped/failed) — null khi còn chạy. */
   ketThuc: string | null;
@@ -26,6 +28,7 @@ export interface LuongPhien {
 export function useSessionStream(id: string): LuongPhien {
   const [suKien, setSuKien] = useState<SuKien[]>([]);
   const [dangGo, setDangGo] = useState("");
+  const [dangNghi, setDangNghi] = useState("");
   const [trangThai, setTrangThai] = useState<TrangThaiKetNoi>("dang-noi");
   const [ketThuc, setKetThuc] = useState<string | null>(null);
   const [boQua, setBoQua] = useState(0);
@@ -53,9 +56,12 @@ export function useSessionStream(id: string): LuongPhien {
       for (const sk of ket) {
         if (sk.loai === "delta") {
           setDangGo((d) => d + sk.text);
-        } else if (sk.loai === "agent-noi") {
+        } else if (sk.loai === "nghi-delta") {
+          setDangNghi((d) => d + sk.text);
+        } else if (sk.loai === "agent-noi" || sk.loai === "nghi") {
           // Message trọn vẹn thay thế các delta đã gom — không hiện đúp.
           setDangGo("");
+          setDangNghi("");
           setSuKien((s) => [...s, sk]);
         } else if (sk.loai === "replay") {
           setBoQua(sk.boQua);
@@ -67,5 +73,5 @@ export function useSessionStream(id: string): LuongPhien {
     return () => es.close();
   }, [id]);
 
-  return { suKien, dangGo, trangThai, ketThuc, boQua };
+  return { suKien, dangGo, dangNghi, trangThai, ketThuc, boQua };
 }

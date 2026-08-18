@@ -224,6 +224,16 @@ chốt, mang danh bot. Bốn bước của mô hình cũ còn một.
 - Live view: như v1-live §4.4 (ô gõ luôn mở, Dừng luôn thấy, mobile-first, rớt
   mạng báo dải chứ không xoá) — cộng: đầu ra agent render **plain text** (PRD
   §4.1, nội dung untrusted).
+- **Dòng sự kiện kiểu panel Claude Code trong VSCode** *(bổ sung 17/08, đã
+  build)*: mỗi tool call là **một thẻ** ghép cặp `tool_use.id` ↔
+  `tool_result.tool_use_id` (`lib/ghep-the.ts`, thuần, test bằng fixture
+  thật) — trạng thái ● đang chạy → ✓/✗, kết quả gập trong thẻ, **thẻ lỗi tự
+  mở**; thẻ đứng ở vị trí tool *bắt đầu* trong dòng thời gian. Bash hiện
+  lệnh, Edit/Write/Read hiện file path. Thinking (`thinking_delta` + khối
+  trọn vẹn) gập mặc định, buffer riêng không lẫn với chữ trả lời. Kết quả
+  mồ côi (tool_use nằm trong khúc `bee_replayed` đã cắt) vẫn hiện thành thẻ
+  — mất kết quả tệ hơn mất tiêu đề. `result.num_turns` hiện ở dòng
+  turn-finished.
 - Session list là **màn hình gốc mới** của app: nhóm theo repo, mỗi phiên một
   dòng — trạng thái, branch, PR (nếu có), tuổi, usage. `needs-human` nổi đỏ
   lên đầu.

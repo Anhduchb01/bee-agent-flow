@@ -36,7 +36,9 @@ BeeSource        →  sessionArtifacts(id) — disk: quét run.jsonl lọc dòng
   (test được): `(nhóm phiên, artifacts) → {nodes, edges}` với layout tính
   sẵn — repo là cột, phiên xếp dọc trong cột, artifact dạt phải phiên của nó.
 - Node phiên: title, `bee/<slug>-<n>`, StatusDot tone theo status,
-  `needs_human` viền đỏ. Click → `/sessions/<id>`.
+  `needs_human` viền đỏ. **Click → panel chat mở NGAY TRÊN canvas** (Sheet
+  bên phải chứa đúng LiveView của trang riêng — một nguồn sự thật, hai chỗ
+  vẽ); link `↗` trong node đi sang `/sessions/<id>` trọn trang.
 - Node artifact: `#<số>` + kind. Click → mở GitHub tab mới.
 - Edge: phiên → artifact, một chiều, không tương tác.
 - Kéo node được (React Flow mặc định) nhưng **V1 không lưu vị trí** — reload
@@ -57,4 +59,9 @@ BeeSource        →  sessionArtifacts(id) — disk: quét run.jsonl lọc dòng
 ## 4. Ngoài phạm vi (ghi để khỏi lẻn vào)
 
 Lưu vị trí node · node evidence/diff · edge agent-đọc-context-của-nhau ·
-hook-reply approvals (ô riêng ở session-first §11 — rig trước) · kanban view.
+hook-reply approvals (ô riêng ở session-first §11 — rig trước) · kanban view ·
+node phóng to tại chỗ chứa chat (V1 dùng Sheet — rẻ và mobile-friendly; node
+to trong React Flow cần xử lý `nodrag`/`nowheel` và wheel-conflict) ·
+**terminal node thật** (xterm.js + PTY + tmux — cửa thoát hiểm cho TUI, xếp
+sau V2: cần WebSocket server riêng cạnh Next.js và mất toàn bộ cấu trúc sự
+kiện trên đường đó, xem trao đổi 17/08).

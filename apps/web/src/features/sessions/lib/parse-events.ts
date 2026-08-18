@@ -15,9 +15,18 @@ export type SuKien =
   | { loai: "nguoi-noi"; text: string; ts?: string }
   | { loai: "agent-noi"; text: string }
   | { loai: "delta"; text: string }
-  | { loai: "tool"; ten: string; thamSo: string }
-  | { loai: "tool-xong"; text: string }
-  | { loai: "ket-qua"; loi: boolean }
+  /** Khối thinking trọn vẹn trong message — UI gập mặc định. */
+  | { loai: "nghi"; text: string }
+  /** Thinking đang chảy — hook gom buffer riêng, message trọn vẹn thay thế. */
+  | { loai: "nghi-delta"; text: string }
+  /**
+   * `id` là tool_use id của CLI — chìa khoá để ghép cặp với `tool-xong` thành
+   * MỘT thẻ có trạng thái (spinner → ✓), thay vì hai dòng rời. `file`/`lenh`
+   * trích sẵn cho thẻ chuyên biệt (Edit/Write/Bash).
+   */
+  | { loai: "tool"; ten: string; thamSo: string; id?: string | null; file?: string; lenh?: string }
+  | { loai: "tool-xong"; text: string; id?: string | null; loi?: boolean }
+  | { loai: "ket-qua"; loi: boolean; luot?: number | null }
   | { loai: "replay"; boQua: number }
   | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null };
 
@@ -51,15 +60,27 @@ function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): SuKien[
     if (nguon === "assistant" && block.type === "text" && typeof block.text === "string") {
       if (block.text.trim() !== "") ra.push({ loai: "agent-noi", text: block.text });
     }
+    if (nguon === "assistant" && block.type === "thinking" && typeof block.thinking === "string") {
+      if (block.thinking.trim() !== "") ra.push({ loai: "nghi", text: block.thinking });
+    }
     if (nguon === "assistant" && block.type === "tool_use") {
+      const input = laObject(block.input) ? block.input : {};
       ra.push({
         loai: "tool",
         ten: typeof block.name === "string" ? block.name : "?",
         thamSo: cat(JSON.stringify(block.input ?? {}), CAT_THAM_SO),
+        id: typeof block.id === "string" ? block.id : null,
+        ...(typeof input.file_path === "string" ? { file: input.file_path } : {}),
+        ...(typeof input.command === "string" ? { lenh: cat(input.command, CAT_THAM_SO) } : {}),
       });
     }
     if (nguon === "user" && block.type === "tool_result") {
-      ra.push({ loai: "tool-xong", text: cat(textCuaToolResult(block.content), CAT_KET_QUA) });
+      ra.push({
+        loai: "tool-xong",
+        text: cat(textCuaToolResult(block.content), CAT_KET_QUA),
+        id: typeof block.tool_use_id === "string" ? block.tool_use_id : null,
+        loi: block.is_error === true,
+      });
     }
   }
   return ra;
@@ -116,11 +137,20 @@ export function phanTichDong(dong: string): SuKien[] | null {
         if (ev.delta.type === "text_delta" && typeof ev.delta.text === "string") {
           return [{ loai: "delta", text: ev.delta.text }];
         }
+        if (ev.delta.type === "thinking_delta" && typeof ev.delta.thinking === "string") {
+          if (ev.delta.thinking !== "") return [{ loai: "nghi-delta", text: ev.delta.thinking }];
+        }
       }
       return [];
     }
     case "result":
-      return [{ loai: "ket-qua", loi: raw.subtype !== "success" }];
+      return [
+        {
+          loai: "ket-qua",
+          loi: raw.subtype !== "success",
+          luot: typeof raw.num_turns === "number" ? raw.num_turns : null,
+        },
+      ];
     default:
       return [];
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import {
   Background,
   Controls,
@@ -15,14 +15,19 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { StatusDot, type Tone } from "@/components/status-dot";
-import type { TrangThaiPhien } from "@/lib/bee/types";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import type { BeeSession, TrangThaiPhien } from "@/lib/bee/types";
 
 import type { EdgeCanvas, NodeArtifact, NodeCanvas, NodeNhanRepo, NodePhien } from "../lib/build-graph";
+import { LiveView } from "./live-view";
 
 /**
  * Vẽ đồ thị đã dựng sẵn ở server (build-graph.ts) — component này KHÔNG có
  * logic layout, chỉ ánh xạ node type sang hình. Kéo node được cho sướng tay
  * nhưng V1 không lưu vị trí (spec canvas §2).
+ *
+ * Click node phiên mở panel chat NGAY TRÊN canvas (Sheet chứa LiveView) —
+ * không rời ngữ cảnh đồ thị; link ↗ trong node đi sang trang riêng.
  */
 
 const TONE: Record<TrangThaiPhien, Tone> = {
@@ -39,22 +44,30 @@ type FlowNhanRepo = Node<NodeNhanRepo["data"] & Record<string, unknown>, "nhan-r
 
 function PhienNode({ data }: NodeProps<FlowPhien>) {
   return (
-    <Link
-      href={data.href}
-      className={`block w-60 rounded-card border bg-card px-3 py-2 shadow-none ${
+    <div
+      className={`w-60 cursor-pointer rounded-card border bg-card px-3 py-2 shadow-none ${
         data.needsHuman ? "border-destructive" : "border-border"
       }`}
     >
       <Handle type="source" position={Position.Right} className="!bg-muted-foreground" />
       <span className="flex items-center gap-2">
         <StatusDot tone={data.needsHuman ? "down" : TONE[data.status]} />
-        <span className="truncate text-sm text-body">{data.title}</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-body">{data.title}</span>
+        {/* Đường sang trang riêng — stopPropagation để khỏi mở panel cùng lúc */}
+        <a
+          href={data.href}
+          onClick={(e) => e.stopPropagation()}
+          className="font-mono text-xs text-muted-foreground hover:text-body"
+          aria-label="Open full page"
+        >
+          ↗
+        </a>
       </span>
       <span className="mt-1 flex items-center justify-between font-mono text-xs text-muted-foreground">
         <span>{data.nhanh}</span>
         <span>{data.needsHuman ? "needs you" : data.status}</span>
       </span>
-    </Link>
+    </div>
   );
 }
 
@@ -90,9 +103,18 @@ const nodeTypes: NodeTypes = {
   "nhan-repo": NhanRepoNode,
 };
 
-export function CanvasView({ nodes, edges }: { nodes: NodeCanvas[]; edges: EdgeCanvas[] }) {
+export function CanvasView({
+  nodes,
+  edges,
+  phien,
+}: {
+  nodes: NodeCanvas[];
+  edges: EdgeCanvas[];
+  phien: BeeSession[];
+}) {
   const flowNodes: Node[] = nodes.map((n) => ({ ...n, data: { ...n.data } }));
   const flowEdges: Edge[] = edges.map((e) => ({ ...e }));
+  const [chon, setChon] = useState<BeeSession | null>(null);
 
   return (
     <div className="h-full w-full">
@@ -105,10 +127,27 @@ export function CanvasView({ nodes, edges }: { nodes: NodeCanvas[]; edges: EdgeC
         minZoom={0.2}
         nodesConnectable={false}
         deleteKeyCode={null}
+        onNodeClick={(_, node) => {
+          if (node.type === "phien") setChon(phien.find((p) => p.id === node.id) ?? null);
+        }}
       >
         <Background gap={24} />
         <Controls showInteractive={false} />
       </ReactFlow>
+
+      {/* Panel chat tại chỗ — cùng LiveView với trang riêng, một nguồn sự thật */}
+      <Sheet open={chon !== null} onOpenChange={(mo) => !mo && setChon(null)}>
+        <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
+          {chon !== null && (
+            <>
+              <SheetTitle className="border-b border-border px-4 py-3 text-sm">
+                {chon.title ?? `${chon.slug}-${chon.num}`}
+              </SheetTitle>
+              <LiveView phien={chon} />
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
