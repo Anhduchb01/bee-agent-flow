@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { docArtifactsTrong, lietKePhienTrong } from "./sessions-fs";
+import { docArtifactsTrong, docCauCuoiTrong, lietKePhienTrong } from "./sessions-fs";
 
 const ID_A = "aaaaaaaa-1111-4222-8333-444444444444";
 const ID_B = "bbbbbbbb-1111-4222-8333-444444444444";
@@ -75,7 +75,7 @@ describe("docArtifactsTrong", () => {
       [
         '{"type":"bee_lifecycle","msg":"Phiên đã khởi động"}',
         '{"type":"assistant","message":{"content":[{"type":"text","text":"làm xong"}]}}',
-        '{"type":"bee_artifact","kind":"issue","url":"https://github.com/you/myapp/issues/41","number":41,"ts":"2026-08-17T10:02:00Z"}',
+        '{"type":"bee_artifact","kind":"issue","url":"https://github.com/you/myapp/issues/41","number":41,"ts":"2026-08-17T10:02:00Z","title":"Add CSV export"}',
         'dòng rác không phải json có chữ "bee_artifact" bên trong',
         '{"type":"bee_artifact","kind":"pr","url":"javascript:alert(1)","number":9}',
         '{"type":"bee_artifact","kind":"pr","url":"https://github.com/you/myapp/pull/123","number":123}',
@@ -83,12 +83,37 @@ describe("docArtifactsTrong", () => {
     );
     const ds = await docArtifactsTrong(root, ID_A);
     expect(ds).toEqual([
-      { kind: "issue", url: "https://github.com/you/myapp/issues/41", number: 41, ts: "2026-08-17T10:02:00Z" },
-      { kind: "pr", url: "https://github.com/you/myapp/pull/123", number: 123, ts: null },
+      {
+        kind: "issue",
+        url: "https://github.com/you/myapp/issues/41",
+        number: 41,
+        ts: "2026-08-17T10:02:00Z",
+        title: "Add CSV export",
+      },
+      { kind: "pr", url: "https://github.com/you/myapp/pull/123", number: 123, ts: null, title: null },
     ]);
   });
 
   it("chưa có run.jsonl là danh sách rỗng, không phải lỗi", async () => {
     expect(await docArtifactsTrong(dungSan(), ID_B)).toEqual([]);
+  });
+});
+
+describe("docCauCuoiTrong", () => {
+  it("lấy câu text CUỐI của assistant, gọn một dòng — bỏ qua tool_result phía sau", async () => {
+    const root = dungSan();
+    writeFileSync(
+      path.join(root, "sessions", ID_A, "run.jsonl"),
+      [
+        '{"type":"assistant","message":{"content":[{"type":"text","text":"câu đầu"}]}}',
+        '{"type":"assistant","message":{"content":[{"type":"text","text":"đang chạy\\ntest suite  rồi"}]}}',
+        '{"type":"user","message":{"content":[{"type":"tool_result","content":"24 passed"}]}}',
+      ].join("\n"),
+    );
+    expect(await docCauCuoiTrong(root, ID_A)).toBe("đang chạy test suite rồi");
+  });
+
+  it("chưa nói gì thì null — node vẽ trạng thái trống, không vẽ chuỗi rỗng", async () => {
+    expect(await docCauCuoiTrong(dungSan(), ID_B)).toBeNull();
   });
 });

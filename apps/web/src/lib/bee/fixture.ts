@@ -164,16 +164,47 @@ export function createFixtureBeeSource(): BeeSource {
       // trên fixture phải cho thấy cả hai hình dạng.
       if (id === "de300000-0000-4000-8000-000000000001") {
         return [
-          { kind: "issue", url: "https://github.com/you/myapp/issues/41", number: 41, ts: "2026-08-17T10:02:00Z" },
+          {
+            kind: "issue",
+            url: "https://github.com/you/myapp/issues/41",
+            number: 41,
+            ts: "2026-08-17T10:02:00Z",
+            title: "Add CSV export to the report screen",
+          },
         ];
       }
       if (id === "de300000-0000-4000-8000-000000000002") {
         return [
-          { kind: "issue", url: "https://github.com/you/myapp/issues/40", number: 40, ts: "2026-08-13T09:01:00Z" },
-          { kind: "pr", url: "https://github.com/you/myapp/pull/123", number: 123, ts: "2026-08-13T09:10:00Z" },
+          {
+            kind: "issue",
+            url: "https://github.com/you/myapp/issues/40",
+            number: 40,
+            ts: "2026-08-13T09:01:00Z",
+            title: "Legal pages share one layout",
+          },
+          {
+            kind: "pr",
+            url: "https://github.com/you/myapp/pull/123",
+            number: 123,
+            ts: "2026-08-13T09:10:00Z",
+            title: "Extract legal-document layout, add tests",
+          },
         ];
       }
       return [];
+    },
+
+    async sessionPreview(id): Promise<string | null> {
+      if (id === "de300000-0000-4000-8000-000000000001") {
+        return "Running the test suite before opening the PR — 3 files changed so far.";
+      }
+      if (id === "de300000-0000-4000-8000-000000000002") {
+        return "Done. Draft PR #123 is up — both pages now share one layout component.";
+      }
+      if (id === "de300000-0000-4000-8000-000000000003") {
+        return "I could not reproduce the encoding issue locally; need a sample feed.";
+      }
+      return null;
     },
 
     sessionRunPath(id): string | null {

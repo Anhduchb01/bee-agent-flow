@@ -21,6 +21,9 @@ export interface NodePhien {
     status: BeeSession["status"];
     needsHuman: boolean;
     href: string;
+    /** Câu cuối agent nói — preview một dòng, node kể được chuyện đang tới đâu. */
+    cauCuoi: string | null;
+    createdAt: string | null;
   };
 }
 
@@ -28,7 +31,13 @@ export interface NodeArtifact {
   id: string;
   type: "artifact";
   position: { x: number; y: number };
-  data: { kind: BeeArtifact["kind"]; number: number | null; url: string };
+  data: {
+    kind: BeeArtifact["kind"];
+    number: number | null;
+    url: string;
+    title: string | null;
+    ts: string | null;
+  };
 }
 
 export interface NodeNhanRepo {
@@ -46,14 +55,15 @@ export interface EdgeCanvas {
   target: string;
 }
 
-const RONG_COT = 520;
-const CAO_PHIEN = 96;
-const CAO_ARTIFACT = 72;
-const LECH_ARTIFACT_X = 280;
+const RONG_COT = 560;
+const CAO_PHIEN = 120;
+const CAO_ARTIFACT = 84;
+const LECH_ARTIFACT_X = 300;
 
 export function dungDoThi(
   nhom: NhomPhien[],
   artifacts: Record<string, BeeArtifact[]>,
+  xemTruoc: Record<string, string | null> = {},
 ): { nodes: NodeCanvas[]; edges: EdgeCanvas[] } {
   const nodes: NodeCanvas[] = [];
   const edges: EdgeCanvas[] = [];
@@ -74,6 +84,8 @@ export function dungDoThi(
           status: p.status,
           needsHuman: p.needs_human,
           href: `/sessions/${p.id}`,
+          cauCuoi: xemTruoc[p.id] ?? null,
+          createdAt: p.created_at,
         },
       });
 
@@ -84,7 +96,7 @@ export function dungDoThi(
           id: idA,
           type: "artifact",
           position: { x: x + LECH_ARTIFACT_X, y: y + i * CAO_ARTIFACT },
-          data: { kind: a.kind, number: a.number, url: a.url },
+          data: { kind: a.kind, number: a.number, url: a.url, title: a.title, ts: a.ts },
         });
         edges.push({ id: `e-${idA}`, source: p.id, target: idA });
       });

@@ -241,6 +241,8 @@ export interface BeeArtifact {
   url: string;
   number: number | null;
   ts: string | null;
+  /** Tiêu đề lúc tạo — skill ghi kèm. Trạng thái sống (merged/closed) là việc GitHub-side, V2. */
+  title: string | null;
 }
 
 /** Toàn bộ đường ra vào `/srv/bee/`. Không module nào khác được chạm đĩa. */
@@ -250,6 +252,8 @@ export interface BeeSource {
   readSession(id: string): Promise<BeeSession | null>;
   /** Issue/PR phiên này đã tạo — quét dòng `bee_artifact` trong run.jsonl. */
   sessionArtifacts(id: string): Promise<BeeArtifact[]>;
+  /** Câu cuối agent nói — preview một dòng cho node canvas. `null` khi chưa nói gì. */
+  sessionPreview(id: string): Promise<string | null>;
   /**
    * Đường dẫn tuyệt đối tới `run.jsonl` của phiên — cho route SSE tail.
    * `null` khi id không hợp lệ. Đồng bộ vì chỉ là dựng đường dẫn; tồn tại

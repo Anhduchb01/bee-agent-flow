@@ -38,7 +38,13 @@ export type SuKien =
   | { loai: "tool-xong"; text: string; id?: string | null; loi?: boolean }
   | { loai: "ket-qua"; loi: boolean; luot?: number | null }
   | { loai: "replay"; boQua: number }
-  | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null };
+  | {
+      loai: "artifact";
+      kind: "issue" | "pr";
+      url: string;
+      number: number | null;
+      title: string | null;
+    };
 
 const CAT_THAM_SO = 160;
 const CAT_KET_QUA = 400;
@@ -144,6 +150,7 @@ export function phanTichDong(dong: string): SuKien[] | null {
           kind: raw.kind,
           url: raw.url,
           number: typeof raw.number === "number" ? raw.number : null,
+          title: typeof raw.title === "string" ? raw.title.slice(0, 140) : null,
         },
       ];
     }

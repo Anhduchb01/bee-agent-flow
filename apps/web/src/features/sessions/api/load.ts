@@ -28,20 +28,25 @@ export async function loadSession(id: string): Promise<BeeSession | null> {
   return getBee().readSession(id);
 }
 
-/** Dữ liệu cho trang canvas: nhóm phiên + artifact của từng phiên. */
+/** Dữ liệu cho trang canvas: nhóm phiên + artifact + preview câu cuối. */
 export async function loadCanvas(): Promise<{
   nhom: NhomPhien[];
   artifacts: Record<string, BeeArtifact[]>;
+  xemTruoc: Record<string, string | null>;
 }> {
   const nhom = await loadSessions();
   const bee = getBee();
   const artifacts: Record<string, BeeArtifact[]> = {};
+  const xemTruoc: Record<string, string | null> = {};
   await Promise.all(
     nhom.flatMap((g) =>
       g.phien.map(async (p) => {
-        artifacts[p.id] = await bee.sessionArtifacts(p.id);
+        [artifacts[p.id], xemTruoc[p.id]] = await Promise.all([
+          bee.sessionArtifacts(p.id),
+          bee.sessionPreview(p.id),
+        ]);
       }),
     ),
   );
-  return { nhom, artifacts };
+  return { nhom, artifacts, xemTruoc };
 }

@@ -35,12 +35,18 @@ describe("phanTichDong", () => {
     expect(phanTichDong('{"type":"bee_replayed","skipped":120}')).toEqual([{ loai: "replay", boQua: 120 }]);
   });
 
-  it("bee_artifact hợp lệ thành node liệu — kind và url qua allowlist", () => {
+  it("bee_artifact hợp lệ thành node liệu — kind và url qua allowlist, mang cả title", () => {
     const ket = phanTichDong(
-      '{"type":"bee_artifact","kind":"pr","url":"https://github.com/you/myapp/pull/123","number":123,"ts":"2026-08-17T12:00:00Z"}',
+      '{"type":"bee_artifact","kind":"pr","url":"https://github.com/you/myapp/pull/123","number":123,"ts":"2026-08-17T12:00:00Z","title":"Extract layout"}',
     );
     expect(ket).toEqual([
-      { loai: "artifact", kind: "pr", url: "https://github.com/you/myapp/pull/123", number: 123 },
+      {
+        loai: "artifact",
+        kind: "pr",
+        url: "https://github.com/you/myapp/pull/123",
+        number: 123,
+        title: "Extract layout",
+      },
     ]);
   });
 

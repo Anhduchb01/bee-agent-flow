@@ -15,12 +15,16 @@ thứ hai của cùng dữ liệu* mà session list đang đọc — không API 
 
 ```
 session-run.sh   →  export BEE_SESSION_DIR=$SDIR vào env của claude
-skill bee-*      →  SAU khi gh thành công, append một dòng vào run.jsonl:
+skill bee-*      →  SAU khi gh thành công, append một dòng vào run.jsonl
+                    (ghi bằng jq — title có ký tự lạ vẫn là JSON hợp lệ):
                     {"type":"bee_artifact","kind":"issue"|"pr",
-                     "url":"https://github.com/…","number":41,"ts":"…"}
+                     "url":"https://github.com/…","number":41,"ts":"…",
+                     "title":"…"}                       ← title thêm 17/08
 parse-events.ts  →  whitelist thêm bee_artifact → SuKien loai:"artifact"
 BeeSource        →  sessionArtifacts(id) — disk: quét run.jsonl lọc dòng
                     bee_artifact (unknown-narrowing); fixture: dữ liệu mẫu
+                 →  sessionPreview(id) — câu text CUỐI của assistant, đi từ
+                    đuôi file lên, gọn một dòng ≤ 140 ký tự
 ```
 
 - Ghi qua `run.jsonl` chứ không qua meta để artifact **mọc ra live** ngay
@@ -35,11 +39,16 @@ BeeSource        →  sessionArtifacts(id) — disk: quét run.jsonl lọc dòng
 - **Server dựng đồ thị, client chỉ vẽ.** `build-graph.ts` là hàm THUẦN
   (test được): `(nhóm phiên, artifacts) → {nodes, edges}` với layout tính
   sẵn — repo là cột, phiên xếp dọc trong cột, artifact dạt phải phiên của nó.
-- Node phiên: title, `bee/<slug>-<n>`, StatusDot tone theo status,
-  `needs_human` viền đỏ. **Click → panel chat mở NGAY TRÊN canvas** (Sheet
-  bên phải chứa đúng LiveView của trang riêng — một nguồn sự thật, hai chỗ
-  vẽ); link `↗` trong node đi sang `/sessions/<id>` trọn trang.
-- Node artifact: `#<số>` + kind. Click → mở GitHub tab mới.
+- Node phiên *(preview thêm 17/08)*: title · **câu cuối agent nói** (nghiêng,
+  tối đa 2 dòng — node kể được chuyện đang tới đâu) · `bee/<slug>-<n>` ·
+  tuổi ("2h ago") · StatusDot tone theo status, `needs_human` viền đỏ.
+  **Click → panel chat mở NGAY TRÊN canvas** (Sheet bên phải chứa đúng
+  LiveView của trang riêng — một nguồn sự thật, hai chỗ vẽ); link `↗` trong
+  node đi sang `/sessions/<id>` trọn trang.
+- Node artifact *(preview thêm 17/08)*: ký hiệu màu theo ngôn ngữ GitHub
+  (◉ xanh lá = issue, ⇄ tím = PR) · `#<số>` · **title** (2 dòng) · tuổi.
+  Click → mở GitHub tab mới. *Trạng thái sống (merged/closed) là dữ liệu
+  GitHub-side — V2, cần `lib/github`, không nằm trong bee_artifact.*
 - Edge: phiên → artifact, một chiều, không tương tác.
 - Kéo node được (React Flow mặc định) nhưng **V1 không lưu vị trí** — reload
   về auto-layout. Lưu vị trí (file json do web sở hữu, kiểu

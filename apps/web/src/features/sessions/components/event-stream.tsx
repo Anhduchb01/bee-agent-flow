@@ -86,7 +86,10 @@ function MotMuc({ m }: { m: Muc }) {
             {m.kind === "pr" ? "Pull request" : "Issue"}
             {m.number !== null ? ` #${m.number}` : ""}
           </a>
-          <span className="text-muted-foreground">created ↗</span>
+          {m.title !== null && (
+            <span className="min-w-0 truncate text-muted-foreground">{m.title}</span>
+          )}
+          <span className="shrink-0 text-muted-foreground">↗</span>
         </p>
       );
     case "ket-qua":

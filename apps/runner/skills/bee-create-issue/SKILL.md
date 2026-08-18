@@ -26,11 +26,14 @@ BODY
    (`BEE_SESSION_DIR` tồn tại; chạy ngoài phiên thì bỏ qua, đừng nổ):
 
 ```bash
-URL=$(gh issue view --json url --jq .url 2>/dev/null || true)  # hoặc URL từ bước tạo
-NUM=$(gh issue view --json number --jq .number 2>/dev/null || echo null)
+# URL do `gh issue create` in ra; TITLE là tiêu đề vừa dùng. Ghi bằng jq —
+# title có dấu nháy hay ký tự lạ vẫn thành JSON hợp lệ, printf thì không.
 if [ -n "${BEE_SESSION_DIR:-}" ] && [ -n "$URL" ]; then
-  printf '{"type":"bee_artifact","kind":"issue","url":"%s","number":%s,"ts":"%s"}\n' \
-    "$URL" "$NUM" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$BEE_SESSION_DIR/run.jsonl"
+  NUM=$(printf '%s' "$URL" | grep -oE '[0-9]+$' || echo null)
+  jq -cn --arg url "$URL" --arg title "$TITLE" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --argjson num "${NUM:-null}" \
+    '{type:"bee_artifact", kind:"issue", url:$url, number:$num, ts:$ts, title:$title}' \
+    >> "$BEE_SESSION_DIR/run.jsonl"
 fi
 ```
 

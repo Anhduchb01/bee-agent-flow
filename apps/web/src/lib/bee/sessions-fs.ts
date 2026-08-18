@@ -113,7 +113,44 @@ export async function docArtifactsTrong(root: string, id: string): Promise<BeeAr
       url: raw.url,
       number: typeof raw.number === "number" ? raw.number : null,
       ts: typeof raw.ts === "string" ? raw.ts : null,
+      title: typeof raw.title === "string" ? raw.title.slice(0, 140) : null,
     });
   }
   return ra;
+}
+
+/**
+ * Câu cuối agent nói — preview một dòng cho node canvas. Đi từ CUỐI file lên,
+ * dừng ở message assistant đầu tiên có text: phiên dài không bắt đọc cả file
+ * chỉ để lấy một câu.
+ */
+export async function docCauCuoiTrong(root: string, id: string): Promise<string | null> {
+  const file = duongDanRunTrong(root, id);
+  if (!file) return null;
+  let text: string;
+  try {
+    text = await fs.readFile(file, "utf8");
+  } catch {
+    return null;
+  }
+  const dongs = text.split("\n");
+  for (let i = dongs.length - 1; i >= 0; i -= 1) {
+    if (!dongs[i].includes('"assistant"')) continue;
+    let raw: unknown;
+    try {
+      raw = JSON.parse(dongs[i]);
+    } catch {
+      continue;
+    }
+    if (!laObject(raw) || raw.type !== "assistant" || !laObject(raw.message)) continue;
+    const content = raw.message.content;
+    if (!Array.isArray(content)) continue;
+    for (const block of content) {
+      if (laObject(block) && block.type === "text" && typeof block.text === "string") {
+        const gon = block.text.trim().replace(/\s+/g, " ");
+        if (gon !== "") return gon.slice(0, 140);
+      }
+    }
+  }
+  return null;
 }

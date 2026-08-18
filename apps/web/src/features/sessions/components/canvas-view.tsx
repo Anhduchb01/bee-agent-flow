@@ -17,6 +17,7 @@ import "@xyflow/react/dist/style.css";
 import { StatusDot, type Tone } from "@/components/status-dot";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import type { BeeSession, TrangThaiPhien } from "@/lib/bee/types";
+import { khoangThoiGian } from "@/lib/duration";
 
 import type { EdgeCanvas, NodeArtifact, NodeCanvas, NodeNhanRepo, NodePhien } from "../lib/build-graph";
 import { LiveView } from "./live-view";
@@ -42,10 +43,19 @@ type FlowPhien = Node<NodePhien["data"] & Record<string, unknown>, "phien">;
 type FlowArtifact = Node<NodeArtifact["data"] & Record<string, unknown>, "artifact">;
 type FlowNhanRepo = Node<NodeNhanRepo["data"] & Record<string, unknown>, "nhan-repo">;
 
+/** "2h ago" từ ISO — tính lúc render, node canvas không cần đồng hồ chạy. */
+function tuoi(ts: string | null): string | null {
+  if (ts === null) return null;
+  const giay = Math.floor((Date.now() - Date.parse(ts)) / 1000);
+  if (!Number.isFinite(giay) || giay < 0) return null;
+  if (giay < 60) return "just now";
+  return `${khoangThoiGian(giay)} ago`;
+}
+
 function PhienNode({ data }: NodeProps<FlowPhien>) {
   return (
     <div
-      className={`w-60 cursor-pointer rounded-card border bg-card px-3 py-2 shadow-none ${
+      className={`w-64 cursor-pointer rounded-card border bg-card px-3 py-2 shadow-none ${
         data.needsHuman ? "border-destructive" : "border-border"
       }`}
     >
@@ -63,9 +73,16 @@ function PhienNode({ data }: NodeProps<FlowPhien>) {
           ↗
         </a>
       </span>
-      <span className="mt-1 flex items-center justify-between font-mono text-xs text-muted-foreground">
-        <span>{data.nhanh}</span>
-        <span>{data.needsHuman ? "needs you" : data.status}</span>
+      {data.cauCuoi !== null && (
+        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground italic">“{data.cauCuoi}”</p>
+      )}
+      <span className="mt-1.5 flex items-center gap-2 font-mono text-xs text-muted-foreground">
+        <span className="min-w-0 truncate">{data.nhanh}</span>
+        <span className="flex-1" />
+        {tuoi(data.createdAt) !== null && <span>{tuoi(data.createdAt)}</span>}
+        <span className={data.needsHuman ? "text-destructive" : ""}>
+          {data.needsHuman ? "needs you" : data.status}
+        </span>
       </span>
     </div>
   );
@@ -77,14 +94,26 @@ function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
       href={data.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block w-44 rounded-control border border-border bg-secondary px-3 py-1.5"
+      className="block w-56 rounded-control border border-border bg-secondary px-3 py-2"
     >
       <Handle type="target" position={Position.Left} className="!bg-muted-foreground" />
-      <span className="font-mono text-xs text-body">
-        {data.kind === "pr" ? "PR" : "Issue"}
-        {data.number !== null ? ` #${data.number}` : ""}
+      <span className="flex items-center gap-2">
+        {/* Xanh lá cho issue mở, tím cho PR — đúng ngôn ngữ màu của GitHub */}
+        <span className={data.kind === "pr" ? "text-purple-400" : "text-green-500"}>
+          {data.kind === "pr" ? "⇄" : "◉"}
+        </span>
+        <span className="font-mono text-xs font-semibold text-body">
+          {data.kind === "pr" ? "PR" : "Issue"}
+          {data.number !== null ? ` #${data.number}` : ""}
+        </span>
+        <span className="flex-1" />
+        {tuoi(data.ts) !== null && (
+          <span className="font-mono text-[0.625rem] text-muted-foreground">{tuoi(data.ts)}</span>
+        )}
       </span>
-      <span className="ml-1 font-mono text-xs text-muted-foreground">↗</span>
+      {data.title !== null && (
+        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{data.title}</p>
+      )}
     </a>
   );
 }

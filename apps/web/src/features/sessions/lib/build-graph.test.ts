@@ -25,8 +25,8 @@ describe("dungDoThi", () => {
       ],
       {
         [A]: [
-          { kind: "issue", url: "https://github.com/you/myapp/issues/41", number: 41, ts: null },
-          { kind: "pr", url: "https://github.com/you/myapp/pull/123", number: 123, ts: null },
+          { kind: "issue", url: "https://github.com/you/myapp/issues/41", number: 41, ts: null, title: null },
+          { kind: "pr", url: "https://github.com/you/myapp/pull/123", number: 123, ts: null, title: null },
         ],
       },
     );
@@ -51,16 +51,16 @@ describe("dungDoThi", () => {
       [{ repo: "you/myapp", phien: [phien(A, "myapp", 41, "you/myapp"), phien(B, "myapp", 42, "you/myapp")] }],
       {
         [A]: [
-          { kind: "issue", url: "https://github.com/x/y/issues/1", number: 1, ts: null },
-          { kind: "pr", url: "https://github.com/x/y/pull/2", number: 2, ts: null },
-          { kind: "pr", url: "https://github.com/x/y/pull/3", number: 3, ts: null },
+          { kind: "issue", url: "https://github.com/x/y/issues/1", number: 1, ts: null, title: null },
+          { kind: "pr", url: "https://github.com/x/y/pull/2", number: 2, ts: null, title: null },
+          { kind: "pr", url: "https://github.com/x/y/pull/3", number: 3, ts: null, title: null },
         ],
       },
     );
     const yA = nodes.find((n) => n.id === A)?.position.y ?? 0;
     const yB = nodes.find((n) => n.id === B)?.position.y ?? 0;
-    // 3 artifact × 72 = 216 > cao phiên chuẩn — phiên B phải nằm dưới cả chồng đó
-    expect(yB).toBeGreaterThanOrEqual(yA + 216);
+    // 3 artifact × 84 = 252 > cao phiên chuẩn — phiên B phải nằm dưới cả chồng đó
+    expect(yB).toBeGreaterThanOrEqual(yA + 252);
   });
 
   it("không phiên nào thì đồ thị rỗng — trạng thái tốt, không phải lỗi", () => {

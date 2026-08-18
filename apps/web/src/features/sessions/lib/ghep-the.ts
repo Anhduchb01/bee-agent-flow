@@ -14,7 +14,7 @@ export type Muc =
   | { loai: "nguoi-noi"; text: string }
   | { loai: "agent-noi"; text: string }
   | { loai: "nghi"; text: string }
-  | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null }
+  | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null; title: string | null }
   | { loai: "ket-qua"; loi: boolean; luot: number | null }
   | {
       loai: "tool-card";
@@ -91,7 +91,7 @@ export function ghepThe(suKien: SuKien[]): Muc[] {
         muc.push({ loai: "nghi", text: sk.text });
         break;
       case "artifact":
-        muc.push({ loai: "artifact", kind: sk.kind, url: sk.url, number: sk.number });
+        muc.push({ loai: "artifact", kind: sk.kind, url: sk.url, number: sk.number, title: sk.title });
         break;
       case "ket-qua":
         muc.push({ loai: "ket-qua", loi: sk.loi, luot: sk.luot ?? null });

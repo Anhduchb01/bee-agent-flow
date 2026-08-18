@@ -6,8 +6,8 @@ export default async function CanvasPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const { nhom, artifacts } = await loadCanvas();
-  const { nodes, edges } = dungDoThi(nhom, artifacts);
+  const { nhom, artifacts, xemTruoc } = await loadCanvas();
+  const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc);
 
   return (
     <div className="flex h-svh flex-col">
