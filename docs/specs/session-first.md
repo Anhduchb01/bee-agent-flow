@@ -268,13 +268,21 @@ chỉ MỘT thứ bắt buộc ở máy:
    cài mình.
 2. **Trên web (mọi thứ còn lại), qua `machine-ctl.ts`** — kỷ luật như
    session-ctl: allowlist regex trước mọi đường dẫn/argv, lỗi là dữ liệu:
-   - Claude: chạy `claude setup-token` ở **máy bất kỳ có trình duyệt**
-     (laptop) → dán token `sk-ant-oat01-…` vào form → ghi
-     `$BEE_ROOT/claude.env` (0600 đặt trên tmp TRƯỚC khi rename);
-     session-run.sh source file này và export `CLAUDE_CODE_OAUTH_TOKEN`.
-     API key `sk-ant-api…` bị từ chối 2 lớp — phiên chạy trên
-     subscription, không phải pay-per-token. doctor nhận cả hai đường:
-     claude.env hoặc login tương tác cũ.
+   - Claude: **cả flow login trên web**. Status sống đọc trực tiếp
+     (`readClaudeAuth()`: claude.env → "token", credentials máy →
+     "interactive", không có → "none" — không cần đợi doctor). Nút
+     "Get login link" → web spawn `claude setup-token` NGAY TRÊN MÁY dưới
+     pseudo-TTY (`script -qec`, vì ink UI từ chối pipe trơn), bóc URL
+     claude.ai/oauth từ output (đã lột ANSI) đưa thành link bấm được;
+     người dùng approve trên trình duyệt rồi dán confirmation code lại →
+     web bơm vào stdin của flow đang chờ → token `sk-ant-oat01-…` in ra
+     được bóc và ghi `$BEE_ROOT/claude.env` (0600 đặt trên tmp TRƯỚC khi
+     rename); session-run.sh source file này, export
+     `CLAUDE_CODE_OAUTH_TOKEN`. Một flow một lúc (singleton, máy solo),
+     bỏ dở tự kill sau 10 phút; code qua allowlist regex trước khi chạm
+     stdin. Fallback giữ nguyên: dán token chạy sẵn từ laptop. API key
+     `sk-ant-api…` bị từ chối 2 lớp — phiên chạy trên subscription.
+     doctor nhận cả hai đường: claude.env hoặc login tương tác cũ.
    - Linger: nút → `loginctl enable-linger`.
    - PAT: form dán token → `gh auth login --with-token` (token đi qua
      **stdin**, không argv — ps/log không thấy) + `gh auth setup-git`.

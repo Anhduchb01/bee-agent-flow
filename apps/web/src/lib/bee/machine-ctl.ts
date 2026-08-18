@@ -59,7 +59,12 @@ export async function enableLinger(): Promise<KetQua> {
 }
 
 export { validatePat } from "./pat";
-import { validateClaudeToken } from "./claude-token";
+import {
+  extractOauthUrl,
+  extractSetupToken,
+  validateClaudeToken,
+  validateSetupCode,
+} from "./claude-token";
 import { validatePat } from "./pat";
 
 /**
@@ -129,6 +134,103 @@ export async function saveClaudeToken(token: string): Promise<KetQua> {
   } catch (e) {
     return { ok: false, message: `Could not save token: ${(e as Error).message}` };
   }
+}
+
+/*
+ * Web-driven `claude setup-token`: the web spawns the flow on the machine,
+ * hands the user the login URL, and feeds the pasted confirmation code
+ * back in. The child runs under a pseudo-TTY via `script` (util-linux),
+ * because setup-token's ink UI refuses a plain pipe.
+ *
+ * One flow at a time (module-level singleton): this is a solo-operator
+ * machine, and a second concurrent login would just steal the first one's
+ * stdin. A fresh start kills the previous attempt.
+ */
+interface SetupTokenFlow {
+  p: ReturnType<typeof spawn>;
+  out: string;
+  done: boolean;
+  timeout: NodeJS.Timeout;
+}
+let setupFlow: SetupTokenFlow | null = null;
+
+function killSetupFlow(): void {
+  if (setupFlow === null) return;
+  clearTimeout(setupFlow.timeout);
+  try {
+    setupFlow.p.kill("SIGKILL");
+  } catch {
+    // Already gone.
+  }
+  setupFlow = null;
+}
+
+export type KetQuaLink = { ok: true; url: string } | { ok: false; message: string };
+
+/** Start the login flow and return the URL for the user to open. */
+export async function startClaudeSetup(): Promise<KetQuaLink> {
+  if (isFixture()) return { ok: true, url: "https://claude.ai/oauth/authorize?demo=1" };
+
+  killSetupFlow();
+  const p = spawn("script", ["-qec", "claude setup-token", "/dev/null"], {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: { ...process.env, TERM: "xterm-256color" },
+  });
+  const flow: SetupTokenFlow = {
+    p,
+    out: "",
+    done: false,
+    // An abandoned flow must not hang around holding a half-done login.
+    timeout: setTimeout(killSetupFlow, 10 * 60 * 1000),
+  };
+  setupFlow = flow;
+  p.stdout?.on("data", (d: Buffer) => (flow.out += d.toString()));
+  p.stderr?.on("data", (d: Buffer) => (flow.out += d.toString()));
+  p.on("close", () => (flow.done = true));
+
+  // The URL appears as soon as the ink UI draws — poll for up to 15s.
+  for (let i = 0; i < 60; i++) {
+    const url = extractOauthUrl(flow.out);
+    if (url !== null) return { ok: true, url };
+    if (flow.done) break;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  const loi = flow.done ? "The flow exited before printing a URL." : "Timed out waiting for the URL.";
+  killSetupFlow();
+  return { ok: false, message: `Could not get a login link — ${loi} Is claude installed on the machine?` };
+}
+
+/** Feed the pasted confirmation code in; on success the token lands in claude.env. */
+export async function submitClaudeCode(code: string): Promise<KetQua> {
+  const gon = code.trim();
+  if (!validateSetupCode(gon)) return { ok: false, message: "That does not look like a confirmation code." };
+  if (isFixture()) return { ok: true };
+
+  const flow = setupFlow;
+  if (flow === null || flow.done) {
+    killSetupFlow();
+    return { ok: false, message: "No login flow is waiting — get a new link first." };
+  }
+
+  flow.p.stdin?.write(`${gon}\n`);
+  // setup-token verifies the code and prints the token — give it up to 30s.
+  for (let i = 0; i < 120; i++) {
+    const token = extractSetupToken(flow.out);
+    if (token !== null) {
+      killSetupFlow();
+      return saveClaudeToken(token);
+    }
+    if (flow.done) break;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  const daXong = flow.done;
+  killSetupFlow();
+  return {
+    ok: false,
+    message: daXong
+      ? "The code was rejected — get a new link and try again."
+      : "Timed out waiting for the token — get a new link and try again.",
+  };
 }
 
 export type KetQuaDangKy = { ok: true; slug: string } | { ok: false; message: string };

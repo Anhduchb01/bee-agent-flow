@@ -1,8 +1,9 @@
 import { loadRepos, NewSessionForm } from "@/features/sessions";
 import {
-  ClaudeTokenForm,
+  ClaudeSetup,
   DoctorChecklist,
   LingerButton,
+  loadClaudeAuth,
   loadDoctor,
   PatForm,
   PauseToggle,
@@ -56,7 +57,11 @@ export default async function SetupPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [doctor, repos] = await Promise.all([loadDoctor(), loadRepos()]);
+  const [doctor, repos, claudeAuth] = await Promise.all([
+    loadDoctor(),
+    loadRepos(),
+    loadClaudeAuth(),
+  ]);
 
   const check = (id: string): boolean | null =>
     doctor?.checks.find((c) => c.id === id)?.ok ?? null;
@@ -97,12 +102,7 @@ bash apps/runner/install.sh`}</Cmd>
             <LingerButton done={check("linger")} />
           </Card>
           <Card>
-            <ClaudeTokenForm done={check("claude")} />
-            <p className="text-xs text-muted-foreground">
-              Run <code className="font-mono">claude setup-token</code> on ANY machine with a
-              browser — your laptop is fine — approve the URL it prints, and paste the
-              resulting token here. No login needed on the bee machine itself.
-            </p>
+            <ClaudeSetup auth={claudeAuth} />
           </Card>
           <Card>
             <PatForm done={check("pat")} />

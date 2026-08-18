@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
-import type { BeeDoctor, BeeDoctorCheck } from "./types";
+import type { BeeClaudeAuth, BeeDoctor, BeeDoctorCheck } from "./types";
 
 /**
  * Read the doctor.json that apps/runner/bin/doctor.sh writes. `null` means
@@ -31,4 +32,28 @@ export async function readDoctorFrom(root: string): Promise<BeeDoctor | null> {
     }
   }
   return { checked_at: o.checked_at, ok: o.ok, paused: o.paused === true, checks };
+}
+
+/**
+ * Live Claude auth status — read directly, not through doctor.json, so the
+ * setup UI shows the truth even before doctor has ever run. Two accepted
+ * paths, checked in the order the runner uses them: the pasted setup-token
+ * token (claude.env), then an interactive login on the machine.
+ */
+export async function readClaudeAuthFrom(
+  root: string,
+  home: string = os.homedir(),
+): Promise<BeeClaudeAuth> {
+  try {
+    const env = await fs.readFile(path.join(root, "claude.env"), "utf8");
+    if (/^CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-/m.test(env)) return "token";
+  } catch {
+    // No claude.env — fall through.
+  }
+  try {
+    await fs.access(path.join(home, ".claude", ".credentials.json"));
+    return "interactive";
+  } catch {
+    return "none";
+  }
 }

@@ -10,6 +10,8 @@ import {
   runDoctor,
   saveClaudeToken,
   setPaused,
+  startClaudeSetup,
+  submitClaudeCode,
   unregisterRepo,
 } from "@/lib/bee/machine-ctl";
 
@@ -48,6 +50,24 @@ export async function savePatAction(token: string): Promise<KetQua> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await ghAuthLogin(token);
+  await refresh();
+  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+export type KetQuaLink = { ok: true; url: string } | { ok: false; message: string };
+
+/** Spawn `claude setup-token` on the machine and hand back the login URL. */
+export async function startClaudeSetupAction(): Promise<KetQuaLink> {
+  const actor = await getActor();
+  if (!actor) return { ok: false, message: KHONG_QUYEN.message };
+  return startClaudeSetup();
+}
+
+/** Feed the code the browser showed back into the waiting flow. */
+export async function submitClaudeCodeAction(code: string): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await submitClaudeCode(code);
   await refresh();
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }

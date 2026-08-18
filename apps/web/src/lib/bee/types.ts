@@ -261,6 +261,9 @@ export interface BeeDoctorCheck {
   detail: string;
 }
 
+/** How Claude is signed in on the machine — checked live, not via doctor. */
+export type BeeClaudeAuth = "token" | "interactive" | "none";
+
 /** Shape of `doctor.json` — the machine's self-check for the setup screen. */
 export interface BeeDoctor {
   checked_at: string;
@@ -289,6 +292,8 @@ export interface BeeSource {
   sessionRunPath(id: string): string | null;
   /** Latest doctor.json self-check; `null` = doctor has never run on this machine. */
   readDoctor(): Promise<BeeDoctor | null>;
+  /** Live Claude sign-in status — works even before doctor has ever run. */
+  readClaudeAuth(): Promise<BeeClaudeAuth>;
   readStatus(): Promise<StatusRead>;
   readRecent(limit?: number): Promise<BeeRecentRun[]>;
   /**

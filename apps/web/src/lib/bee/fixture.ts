@@ -162,6 +162,13 @@ export function createFixtureBeeSource(): BeeSource {
      *   hỏng kèm cách sửa lẫn banner nằm-im;
      * - còn lại → xanh toàn bộ: login về Overview như máy đã chạy ổn.
      */
+    /** Cùng câu chuyện với readDoctor: cảnh xanh đã có token, cảnh khác chưa. */
+    async readClaudeAuth() {
+      const canh = await currentScene();
+      if (chuaChayLanNao(canh) || canh === "co-su-co") return "none";
+      return "token";
+    },
+
     async readDoctor() {
       const canh = await currentScene();
       if (chuaChayLanNao(canh)) return null;
@@ -172,6 +179,7 @@ export function createFixtureBeeSource(): BeeSource {
           paused: true,
           checks: [
             { id: "pat", ok: true, detail: "fine-grained PAT" },
+            { id: "claude", ok: false, detail: "chưa có auth — lấy link login ở /setup" },
             { id: "repo:myapp", ok: true, detail: "branch protection bật trên main" },
             {
               id: "repo:blog",
@@ -191,6 +199,7 @@ export function createFixtureBeeSource(): BeeSource {
         paused: false,
         checks: [
           { id: "pat", ok: true, detail: "fine-grained PAT" },
+          { id: "claude", ok: true, detail: "token từ claude setup-token (claude.env)" },
           { id: "repo:myapp", ok: true, detail: "branch protection bật trên main" },
           { id: "repo:blog", ok: true, detail: "branch protection bật trên main" },
           { id: "may-sach", ok: true, detail: "không thấy SSH key / AWS / kube / GPG" },

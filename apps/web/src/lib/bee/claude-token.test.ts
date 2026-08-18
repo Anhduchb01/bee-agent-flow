@@ -3,7 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { validateClaudeToken } from "./claude-token";
+import {
+  extractOauthUrl,
+  extractSetupToken,
+  validateClaudeToken,
+  validateSetupCode,
+} from "./claude-token";
 import { saveClaudeToken } from "./machine-ctl";
 
 describe("validateClaudeToken", () => {
@@ -14,6 +19,46 @@ describe("validateClaudeToken", () => {
     expect(validateClaudeToken("sk-ant-oat01-")).toBe(false);
     expect(validateClaudeToken("sk-ant-oat01-has space")).toBe(false);
     expect(validateClaudeToken("")).toBe(false);
+  });
+});
+
+describe("extractOauthUrl — from setup-token's terminal output", () => {
+  it("finds the claude.ai oauth URL even wrapped in ANSI escapes", () => {
+    const out =
+      "[2J[1mBrowser didn't open?[0m Use the url below\n" +
+      "[36mhttps://claude.ai/oauth/authorize?code=true&client_id=abc&scope=x[0m\n" +
+      "Paste code here if prompted >";
+    expect(extractOauthUrl(out)).toBe(
+      "https://claude.ai/oauth/authorize?code=true&client_id=abc&scope=x",
+    );
+  });
+
+  it("no URL yet → null (still booting)", () => {
+    expect(extractOauthUrl("Loading…")).toBeNull();
+    // Other links must not be mistaken for the login link.
+    expect(extractOauthUrl("see https://docs.anthropic.com/claude for help")).toBeNull();
+  });
+});
+
+describe("extractSetupToken — the token the flow prints at the end", () => {
+  it("finds sk-ant-oat01-… in the output", () => {
+    expect(extractSetupToken("done!\n  sk-ant-oat01-AbC_12-3 \ncopy it")).toBe(
+      "sk-ant-oat01-AbC_12-3",
+    );
+  });
+  it("null when absent", () => {
+    expect(extractSetupToken("login failed")).toBeNull();
+  });
+});
+
+describe("validateSetupCode — what the browser hands back to paste", () => {
+  it("accepts code-ish strings, refuses shell-dangerous input", () => {
+    expect(validateSetupCode("AbCd1234#xYz-98_7")).toBe(true);
+    expect(validateSetupCode("  AbCd1234  ")).toBe(true);
+    expect(validateSetupCode("")).toBe(false);
+    expect(validateSetupCode("has space")).toBe(false);
+    expect(validateSetupCode("$(rm -rf /)")).toBe(false);
+    expect(validateSetupCode("a\nb")).toBe(false);
   });
 });
 
