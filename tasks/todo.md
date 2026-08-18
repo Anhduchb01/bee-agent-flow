@@ -79,9 +79,11 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 
 ## S7 · Đánh bóng + trả nợ (18/08) ← ĐANG LÀM — xong là khoá code fixture
 
-- [ ] 🤖 **S7.1** Repo combobox: search NẰM TRONG dropdown (Popover + Input tự
-      dựng, không thêm dependency; lọc không dấu; ↑↓ Enter Esc; "No repo —
-      just chat" ghim cuối; dùng chung /sessions + Panel canvas; test theo role)
+- [x] 🤖 **S7.1** ~~Repo combobox~~ **XONG 18/08** — search NẰM TRONG dropdown
+      (`repo-combobox.tsx` tự dựng, không thêm dependency; `matchesQuery` lọc
+      không dấu kể cả đ→d; ↑↓ Enter Esc, active bắt đầu ở lựa chọn hiện tại;
+      "No repo — just chat" ghim cuối không bị lọc; NewSessionForm dùng chung
+      /sessions + Panel canvas; 14 test theo role combobox/listbox/option)
 - [ ] 🤖 **S7.2** Unit test route SSE (nợ spec §8 hàng Route)
 - [ ] 🤖 **S7.3** E2E fixture: mở phiên → chữ chạy → gõ chen → dừng
 

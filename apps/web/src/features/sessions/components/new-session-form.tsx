@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import type { BeeRepoDangKy, BeeSession } from "@/lib/bee/types";
 
 import { batDauPhien } from "../api/actions";
-
-const CHAT = "__chat__";
+import { CHAT_OPTION, RepoCombobox } from "./repo-combobox";
 
 /**
  * "New session" — chọn repo ĐÃ ĐĂNG KÝ (repos.d, doctor kiểm được) hoặc
@@ -29,12 +28,12 @@ export function NewSessionForm({
   onCreated?: (phien: BeeSession) => void;
 }) {
   const router = useRouter();
-  const [chon, setChon] = useState(repos[0]?.slug ?? CHAT);
+  const [chon, setChon] = useState(repos[0]?.slug ?? CHAT_OPTION);
   const [title, setTitle] = useState("");
   const [loi, setLoi] = useState("");
   const [dangMo, batDauMo] = useTransition();
 
-  const laChat = chon === CHAT;
+  const laChat = chon === CHAT_OPTION;
 
   function mo() {
     if (dangMo) return;
@@ -63,19 +62,7 @@ export function NewSessionForm({
         mo();
       }}
     >
-      <select
-        value={chon}
-        onChange={(e) => setChon(e.target.value)}
-        aria-label="Repository"
-        className="h-9 rounded-control border border-border bg-transparent px-2 font-mono text-sm text-body sm:max-w-56"
-      >
-        {repos.map((r) => (
-          <option key={r.slug} value={r.slug}>
-            {r.repo}
-          </option>
-        ))}
-        <option value={CHAT}>No repo — just chat</option>
-      </select>
+      <RepoCombobox repos={repos} value={chon} onChange={setChon} />
       <Input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
