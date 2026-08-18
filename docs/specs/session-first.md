@@ -163,7 +163,10 @@ vẫn được dọn.
 ### 3.3 `doctor.sh`
 
 Kiểm và in ✓/✗ từng dòng — fail thì web hiện báo đỏ (đọc kết quả từ file
-`doctor.json` doctor ghi ra):
+`doctor.json` doctor ghi ra). Web đọc qua `BeeSource.readDoctor()` và vẽ
+trên trang onboarding `/setup` (§4.6); unit oneshot `bee-doctor.service`
+cho phép nút "Run doctor again" trên web chạy lại checklist qua
+`systemctl --user start` — start block tới khi doctor.json tươi:
 
 1. PAT là fine-grained, đúng danh sách repo, đúng 3 quyền (gọi
    `gh api /rate_limit` + metadata endpoints kiểm được).
@@ -255,6 +258,22 @@ chốt, mang danh bot. Bốn bước của mô hình cũ còn một.
 GitHub OAuth (allowlist login) + Cloudflare Access ở rìa. Route nào cũng tự
 kiểm — giữ nguyên kỷ luật cũ. Ngoài allowlist: đăng nhập được, thấy trang
 trống nói thẳng "bạn không có quyền", không lộ dữ liệu.
+
+### 4.6 Màn onboarding `/setup` (thêm 18/08)
+
+Người mới cài máy làm theo MỘT trang, kiểm chứng ngay trên web:
+
+1. Năm bước người-làm theo đúng thứ tự install.sh, mỗi bước một khối lệnh
+   copy-paste (install runner → login claude/gh → đăng ký repo + branch
+   protection → doctor → gỡ PAUSE).
+2. Checklist doctor SỐNG từ `doctor.json` (`readDoctor()`): từng mục ✓/✗ kèm
+   cách sửa, banner PAUSE, nút "Run doctor again" (unit `bee-doctor.service`
+   oneshot — doctor exit 1 vẫn tính là chạy thành công, kết quả đỏ nằm trong
+   file). Chưa từng chạy doctor → nói thẳng "chưa chạy", chỉ về bước 1 —
+   không giả xanh.
+3. Danh sách repo đã đăng ký — cùng nguồn `listRepos()` với form phiên.
+4. Bước cuối nhúng chính `NewSessionForm`: test kết thúc ở chỗ sử dụng
+   bắt đầu.
 
 ---
 
