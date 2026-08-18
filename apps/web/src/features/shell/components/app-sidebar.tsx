@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleGaugeIcon, InboxIcon, LogOutIcon, PlusIcon, TerminalIcon } from "lucide-react";
+import { CircleGaugeIcon, InboxIcon, LogOutIcon, PlusIcon, TerminalIcon, WaypointsIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -127,6 +127,16 @@ export function AppSidebar({
                 >
                   <TerminalIcon />
                   <span>Sessions</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname.startsWith("/canvas")}
+                  tooltip="Canvas"
+                  render={<Link href="/canvas" />}
+                >
+                  <WaypointsIcon />
+                  <span>Canvas</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getBee } from "@/lib/bee";
-import type { BeeSession } from "@/lib/bee/types";
+import type { BeeArtifact, BeeSession } from "@/lib/bee/types";
 
 export interface NhomPhien {
   repo: string;
@@ -26,4 +26,22 @@ export async function loadSessions(): Promise<NhomPhien[]> {
 
 export async function loadSession(id: string): Promise<BeeSession | null> {
   return getBee().readSession(id);
+}
+
+/** Dữ liệu cho trang canvas: nhóm phiên + artifact của từng phiên. */
+export async function loadCanvas(): Promise<{
+  nhom: NhomPhien[];
+  artifacts: Record<string, BeeArtifact[]>;
+}> {
+  const nhom = await loadSessions();
+  const bee = getBee();
+  const artifacts: Record<string, BeeArtifact[]> = {};
+  await Promise.all(
+    nhom.flatMap((g) =>
+      g.phien.map(async (p) => {
+        artifacts[p.id] = await bee.sessionArtifacts(p.id);
+      }),
+    ),
+  );
+  return { nhom, artifacts };
 }

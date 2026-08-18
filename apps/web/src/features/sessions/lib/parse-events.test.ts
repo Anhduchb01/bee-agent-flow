@@ -35,6 +35,24 @@ describe("phanTichDong", () => {
     expect(phanTichDong('{"type":"bee_replayed","skipped":120}')).toEqual([{ loai: "replay", boQua: 120 }]);
   });
 
+  it("bee_artifact hợp lệ thành node liệu — kind và url qua allowlist", () => {
+    const ket = phanTichDong(
+      '{"type":"bee_artifact","kind":"pr","url":"https://github.com/you/myapp/pull/123","number":123,"ts":"2026-08-17T12:00:00Z"}',
+    );
+    expect(ket).toEqual([
+      { loai: "artifact", kind: "pr", url: "https://github.com/you/myapp/pull/123", number: 123 },
+    ]);
+  });
+
+  it("bee_artifact với url không phải GitHub hoặc kind lạ bị bỏ qua êm", () => {
+    expect(
+      phanTichDong('{"type":"bee_artifact","kind":"pr","url":"javascript:alert(1)","number":1}'),
+    ).toEqual([]);
+    expect(
+      phanTichDong('{"type":"bee_artifact","kind":"gist","url":"https://github.com/x/y","number":1}'),
+    ).toEqual([]);
+  });
+
   it("loại không biết thì bỏ qua êm (mảng rỗng), không phải rác", () => {
     expect(phanTichDong('{"type":"rate_limit_event","x":1}')).toEqual([]);
     expect(phanTichDong('{"type":"system","subtype":"hook_started"}')).toEqual([]);

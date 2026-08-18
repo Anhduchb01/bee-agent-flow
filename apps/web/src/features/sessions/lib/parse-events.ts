@@ -18,7 +18,8 @@ export type SuKien =
   | { loai: "tool"; ten: string; thamSo: string }
   | { loai: "tool-xong"; text: string }
   | { loai: "ket-qua"; loi: boolean }
-  | { loai: "replay"; boQua: number };
+  | { loai: "replay"; boQua: number }
+  | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null };
 
 const CAT_THAM_SO = 160;
 const CAT_KET_QUA = 400;
@@ -89,6 +90,20 @@ export function phanTichDong(dong: string): SuKien[] | null {
         : [];
     case "bee_replayed":
       return [{ loai: "replay", boQua: typeof raw.skipped === "number" ? raw.skipped : 0 }];
+    case "bee_artifact": {
+      // Nội dung run.jsonl là untrusted: kind phải nằm trong allowlist, và
+      // url phải là GitHub thật — không mở cửa cho javascript: hay host lạ.
+      if (raw.kind !== "issue" && raw.kind !== "pr") return [];
+      if (typeof raw.url !== "string" || !raw.url.startsWith("https://github.com/")) return [];
+      return [
+        {
+          loai: "artifact",
+          kind: raw.kind,
+          url: raw.url,
+          number: typeof raw.number === "number" ? raw.number : null,
+        },
+      ];
+    }
     case "assistant":
       return laObject(raw.message) ? tuContentBlocks(raw.message.content, "assistant") : [];
     case "user":

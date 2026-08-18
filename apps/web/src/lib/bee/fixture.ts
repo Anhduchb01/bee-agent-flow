@@ -8,6 +8,7 @@ import { chuaChayLanNao, currentScene } from "@/lib/fixtures/scene";
 import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
 import { parseRecentLine, parseStatus } from "./parse";
 import type {
+  BeeArtifact,
   BeeClaudeRateLimit,
   BeeRecentRun,
   BeeRun,
@@ -155,6 +156,24 @@ export function createFixtureBeeSource(): BeeSource {
     async readSession(id): Promise<BeeSession | null> {
       const ds = await this.listSessions();
       return ds.find((p) => p.id === id) ?? null;
+    },
+
+    async sessionArtifacts(id): Promise<BeeArtifact[]> {
+      if (chuaChayLanNao(await currentScene())) return [];
+      // Phiên đang chạy mới có issue; phiên xong có đủ issue + PR — canvas
+      // trên fixture phải cho thấy cả hai hình dạng.
+      if (id === "de300000-0000-4000-8000-000000000001") {
+        return [
+          { kind: "issue", url: "https://github.com/you/myapp/issues/41", number: 41, ts: "2026-08-17T10:02:00Z" },
+        ];
+      }
+      if (id === "de300000-0000-4000-8000-000000000002") {
+        return [
+          { kind: "issue", url: "https://github.com/you/myapp/issues/40", number: 40, ts: "2026-08-13T09:01:00Z" },
+          { kind: "pr", url: "https://github.com/you/myapp/pull/123", number: 123, ts: "2026-08-13T09:10:00Z" },
+        ];
+      }
+      return [];
     },
 
     sessionRunPath(id): string | null {

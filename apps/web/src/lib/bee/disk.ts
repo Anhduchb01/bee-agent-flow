@@ -5,7 +5,7 @@ import path from "node:path";
 
 import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
 import { listRunsIn, readRunIn } from "./runs-fs";
-import { docPhienTrong, duongDanRunTrong, lietKePhienTrong } from "./sessions-fs";
+import { docArtifactsTrong, docPhienTrong, duongDanRunTrong, lietKePhienTrong } from "./sessions-fs";
 import { parseClaudeRateLimit, parseRecentLine, parseStatus } from "./parse";
 import type { BeeClaudeRateLimit, BeeRecentRun, BeeSource, StatusRead } from "./types";
 
@@ -82,6 +82,7 @@ export function createDiskBeeSource(): BeeSource {
 
     listSessions: () => lietKePhienTrong(root()),
     readSession: (id) => docPhienTrong(root(), id),
+    sessionArtifacts: (id) => docArtifactsTrong(root(), id),
     sessionRunPath: (id) => duongDanRunTrong(root(), id),
   };
 }

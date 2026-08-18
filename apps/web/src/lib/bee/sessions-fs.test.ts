@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { lietKePhienTrong } from "./sessions-fs";
+import { docArtifactsTrong, lietKePhienTrong } from "./sessions-fs";
 
 const ID_A = "aaaaaaaa-1111-4222-8333-444444444444";
 const ID_B = "bbbbbbbb-1111-4222-8333-444444444444";
@@ -63,5 +63,32 @@ describe("lietKePhienTrong", () => {
 
   it("thư mục sessions chưa tồn tại trả danh sách rỗng", async () => {
     expect(await lietKePhienTrong("/khong/co/that")).toEqual([]);
+  });
+});
+
+describe("docArtifactsTrong", () => {
+  it("nhặt đúng dòng bee_artifact hợp lệ giữa stream hỗn tạp, loại url lạ", async () => {
+    const root = dungSan();
+    const runFile = path.join(root, "sessions", ID_A, "run.jsonl");
+    writeFileSync(
+      runFile,
+      [
+        '{"type":"bee_lifecycle","msg":"Phiên đã khởi động"}',
+        '{"type":"assistant","message":{"content":[{"type":"text","text":"làm xong"}]}}',
+        '{"type":"bee_artifact","kind":"issue","url":"https://github.com/you/myapp/issues/41","number":41,"ts":"2026-08-17T10:02:00Z"}',
+        'dòng rác không phải json có chữ "bee_artifact" bên trong',
+        '{"type":"bee_artifact","kind":"pr","url":"javascript:alert(1)","number":9}',
+        '{"type":"bee_artifact","kind":"pr","url":"https://github.com/you/myapp/pull/123","number":123}',
+      ].join("\n"),
+    );
+    const ds = await docArtifactsTrong(root, ID_A);
+    expect(ds).toEqual([
+      { kind: "issue", url: "https://github.com/you/myapp/issues/41", number: 41, ts: "2026-08-17T10:02:00Z" },
+      { kind: "pr", url: "https://github.com/you/myapp/pull/123", number: 123, ts: null },
+    ]);
+  });
+
+  it("chưa có run.jsonl là danh sách rỗng, không phải lỗi", async () => {
+    expect(await docArtifactsTrong(dungSan(), ID_B)).toEqual([]);
   });
 });

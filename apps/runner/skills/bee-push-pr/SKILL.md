@@ -35,7 +35,18 @@ Closes #<số issue nếu có>
 BODY
 ```
 
-4. Báo lại URL PR trong một câu.
+4. **Ghi sổ cho canvas** — chỉ khi `BEE_SESSION_DIR` tồn tại:
+
+```bash
+URL=$(gh pr view --json url --jq .url 2>/dev/null || true)
+NUM=$(gh pr view --json number --jq .number 2>/dev/null || echo null)
+if [ -n "${BEE_SESSION_DIR:-}" ] && [ -n "$URL" ]; then
+  printf '{"type":"bee_artifact","kind":"pr","url":"%s","number":%s,"ts":"%s"}\n' \
+    "$URL" "$NUM" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$BEE_SESSION_DIR/run.jsonl"
+fi
+```
+
+5. Báo lại URL PR trong một câu.
 
 ## Không bao giờ
 

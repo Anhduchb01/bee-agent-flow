@@ -54,6 +54,24 @@ function MotSuKien({ sk }: { sk: SuKien }) {
           {sk.loi ? "turn ended with an error" : "turn finished"}
         </p>
       );
+    case "artifact":
+      // Khoảnh khắc sướng nhất của canvas bắt đầu từ đây: PR mọc ra ngay
+      // trong dòng sự kiện. Link đã qua allowlist github.com ở parse-events.
+      return (
+        <p className="font-mono text-xs">
+          ↗{" "}
+          <a
+            href={sk.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2"
+          >
+            {sk.kind === "pr" ? "Pull request" : "Issue"}
+            {sk.number !== null ? ` #${sk.number}` : ""}
+          </a>{" "}
+          <span className="text-muted-foreground">created</span>
+        </p>
+      );
     // delta gom ở hook, replay hiện thành dải báo ở LiveView — không render tại đây
     case "delta":
     case "replay":

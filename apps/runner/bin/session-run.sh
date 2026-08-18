@@ -138,7 +138,9 @@ while :; do
 
   exec 3<>"$FIFO"
   lifecycle "$SDIR" "Phiên đã khởi động — chế độ: $PHASE."
-  ( cd "$WT" && exec claude "${ARGS[@]}" ) <&3 >>"$SDIR/run.jsonl" 2>>"$SDIR/stderr.log" &
+  # BEE_SESSION_DIR cho skill bee-* ghi bee_artifact vào run.jsonl (spec canvas §1)
+  ( cd "$WT" && BEE_SESSION_DIR="$SDIR" exec claude "${ARGS[@]}" ) \
+    <&3 >>"$SDIR/run.jsonl" 2>>"$SDIR/stderr.log" &
   CPID=$!
 
   DOI_PHA=""

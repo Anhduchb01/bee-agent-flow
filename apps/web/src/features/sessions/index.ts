@@ -1,5 +1,7 @@
-export { loadSession, loadSessions } from "./api/load";
+export { loadCanvas, loadSession, loadSessions } from "./api/load";
 export type { NhomPhien } from "./api/load";
+export { CanvasView } from "./components/canvas-view";
+export { dungDoThi } from "./lib/build-graph";
 export { EventStream } from "./components/event-stream";
 export { LiveView } from "./components/live-view";
 export { NewSessionForm } from "./components/new-session-form";

@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { laIdPhien } from "./session-id";
-import type { BeeSession, PhaCuaPhien, TrangThaiPhien } from "./types";
+import type { BeeArtifact, BeeSession, PhaCuaPhien, TrangThaiPhien } from "./types";
 
 /**
  * Đọc `sessions/` trên đĩa. Cùng bài với runs-fs: JSON từ đĩa là `unknown`,
@@ -78,4 +78,42 @@ export async function lietKePhienTrong(root: string): Promise<BeeSession[]> {
 export function duongDanRunTrong(root: string, id: string): string | null {
   if (!laIdPhien(id)) return null;
   return path.join(root, "sessions", id, "run.jsonl");
+}
+
+/**
+ * Trích artifact từ run.jsonl — quét dòng `bee_artifact` do skill ghi.
+ * Cùng allowlist với parse-events: kind ∈ {issue, pr}, url phải là GitHub.
+ * File vài MB đọc một lần là chấp nhận được cho n phiên hiện tại; nếu
+ * run.jsonl có trần theo byte (spec session-first §11) thì đây cũng có trần.
+ */
+export async function docArtifactsTrong(root: string, id: string): Promise<BeeArtifact[]> {
+  const file = duongDanRunTrong(root, id);
+  if (!file) return [];
+  let text: string;
+  try {
+    text = await fs.readFile(file, "utf8");
+  } catch {
+    return [];
+  }
+  const ra: BeeArtifact[] = [];
+  for (const dong of text.split("\n")) {
+    // Lọc rẻ trước khi JSON.parse — file dài, dòng artifact hiếm.
+    if (!dong.includes('"bee_artifact"')) continue;
+    let raw: unknown;
+    try {
+      raw = JSON.parse(dong);
+    } catch {
+      continue;
+    }
+    if (!laObject(raw) || raw.type !== "bee_artifact") continue;
+    if (raw.kind !== "issue" && raw.kind !== "pr") continue;
+    if (typeof raw.url !== "string" || !raw.url.startsWith("https://github.com/")) continue;
+    ra.push({
+      kind: raw.kind,
+      url: raw.url,
+      number: typeof raw.number === "number" ? raw.number : null,
+      ts: typeof raw.ts === "string" ? raw.ts : null,
+    });
+  }
+  return ra;
 }

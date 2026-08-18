@@ -232,11 +232,24 @@ export interface BeeSession {
   needs_human: boolean;
 }
 
+/**
+ * Artifact một phiên đẻ ra trên GitHub — issue, PR. Ghi bởi skill bee-* vào
+ * run.jsonl (dòng `bee_artifact`), đọc ra đây cho canvas và session list.
+ */
+export interface BeeArtifact {
+  kind: "issue" | "pr";
+  url: string;
+  number: number | null;
+  ts: string | null;
+}
+
 /** Toàn bộ đường ra vào `/srv/bee/`. Không module nào khác được chạm đĩa. */
 export interface BeeSource {
   /** Mọi phiên trên máy, mới nhất trước. */
   listSessions(): Promise<BeeSession[]>;
   readSession(id: string): Promise<BeeSession | null>;
+  /** Issue/PR phiên này đã tạo — quét dòng `bee_artifact` trong run.jsonl. */
+  sessionArtifacts(id: string): Promise<BeeArtifact[]>;
   /**
    * Đường dẫn tuyệt đối tới `run.jsonl` của phiên — cho route SSE tail.
    * `null` khi id không hợp lệ. Đồng bộ vì chỉ là dựng đường dẫn; tồn tại
