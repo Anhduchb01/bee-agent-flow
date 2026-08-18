@@ -35,10 +35,23 @@ NUM=$(jq -r '.num // empty' "$SDIR/session.json")
 REPO=$(jq -r '.repo // empty' "$SDIR/session.json")
 SYS_PROMPT=$(jq -r '.system_prompt // empty' "$SDIR/session.json")
 MAX_TURNS=$(jq -r '.max_turns // 120' "$SDIR/session.json")
+CO_WORKTREE=$(jq -r 'if .worktree == false then "no" else "yes" end' "$SDIR/session.json")
 
 [[ "$SLUG" =~ ^[a-z0-9-]+$ ]]                          || die "slug không hợp lệ"
 [[ "$NUM"  =~ ^[0-9]+$ ]]                              || die "num không hợp lệ"
-[[ "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]     || die "repo không hợp lệ"
+
+if [[ "$CO_WORKTREE" == "yes" ]]; then
+  [[ "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]   || die "repo không hợp lệ"
+  # CHỈ repo đã đăng ký. Đây là chốt giết hẳn đường "clone bất cứ gì được gõ
+  # vào": PAT hẹp phải phủ, doctor phải kiểm được branch protection — cả hai
+  # chỉ đúng với repo nằm trong repos.d/ (web action đã kiểm, đây là lớp hai).
+  if [[ ! -f "$BEE_ROOT/repos.d/$SLUG.env" ]]; then
+    lifecycle "$SDIR" "Repo '$REPO' chưa đăng ký ($BEE_ROOT/repos.d/$SLUG.env không tồn tại) — thêm repo trước rồi mở phiên."
+    meta_merge "$SDIR" "$(jq -cn --arg t "$(now_iso)" \
+      '{status:"failed", reason:"unregistered-repo", ended_at:$t}')"
+    exit 0
+  fi
+fi
 
 meta_merge "$SDIR" "$(jq -cn --arg t "$(now_iso)" \
   '{status:"running", started_at:$t}')"
@@ -79,11 +92,9 @@ trap don_dep EXIT
 trap 'DA_DUNG=1; exit 0' TERM INT
 
 # ── 4 · Repo: bare clone + worktree + branch của phiên ─────────────────────
-# `worktree:false` = PHIÊN CHAT: không clone, không branch, không tool —
-# hỏi đáp nhanh không phải trả tiền fetch. "Ok làm đi" không tồn tại ở đây;
-# muốn làm thật thì mở phiên mới có worktree.
-CO_WORKTREE=$(jq -r 'if .worktree == false then "no" else "yes" end' "$SDIR/session.json")
-
+# `worktree:false` = PHIÊN CHAT KHÔNG REPO: không clone, không branch, không
+# tool — hỏi đáp nhanh. Không có đường nâng cấp (chẳng có repo để nâng lên);
+# phiên có repo thì LUÔN có worktree ngay từ đầu.
 BARE="$BEE_ROOT/repos/$SLUG.git"
 WT="$BEE_ROOT/work/$ID"
 BRANCH="bee/$SLUG-$NUM"

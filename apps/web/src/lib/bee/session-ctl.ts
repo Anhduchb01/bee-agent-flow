@@ -53,7 +53,11 @@ export async function moPhien(input: {
   systemPrompt?: string;
 }): Promise<KetQuaPhien> {
   if (!SLUG_RE.test(input.slug)) return { ok: false, message: "Invalid project slug." };
-  if (!REPO_RE.test(input.repo)) return { ok: false, message: "Invalid repository (owner/name)." };
+  // Phiên chat không repo: repo rỗng là hợp lệ. Phiên có worktree thì repo
+  // bắt buộc đúng dạng — và action đã kiểm nó thuộc danh sách đã đăng ký.
+  if (input.worktree && !REPO_RE.test(input.repo)) {
+    return { ok: false, message: "Invalid repository (owner/name)." };
+  }
   if (!Number.isInteger(input.num) || input.num < 1) return { ok: false, message: "Invalid number." };
 
   if (laFixture()) return { ok: true, id: PHIEN_DEMO };

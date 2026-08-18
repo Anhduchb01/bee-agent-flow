@@ -47,6 +47,16 @@ grep -q '"paused"' "$SDIR/meta.json" 2>/dev/null && kq ok "meta.json ghi reason=
 grep -q 'bee_lifecycle' "$SDIR/run.jsonl" 2>/dev/null && kq ok "run.jsonl có lifecycle giải thích" || kq no "run.jsonl im lặng"
 rm -f "$BEE_ROOT/PAUSE"
 
+echo "== 2b · repo chưa đăng ký bị từ chối — không có đường clone chui =="
+ID3="22222222-3333-4444-5555-666666666666"
+S3="$BEE_ROOT/sessions/$ID3"
+mkdir -p "$S3"
+printf '{"id":"%s","slug":"demo","num":1,"repo":"owner/demo","phase":"interview"}\n' "$ID3" > "$S3/session.json"
+"$RUNNER/bin/session-run.sh" "$ID3" || true
+grep -q '"unregistered-repo"' "$S3/meta.json" 2>/dev/null && kq ok "meta ghi reason=unregistered-repo" || kq no "thiếu reason=unregistered-repo"
+grep -q 'chưa đăng ký' "$S3/run.jsonl" 2>/dev/null && kq ok "lifecycle giải thích bằng chữ" || kq no "run.jsonl im lặng"
+[[ ! -d "$BEE_ROOT/repos/demo.git" ]] && kq ok "không clone gì cả" || kq no "đã clone chui"
+
 echo "== 3 · reaper: đóng sổ xác, attempt, needs_human, dọn FIFO =="
 ID2="99999999-8888-7777-6666-555555555555"
 S2="$BEE_ROOT/sessions/$ID2"

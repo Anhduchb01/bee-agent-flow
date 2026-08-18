@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { laIdPhien } from "./session-id";
-import type { BeeArtifact, BeeSession, PhaCuaPhien, TrangThaiPhien } from "./types";
+import type { BeeArtifact, BeeRepoDangKy, BeeSession, PhaCuaPhien, TrangThaiPhien } from "./types";
 
 /**
  * Đọc `sessions/` trên đĩa. Cùng bài với runs-fs: JSON từ đĩa là `unknown`,
@@ -63,6 +63,34 @@ export async function docPhienTrong(root: string, id: string): Promise<BeeSessio
     attempt: typeof meta.attempt === "number" ? meta.attempt : 0,
     needs_human: meta.needs_human === true,
   };
+}
+
+/**
+ * Repo đã đăng ký = file `repos.d/<slug>.env` có dòng `REPO=owner/name`.
+ * Cùng nguồn mà doctor.sh kiểm branch protection — một danh sách, hai người đọc.
+ */
+export async function lietKeRepoTrong(root: string): Promise<BeeRepoDangKy[]> {
+  let files: string[];
+  try {
+    files = await fs.readdir(path.join(root, "repos.d"));
+  } catch {
+    return [];
+  }
+  const ra: BeeRepoDangKy[] = [];
+  for (const f of files) {
+    if (!f.endsWith(".env")) continue;
+    const slug = f.slice(0, -4);
+    if (!/^[a-z0-9-]+$/.test(slug)) continue;
+    let text: string;
+    try {
+      text = await fs.readFile(path.join(root, "repos.d", f), "utf8");
+    } catch {
+      continue;
+    }
+    const m = text.match(/^REPO=["']?([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)["']?\s*$/m);
+    if (m) ra.push({ slug, repo: m[1] });
+  }
+  return ra.sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
 export async function lietKePhienTrong(root: string): Promise<BeeSession[]> {

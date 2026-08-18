@@ -11,6 +11,7 @@ import {
   docPhienTrong,
   duongDanRunTrong,
   lietKePhienTrong,
+  lietKeRepoTrong,
 } from "./sessions-fs";
 import { parseClaudeRateLimit, parseRecentLine, parseStatus } from "./parse";
 import type { BeeClaudeRateLimit, BeeRecentRun, BeeSource, StatusRead } from "./types";
@@ -86,6 +87,7 @@ export function createDiskBeeSource(): BeeSource {
     listEvidence: (slug, num) => listEvidenceIn(path.join(root(), "evidence"), slug, num),
     readEvidenceFile: (segments) => readEvidenceFileIn(path.join(root(), "evidence"), segments),
 
+    listRepos: () => lietKeRepoTrong(root()),
     listSessions: () => lietKePhienTrong(root()),
     readSession: (id) => docPhienTrong(root(), id),
     sessionArtifacts: (id) => docArtifactsTrong(root(), id),

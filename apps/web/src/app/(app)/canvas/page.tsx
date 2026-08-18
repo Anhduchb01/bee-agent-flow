@@ -1,4 +1,4 @@
-import { CanvasView, dungDoThi, loadCanvas } from "@/features/sessions";
+import { CanvasView, dungDoThi, loadCanvas, loadRepos } from "@/features/sessions";
 import { PageHeader } from "@/features/shell";
 import { getActor } from "@/lib/auth";
 
@@ -6,7 +6,7 @@ export default async function CanvasPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const { nhom, artifacts, xemTruoc } = await loadCanvas();
+  const [{ nhom, artifacts, xemTruoc }, repos] = await Promise.all([loadCanvas(), loadRepos()]);
   const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc);
 
   return (
@@ -24,7 +24,7 @@ export default async function CanvasPage() {
           nodes={nodes}
           edges={edges}
           phien={nhom.flatMap((g) => g.phien)}
-          repos={nhom.map((g) => g.repo)}
+          repos={repos}
         />
       </div>
     </div>

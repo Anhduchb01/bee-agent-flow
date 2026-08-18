@@ -1,4 +1,4 @@
-export { loadCanvas, loadSession, loadSessions } from "./api/load";
+export { loadCanvas, loadRepos, loadSession, loadSessions } from "./api/load";
 export type { NhomPhien } from "./api/load";
 export { CanvasView } from "./components/canvas-view";
 export { dungDoThi } from "./lib/build-graph";

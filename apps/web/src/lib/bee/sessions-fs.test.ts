@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { docArtifactsTrong, docCauCuoiTrong, lietKePhienTrong } from "./sessions-fs";
+import { docArtifactsTrong, docCauCuoiTrong, lietKePhienTrong, lietKeRepoTrong } from "./sessions-fs";
 
 const ID_A = "aaaaaaaa-1111-4222-8333-444444444444";
 const ID_B = "bbbbbbbb-1111-4222-8333-444444444444";
@@ -96,6 +96,26 @@ describe("docArtifactsTrong", () => {
 
   it("chưa có run.jsonl là danh sách rỗng, không phải lỗi", async () => {
     expect(await docArtifactsTrong(dungSan(), ID_B)).toEqual([]);
+  });
+});
+
+describe("lietKeRepoTrong", () => {
+  it("đọc repos.d — chỉ file .env có dòng REPO=owner/name hợp lệ", async () => {
+    const root = dungSan();
+    const rd = path.join(root, "repos.d");
+    mkdirSync(rd, { recursive: true });
+    writeFileSync(path.join(rd, "myapp.env"), 'REPO=you/myapp\nREVIEWERS="a b"\n');
+    writeFileSync(path.join(rd, "blog.env"), 'REPO="you/blog"\n');
+    writeFileSync(path.join(rd, "hong.env"), "KHONG_CO_REPO=1\n");
+    writeFileSync(path.join(rd, "ghi-chu.txt"), "REPO=you/khong-phai-env\n");
+    expect(await lietKeRepoTrong(root)).toEqual([
+      { slug: "blog", repo: "you/blog" },
+      { slug: "myapp", repo: "you/myapp" },
+    ]);
+  });
+
+  it("chưa có repos.d là danh sách rỗng, không phải lỗi", async () => {
+    expect(await lietKeRepoTrong(dungSan())).toEqual([]);
   });
 });
 

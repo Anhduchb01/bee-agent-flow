@@ -5,43 +5,46 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { BeeSession } from "@/lib/bee/types";
+import type { BeeRepoDangKy, BeeSession } from "@/lib/bee/types";
 
 import { batDauPhien } from "../api/actions";
 
+const CHAT = "__chat__";
+
 /**
- * "New session" — hai ô, một checkbox, một nút. Không phải form 5 mục của mô
- * hình cũ: chi tiết task ra đời TRONG cuộc phỏng vấn, không phải ở đây.
+ * "New session" — chọn repo ĐÃ ĐĂNG KÝ (repos.d, doctor kiểm được) hoặc
+ * "No repo — just chat". Không có ô gõ repo tự do: repo mới phải đăng ký
+ * trước (PAT phủ + branch protection) — ma sát có chủ đích, đúng chỗ.
  *
- * Bỏ tick "worktree" là mở PHIÊN CHAT: không clone, không branch, không bao
- * giờ có tool — hỏi đáp nhanh không phải trả tiền fetch.
+ * Phiên có repo LUÔN có worktree ngay từ đầu — interview đứng trong repo,
+ * "OK, do it" chỉ là chuyển chế độ đã chứng minh, không có bài nâng cấp.
  *
  * `onCreated` cho canvas mở panel tại chỗ; không có thì đi sang trang phiên.
  */
 export function NewSessionForm({
-  repos = [],
+  repos,
   onCreated,
 }: {
-  repos?: string[];
+  repos: BeeRepoDangKy[];
   onCreated?: (phien: BeeSession) => void;
 }) {
   const router = useRouter();
-  const [repo, setRepo] = useState("");
+  const [chon, setChon] = useState(repos[0]?.slug ?? CHAT);
   const [title, setTitle] = useState("");
-  const [worktree, setWorktree] = useState(true);
   const [loi, setLoi] = useState("");
   const [dangMo, batDauMo] = useTransition();
+
+  const laChat = chon === CHAT;
 
   function mo() {
     if (dangMo) return;
     batDauMo(async () => {
-      const ket = await batDauPhien({ repo, title, worktree });
+      const ket = await batDauPhien({ repoSlug: laChat ? null : chon, title });
       if (!ket.ok) {
         setLoi(ket.message);
         return;
       }
       setLoi("");
-      setRepo("");
       setTitle("");
       if (onCreated && ket.phien !== null) {
         onCreated(ket.phien);
@@ -60,39 +63,28 @@ export function NewSessionForm({
         mo();
       }}
     >
-      <Input
-        value={repo}
-        onChange={(e) => setRepo(e.target.value)}
-        placeholder="owner/repo"
+      <select
+        value={chon}
+        onChange={(e) => setChon(e.target.value)}
         aria-label="Repository"
-        list={repos.length > 0 ? "bee-repos" : undefined}
-        className="font-mono sm:max-w-56"
-      />
-      {repos.length > 0 && (
-        <datalist id="bee-repos">
-          {repos.map((r) => (
-            <option key={r} value={r} />
-          ))}
-        </datalist>
-      )}
+        className="h-9 rounded-control border border-border bg-transparent px-2 font-mono text-sm text-body sm:max-w-56"
+      >
+        {repos.map((r) => (
+          <option key={r.slug} value={r.slug}>
+            {r.repo}
+          </option>
+        ))}
+        <option value={CHAT}>No repo — just chat</option>
+      </select>
       <Input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="What do you want to build?"
+        placeholder={laChat ? "What do you want to talk through?" : "What do you want to build?"}
         aria-label="Session title"
         className="flex-1"
       />
-      <label className="flex shrink-0 cursor-pointer items-center gap-1.5 font-mono text-xs text-muted-foreground">
-        <input
-          type="checkbox"
-          checked={worktree}
-          onChange={(e) => setWorktree(e.target.checked)}
-          className="size-3.5 accent-[#C15F3C]"
-        />
-        worktree
-      </label>
-      <Button type="submit" disabled={dangMo || repo.trim() === ""}>
-        {dangMo ? "Starting…" : worktree ? "New session" : "New chat"}
+      <Button type="submit" disabled={dangMo}>
+        {dangMo ? "Starting…" : laChat ? "New chat" : "New session"}
       </Button>
       {loi !== "" && <p className="text-xs text-destructive sm:ml-2">{loi}</p>}
     </form>

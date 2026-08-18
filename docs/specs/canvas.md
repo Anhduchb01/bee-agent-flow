@@ -36,17 +36,23 @@ BeeSource        →  sessionArtifacts(id) — disk: quét run.jsonl lọc dòng
 
 ## 2. Trang `/canvas`
 
-- **Tạo phiên ngay trên canvas** *(17/08)*: form nổi góc trên-trái (React Flow
-  `Panel`) — chọn repo (datalist từ repo đã có + gõ tự do), title, và
-  **checkbox worktree**. Tạo xong panel chat mở tại chỗ (action trả luôn
-  `BeeSession` vừa mở), node mới hiện sau `router.refresh` — không rời đồ thị.
-- **Bỏ tick worktree = PHIÊN CHAT**: `session.json` ghi `worktree:false`;
-  runner bỏ qua clone/fetch/worktree (cwd là `sessions/<id>/chat/`), và
-  **không bao giờ cấp tool** — kể cả khi ai đó sửa tay `phase:"work"`. UI:
-  không có nút "OK, do it", nhãn `chat` thay tên nhánh, node canvas cũng ghi
-  `chat`. Muốn làm thật thì mở phiên mới có worktree — không có đường nâng
-  cấp tại chỗ, vì `--resume` đòi cùng cwd (rig S0.2) và đổi cwd giữa chừng
-  là đánh cược với chính điều đã chứng minh.
+- **Tạo phiên ngay trên canvas** *(chốt lại 17/08)*: form nổi góc trên-trái
+  (React Flow `Panel`) — **chọn repo từ danh sách ĐÃ ĐĂNG KÝ** (`repos.d/`,
+  qua `BeeSource.listRepos`) hoặc *"No repo — just chat"*. **Không có ô gõ
+  repo tự do** — repo mới phải đăng ký trước (PAT phủ + branch protection,
+  doctor kiểm được); guard ở CẢ action lẫn runner (`unregistered-repo`,
+  rig-03 §2b) — đường "clone bất cứ gì được gõ vào" đã bị giết. Tạo xong
+  panel chat mở tại chỗ, node hiện sau `router.refresh`.
+- **Phiên có repo LUÔN có worktree ngay từ đầu** — không còn checkbox, không
+  còn bài "nâng cấp chat→work": chi phí thật chỉ là clone lần đầu mỗi repo
+  (đã cache bare), mỗi phiên sau tốn fetch + worktree add vài giây có
+  lifecycle hiển thị. Interview đứng trong worktree nên thấy CLAUDE.md —
+  hợp đồng đỡ "mù". "OK, do it" là chuyển pha đã chứng minh (rig S0.2).
+- **Chat chỉ còn một dạng: không repo** (`worktree:false`, `repo:""`, slug
+  `chat`, nhóm "Chats" cuối danh sách): runner bỏ qua toàn bộ clone/worktree
+  (cwd `sessions/<id>/chat/`) và **không bao giờ cấp tool** kể cả khi ai đó
+  sửa tay `phase:"work"`. Không có đường nâng cấp — chẳng có repo để nâng
+  lên; muốn làm thật thì mở phiên repo.
 
 - **Server dựng đồ thị, client chỉ vẽ.** `build-graph.ts` là hàm THUẦN
   (test được): `(nhóm phiên, artifacts) → {nodes, edges}` với layout tính

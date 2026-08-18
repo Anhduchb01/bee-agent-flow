@@ -64,10 +64,12 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 - [x] 🤖 **Dark mặc định + skin VSCode** (17/08): class `dark` ở root; diff
       đỏ/xanh cho Edit/Write (+n −m), khối IN/OUT cho Bash, hộp người full-width,
       ô nhập bo tròn nút ↑ #C15F3C. PRD §5 + spec §4.4 đã cập nhật.
-- [x] 🤖 **Tạo phiên trên canvas + phiên chat** (17/08): form Panel góc trên-trái
-      (repo datalist + title + checkbox worktree), tạo xong panel mở tại chỗ.
-      `worktree:false` → runner bỏ clone/worktree, luôn `--allowedTools ""`,
-      UI không có "OK, do it", node ghi `chat`. Spec canvas §2 + session-first §3.1.
+- [x] 🤖 **Tạo phiên trên canvas** (17/08, chốt lại cùng ngày): repo chọn từ
+      danh sách ĐÃ ĐĂNG KÝ (repos.d → `listRepos`) hoặc "No repo — just chat";
+      không có ô gõ tự do. Phiên có repo LUÔN có worktree từ đầu (hết bài
+      nâng cấp chat→work, rig-04 khỏi cần); chat = không repo, không tool,
+      nhóm "Chats". Guard 2 lớp: action + runner `unregistered-repo` (rig-03
+      §2b). Spec canvas §2 + session-first §3.1.
 - [ ] Sau: lưu vị trí node · node evidence · rig hook-reply approvals
       (session-first §11) · terminal node thật (xterm+PTY, sau V2 — canvas.md §4).
 

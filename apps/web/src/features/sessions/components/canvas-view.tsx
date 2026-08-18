@@ -17,7 +17,7 @@ import "@xyflow/react/dist/style.css";
 
 import { StatusDot, type Tone } from "@/components/status-dot";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import type { BeeSession, TrangThaiPhien } from "@/lib/bee/types";
+import type { BeeRepoDangKy, BeeSession, TrangThaiPhien } from "@/lib/bee/types";
 import { khoangThoiGian } from "@/lib/duration";
 
 import type { EdgeCanvas, NodeArtifact, NodeCanvas, NodeNhanRepo, NodePhien } from "../lib/build-graph";
@@ -143,7 +143,7 @@ export function CanvasView({
   nodes: NodeCanvas[];
   edges: EdgeCanvas[];
   phien: BeeSession[];
-  repos?: string[];
+  repos?: BeeRepoDangKy[];
 }) {
   const flowNodes: Node[] = nodes.map((n) => ({ ...n, data: { ...n.data } }));
   const flowEdges: Edge[] = edges.map((e) => ({ ...e }));

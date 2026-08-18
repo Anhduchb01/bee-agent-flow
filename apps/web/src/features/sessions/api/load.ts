@@ -17,11 +17,21 @@ export async function loadSessions(): Promise<NhomPhien[]> {
   const tatCa = await getBee().listSessions();
   const nhom = new Map<string, BeeSession[]>();
   for (const p of tatCa) {
-    const ds = nhom.get(p.repo) ?? [];
+    // Phiên chat không repo gom vào một nhóm riêng — "Chats" là nhãn, không
+    // phải tên repo, và ở cuối danh sách cho đỡ lẫn.
+    const khoa = p.repo === "" ? "Chats" : p.repo;
+    const ds = nhom.get(khoa) ?? [];
     ds.push(p);
-    nhom.set(p.repo, ds);
+    nhom.set(khoa, ds);
   }
-  return [...nhom.entries()].map(([repo, phien]) => ({ repo, phien }));
+  return [...nhom.entries()]
+    .map(([repo, phien]) => ({ repo, phien }))
+    .sort((a, b) => (a.repo === "Chats" ? 1 : b.repo === "Chats" ? -1 : 0));
+}
+
+/** Repo đã đăng ký — cho dropdown của form tạo phiên. */
+export async function loadRepos() {
+  return getBee().listRepos();
 }
 
 export async function loadSession(id: string): Promise<BeeSession | null> {

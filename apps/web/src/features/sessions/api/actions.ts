@@ -23,18 +23,26 @@ const KHONG_QUYEN: KetQua = { ok: false, message: "You are not allowed to do thi
  * không phải khoá — khoá là UUID).
  */
 export async function batDauPhien(input: {
-  repo: string;
+  /** Slug của repo ĐÃ ĐĂNG KÝ, hoặc `null` = phiên chat không repo. */
+  repoSlug: string | null;
   title: string;
-  /** `false` = phiên chat: không worktree, không tool — hỏi đáp nhanh. */
-  worktree?: boolean;
 }): Promise<KetQuaMoPhien> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: KHONG_QUYEN.message };
 
-  const repo = input.repo.trim();
-  const phanTen = repo.split("/")[1] ?? "";
-  const slug = phanTen.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+|-+$/g, "");
-  if (slug === "") return { ok: false, message: "Repository must look like owner/name." };
+  // Chỉ repo đã đăng ký (repos.d) — không có đường gõ tự do. Repo mới thì
+  // đăng ký trước (PAT phủ + branch protection, doctor kiểm) rồi mới có phiên.
+  let slug = "chat";
+  let repo = "";
+  const worktree = input.repoSlug !== null;
+  if (input.repoSlug !== null) {
+    const dangKy = (await getBee().listRepos()).find((r) => r.slug === input.repoSlug);
+    if (!dangKy) {
+      return { ok: false, message: "This repository is not registered. Add it to repos.d first." };
+    }
+    slug = dangKy.slug;
+    repo = dangKy.repo;
+  }
 
   const daCo = await getBee().listSessions();
   const num = daCo.filter((p) => p.slug === slug).length + 1;
@@ -44,7 +52,7 @@ export async function batDauPhien(input: {
     num,
     repo,
     title: input.title.trim() || `Session ${num}`,
-    worktree: input.worktree !== false,
+    worktree,
   });
   if (!ket.ok) return ket;
 

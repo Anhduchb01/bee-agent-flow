@@ -247,8 +247,16 @@ export interface BeeArtifact {
   title: string | null;
 }
 
+/** Một repo đã đăng ký — `repos.d/<slug>.env`, trong phạm vi PAT, doctor kiểm được. */
+export interface BeeRepoDangKy {
+  slug: string;
+  repo: string;
+}
+
 /** Toàn bộ đường ra vào `/srv/bee/`. Không module nào khác được chạm đĩa. */
 export interface BeeSource {
+  /** Repo đã đăng ký — nguồn DUY NHẤT của dropdown chọn repo. */
+  listRepos(): Promise<BeeRepoDangKy[]>;
   /** Mọi phiên trên máy, mới nhất trước. */
   listSessions(): Promise<BeeSession[]>;
   readSession(id: string): Promise<BeeSession | null>;

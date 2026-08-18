@@ -148,6 +148,13 @@ export function createFixtureBeeSource(): BeeSource {
      * đúng id PHIEN_DEMO mà session-ctl trả về ở fixture mode — bấm "New
      * session" trên fixture là rơi vào trang live có chữ thật để xem.
      */
+    async listRepos() {
+      return [
+        { slug: "blog", repo: "you/blog" },
+        { slug: "myapp", repo: "you/myapp" },
+      ];
+    },
+
     async listSessions(): Promise<BeeSession[]> {
       if (chuaChayLanNao(await currentScene())) return [];
       return [phienDemoDangChay(), phienDemoXong(), phienDemoChet()];

@@ -137,9 +137,13 @@ apps/runner/
 - Tham số duy nhất: `<id>` (instance của template unit). Mọi thứ khác đọc từ
   `session.json` — file do web ghi *trước khi* start. Không tham số nào đi qua
   argv của systemd ngoài id đã khớp `^[a-f0-9-]{36}$`.
-- **`worktree:false` = phiên chat** *(17/08, canvas.md §2)*: bỏ qua toàn bộ
-  clone/fetch/worktree, cwd là `sessions/<id>/chat/`, và **luôn chạy
-  `--allowedTools ""`** bất kể phase — phiên chat không có đường nào tới tool.
+- **`worktree:false` = phiên chat KHÔNG REPO** *(chốt 17/08, canvas.md §2)*:
+  bỏ qua toàn bộ clone/fetch/worktree, cwd là `sessions/<id>/chat/`, `repo`
+  được phép rỗng, và **luôn chạy `--allowedTools ""`** bất kể phase.
+- **Phiên có worktree đòi repo ĐÃ ĐĂNG KÝ**: không có `repos.d/<slug>.env`
+  → từ chối ngay với `reason:"unregistered-repo"` + lifecycle giải thích
+  (rig-03 §2b). Lớp một ở web action (`listRepos`), lớp hai ở đây — đường
+  "clone bất cứ gì trong session.json" không tồn tại.
 - `trap` dọn: FIFO, cập nhật `meta.json`, **giữ** worktree (dọn worktree là
   việc của stop/reaper theo chính sách, không phải của trap — phiên fail còn
   cần xem xác).
