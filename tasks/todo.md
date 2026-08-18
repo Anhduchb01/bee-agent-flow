@@ -121,9 +121,18 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 - [ ] 🧑 **S4.1** Tạo fine-grained PAT (contents + PR + issues, đúng danh sách
       repo) · bật branch protection `main` từng repo · thử push main phải bị từ chối
       → làm theo trang `/setup`, doctor phải xanh trên đó
-- [ ] 🧑 **S4.2** Cài `apps/runner` lên máy · login Claude dưới user `bee` ·
-      `loginctl enable-linger bee` · `doctor.sh` xanh toàn bộ
-- [ ] 🤖 **S4.3** Chạy 6 bài rig của spec §8 trên máy thật — nghiệm thu thật
+- [x] 🤖 **S4.2** ~~Cài runner lên máy~~ **XONG 18/08** — cài thật trên máy
+      dev (chủ động chọn, biết may-sach đỏ): `~/.local/opt/bee` +
+      `~/.local/srv/bee` (units template hoá vì /opt/bee root-owned còn
+      mô hình cũ), linger BẬT, timers active, doctor chạy thật:
+      ✓ claude/linger/reaper/dia · ✗ pat(gho_)/repos(trống)/may-sach.
+- [~] 🤖 **S4.3** Rig máy thật **5/7 XANH 18/08**: PAUSE gate qua systemd ·
+      FIFO→claude thật→reply vào run.jsonl · kill -9 claude→trap đóng
+      `failed` ngay · kill -9 session-run→reaper đóng trong 1 tick
+      (reason:reaped, attempt:1, FIFO dọn, heartbeat thật) · id bẩn chết ở
+      cửa · systemctl stop→`stopped` · web disk-mode boot (/login?next=,
+      SSE 401 đúng chỗ). **Còn thiếu**: rig 3+4 (worktree+tools — chờ 🧑
+      PAT fine-grained + repo đăng ký, S4.1) · rig 6 reboot (🧑 bấm).
 
 ## S5 · Ra internet
 
