@@ -50,6 +50,16 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       claude `--resume` đủ tool.
 - [x] 🤖 **S3.3** 3 skill `gh` trực tiếp, install.sh copy vào `~/.claude/skills/`.
 
+## S6 · Canvas ✅ xong 17/08 — [spec](../docs/specs/canvas.md)
+
+- [x] 🤖 `bee_artifact` end-to-end: runner export `BEE_SESSION_DIR` → skill ghi
+      sau khi `gh` thành công → parse-events (allowlist github.com) → hiện live
+      trong dòng sự kiện.
+- [x] 🤖 `BeeSource.sessionArtifacts` + `build-graph` thuần (test layout) +
+      trang `/canvas` React Flow (MIT — không dính BUSL của nodeterm) + sidebar.
+- [ ] Sau: lưu vị trí node · node evidence · rig hook-reply approvals
+      (session-first §11).
+
 **Nợ test ghi nhận (làm ở S4 hoặc trước):**
 - [ ] 🤖 Unit test riêng cho route SSE (MSW) — logic mỏng, các tầng dưới đã test,
       nhưng spec §8 có hàng Route.
