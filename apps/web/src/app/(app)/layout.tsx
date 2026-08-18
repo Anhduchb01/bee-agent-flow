@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { deriveHealth } from "@/features/health";
-import { loadInbox } from "@/features/inbox";
 import { loadProjects } from "@/features/project";
 import { AppSidebar, type DuAnTrongSidebar } from "@/features/shell";
-import { auth, getActor, signOut } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
 
 /**
@@ -20,11 +19,11 @@ import { getBee } from "@/lib/bee";
  */
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await auth();
-  if (!session?.login) redirect("/dang-nhap");
+  if (!session?.login) redirect("/login");
 
   async function raNgoai() {
     "use server";
-    await signOut({ redirectTo: "/dang-nhap" });
+    await signOut({ redirectTo: "/login" });
   }
 
   if (!session.allowed) {
@@ -46,13 +45,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     );
   }
 
-  const actor = await getActor();
-  const [projects, items, statusRead] = await Promise.all([
+  const [projects, statusRead, sessions] = await Promise.all([
     loadProjects(),
-    actor ? loadInbox(actor) : Promise.resolve([]),
     getBee().readStatus(),
+    getBee().listSessions(),
   ]);
   const health = deriveHealth(statusRead);
+  const running = sessions.filter((s) => s.status === "running").length;
 
   const duAn: DuAnTrongSidebar[] = projects.map((p) => ({
     slug: p.slug,
@@ -66,15 +65,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <AppSidebar
           displayName={session.displayName}
           login={session.login}
-          role={session.role}
-          soViecChoBan={items.length}
           duAn={duAn}
           sucKhoe={{
             tone: health.level === "ok" ? "ok" : health.level === "warn" ? "warn" : "down",
             headline: health.headline,
-            detail: health.slots
-              ? `build ${health.slots.build.used}/${health.slots.build.max} · ${health.queued} queued`
-              : null,
+            detail: `${running} sessions running`,
           }}
           dangXuat={raNgoai}
         />

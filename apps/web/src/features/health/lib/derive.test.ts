@@ -48,11 +48,11 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
     const h = deriveHealth({ ok: false, reason: "missing", detail: "chưa tồn tại" }, NOW);
 
     expect(h.level).toBe("warn");
-    expect(h.headline).toContain("No data from the reconciler");
-    expect(h.slots).toBeNull();
+    expect(h.headline).toContain("No data from the runner");
+    expect(h.running).toBe(0);
   });
 
-  // 3. JSON hỏng: đang ghi dở, hoặc reconciler đổi hình dạng.
+  // 3. JSON hỏng: đang ghi dở, hoặc runner đổi hình dạng.
   it("JSON hỏng → báo đỏ kèm lý do, không crash", () => {
     const h = deriveHealth(parseStatus("{hỏng"), NOW);
 
@@ -62,28 +62,18 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
   });
 });
 
-describe("deriveHealth — slot và hàng đợi", () => {
+describe("deriveHealth — đếm và cảnh báo", () => {
   it("đếm đúng ở cảnh bình thường", () => {
     const h = deriveHealth(read("binh-thuong"), NOW);
 
     expect(h.level).toBe("ok");
-    expect(h.slots).toEqual({
-      build: { used: 1, max: 3 },
-      evidence: { used: 0, max: 1 },
-    });
     expect(h.running).toBe(1);
-    expect(h.queued).toBe(1);
   });
 
-  it("đếm đúng khi cả hai bể đều đầy", () => {
+  it("đếm đúng khi máy đầy tải", () => {
     const h = deriveHealth(read("day-tai"), NOW);
 
-    expect(h.slots).toEqual({
-      build: { used: 3, max: 3 },
-      evidence: { used: 1, max: 1 },
-    });
     expect(h.running).toBe(4);
-    expect(h.queued).toBe(4);
   });
 
   it("repo bị dừng thì cảnh báo và gọi tên nó ra", () => {

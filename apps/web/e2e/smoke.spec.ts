@@ -9,7 +9,7 @@ test("trang chủ là Tổng quan, điều hướng nằm ở sidebar", async ({
 
   const nav = page.getByRole("navigation", { name: "Main navigation" });
   await expect(nav.getByRole("link", { name: "Overview" })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "Your work" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Sessions" })).toBeVisible();
   // Dự án nằm ngay trong sidebar: đổi dự án còn một cú bấm.
   await expect(nav.getByRole("link", { name: "myapp" })).toBeVisible();
 });

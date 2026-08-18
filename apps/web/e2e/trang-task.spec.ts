@@ -14,9 +14,9 @@ test("issue và PR liên kết hiện thành một trang", async ({ page }) => {
   await expect(page.getByText("Acceptance Criteria")).toBeVisible();
   await expect(page.getByText("Given the orders list").first()).toBeVisible();
 
-  // Dải bốn con số trả lời trước khi phải đọc hợp đồng.
-  await expect(page.getByText("Stage")).toBeVisible();
-  await expect(page.getByText("PR review")).toBeVisible();
+  // Dải con số trả lời trước khi phải đọc hợp đồng.
+  await expect(page.getByText("bee/test").first()).toBeVisible();
+  await expect(page.getByText("Approved").first()).toBeVisible();
 
   // Phần PR, trên cùng một trang.
   await expect(page.getByRole("link", { name: "#45 on GitHub" })).toHaveAttribute(
@@ -66,18 +66,4 @@ test("issue thiếu mục thì báo hợp đồng chưa đủ", async ({ page })
 
   await expect(page.getByText("Incomplete contract")).toBeVisible();
   await expect(page.getByText("Acceptance Criteria")).toBeVisible();
-});
-
-// Từ "merge" được phép xuất hiện trong comment của người — TL viết "chờ PM
-// duyệt nốt rồi tôi merge" là nội dung thật. Thứ không được phép tồn tại là
-// một *thao tác* merge: merge cần người đọc diff, và chỗ đọc diff là GitHub.
-test("không có thao tác merge nào ở bất kỳ đâu", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
-
-  for (const url of ["/", "/viec", "/du-an", "/p/myapp", "/p/myapp?view=kanban", "/t/myapp/40", "/t/shop/30"]) {
-    await page.goto(url);
-    await expect(page.getByRole("button", { name: /merge/i })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /^merge/i })).toHaveCount(0);
-    await expect(page.locator("form[action*='merge']")).toHaveCount(0);
-  }
 });

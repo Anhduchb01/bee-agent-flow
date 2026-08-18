@@ -5,7 +5,7 @@ import { dangNhap } from "./helpers";
 test.describe("thêm dự án", () => {
   test.beforeEach(async ({ page }) => {
     await dangNhap(page, "pm-linh");
-    await page.goto("/du-an");
+    await page.goto("/projects");
     await page.getByRole("button", { name: "Add project" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
   });
@@ -26,8 +26,8 @@ test.describe("thêm dự án", () => {
 
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByRole("main").getByRole("link", { name: "khach-hang" })).toBeVisible();
-    // Reconciler chưa biết nó — và đó là sự thật cần nói ra, không phải chi tiết cần giấu.
-    await expect(page.getByText("reconciler does not know this project").first()).toBeVisible();
+    // Runner chưa biết nó — và đó là sự thật cần nói ra, không phải chi tiết cần giấu.
+    await expect(page.getByText("runner does not know this project").first()).toBeVisible();
   });
 
   test("từ chối tên sai định dạng", async ({ page }) => {
@@ -45,13 +45,12 @@ test.describe("thêm dự án", () => {
     await expect(page.getByRole("alert")).toContainText("already exists");
   });
 
-  test("dự án mới vào được và tạo task được ngay", async ({ page }) => {
+  test("dự án mới vào được ngay", async ({ page }) => {
     await page.getByLabel("org/repo").fill("org/kho-hang");
     await page.getByRole("dialog").getByRole("button", { name: "Add project" }).click();
     await page.getByRole("main").getByRole("link", { name: "kho-hang" }).click();
 
     await expect(page).toHaveURL(/\/p\/kho-hang/);
     await expect(page.getByText("No tasks yet")).toBeVisible();
-    await expect(page.getByRole("button", { name: "New task" })).toBeVisible();
   });
 });

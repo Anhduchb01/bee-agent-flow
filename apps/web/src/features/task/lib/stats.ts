@@ -10,29 +10,24 @@ const CHECK: Record<string, { label: string; tone: Stat["tone"] }> = {
 };
 
 /**
- * Bốn ô đầu trang task: bốn câu phải trả lời được **trước khi** đọc hợp đồng —
- * task đang ở đâu, test có xanh không, ai đã duyệt, có bằng chứng chưa.
+ * Ba ô đầu trang task: ba câu phải trả lời được **trước khi** đọc hợp đồng —
+ * test có xanh không, ai đã duyệt, có bằng chứng chưa.
  *
  * Chúng lặp lại thông tin có trong khối trạng thái bên dưới, và đó là chủ ý:
- * khối đó là bảng tra cứu đầy đủ, còn đây là câu trả lời nhanh cho người vừa mở
- * trang từ một tin Slack và chỉ muốn biết có phải bấm gì không.
+ * khối đó là bảng tra cứu đầy đủ, còn đây là câu trả lời nhanh cho người chỉ
+ * muốn biết có phải bấm gì không.
  */
 export function thongKeTask({
   task,
-  stageLabel,
-  stageTone,
   evidence,
 }: {
   task: GhTask;
-  stageLabel: string;
-  stageTone: Stat["tone"];
   evidence: EvidenceRun | null;
 }): Stat[] {
   const test = task.pull?.checks.find((c) => c.name === "bee/test");
   const approvals = task.pull?.reviews.filter((r) => r.state === "APPROVED") ?? [];
 
   return [
-    { label: "Stage", value: stageLabel, tone: stageTone, kind: "chu" },
     {
       label: "bee/test",
       value: task.pull ? (CHECK[test?.conclusion ?? ""]?.label ?? "Not run") : "No PR yet",

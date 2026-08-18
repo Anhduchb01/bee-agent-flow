@@ -29,7 +29,7 @@ export async function themDuAn(full: string): Promise<KetQuaThemDuAn> {
 
   try {
     const repo = await getGithub().addRepo(full, actor);
-    revalidatePath("/du-an");
+    revalidatePath("/projects");
     return { ok: true, slug: repo.slug };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Could not add the project." };

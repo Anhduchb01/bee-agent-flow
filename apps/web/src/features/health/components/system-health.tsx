@@ -21,18 +21,7 @@ const VIEN: Record<Health["level"], string> = {
   down: "border-destructive/40",
 };
 
-function tomTatMay(health: Health): string | null {
-  if (!health.slots) return null;
-  return [
-    `build ${health.slots.build.used}/${health.slots.build.max}`,
-    `evidence ${health.slots.evidence.used}/${health.slots.evidence.max}`,
-    `${health.queued} queued`,
-  ].join(" · ");
-}
-
 export function SystemHealth({ health }: { health: Health }) {
-  const tomTat = tomTatMay(health);
-
   if (health.level === "ok") {
     return (
       <section
@@ -41,9 +30,6 @@ export function SystemHealth({ health }: { health: Health }) {
       >
         <StatusDot tone="ok" />
         <span className="text-body">{health.headline}</span>
-        {tomTat ? (
-          <span className="font-mono text-xs text-muted-foreground">{tomTat}</span>
-        ) : null}
       </section>
     );
   }
@@ -66,14 +52,10 @@ export function SystemHealth({ health }: { health: Health }) {
           </p>
           <p className="mt-1 text-sm text-body">{health.detail}</p>
 
-          {tomTat ? (
-            <p className="mt-3 font-mono text-xs text-muted-foreground">{tomTat}</p>
-          ) : null}
-
           {health.dropped > 0 ? (
             <p className="mt-3 text-xs text-muted-foreground">
               {health.dropped} entries in status.json had the wrong shape and were dropped. The
-              types in <code>lib/bee/types.ts</code> may have drifted from the reconciler.
+              types in <code>lib/bee/types.ts</code> may have drifted from the runner.
             </p>
           ) : null}
         </div>

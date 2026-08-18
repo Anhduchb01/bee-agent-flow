@@ -72,6 +72,10 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       §2b). Spec canvas §2 + session-first §3.1.
 - [ ] Sau: lưu vị trí node · node evidence · rig hook-reply approvals
       (session-first §11) · terminal node thật (xterm+PTY, sau V2 — canvas.md §4).
+- [x] 🤖 **V4 đợt 1+2 (18/08)**: xoá inbox/notify/chat/task-new/spec-chat/task-stage
+      + /viec; gỡ lệnh cấm merge; Overview/Projects/Task bỏ queue-slots-nhãn;
+      route /projects /login; footer đếm phiên. Nợ còn: types BeeStatus cũ,
+      chat/phỏng-vấn nối lại runner mới, e2e chup-anh + canh-hong cần sửa.
 
 **Nợ test ghi nhận (làm ở S4 hoặc trước):**
 - [ ] 🤖 Unit test riêng cho route SSE (MSW) — logic mỏng, các tầng dưới đã test,

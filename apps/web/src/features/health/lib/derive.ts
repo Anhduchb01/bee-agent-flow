@@ -12,12 +12,7 @@ export interface Health {
   detail: string;
   /** `null` khi không đọc được `status.json` hoặc heartbeat không phải ngày tháng. */
   heartbeatAgeS: number | null;
-  slots: {
-    build: { used: number; max: number };
-    evidence: { used: number; max: number };
-  } | null;
   running: number;
-  queued: number;
   pausedRepos: string[];
   /** Số repo bị bỏ vì hình dạng hỏng — hiện ra chứ không giấu. */
   dropped: number;
@@ -26,9 +21,7 @@ export interface Health {
 /** Phần "chưa biết gì" của Health, dùng cho mọi kết cục không đọc được file. */
 const NOTHING: Omit<Health, "level" | "headline" | "detail"> = {
   heartbeatAgeS: null,
-  slots: null,
   running: 0,
-  queued: 0,
   pausedRepos: [],
   dropped: 0,
 };
@@ -37,8 +30,8 @@ const NOTHING: Omit<Health, "level" | "headline" | "detail"> = {
  * Biến kết quả đọc `status.json` thành một câu nói được ra màn hình.
  *
  * Ba trong bốn kết cục ở đây **không phải lỗi lập trình**: file chưa có (vừa
- * cài), file hỏng (đang ghi dở), file cũ (reconciler chết). Cái thứ ba là chế
- * độ hỏng nguy hiểm nhất của cả hệ thống — không có gì đỏ để nhìn, chỉ là không
+ * cài), file hỏng (đang ghi dở), file cũ (runner chết). Cái thứ ba là chế độ
+ * hỏng nguy hiểm nhất của cả hệ thống — không có gì đỏ để nhìn, chỉ là không
  * có gì xảy ra — nên nó phải là thứ to nhất trên màn hình khi xảy ra.
  */
 export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
@@ -47,9 +40,9 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
       return {
         ...NOTHING,
         level: "warn",
-        headline: "No data from the reconciler yet",
+        headline: "No data from the runner yet",
         detail:
-          "status.json not found. Normal right after install, before the reconciler has run a tick.",
+          "status.json not found. Normal right after install, before the runner has run a tick.",
       };
     }
     return {
@@ -63,16 +56,10 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
   const { status, dropped } = read;
   const ageS = heartbeatAge(status.heartbeat, now);
   const pausedRepos = status.repos.filter((r) => r.paused).map((r) => r.slug);
-  const queued = status.repos.reduce((n, r) => n + r.queue.length, 0);
 
   const shared = {
     heartbeatAgeS: ageS,
-    slots: {
-      build: { used: status.slots.build.used, max: status.slots.build.max },
-      evidence: { used: status.slots.evidence.used, max: status.slots.evidence.max },
-    },
     running: status.running.length,
-    queued,
     pausedRepos,
     dropped,
   };
@@ -81,7 +68,7 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
     return {
       ...shared,
       level: "down",
-      headline: "The reconciler may be dead",
+      headline: "The runner may be dead",
       detail:
         ageS === null
           ? "Heartbeat is unreadable — every number below is from the last write, not from now."
@@ -94,7 +81,7 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
       ...shared,
       level: "warn",
       headline: "The whole system is paused",
-      detail: "Kill switch is on — the reconciler is alive but hands out no work.",
+      detail: "Kill switch is on — the runner is alive but hands out no work.",
     };
   }
 

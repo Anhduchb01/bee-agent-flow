@@ -70,7 +70,7 @@ test("chưa đăng nhập thì không đọc được một byte nào", async ({
 });
 
 test("người ngoài allowlist cũng không đọc được", async ({ page }) => {
-  await page.goto("/dang-nhap");
+  await page.goto("/login");
   await page.getByLabel("GitHub login").fill("nguoi-la");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("do not have access");

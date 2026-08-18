@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleGaugeIcon, InboxIcon, LogOutIcon, PlusIcon, TerminalIcon, WaypointsIcon } from "lucide-react";
+import { CircleGaugeIcon, LogOutIcon, PlusIcon, TerminalIcon, WaypointsIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -47,16 +47,12 @@ export interface SucKhoeTomTat {
 export function AppSidebar({
   displayName,
   login,
-  role,
-  soViecChoBan,
   duAn,
   sucKhoe,
   dangXuat,
 }: {
   displayName: string;
   login: string;
-  role: "pm" | "tl";
-  soViecChoBan: number;
   duAn: DuAnTrongSidebar[];
   sucKhoe: SucKhoeTomTat;
   dangXuat: () => Promise<void>;
@@ -72,9 +68,6 @@ export function AppSidebar({
           </span>
           <span className="ml-auto flex items-center gap-1.5 text-xs text-body group-data-[collapsible=icon]:hidden">
             <span title={login}>{displayName}</span>
-            <span className="rounded-pill border px-1.5 py-0.5 font-mono text-[0.6875rem] uppercase">
-              {role}
-            </span>
           </span>
         </div>
 
@@ -84,8 +77,7 @@ export function AppSidebar({
          * có — nó dạy người dùng rằng chỗ này không đáng tin.
          *
          * Muốn nối lại thì dùng `Command` trong `Dialog` của shadcn, liệt kê dự
-         * án + task đang mở; phần tìm không dấu đã có sẵn ở
-         * `features/inbox/lib/filter.ts`.
+         * án + task đang mở.
          */}
       </SidebarHeader>
 
@@ -105,19 +97,6 @@ export function AppSidebar({
                   <CircleGaugeIcon />
                   <span>Overview</span>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/viec"}
-                  tooltip="Your work"
-                  render={<Link href="/viec" />}
-                >
-                  <InboxIcon />
-                  <span>Your work</span>
-                </SidebarMenuButton>
-                {soViecChoBan > 0 ? (
-                  <SidebarMenuBadge>{soViecChoBan}</SidebarMenuBadge>
-                ) : null}
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -145,7 +124,7 @@ export function AppSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          <SidebarGroupAction title="Add project" render={<Link href="/du-an" />}>
+          <SidebarGroupAction title="Add project" render={<Link href="/projects" />}>
             <PlusIcon />
           </SidebarGroupAction>
           <SidebarGroupContent>

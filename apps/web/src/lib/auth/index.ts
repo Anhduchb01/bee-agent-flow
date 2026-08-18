@@ -90,7 +90,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   secret,
   // App chạy sau Cloudflare Access trên tên miền riêng, không phải trên Vercel.
   trustHost: true,
-  pages: { signIn: "/dang-nhap" },
+  pages: { signIn: "/login" },
   callbacks: {
     async jwt({ token, account, profile, user }) {
       return fillToken(token, {

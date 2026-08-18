@@ -37,12 +37,7 @@ function Ma({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * Trạng thái của task: nhãn, `bee/test`, approvals, link PR.
- *
- * **Không có nút merge ở đây, và sẽ không bao giờ có.** Merge xảy ra trên
- * GitHub, do người làm, sau khi xem diff. App này không giữ quyền đó.
- */
+/** Trạng thái của task: nhãn, `bee/test`, approvals, link PR. */
 export function TaskStatus({ task, dangChay }: { task: GhTask; dangChay: BeeRunning | null }) {
   const approvals = task.pull?.reviews.filter((r) => r.state === "APPROVED") ?? [];
 

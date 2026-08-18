@@ -5,7 +5,7 @@ import { expect, type Page } from "@playwright/test";
  * `GITHUB_SOURCE !== "live"` — xem `src/lib/auth/index.ts`.
  */
 export async function dangNhap(page: Page, login: string): Promise<void> {
-  await page.goto("/dang-nhap");
+  await page.goto("/login");
   await page.getByLabel("GitHub login").fill(login);
   await page.getByRole("button", { name: "Sign in" }).click();
   // Chờ RỜI KHỎI trang đăng nhập, không chờ một heading xuất hiện: trang đăng
@@ -14,12 +14,6 @@ export async function dangNhap(page: Page, login: string): Promise<void> {
   //
   // Cũng không dùng nút "Thoát" làm dấu hiệu: trên điện thoại sidebar nằm ngoài
   // màn hình nên nút đó chưa hiện.
-  await expect(page).not.toHaveURL(/\/dang-nhap/);
+  await expect(page).not.toHaveURL(/\/login/);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-}
-
-/** Đăng nhập rồi vào thẳng màn "Việc của bạn" — trang chủ giờ là Tổng quan. */
-export async function vaoViec(page: Page, login: string): Promise<void> {
-  await dangNhap(page, login);
-  await page.goto("/viec");
 }

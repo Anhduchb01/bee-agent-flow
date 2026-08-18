@@ -305,6 +305,7 @@ tên người · `usage`/`stop_reason` mỗi lần chạy.
 
 Cầu socket `spec-chat` + sudoers + polkit hai UID · rule 07 (hàng đợi nhãn) ·
 rule 08 (spec) · hộp thư 5 loại suy từ nhãn · orch/agent tách user.
+· hộp thư + notify + chat cũ đã XOÁ 18/08 (đợt 1+2), làm lại trên runner phiên
 
 ### 7.3 Thiếu — phải xây
 

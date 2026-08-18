@@ -80,7 +80,7 @@ export default async function DangNhapPage({
 
   async function raNgoai() {
     "use server";
-    await signOut({ redirectTo: "/dang-nhap" });
+    await signOut({ redirectTo: "/login" });
   }
 
   async function vaoBangTenThu(formData: FormData) {
@@ -98,7 +98,7 @@ export default async function DangNhapPage({
             bee
           </h1>
           <p className="text-sm text-body">
-            Where PM and Techlead work with the agent. Sign in with your GitHub account.
+            Where you work with the agent. Sign in with your GitHub account.
           </p>
         </div>
 

@@ -47,8 +47,8 @@ the web app in one commit is almost always two changes.
   framework, a language guide, or a product convention to it. That was removed
   once on purpose (`c1b1467`) and should not come back.
 - Line endings are LF, enforced by `.gitattributes`.
-- Docs are written in Vietnamese; files read by a model (prompts, this file) are
-  written in English. Follow whichever the file you are editing already uses.
+- Comments, routes and new identifiers are written in English; docs stay
+  Vietnamese; existing Vietnamese identifiers stay until naturally refactored.
 
 ---
 

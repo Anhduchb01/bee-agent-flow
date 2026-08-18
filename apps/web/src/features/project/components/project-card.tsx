@@ -23,8 +23,6 @@ function So({ nhan, gia }: { nhan: string; gia: string }) {
 }
 
 export function ProjectCard({ project }: { project: ProjectView }) {
-  const queue = project.repo?.queue.length ?? 0;
-
   return (
     <li>
       <Card className="h-full transition-colors hover:border-faint">
@@ -42,7 +40,7 @@ export function ProjectCard({ project }: { project: ProjectView }) {
           {project.repo === null ? (
             <span className="flex items-center gap-1.5 text-xs font-normal text-body">
               <StatusDot tone="idle" />
-              reconciler does not know this project
+              runner does not know this project
             </span>
           ) : null}
         </CardTitle>
@@ -51,8 +49,7 @@ export function ProjectCard({ project }: { project: ProjectView }) {
 
       <CardContent>
         <dl className="flex flex-wrap gap-x-8 gap-y-3">
-          <So nhan="Running" gia={`${project.running.length}/${project.repo?.wip.max ?? "?"}`} />
-          <So nhan="Queued" gia={String(queue)} />
+          <So nhan="Running" gia={String(project.running.length)} />
           <So nhan="Open tasks" gia={String(project.tasks.length)} />
           <So nhan="Open PRs" gia={String(project.prs.length)} />
         </dl>

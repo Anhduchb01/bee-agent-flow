@@ -19,7 +19,7 @@ test("heartbeat cũ 35 phút → báo đỏ, và nói rõ các con số là cũ"
   await page.goto("/");
 
   const health = page.getByRole("region", { name: "System health" });
-  await expect(health).toContainText("The reconciler may be dead");
+  await expect(health).toContainText("The runner may be dead");
   await expect(health).toContainText("35 minutes");
   await expect(health).toContainText("stale");
 
@@ -33,7 +33,7 @@ test("thiếu status.json → báo rõ, không crash", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("region", { name: "System health" })).toContainText(
-    "No data from the reconciler yet",
+    "No data from the runner yet",
   );
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Overview");
 });

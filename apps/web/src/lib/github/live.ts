@@ -61,7 +61,7 @@ async function tokenCuaNguoiXem(): Promise<string | undefined> {
  * nút đăng xuất — thứ duy nhất xoá được cookie hỏng.
  */
 function neuTokenHong(e: unknown): never {
-  if (e instanceof GithubError && e.status === 401) redirect("/dang-nhap?het-han=1");
+  if (e instanceof GithubError && e.status === 401) redirect("/login?het-han=1");
   throw e;
 }
 

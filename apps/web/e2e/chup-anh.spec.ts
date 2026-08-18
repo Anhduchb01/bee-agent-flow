@@ -26,10 +26,8 @@ type Man = { ten: string; url: string; mo?: (p: Page) => Promise<void> };
 /** Các màn mà cảnh dữ liệu thực sự làm đổi nội dung. */
 const MAN_THEO_CANH: Man[] = [
   { ten: "01-tong-quan", url: "/" },
-  { ten: "02-viec-cua-ban", url: "/viec" },
-  { ten: "03-du-an", url: "/du-an" },
+  { ten: "03-du-an", url: "/projects" },
   { ten: "04-du-an-bang", url: "/p/myapp" },
-  { ten: "05-du-an-kanban", url: "/p/myapp?view=kanban" },
 ];
 
 /**
@@ -40,14 +38,6 @@ const MAN_THEO_CANH: Man[] = [
 const MAN_MOT_LAN: Man[] = [
   { ten: "06-trang-task", url: "/t/myapp/49" },
   { ten: "07-task-co-pr", url: "/t/myapp/40" },
-  {
-    ten: "08-modal-tao-task",
-    url: "/p/myapp",
-    mo: async (p) => {
-      await p.getByRole("button", { name: "New task" }).click();
-      await p.getByRole("dialog").waitFor();
-    },
-  },
 ];
 
 const CANH = [
