@@ -25,7 +25,7 @@ export default auth((req) => {
   if (open || req.auth) return NextResponse.next();
 
   const url = new URL("/login", req.nextUrl);
-  url.searchParams.set("tiep-tuc", pathname);
+  url.searchParams.set("next", pathname);
   return NextResponse.redirect(url);
 });
 

@@ -58,7 +58,7 @@ const CANH = [
 
 async function datCanh(page: Page, canh: string) {
   await page.context().addCookies([
-    { name: "bee-canh", value: canh, url: "http://127.0.0.1:3187" },
+    { name: "bee-scene", value: canh, url: "http://127.0.0.1:3187" },
   ]);
 }
 

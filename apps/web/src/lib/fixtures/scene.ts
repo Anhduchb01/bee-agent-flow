@@ -3,7 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 
 /** Cookie chọn cảnh. Không nguồn thật nào đọc nó, nên trên máy thật nó vô nghĩa. */
-export const SCENE_COOKIE = "bee-canh";
+export const SCENE_COOKIE = "bee-scene";
 
 /**
  * Cảnh nào đang được dùng — chuyện của **riêng tầng fixture**.

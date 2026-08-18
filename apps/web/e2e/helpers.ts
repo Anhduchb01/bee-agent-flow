@@ -6,7 +6,7 @@ import { expect, type Page } from "@playwright/test";
  * machine. Domain-based (no URL) so it works on any E2E_PORT.
  */
 export async function datCanh(page: Page, canh: string): Promise<void> {
-  await page.context().addCookies([{ name: "bee-canh", value: canh, domain: "127.0.0.1", path: "/" }]);
+  await page.context().addCookies([{ name: "bee-scene", value: canh, domain: "127.0.0.1", path: "/" }]);
 }
 
 /**

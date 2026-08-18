@@ -56,12 +56,12 @@ async function tokenCuaNguoiXem(): Promise<string | undefined> {
  * Gặp thật: tạo task xong thì token còn tốt (issue được tạo), 40 phút sau mọi
  * trang 401. Người dùng không có cách nào đoán ra phải đăng xuất.
  *
- * Nên: ném người dùng về trang đăng nhập kèm dấu `het-han`. Trang đó thấy dấu
+ * Nên: ném người dùng về trang đăng nhập kèm dấu `expired`. Trang đó thấy dấu
  * này thì KHÔNG chuyển hướng ngược lại (phiên cũ vẫn còn nên nó sẽ lặp) mà hiện
  * nút đăng xuất — thứ duy nhất xoá được cookie hỏng.
  */
 function neuTokenHong(e: unknown): never {
-  if (e instanceof GithubError && e.status === 401) redirect("/login?het-han=1");
+  if (e instanceof GithubError && e.status === 401) redirect("/login?expired=1");
   throw e;
 }
 

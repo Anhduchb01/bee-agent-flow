@@ -20,7 +20,7 @@ describe("postLoginTarget — where login drops you", () => {
     expect(postLoginTarget(undefined, GREEN)).toBe("/");
   });
 
-  it("an explicit ?tiep-tuc= destination wins over the setup redirect", () => {
+  it("an explicit ?next= destination wins over the setup redirect", () => {
     expect(postLoginTarget("/sessions", null)).toBe("/sessions");
     expect(postLoginTarget("/sessions", GREEN)).toBe("/sessions");
   });

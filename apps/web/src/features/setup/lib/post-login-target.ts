@@ -1,7 +1,7 @@
 import type { BeeDoctor } from "@/lib/bee/types";
 
 /**
- * Where a successful login should land. An explicit in-app `?tiep-tuc=`
+ * Where a successful login should land. An explicit in-app `?next=`
  * destination always wins; otherwise an unverified or failing machine goes
  * straight to /setup — a fresh install should not greet you with an empty
  * Overview. `//host` is rejected: protocol-relative URLs would be an open

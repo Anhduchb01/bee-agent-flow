@@ -67,15 +67,15 @@ export default async function DangNhapPage({
 }) {
   const session = await auth();
   const thieu = thieuGi();
-  const { "tiep-tuc": next, "het-han": hetHan } = await searchParams;
+  const { next, expired: hetHan } = await searchParams;
   // Fresh or failing machine → login drops you on /setup, not an empty
-  // Overview. An explicit ?tiep-tuc= destination still wins.
+  // Overview. An explicit ?next= destination still wins.
   const target = postLoginTarget(
     typeof next === "string" ? next : undefined,
     await getBee().readDoctor(),
   );
 
-  // `het-han` nghĩa là GitHub đã từ chối token của phiên này. Phiên vẫn giải mã
+  // `expired` nghĩa là GitHub đã từ chối token của phiên này. Phiên vẫn giải mã
   // được, nên KHÔNG được chuyển hướng vào trong: cookie hỏng còn nguyên đó và
   // trang trong lại ném ngược ra đây, lặp mãi. Chỉ có đăng xuất mới xoá được nó.
   if (session?.login && !hetHan) redirect(target);
