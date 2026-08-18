@@ -156,26 +156,45 @@ export function createFixtureBeeSource(): BeeSource {
     },
 
     /*
-     * Doctor mẫu cố ý TRỘN xanh/đỏ + PAUSE bật: màn setup phải vẽ được cả
-     * ba trạng thái (đạt, hỏng kèm cách sửa, máy đang nằm im). Cảnh vừa-cài
-     * trả null — đúng hình dạng "doctor chưa từng chạy".
+     * Doctor theo cảnh — cùng câu chuyện với các nguồn khác:
+     * - vừa-cài → null ("doctor chưa từng chạy") — login rơi vào /setup;
+     * - có-sự-cố → TRỘN xanh/đỏ + PAUSE bật: màn setup phải vẽ được cả mục
+     *   hỏng kèm cách sửa lẫn banner nằm-im;
+     * - còn lại → xanh toàn bộ: login về Overview như máy đã chạy ổn.
      */
     async readDoctor() {
-      if (chuaChayLanNao(await currentScene())) return null;
+      const canh = await currentScene();
+      if (chuaChayLanNao(canh)) return null;
+      if (canh === "co-su-co") {
+        return {
+          checked_at: "2026-08-18T09:30:00Z",
+          ok: false,
+          paused: true,
+          checks: [
+            { id: "pat", ok: true, detail: "fine-grained PAT" },
+            { id: "repo:myapp", ok: true, detail: "branch protection bật trên main" },
+            {
+              id: "repo:blog",
+              ok: false,
+              detail: "CHƯA có branch protection trên main — push thẳng main đang mở",
+            },
+            { id: "may-sach", ok: true, detail: "không thấy SSH key / AWS / kube / GPG" },
+            { id: "linger", ok: false, detail: "chưa bật — chạy: loginctl enable-linger bee" },
+            { id: "reaper", ok: true, detail: "bee-reaper.timer đang chạy" },
+            { id: "dia", ok: true, detail: "/srv/bee ghi được" },
+          ],
+        };
+      }
       return {
         checked_at: "2026-08-18T09:30:00Z",
-        ok: false,
-        paused: true,
+        ok: true,
+        paused: false,
         checks: [
           { id: "pat", ok: true, detail: "fine-grained PAT" },
           { id: "repo:myapp", ok: true, detail: "branch protection bật trên main" },
-          {
-            id: "repo:blog",
-            ok: false,
-            detail: "CHƯA có branch protection trên main — push thẳng main đang mở",
-          },
+          { id: "repo:blog", ok: true, detail: "branch protection bật trên main" },
           { id: "may-sach", ok: true, detail: "không thấy SSH key / AWS / kube / GPG" },
-          { id: "linger", ok: false, detail: "chưa bật — chạy: loginctl enable-linger bee" },
+          { id: "linger", ok: true, detail: "bật" },
           { id: "reaper", ok: true, detail: "bee-reaper.timer đang chạy" },
           { id: "dia", ok: true, detail: "/srv/bee ghi được" },
         ],

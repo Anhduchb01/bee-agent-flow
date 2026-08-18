@@ -274,6 +274,10 @@ Người mới cài máy làm theo MỘT trang, kiểm chứng ngay trên web:
 3. Danh sách repo đã đăng ký — cùng nguồn `listRepos()` với form phiên.
 4. Bước cuối nhúng chính `NewSessionForm`: test kết thúc ở chỗ sử dụng
    bắt đầu.
+5. Login tự đổ về đây: máy chưa từng chạy doctor (null) hoặc doctor đỏ →
+   đích sau đăng nhập là `/setup` thay vì Overview trống (`postLoginTarget`
+   thuần, có test; `?tiep-tuc=` nội bộ vẫn thắng, chặn `//host` open
+   redirect). Máy xanh → về `/` như thường.
 
 ---
 

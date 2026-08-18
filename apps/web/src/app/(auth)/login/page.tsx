@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { postLoginTarget } from "@/features/setup";
 import { auth, signIn, signOut } from "@/lib/auth";
+import { getBee } from "@/lib/bee";
 
 const isLive = process.env.GITHUB_SOURCE === "live";
 
@@ -66,7 +68,12 @@ export default async function DangNhapPage({
   const session = await auth();
   const thieu = thieuGi();
   const { "tiep-tuc": next, "het-han": hetHan } = await searchParams;
-  const target = typeof next === "string" && next.startsWith("/") ? next : "/";
+  // Fresh or failing machine → login drops you on /setup, not an empty
+  // Overview. An explicit ?tiep-tuc= destination still wins.
+  const target = postLoginTarget(
+    typeof next === "string" ? next : undefined,
+    await getBee().readDoctor(),
+  );
 
   // `het-han` nghĩa là GitHub đã từ chối token của phiên này. Phiên vẫn giải mã
   // được, nên KHÔNG được chuyển hướng vào trong: cookie hỏng còn nguyên đó và

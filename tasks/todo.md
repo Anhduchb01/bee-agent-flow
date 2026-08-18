@@ -103,6 +103,9 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       (`readDoctor()` disk/fixture, `bee-doctor.service` oneshot + nút
       "Run doctor again" qua systemctl) + danh sách repo đã đăng ký + bước
       cuối nhúng NewSessionForm để test tại chỗ. Link "Setup" trong sidebar.
+      Login tự redirect về /setup khi máy chưa verify hoặc doctor đỏ
+      (`postLoginTarget`; fixture doctor theo cảnh: binh-thuong xanh,
+      co-su-co đỏ+PAUSE, vua-cai null).
 - [ ] 🧑 **S4.1** Tạo fine-grained PAT (contents + PR + issues, đúng danh sách
       repo) · bật branch protection `main` từng repo · thử push main phải bị từ chối
       → làm theo trang `/setup`, doctor phải xanh trên đó
