@@ -19,15 +19,14 @@ export default async function CanvasPage() {
           </span>
         }
       />
-      {nodes.length === 0 ? (
-        <p className="p-6 text-sm text-muted-foreground">
-          Nothing to draw yet. Start a session — its issues and pull requests will grow here as nodes.
-        </p>
-      ) : (
-        <div className="min-h-0 flex-1">
-          <CanvasView nodes={nodes} edges={edges} phien={nhom.flatMap((g) => g.phien)} />
-        </div>
-      )}
+      <div className="min-h-0 flex-1">
+        <CanvasView
+          nodes={nodes}
+          edges={edges}
+          phien={nhom.flatMap((g) => g.phien)}
+          repos={nhom.map((g) => g.repo)}
+        />
+      </div>
     </div>
   );
 }

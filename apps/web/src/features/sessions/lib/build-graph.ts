@@ -80,7 +80,8 @@ export function dungDoThi(
         position: { x, y },
         data: {
           title: p.title ?? `${p.slug}-${p.num}`,
-          nhanh: `bee/${p.slug}-${p.num}`,
+          // Phiên chat không có branch — node nói thật điều đó thay vì bịa tên nhánh.
+          nhanh: p.worktree ? `bee/${p.slug}-${p.num}` : "chat",
           status: p.status,
           needsHuman: p.needs_human,
           href: `/sessions/${p.id}`,

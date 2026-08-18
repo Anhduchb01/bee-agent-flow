@@ -36,6 +36,18 @@ BeeSource        →  sessionArtifacts(id) — disk: quét run.jsonl lọc dòng
 
 ## 2. Trang `/canvas`
 
+- **Tạo phiên ngay trên canvas** *(17/08)*: form nổi góc trên-trái (React Flow
+  `Panel`) — chọn repo (datalist từ repo đã có + gõ tự do), title, và
+  **checkbox worktree**. Tạo xong panel chat mở tại chỗ (action trả luôn
+  `BeeSession` vừa mở), node mới hiện sau `router.refresh` — không rời đồ thị.
+- **Bỏ tick worktree = PHIÊN CHAT**: `session.json` ghi `worktree:false`;
+  runner bỏ qua clone/fetch/worktree (cwd là `sessions/<id>/chat/`), và
+  **không bao giờ cấp tool** — kể cả khi ai đó sửa tay `phase:"work"`. UI:
+  không có nút "OK, do it", nhãn `chat` thay tên nhánh, node canvas cũng ghi
+  `chat`. Muốn làm thật thì mở phiên mới có worktree — không có đường nâng
+  cấp tại chỗ, vì `--resume` đòi cùng cwd (rig S0.2) và đổi cwd giữa chừng
+  là đánh cược với chính điều đã chứng minh.
+
 - **Server dựng đồ thị, client chỉ vẽ.** `build-graph.ts` là hàm THUẦN
   (test được): `(nhóm phiên, artifacts) → {nodes, edges}` với layout tính
   sẵn — repo là cột, phiên xếp dọc trong cột, artifact dạt phải phiên của nó.

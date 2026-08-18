@@ -65,7 +65,7 @@ bee-web (user bee)
    │ ④ systemctl --user stop bee-session@<id>
    ▼
 bee-session@<id> → session-run.sh
-   ├─ đọc session.json  (repo, mode, prompt đầu, resume?)
+   ├─ đọc session.json  (repo, mode, prompt đầu, worktree?, resume?)
    ├─ kiểm PAUSE — có thì từ chối ngay, ghi lý do vào run.jsonl rồi thoát
    ├─ fetch bare clone → branch bee/<slug>-<n> → git worktree add
    ├─ phát sự kiện vòng đời vào run.jsonl  ("worktree đang dựng", "phiên đã khởi động")
@@ -137,6 +137,9 @@ apps/runner/
 - Tham số duy nhất: `<id>` (instance của template unit). Mọi thứ khác đọc từ
   `session.json` — file do web ghi *trước khi* start. Không tham số nào đi qua
   argv của systemd ngoài id đã khớp `^[a-f0-9-]{36}$`.
+- **`worktree:false` = phiên chat** *(17/08, canvas.md §2)*: bỏ qua toàn bộ
+  clone/fetch/worktree, cwd là `sessions/<id>/chat/`, và **luôn chạy
+  `--allowedTools ""`** bất kể phase — phiên chat không có đường nào tới tool.
 - `trap` dọn: FIFO, cập nhật `meta.json`, **giữ** worktree (dọn worktree là
   việc của stop/reaper theo chính sách, không phải của trap — phiên fail còn
   cần xem xác).

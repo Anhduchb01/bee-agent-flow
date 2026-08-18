@@ -48,13 +48,13 @@ export function LiveView({ phien }: { phien: BeeSession }) {
       <div className="flex items-center gap-3 border-b border-border px-4 py-2 sm:px-6">
         <StatusDot tone={ketThuc === null ? "agent" : ketThuc === "done" ? "ok" : "down"} />
         <span className="font-mono text-xs text-muted-foreground">
-          {phien.repo} · bee/{phien.slug}-{phien.num}
+          {phien.repo} · {phien.worktree ? `bee/${phien.slug}-${phien.num}` : "chat"}
         </span>
         <span className="font-mono text-xs text-muted-foreground">
-          {ketThuc === null ? (okDaBam ? "working" : "interview") : ketThuc}
+          {ketThuc === null ? (phien.worktree ? (okDaBam ? "working" : "interview") : "chat") : ketThuc}
         </span>
         <span className="flex-1" />
-        {dangChay && !okDaBam && (
+        {dangChay && !okDaBam && phien.worktree && (
           <Button
             size="sm"
             onClick={() => {
@@ -107,7 +107,13 @@ export function LiveView({ phien }: { phien: BeeSession }) {
             <Textarea
               value={nhap}
               onChange={(e) => setNhap(e.target.value)}
-              placeholder={okDaBam ? "Say something to the agent…" : "Describe your idea — the agent will interview you"}
+              placeholder={
+                !phien.worktree
+                  ? "Ask anything — this chat has no tools and touches no code"
+                  : okDaBam
+                    ? "Say something to the agent…"
+                    : "Describe your idea — the agent will interview you"
+              }
               aria-label="Message to the agent"
               rows={2}
               className="min-h-0 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 dark:bg-transparent"

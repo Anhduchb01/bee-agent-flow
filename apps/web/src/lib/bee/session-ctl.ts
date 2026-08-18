@@ -48,6 +48,8 @@ export async function moPhien(input: {
   num: number;
   repo: string;
   title: string;
+  /** `false` = phiên chat — runner bỏ qua clone/worktree, không bao giờ cấp tool. */
+  worktree: boolean;
   systemPrompt?: string;
 }): Promise<KetQuaPhien> {
   if (!SLUG_RE.test(input.slug)) return { ok: false, message: "Invalid project slug." };
@@ -67,6 +69,7 @@ export async function moPhien(input: {
       repo: input.repo,
       title: input.title.slice(0, 200),
       phase: "interview",
+      worktree: input.worktree,
       system_prompt: input.systemPrompt ?? "",
       max_turns: 120,
       created_at: new Date().toISOString(),

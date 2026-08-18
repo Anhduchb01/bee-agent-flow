@@ -5,6 +5,7 @@ import {
   Background,
   Controls,
   Handle,
+  Panel,
   Position,
   ReactFlow,
   type Edge,
@@ -21,6 +22,7 @@ import { khoangThoiGian } from "@/lib/duration";
 
 import type { EdgeCanvas, NodeArtifact, NodeCanvas, NodeNhanRepo, NodePhien } from "../lib/build-graph";
 import { LiveView } from "./live-view";
+import { NewSessionForm } from "./new-session-form";
 
 /**
  * Vẽ đồ thị đã dựng sẵn ở server (build-graph.ts) — component này KHÔNG có
@@ -136,10 +138,12 @@ export function CanvasView({
   nodes,
   edges,
   phien,
+  repos = [],
 }: {
   nodes: NodeCanvas[];
   edges: EdgeCanvas[];
   phien: BeeSession[];
+  repos?: string[];
 }) {
   const flowNodes: Node[] = nodes.map((n) => ({ ...n, data: { ...n.data } }));
   const flowEdges: Edge[] = edges.map((e) => ({ ...e }));
@@ -162,6 +166,11 @@ export function CanvasView({
       >
         <Background gap={24} />
         <Controls showInteractive={false} />
+        {/* Tạo phiên ngay trên canvas — xong là panel chat mở tại chỗ,
+            node mới hiện sau router.refresh, không rời đồ thị */}
+        <Panel position="top-left" className="w-[26rem] max-w-[calc(100vw-2rem)]">
+          <NewSessionForm repos={repos} onCreated={(p) => setChon(p)} />
+        </Panel>
       </ReactFlow>
 
       {/* Panel chat tại chỗ — cùng LiveView với trang riêng, một nguồn sự thật */}

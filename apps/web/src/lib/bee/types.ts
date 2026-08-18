@@ -224,6 +224,8 @@ export interface BeeSession {
   repo: string;
   title: string | null;
   phase: PhaCuaPhien;
+  /** `false` = phiên chat: không worktree, không branch, không bao giờ có tool. */
+  worktree: boolean;
   status: TrangThaiPhien;
   created_at: string | null;
   started_at: string | null;

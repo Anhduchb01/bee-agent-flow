@@ -53,6 +53,9 @@ export async function docPhienTrong(root: string, id: string): Promise<BeeSessio
     repo: s.repo,
     title: typeof s.title === "string" ? s.title : null,
     phase,
+    // Chỉ `false` tường minh mới là phiên chat — session.json cũ không có
+    // trường này và chúng đều là phiên có worktree.
+    worktree: s.worktree !== false,
     status,
     created_at: typeof s.created_at === "string" ? s.created_at : null,
     started_at: typeof meta.started_at === "string" ? meta.started_at : null,

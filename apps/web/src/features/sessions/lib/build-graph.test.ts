@@ -7,7 +7,7 @@ import { dungDoThi } from "./build-graph";
 function phien(id: string, slug: string, num: number, repo: string): BeeSession {
   return {
     id, slug, num, repo,
-    title: null, phase: "work", status: "running",
+    title: null, phase: "work", worktree: true, status: "running",
     created_at: null, started_at: null, ended_at: null,
     attempt: 0, needs_human: false,
   };
@@ -65,5 +65,12 @@ describe("dungDoThi", () => {
 
   it("không phiên nào thì đồ thị rỗng — trạng thái tốt, không phải lỗi", () => {
     expect(dungDoThi([], {})).toEqual({ nodes: [], edges: [] });
+  });
+
+  it("phiên chat (worktree=false) mang nhãn 'chat' thay vì bịa tên nhánh", () => {
+    const chat = { ...phien(A, "myapp", 3, "you/myapp"), worktree: false };
+    const { nodes } = dungDoThi([{ repo: "you/myapp", phien: [chat] }], {});
+    const node = nodes.find((n) => n.id === A);
+    expect(node?.type === "phien" && node.data.nhanh).toBe("chat");
   });
 });

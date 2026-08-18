@@ -79,33 +79,43 @@ trap don_dep EXIT
 trap 'DA_DUNG=1; exit 0' TERM INT
 
 # ── 4 · Repo: bare clone + worktree + branch của phiên ─────────────────────
+# `worktree:false` = PHIÊN CHAT: không clone, không branch, không tool —
+# hỏi đáp nhanh không phải trả tiền fetch. "Ok làm đi" không tồn tại ở đây;
+# muốn làm thật thì mở phiên mới có worktree.
+CO_WORKTREE=$(jq -r 'if .worktree == false then "no" else "yes" end' "$SDIR/session.json")
+
 BARE="$BEE_ROOT/repos/$SLUG.git"
 WT="$BEE_ROOT/work/$ID"
 BRANCH="bee/$SLUG-$NUM"
 
-if [[ ! -d "$BARE" ]]; then
+if [[ "$CO_WORKTREE" == "no" ]]; then
+  WT="$SDIR/chat"
+  mkdir -p "$WT"
+elif [[ ! -d "$BARE" ]]; then
   lifecycle "$SDIR" "Chưa có bản sao repo — đang clone $REPO…"
   mkdir -p "$(dirname "$BARE")"
   git clone --bare --quiet "https://github.com/$REPO.git" "$BARE" \
     || { lifecycle "$SDIR" "Clone $REPO thất bại — xem stderr.log."; die "clone fail"; }
 fi
 
-# Nhánh mặc định lấy từ HEAD của bare clone — bài học origin/HEAD của mô hình cũ.
-DEF=$(git --git-dir="$BARE" symbolic-ref --short HEAD 2>/dev/null || echo main)
+if [[ "$CO_WORKTREE" == "yes" ]]; then
+  # Nhánh mặc định lấy từ HEAD của bare clone — bài học origin/HEAD của mô hình cũ.
+  DEF=$(git --git-dir="$BARE" symbolic-ref --short HEAD 2>/dev/null || echo main)
 
-# Chỉ fetch nhánh mặc định: fetch +refs/heads/* sẽ đòi cập nhật cả các nhánh
-# bee/* đang được worktree khác checkout, và git từ chối. Fetch fail không
-# chặn phiên — mở lại một phiên cũ lúc mất mạng vẫn phải được.
-lifecycle "$SDIR" "Đang fetch $REPO ($DEF)…"
-git --git-dir="$BARE" fetch --quiet origin "+refs/heads/$DEF:refs/heads/$DEF" 2>>"$SDIR/stderr.log" \
-  || lifecycle "$SDIR" "Fetch thất bại — dùng bản sao đang có."
+  # Chỉ fetch nhánh mặc định: fetch +refs/heads/* sẽ đòi cập nhật cả các nhánh
+  # bee/* đang được worktree khác checkout, và git từ chối. Fetch fail không
+  # chặn phiên — mở lại một phiên cũ lúc mất mạng vẫn phải được.
+  lifecycle "$SDIR" "Đang fetch $REPO ($DEF)…"
+  git --git-dir="$BARE" fetch --quiet origin "+refs/heads/$DEF:refs/heads/$DEF" 2>>"$SDIR/stderr.log" \
+    || lifecycle "$SDIR" "Fetch thất bại — dùng bản sao đang có."
 
-if [[ ! -d "$WT" ]]; then
-  lifecycle "$SDIR" "Đang dựng worktree trên nhánh $BRANCH…"
-  git --git-dir="$BARE" worktree add --quiet -B "$BRANCH" "$WT" "$DEF" 2>>"$SDIR/stderr.log" \
-    || { lifecycle "$SDIR" "Dựng worktree thất bại — xem stderr.log."; die "worktree fail"; }
-  git -C "$WT" config user.name  "bee-agent"
-  git -C "$WT" config user.email "bee-agent@localhost"
+  if [[ ! -d "$WT" ]]; then
+    lifecycle "$SDIR" "Đang dựng worktree trên nhánh $BRANCH…"
+    git --git-dir="$BARE" worktree add --quiet -B "$BRANCH" "$WT" "$DEF" 2>>"$SDIR/stderr.log" \
+      || { lifecycle "$SDIR" "Dựng worktree thất bại — xem stderr.log."; die "worktree fail"; }
+    git -C "$WT" config user.name  "bee-agent"
+    git -C "$WT" config user.email "bee-agent@localhost"
+  fi
 fi
 
 mkdir -p "$BEE_RUNTIME"
@@ -128,7 +138,8 @@ while :; do
     ARGS+=(--session-id "$ID")
   fi
 
-  if [[ "$PHASE" == "interview" ]]; then
+  # Phiên chat không bao giờ có tool — kể cả khi ai đó sửa tay phase=work.
+  if [[ "$PHASE" == "interview" || "$CO_WORKTREE" == "no" ]]; then
     # Ranh giới, không phải tinh chỉnh: pha phỏng vấn không có tool nào.
     ARGS+=(--allowedTools "" --max-turns 40)
   else

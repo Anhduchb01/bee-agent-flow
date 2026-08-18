@@ -5,8 +5,11 @@ import { revalidatePath } from "next/cache";
 import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
 import { chuyenSangLam, dungPhien, moPhien, noiVaoPhien } from "@/lib/bee/session-ctl";
+import type { BeeSession } from "@/lib/bee/types";
 
-export type KetQuaMoPhien = { ok: true; id: string } | { ok: false; message: string };
+export type KetQuaMoPhien =
+  | { ok: true; id: string; phien: BeeSession | null }
+  | { ok: false; message: string };
 export interface KetQua {
   ok: boolean;
   message: string;
@@ -19,7 +22,12 @@ const KHONG_QUYEN: KetQua = { ok: false, message: "You are not allowed to do thi
  * số phiên tiếp theo của slug đó (chỉ để đặt tên branch bee/<slug>-<n>,
  * không phải khoá — khoá là UUID).
  */
-export async function batDauPhien(input: { repo: string; title: string }): Promise<KetQuaMoPhien> {
+export async function batDauPhien(input: {
+  repo: string;
+  title: string;
+  /** `false` = phiên chat: không worktree, không tool — hỏi đáp nhanh. */
+  worktree?: boolean;
+}): Promise<KetQuaMoPhien> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: KHONG_QUYEN.message };
 
@@ -31,9 +39,20 @@ export async function batDauPhien(input: { repo: string; title: string }): Promi
   const daCo = await getBee().listSessions();
   const num = daCo.filter((p) => p.slug === slug).length + 1;
 
-  const ket = await moPhien({ slug, num, repo, title: input.title.trim() || `Session ${num}` });
-  if (ket.ok) revalidatePath("/sessions");
-  return ket;
+  const ket = await moPhien({
+    slug,
+    num,
+    repo,
+    title: input.title.trim() || `Session ${num}`,
+    worktree: input.worktree !== false,
+  });
+  if (!ket.ok) return ket;
+
+  revalidatePath("/sessions");
+  revalidatePath("/canvas");
+  // Trả luôn phiên vừa mở — canvas cần nó để mở panel tại chỗ không round-trip.
+  const phien = await getBee().readSession(ket.id);
+  return { ok: true, id: ket.id, phien };
 }
 
 export async function guiVaoPhien(id: string, text: string): Promise<KetQua> {
