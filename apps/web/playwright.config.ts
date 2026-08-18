@@ -1,5 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// The e2e port must not collide with a dev server someone left running on
+// 3187 — override with E2E_PORT instead of killing their process.
+const PORT = process.env.E2E_PORT ?? "3187";
+
 // webServer tự khởi động dev server — Playwright chỉ là tiến trình thường, không
 // cần Docker. Đây cũng là cách agent chạy nó dưới bee-agent (xem AGENTS.md §2).
 export default defineConfig({
@@ -14,7 +18,7 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"], ["json", { outputFile: "test-results/results.json" }]],
   use: {
-    baseURL: "http://127.0.0.1:3187",
+    baseURL: `http://127.0.0.1:${PORT}`,
     trace: "on-first-retry",
     video: "retain-on-failure",
   },
@@ -29,8 +33,8 @@ export default defineConfig({
     // đỏ ở đây, không phải sau khi đã cài lên máy.
     command:
       "pnpm build && cp -r .next/static .next/standalone/apps/web/.next/ && " +
-      "PORT=3187 HOSTNAME=127.0.0.1 node .next/standalone/apps/web/server.js",
-    url: "http://127.0.0.1:3187",
+      `PORT=${PORT} HOSTNAME=127.0.0.1 node .next/standalone/apps/web/server.js`,
+    url: `http://127.0.0.1:${PORT}`,
     // KHÔNG dùng lại server đang chạy. Một server mồ côi từ lượt trước vẫn trả
     // HTML mới nhưng phục vụ chunk của bản build cũ, nên trang lên bình thường
     // mà không hydrate: mọi nút im lặng không làm gì. Chín bài test đỏ cùng lúc

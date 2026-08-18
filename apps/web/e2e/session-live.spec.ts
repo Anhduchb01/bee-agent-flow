@@ -1,0 +1,48 @@
+import { expect, test } from "@playwright/test";
+
+import { dangNhap } from "./helpers";
+
+/**
+ * S7.3 — the whole session slice on the fixture, one pass:
+ * create from the repo combobox → live text streams in → interject → stop.
+ *
+ * On the fixture, "create" lands on the demo running session (PHIEN_DEMO)
+ * and the SSE route streams a REAL run.jsonl recorded by rig S0 — the
+ * "XOAI-XANH" marker below is real CLI output, not an invented string.
+ */
+test("create from combobox, watch the stream, interject, stop", async ({ page }) => {
+  await dangNhap(page, "pm-linh");
+  await page.goto("/sessions");
+
+  // Repo combobox: search lives INSIDE the dropdown (S7.1).
+  await page.getByRole("combobox", { name: "Repository" }).click();
+  const search = page.getByPlaceholder("Search repos…");
+  await expect(search).toBeFocused();
+  await search.fill("my");
+  // "you/blog" is filtered out; the chat escape hatch stays pinned.
+  await expect(page.getByRole("option", { name: "you/blog" })).toHaveCount(0);
+  await expect(page.getByRole("option", { name: "No repo — just chat" })).toBeVisible();
+  await page.getByRole("option", { name: "you/myapp" }).click();
+
+  // No title box anywhere — the first message names the session instead.
+  await expect(page.getByPlaceholder(/what do you want/i)).toHaveCount(0);
+  await page.getByRole("button", { name: "New session" }).click();
+
+  // Fixture drops us on the demo running session's live page.
+  await expect(page).toHaveURL(/\/sessions\/de300000-0000-4000-8000-000000000001/);
+
+  // Real text from the recorded run.jsonl arrives over SSE.
+  const log = page.getByRole("log", { name: "Session events" });
+  await expect(log).toContainText("XOAI-XANH", { timeout: 15_000 });
+
+  // Interject mid-run: the box clears on success and shows no error.
+  const input = page.getByLabel("Message to the agent");
+  await input.fill("thêm cả nút export PDF nhé");
+  await input.press("Enter");
+  await expect(input).toHaveValue("");
+
+  // Stop must not blow up the page; on the fixture the stream simply
+  // stays open (a real stop is machine acceptance — S4).
+  await page.getByRole("button", { name: "Stop" }).click();
+  await expect(log).toBeVisible();
+});

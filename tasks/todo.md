@@ -84,8 +84,17 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       không dấu kể cả đ→d; ↑↓ Enter Esc, active bắt đầu ở lựa chọn hiện tại;
       "No repo — just chat" ghim cuối không bị lọc; NewSessionForm dùng chung
       /sessions + Panel canvas; 14 test theo role combobox/listbox/option)
-- [ ] 🤖 **S7.2** Unit test route SSE (nợ spec §8 hàng Route)
-- [ ] 🤖 **S7.3** E2E fixture: mở phiên → chữ chạy → gõ chen → dừng
+- [x] 🤖 **S7.1b** ~~Auto-title~~ **XONG 18/08** — bỏ ô "What do you want…";
+      phiên mở ra chưa có tên (UI fallback slug-num), TIN NHẮN ĐẦU đặt tên như
+      Claude Code (`deriveSessionTitle` 60 ký tự cắt theo từ + `autoTitleSession`
+      ghi session.json tmp+rename, best-effort không làm hỏng lượt gửi).
+- [x] 🤖 **S7.2** ~~Unit test route SSE~~ **XONG 18/08** — 7 bài: 401/400/404,
+      replay id=byte offset, bee_replayed + trần 200 dòng, Last-Event-ID không
+      lặp dòng, bee_done + đóng khi phiên hết running (docTiep chạy file thật).
+- [x] 🤖 **S7.3** ~~E2E fixture~~ **XONG 18/08** — `session-live.spec.ts`: tạo
+      từ combobox (search trong dropdown, lọc, chat ghim) → chữ thật từ
+      run.jsonl rig chảy qua SSE → gõ chen ô sạch → Stop không nổ. Cả bộ e2e
+      38 pass / 0 fail. `E2E_PORT` override để không giết dev server đang chạy.
 
 ## S4 · Máy thật + vệ sinh A+
 
