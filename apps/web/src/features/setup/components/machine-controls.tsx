@@ -5,9 +5,15 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { validateClaudeToken } from "@/lib/bee/claude-token";
 import { validatePat } from "@/lib/bee/pat";
 
-import { enableLingerAction, savePatAction, setPausedAction } from "../api/actions";
+import {
+  enableLingerAction,
+  saveClaudeTokenAction,
+  savePatAction,
+  setPausedAction,
+} from "../api/actions";
 
 /** ✓ / ✗ / – for a doctor check; `null` = doctor has not verified it yet. */
 export function CheckMark({ ok }: { ok: boolean | null }) {
@@ -120,6 +126,73 @@ export function PatForm({ done }: { done: boolean | null }) {
       {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
       {xong && loi === "" && (
         <p className="text-xs text-emerald-500">Signed in — git now pushes through this PAT.</p>
+      )}
+    </form>
+  );
+}
+
+/**
+ * Claude auth without touching the machine: run `claude setup-token` on any
+ * machine with a browser, approve the printed URL, paste the token here.
+ * Same client-side gate as the server: only sk-ant-oat01-… is accepted.
+ */
+export function ClaudeTokenForm({ done }: { done: boolean | null }) {
+  const router = useRouter();
+  const [token, setToken] = useState("");
+  const [loi, setLoi] = useState("");
+  const [xong, setXong] = useState(false);
+  const [dang, batDau] = useTransition();
+
+  function luu() {
+    if (dang) return;
+    if (!validateClaudeToken(token)) {
+      setLoi("Not a setup-token token (sk-ant-oat01-…). Run `claude setup-token` and paste its output.");
+      return;
+    }
+    batDau(async () => {
+      const ket = await saveClaudeTokenAction(token);
+      if (ket.ok) {
+        setToken("");
+        setLoi("");
+        setXong(true);
+      } else {
+        setLoi(ket.message);
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <form
+      className="flex flex-col gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        luu();
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <CheckMark ok={done} />
+        <span className="text-sm text-body">Claude signed in (subscription token)</span>
+      </div>
+      <div className="flex gap-2">
+        <Input
+          type="password"
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder="sk-ant-oat01-…"
+          aria-label="Claude setup-token"
+          autoComplete="off"
+          className="flex-1 font-mono"
+        />
+        <Button type="submit" disabled={dang || token.trim() === ""}>
+          {dang ? "Saving…" : "Save token"}
+        </Button>
+      </div>
+      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {xong && loi === "" && (
+        <p className="text-xs text-emerald-500">
+          Token saved — sessions will run on your subscription.
+        </p>
       )}
     </form>
   );

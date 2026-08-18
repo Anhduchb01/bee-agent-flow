@@ -59,6 +59,7 @@ export async function enableLinger(): Promise<KetQua> {
 }
 
 export { validatePat } from "./pat";
+import { validateClaudeToken } from "./claude-token";
 import { validatePat } from "./pat";
 
 /**
@@ -95,6 +96,38 @@ export async function ghAuthLogin(token: string): Promise<KetQua> {
     return { ok: true };
   } catch (e) {
     return { ok: false, message: `Signed in, but setup-git failed: ${(e as Error).message}` };
+  }
+}
+
+/**
+ * Store the token from `claude setup-token` for the runner. The user runs
+ * setup-token on ANY machine with a browser (their laptop is fine), pastes
+ * the result here, and session-run.sh exports it as CLAUDE_CODE_OAUTH_TOKEN
+ * — no interactive login on the bee machine at all. Owner-read-only, and
+ * mode is set on the tmp file BEFORE the rename so the token is never
+ * world-readable, not even for a moment.
+ */
+export async function saveClaudeToken(token: string): Promise<KetQua> {
+  const gon = token.trim();
+  if (!validateClaudeToken(gon)) {
+    return {
+      ok: false,
+      message:
+        "Not a setup-token token (sk-ant-oat01-…). Run `claude setup-token` and paste its output.",
+    };
+  }
+  if (isFixture()) return { ok: true };
+
+  const file = path.join(root(), "claude.env");
+  try {
+    await fs.mkdir(root(), { recursive: true });
+    const tmp = `${file}.tmp`;
+    await fs.writeFile(tmp, `CLAUDE_CODE_OAUTH_TOKEN=${gon}\n`, { mode: 0o600 });
+    await fs.chmod(tmp, 0o600);
+    await fs.rename(tmp, file);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: `Could not save token: ${(e as Error).message}` };
   }
 }
 

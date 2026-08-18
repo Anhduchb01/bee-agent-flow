@@ -31,6 +31,11 @@ test("setup page: interactive steps + live doctor checks", async ({ page }) => {
   await page.getByRole("button", { name: "Save PAT" }).click();
   await expect(page.getByText(/not a fine-grained pat/i)).toBeVisible();
 
+  // Claude auth is a pasted setup-token token — API keys are refused.
+  await page.getByLabel("Claude setup-token").fill("sk-ant-api03-key");
+  await page.getByRole("button", { name: "Save token" }).click();
+  await expect(page.getByText(/not a setup-token token/i)).toBeVisible();
+
   // Repo registry: a malformed repo is rejected with the server's reason
   // (validation runs before the fixture no-op).
   await page.getByLabel("Repository to register").fill("not-a-repo");

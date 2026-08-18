@@ -262,13 +262,19 @@ trống nói thẳng "bạn không có quyền", không lộ dữ liệu.
 ### 4.6 Màn onboarding `/setup` (thêm 18/08, tương tác hoá cùng ngày)
 
 Người mới cài máy làm theo MỘT trang; setup và kiểm chứng **trên web**,
-chỉ hai thứ bắt buộc ở máy:
+chỉ MỘT thứ bắt buộc ở máy:
 
-1. **Ở máy (2 việc):** `install.sh` (bootstrap cả web nên không thể tự cài
-   mình) và login `claude` (OAuth tương tác — cần terminal; web chỉ phát
-   hiện qua doctor check `claude`, tự động hoá để sau V2 cùng PTY).
+1. **Ở máy (1 việc):** `install.sh` — bootstrap cả web nên không thể tự
+   cài mình.
 2. **Trên web (mọi thứ còn lại), qua `machine-ctl.ts`** — kỷ luật như
    session-ctl: allowlist regex trước mọi đường dẫn/argv, lỗi là dữ liệu:
+   - Claude: chạy `claude setup-token` ở **máy bất kỳ có trình duyệt**
+     (laptop) → dán token `sk-ant-oat01-…` vào form → ghi
+     `$BEE_ROOT/claude.env` (0600 đặt trên tmp TRƯỚC khi rename);
+     session-run.sh source file này và export `CLAUDE_CODE_OAUTH_TOKEN`.
+     API key `sk-ant-api…` bị từ chối 2 lớp — phiên chạy trên
+     subscription, không phải pay-per-token. doctor nhận cả hai đường:
+     claude.env hoặc login tương tác cũ.
    - Linger: nút → `loginctl enable-linger`.
    - PAT: form dán token → `gh auth login --with-token` (token đi qua
      **stdin**, không argv — ps/log không thấy) + `gh auth setup-git`.

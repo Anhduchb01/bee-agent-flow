@@ -27,11 +27,15 @@ else
   ghi "pat" false "token KHÔNG phải fine-grained (tiền tố $(cut -c1-4 <<<"$TOKEN")…) — tạo PAT hẹp, thu hồi token này"
 fi
 
-# ── 1b · Claude login under this user — sessions cannot run without it ────
-if [[ -f "$HOME/.claude/.credentials.json" ]]; then
-  ghi "claude" true "đã login"
+# ── 1b · Claude auth — sessions cannot run without it. Two accepted paths:
+#         a setup-token token pasted on /setup (claude.env), or an
+#         interactive login done on the machine.
+if grep -q '^CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-' "$BEE_ROOT/claude.env" 2>/dev/null; then
+  ghi "claude" true "token từ claude setup-token (claude.env)"
+elif [[ -f "$HOME/.claude/.credentials.json" ]]; then
+  ghi "claude" true "đã login tương tác trên máy"
 else
-  ghi "claude" false "chưa login — chạy \`claude\` rồi /login dưới user này"
+  ghi "claude" false "chưa có auth — chạy \`claude setup-token\` ở BẤT KỲ máy nào rồi dán token vào /setup"
 fi
 
 # ── 2 · Branch protection main trên từng repo trong repos.d ────────────────

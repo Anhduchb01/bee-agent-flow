@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { PatForm, PauseToggle } from "./machine-controls";
+import { ClaudeTokenForm, PatForm, PauseToggle } from "./machine-controls";
 import { RepoRegistry } from "./repo-registry";
-import { registerRepoAction, savePatAction } from "../api/actions";
+import { registerRepoAction, saveClaudeTokenAction, savePatAction } from "../api/actions";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -12,6 +12,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("../api/actions", () => ({
   enableLingerAction: vi.fn(),
   savePatAction: vi.fn(async () => ({ ok: true, message: "" })),
+  saveClaudeTokenAction: vi.fn(async () => ({ ok: true, message: "" })),
   setPausedAction: vi.fn(async () => ({ ok: true, message: "" })),
   registerRepoAction: vi.fn(async () => ({ ok: false, message: "Repository must be owner/name" })),
   unregisterRepoAction: vi.fn(async () => ({ ok: true, message: "" })),
@@ -40,6 +41,32 @@ describe("PatForm", () => {
     expect(vi.mocked(savePatAction)).toHaveBeenCalledWith("github_pat_ABC_123");
     expect(o).toHaveValue("");
     expect(screen.getByText(/git now pushes through this pat/i)).toBeInTheDocument();
+  });
+});
+
+describe("ClaudeTokenForm", () => {
+  it("refuses an API key client-side — subscription tokens only", async () => {
+    const user = userEvent.setup();
+    render(<ClaudeTokenForm done={null} />);
+
+    await user.type(screen.getByLabelText("Claude setup-token"), "sk-ant-api03-key");
+    await user.click(screen.getByRole("button", { name: "Save token" }));
+
+    expect(screen.getByText(/not a setup-token token/i)).toBeInTheDocument();
+    expect(vi.mocked(saveClaudeTokenAction)).not.toHaveBeenCalled();
+  });
+
+  it("a setup-token token is saved and the box clears", async () => {
+    const user = userEvent.setup();
+    render(<ClaudeTokenForm done={null} />);
+
+    const o = screen.getByLabelText("Claude setup-token");
+    await user.type(o, "sk-ant-oat01-Abc_123");
+    await user.click(screen.getByRole("button", { name: "Save token" }));
+
+    expect(vi.mocked(saveClaudeTokenAction)).toHaveBeenCalledWith("sk-ant-oat01-Abc_123");
+    expect(o).toHaveValue("");
+    expect(screen.getByText(/sessions will run on your subscription/i)).toBeInTheDocument();
   });
 });
 

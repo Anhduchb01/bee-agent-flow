@@ -14,6 +14,16 @@
 set -euo pipefail
 source "$(dirname "$(readlink -f "$0")")/../lib/common.sh"
 
+# Token from `claude setup-token`, pasted on the web (/setup). Exported so
+# claude runs on the subscription without an interactive login on this
+# machine. If an interactive login also exists, the env token wins.
+if [[ -f "$BEE_ROOT/claude.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$BEE_ROOT/claude.env"
+  set +a
+fi
+
 # ── 1 · Kiểm đầu vào — trước khi chạm bất cứ gì trên đĩa ────────────────────
 ID="${1:-}"
 UUID_RE='^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'

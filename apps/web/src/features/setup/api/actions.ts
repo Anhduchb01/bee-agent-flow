@@ -8,6 +8,7 @@ import {
   ghAuthLogin,
   registerRepo,
   runDoctor,
+  saveClaudeToken,
   setPaused,
   unregisterRepo,
 } from "@/lib/bee/machine-ctl";
@@ -47,6 +48,14 @@ export async function savePatAction(token: string): Promise<KetQua> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await ghAuthLogin(token);
+  await refresh();
+  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+export async function saveClaudeTokenAction(token: string): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await saveClaudeToken(token);
   await refresh();
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }

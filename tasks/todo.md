@@ -112,6 +112,9 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       slug trùng), toggle PAUSE khoá tới khi doctor xanh, mỗi action tự
       chạy lại doctor. Branch protection cố ý để GitHub-side (PAT không
       admin) — có deep-link + doctor kiểm. doctor.sh thêm check claude.
+      **Claude cũng qua web**: `claude setup-token` chạy ở máy bất kỳ →
+      dán vào form → claude.env 0600 → session-run.sh export
+      CLAUDE_CODE_OAUTH_TOKEN. Ở máy chỉ còn đúng install.sh.
 - [ ] 🧑 **S4.1** Tạo fine-grained PAT (contents + PR + issues, đúng danh sách
       repo) · bật branch protection `main` từng repo · thử push main phải bị từ chối
       → làm theo trang `/setup`, doctor phải xanh trên đó

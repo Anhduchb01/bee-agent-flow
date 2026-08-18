@@ -1,6 +1,6 @@
 import { loadRepos, NewSessionForm } from "@/features/sessions";
 import {
-  CheckMark,
+  ClaudeTokenForm,
   DoctorChecklist,
   LingerButton,
   loadDoctor,
@@ -12,11 +12,12 @@ import { PageHeader } from "@/features/shell";
 import { getActor } from "@/lib/auth";
 
 /**
- * Onboarding for a fresh machine (S4). Only two things stay on the machine
- * itself: running install.sh (it bootstraps this very web app) and the
- * interactive `claude` login. Everything else — linger, PAT, repo
- * registry, un-pause — is a button or form HERE, and every action ends
- * with a fresh doctor run so the page always shows verified truth.
+ * Onboarding for a fresh machine (S4). Only ONE thing stays on the machine
+ * itself: running install.sh (it bootstraps this very web app). Everything
+ * else — linger, Claude token (`claude setup-token` runs on any machine),
+ * GitHub PAT, repo registry, un-pause — is a button or form HERE, and
+ * every action ends with a fresh doctor run so the page always shows
+ * verified truth.
  */
 
 function Step({
@@ -84,22 +85,24 @@ export default async function SetupPage() {
           <Cmd>{`git clone <this-repo> && cd bee-agent-flow
 bash apps/runner/install.sh`}</Cmd>
           <p className="text-xs text-muted-foreground">
-            The one step that must happen on the machine — it bootstraps everything,
+            The ONLY step that happens on the machine — it bootstraps everything,
             including this web app. Idempotent: code to /opt/bee, data to /srv/bee,
-            user units enabled, PAUSE created.
+            user units enabled, PAUSE created. Every step after this one lives on
+            this page.
           </p>
         </Step>
 
-        <Step num={2} title="Sign in — Claude on the machine, GitHub from here">
+        <Step num={2} title="Sign in — Claude and GitHub, both from here">
           <Card>
             <LingerButton done={check("linger")} />
           </Card>
           <Card>
-            <div className="flex items-center gap-2">
-              <CheckMark ok={check("claude")} />
-              <span className="text-sm text-body">Claude signed in under the bee user</span>
-            </div>
-            <Cmd>{`claude   # then /login — interactive OAuth, the one login that cannot move here`}</Cmd>
+            <ClaudeTokenForm done={check("claude")} />
+            <p className="text-xs text-muted-foreground">
+              Run <code className="font-mono">claude setup-token</code> on ANY machine with a
+              browser — your laptop is fine — approve the URL it prints, and paste the
+              resulting token here. No login needed on the bee machine itself.
+            </p>
           </Card>
           <Card>
             <PatForm done={check("pat")} />
