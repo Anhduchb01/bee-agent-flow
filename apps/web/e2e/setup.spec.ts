@@ -14,6 +14,10 @@ test("setup page: interactive steps + live doctor checks", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Setup");
 
+  // Fixture mode must OUT ITSELF — a demo that looks real teaches the user
+  // their machine is configured when it is not.
+  await expect(page.getByText(/DEMO DATA/)).toBeVisible();
+
   // The five steps, in order.
   for (const step of [
     "Install the runner",
