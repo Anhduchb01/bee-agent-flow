@@ -1,95 +1,73 @@
-# Plan triển khai — V1 Sessions Live (session-first)
+# Plan — sau V4 đợt 1+2 (cập nhật 18/08/2026)
 
-**Lập:** 2026-08-17 · **Thay thế:** plan V1 Live cùng ngày (mô hình hai UID,
-giữ ở nhánh `feat/bee-m3-and-web-spec`)
 **Nguồn:** [`docs/specs/session-first.md`](../docs/specs/session-first.md) ·
-[`docs/PRD_bee-agent-flow.md`](../docs/PRD_bee-agent-flow.md) (3.0)
+[`docs/specs/canvas.md`](../docs/specs/canvas.md) · PRD 3.0
+**Đã xong:** S0 (rig) · S1 (runner) · S2–S3 (web live) · S6 (canvas + skin
+VSCode + tạo phiên + repo đăng ký) · V4 đợt 1+2 (xoá mô hình cũ, −4.816 dòng).
+Web chỉ còn một mô hình: `/` · `/login` · `/projects` · `/p/[slug]` ·
+`/t/[slug]/[num]` · `/sessions` · `/sessions/[id]` · `/canvas`.
 
 ---
 
-## Chuyện gì đã xảy ra với plan cũ
+## Điều quyết định thứ tự bây giờ
 
-PRD 3.0 chốt mô hình **A+ một UID**: cầu socket, broker, sudoers, hàng đợi
-nhãn — toàn bộ phần "vượt ranh giới UID" của plan cũ **biến mất khỏi đường
-găng**. Những gì mất nghĩa: L3.1 (bee-request.path), L3.2 (web ghi yêu cầu qua
-spool), phần sudoers/polkit của L1.
+Code trên fixture đã đi trước phần nghiệm thu rất xa. **Rủi ro lớn nhất còn
+lại không nằm trong code — nằm ở chỗ chưa có phiên thật nào chạy trên máy
+thật.** Vậy: một đợt đánh bóng UI ngắn (S7, có yêu cầu mới của bạn), trả nợ
+test, rồi dồn toàn lực sang S4/S5 — nơi cần tay bạn.
 
-Những gì **giữ nguyên giá trị** và chuyển thẳng sang plan này:
-
-- **L0.1 rig stream-json hai chiều** — vẫn là ẩn số số một, không đổi một chữ.
-- Toàn bộ L2 (parse-events, SSE, màn live) — thiết kế đường-ra không phụ thuộc
-  mô hình UID.
-- Kinh nghiệm bash của reconciler (worktree, dọn xác, heartbeat) — port sang
-  `apps/runner/`, không viết lại từ đầu.
-
-Web 15 slice trên fixture dùng lại; hộp thư 5 loại và choreography issue thì
-không — sẽ gỡ ở V4, chưa đụng bây giờ.
-
----
-
-## Điều quyết định thứ tự
-
-Vẫn là ẩn số cũ, cộng một ẩn số mới cùng họ:
-
-1. **Gõ chen lúc agent giữa tool call** — CLI xếp hàng hay bỏ? Quyết định lời
-   hứa của ô gõ.
-2. **Phỏng vấn không tool → `--resume` với đủ tool** — phiên có nhớ đủ ngữ
-   cảnh phỏng vấn không? Quyết định "ok làm đi" có thật là *một* phiên hay
-   phải hai.
-
-Cả hai nằm trong **S0**, chung một rig, rẻ, không cần máy Ubuntu, và trả về
-fixture `run.jsonl` thật cho toàn bộ S2.
-
----
-
-## Đồ thị phụ thuộc
+## Đồ thị
 
 ```
-S0  rig hai ẩn số + fixture thật ──────┬──────────────────────┐
-                                       │                      │
-                                       ▼                      ▼
-                     S1 · apps/runner (bash)        S2 · web đọc luồng (fixture)
-                     ├ S1.1 session-run.sh          ├ S2.1 parse-events (thuần)
-                     ├ S1.2 units + linger          ├ S2.2 route SSE
-                     ├ S1.3 reaper                  └ S2.3 màn live + session list
-                     └ S1.4 doctor (A+ checklist)             │
-                                       │                      │
-                                       └──────────┬───────────┘
-                                                  ▼
-                                S3 · nối: start/say/stop + hai chế độ
-                                ├ S3.1 server actions (systemctl --user + file)
-                                ├ S3.2 "ok làm đi" = chuyển phase
-                                └ S3.3 skills: issue / push-pr / update-pr
-                                                  │
-                                                  ▼
-                                S4 · máy thật + vệ sinh A+ (🧑 nhiều)
-                                ├ S4.1 PAT hẹp + branch protection   🧑
-                                ├ S4.2 cài runner, login Claude      🧑
-                                └ S4.3 nghiệm thu rig 6 bài (spec §8)
-                                                  │
-                                                  ▼
-                                S5 · ra internet
-                                ├ S5.1 GitHub OAuth allowlist
-                                ├ S5.2 Cloudflare Access             🧑
-                                └ S5.3 nghiệm thu từ điện thoại = V1 xong
+S7 · Đánh bóng + trả nợ (fixture, 🤖)
+├ S7.1 Repo combobox: search NẰM TRONG dropdown        ← yêu cầu 18/08
+├ S7.2 Unit test route SSE (nợ spec §8)
+└ S7.3 E2E flow phiên trên fixture: mở → chữ chạy → gõ chen → dừng
+        │
+        ▼
+S4 · Máy thật + vệ sinh A+                     ← CỬA NGHIỆM THU THẬT
+├ S4.1 🧑 PAT hẹp + branch protection + repos.d
+├ S4.2 🧑 install runner · login claude · linger · doctor xanh
+└ S4.3 🤖 6 bài rig spec §8 trên máy thật (kill -9, reboot, 2 phiên song song…)
+        │
+        ▼
+S5 · Ra internet
+├ S5.1 🤖 OAuth allowlist nghiệm thu với GITHUB_SOURCE=live
+├ S5.2 🧑 Cloudflare Access
+└ S5.3 🧑 checklist spec §10 từ điện thoại → **V1 XONG**
+        │
+        ▼
+V2 (spec trước khi code)
+├ Nút merge (token người bấm — duyetPR đã chờ sẵn, lệnh cấm đã gỡ)
+├ Màn duyệt 1 phút mobile (evidence + AC + tóm tắt)
+├ Trạng thái PR sống (merged/closed) cho node canvas — lib/github
+├ Rig hook-reply approvals (thay dần --dangerously-skip-permissions)
+└ Làm lại chat/Ask trên runner phiên (đã xoá bản socket cũ)
 ```
 
-S1 ∥ S2 chạy song song sau S0. S3 cần cả hai. S4/S5 tuần tự.
+## S7.1 — Repo combobox (yêu cầu mới, làm đầu tiên)
 
----
+**Hiện tại:** form New session = `<select>` repo + ô title *bên cạnh* — hai ô
+rời. **Đích:** một nút dropdown duy nhất; bấm mở panel có **ô search ngay
+trong dropdown**, gõ để lọc repo (tìm không dấu), phím ↑↓ + Enter chọn,
+mục "No repo — just chat" ghim cuối. Không còn ô search/select đứng cạnh nhau.
 
-## Checkpoint có người
+- Cách làm: combobox tự dựng bằng Popover + Input (repo ít, không cần
+  virtualize; shadcn Command chưa cài — không thêm dependency).
+- Nghiệm thu: mở bằng click + phím; gõ "my" lọc còn `you/myapp`; Esc đóng
+  không đổi lựa chọn; hoạt động trong cả `/sessions` lẫn Panel trên `/canvas`;
+  test component theo role (combobox/listbox/option); 4 cổng xanh.
+
+## Checkpoint
 
 | Sau | Bạn duyệt gì |
 |---|---|
-| **S0** | Kết quả hai ẩn số — nếu CLI bỏ tin nhắn gõ chen, hoặc resume mất ngữ cảnh, **dừng lại bàn** trước khi UI hứa gì |
-| **S1** | Review riêng phần bash (spec §3) — `session-run.sh` là chỗ mọi phiên đi qua |
-| **S2** | Bố cục màn live + session list trên fixture, trước khi nối máy thật |
-| **S4.3** | 6 bài rig xanh trên máy thật — đây là nghiệm thu thật, code xong không phải xong |
+| S7 | Combobox trên fixture + suite xanh — xong là **khoá code fixture**, không thêm tính năng trước S4 |
+| S4.3 | 6 bài rig máy thật — nghiệm thu thật đầu tiên của toàn mô hình |
+| S5.3 | Từ điện thoại ngoài mạng nhà → tick V1, rồi mới spec V2 |
 
----
+## Ngoài phạm vi (đừng để lẻn vào trước V2)
 
-## Ngoài phạm vi V1 (đừng để lẻn vào)
-
-Nút merge (V2) · hàng đợi + đi ngủ + phanh hạn mức (V3) · gỡ code mô hình cũ
-(V4) · markdown trong live view · mở khoá dần theo repo.
+Nút merge · hàng đợi/đi ngủ (V3) · types `BeeStatus` cũ trong lib/bee (gỡ khi
+đụng tự nhiên) · lưu vị trí node canvas · terminal node xterm/PTY · markdown
+trong live view.

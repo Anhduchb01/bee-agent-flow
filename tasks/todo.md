@@ -77,10 +77,13 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       route /projects /login; footer đếm phiên. Nợ còn: types BeeStatus cũ,
       chat/phỏng-vấn nối lại runner mới, e2e chup-anh + canh-hong cần sửa.
 
-**Nợ test ghi nhận (làm ở S4 hoặc trước):**
-- [ ] 🤖 Unit test riêng cho route SSE (MSW) — logic mỏng, các tầng dưới đã test,
-      nhưng spec §8 có hàng Route.
-- [ ] 🤖 E2E Playwright cho flow: mở phiên → chữ chạy → gõ chen → dừng (trên fixture).
+## S7 · Đánh bóng + trả nợ (18/08) ← ĐANG LÀM — xong là khoá code fixture
+
+- [ ] 🤖 **S7.1** Repo combobox: search NẰM TRONG dropdown (Popover + Input tự
+      dựng, không thêm dependency; lọc không dấu; ↑↓ Enter Esc; "No repo —
+      just chat" ghim cuối; dùng chung /sessions + Panel canvas; test theo role)
+- [ ] 🤖 **S7.2** Unit test route SSE (nợ spec §8 hàng Route)
+- [ ] 🤖 **S7.3** E2E fixture: mở phiên → chữ chạy → gõ chen → dừng
 
 ## S4 · Máy thật + vệ sinh A+
 
