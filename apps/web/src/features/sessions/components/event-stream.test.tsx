@@ -63,6 +63,38 @@ describe("EventStream", () => {
     expect(screen.getByLabelText("Agent is thinking")).toHaveTextContent("đang cân nhắc");
   });
 
+  it("thẻ Edit vẽ diff: dòng cũ mang dấu −, dòng mới mang dấu +, đếm dòng ở summary", () => {
+    const suKien: SuKien[] = [
+      {
+        loai: "tool",
+        ten: "Edit",
+        thamSo: "{}",
+        id: "toolu_d",
+        file: "src/a.ts",
+        cu: "dòng cũ",
+        moi: "dòng mới 1\ndòng mới 2",
+      },
+      { loai: "tool-xong", text: "ok", id: "toolu_d", loi: false },
+    ];
+    render(<EventStream suKien={suKien} dangGo="" />);
+
+    expect(screen.getByText("src/a.ts")).toBeInTheDocument();
+    expect(screen.getByText("+2 −1")).toBeInTheDocument();
+    expect(screen.getByText("dòng cũ")).toBeInTheDocument();
+    expect(screen.getByText("dòng mới 2")).toBeInTheDocument();
+  });
+
+  it("thẻ Bash vẽ khối IN/OUT như panel VSCode", () => {
+    const suKien: SuKien[] = [
+      { loai: "tool", ten: "Bash", thamSo: "{}", id: "toolu_e", lenh: "pnpm test" },
+      { loai: "tool-xong", text: "24 passed", id: "toolu_e", loi: false },
+    ];
+    render(<EventStream suKien={suKien} dangGo="" />);
+    expect(screen.getByText("IN")).toBeInTheDocument();
+    expect(screen.getByText("OUT")).toBeInTheDocument();
+    expect(screen.getByText("24 passed")).toBeInTheDocument();
+  });
+
   it("chữ đang gõ dở của agent hiện với nhãn riêng", () => {
     render(<EventStream suKien={[]} dangGo="Đang nghĩ về" />);
     expect(screen.getByLabelText("Agent is typing")).toHaveTextContent("Đang nghĩ về");

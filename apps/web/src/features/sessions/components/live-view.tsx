@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -93,11 +94,11 @@ export function LiveView({ phien }: { phien: BeeSession }) {
         )}
       </div>
 
-      {/* ô gõ — luôn mở khi phiên chạy, đóng khi xong */}
-      <div className="border-t border-border p-3 sm:p-4">
+      {/* ô gõ — hộp bo tròn kiểu Claude Code, nút gửi ↑ màu đất nung */}
+      <div className="p-3 sm:p-4">
         {dangChay ? (
           <form
-            className="flex items-end gap-2"
+            className="rounded-panel border border-border bg-card px-3 py-2 focus-within:border-muted-foreground/40"
             onSubmit={(e) => {
               e.preventDefault();
               gui();
@@ -109,6 +110,7 @@ export function LiveView({ phien }: { phien: BeeSession }) {
               placeholder={okDaBam ? "Say something to the agent…" : "Describe your idea — the agent will interview you"}
               aria-label="Message to the agent"
               rows={2}
+              className="min-h-0 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -116,9 +118,21 @@ export function LiveView({ phien }: { phien: BeeSession }) {
                 }
               }}
             />
-            <Button type="submit" disabled={dangGui || nhap.trim() === ""}>
-              Send
-            </Button>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="font-mono text-xs text-muted-foreground">
+                {okDaBam ? "working" : "interview"}
+              </span>
+              <span className="flex-1" />
+              <Button
+                type="submit"
+                size="icon"
+                aria-label="Send"
+                disabled={dangGui || nhap.trim() === ""}
+                className="size-7 rounded-full bg-[#C15F3C] text-white hover:bg-[#a94f31] disabled:opacity-40"
+              >
+                <ArrowUpIcon className="size-4" />
+              </Button>
+            </div>
           </form>
         ) : (
           <p className="text-sm text-muted-foreground">

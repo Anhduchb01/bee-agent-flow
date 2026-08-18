@@ -201,6 +201,12 @@ bấm) · FR-4.3 tóm tắt "đã đổi gì" · FR-4.4 diff thì link sang GitH
 - Dữ liệu cũ hiển thị **là** cũ. Rỗng-vì-hết-việc ≠ rỗng-vì-lỗi.
 - Đầu ra agent render **plain text** ở V1 — nội dung untrusted, muốn markdown
   đẹp thì V2 kèm sanitizer có test.
+- **Thiết kế: Geist (Vercel), dark là mặc định** *(đổi 17/08 — theo Claude
+  Code trong VSCode)*: class `dark` ở root layout, token sáng giữ nguyên làm
+  đường lùi. Màn chat theo ngôn ngữ hình ảnh panel VSCode — thẻ tool "● tên +
+  tóm tắt mờ", diff đỏ/xanh cho Edit/Write, khối IN/OUT cho Bash, ô nhập bo
+  tròn với nút gửi ↑ màu đất nung (#C15F3C). Chi tiết ở spec
+  [session-first §4.4](specs/session-first.md).
 
 ### 4.2 Bảo mật — checklist vệ sinh A+ (điều kiện tiên quyết, `doctor` kiểm)
 

@@ -24,7 +24,17 @@ export type SuKien =
    * MỘT thẻ có trạng thái (spinner → ✓), thay vì hai dòng rời. `file`/`lenh`
    * trích sẵn cho thẻ chuyên biệt (Edit/Write/Bash).
    */
-  | { loai: "tool"; ten: string; thamSo: string; id?: string | null; file?: string; lenh?: string }
+  | {
+      loai: "tool";
+      ten: string;
+      thamSo: string;
+      id?: string | null;
+      file?: string;
+      lenh?: string;
+      /** Edit: old_string/new_string — đủ cho khối diff đỏ/xanh kiểu VSCode. */
+      cu?: string;
+      moi?: string;
+    }
   | { loai: "tool-xong"; text: string; id?: string | null; loi?: boolean }
   | { loai: "ket-qua"; loi: boolean; luot?: number | null }
   | { loai: "replay"; boQua: number }
@@ -32,6 +42,7 @@ export type SuKien =
 
 const CAT_THAM_SO = 160;
 const CAT_KET_QUA = 400;
+const CAT_DIFF = 2000;
 
 function laObject(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
@@ -65,6 +76,15 @@ function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): SuKien[
     }
     if (nguon === "assistant" && block.type === "tool_use") {
       const input = laObject(block.input) ? block.input : {};
+      // Edit mang old/new, Write mang content — giữ lại (có trần) để vẽ khối
+      // diff đỏ/xanh. Các tool khác chỉ cần thamSo cắt gọn.
+      const cu = typeof input.old_string === "string" ? input.old_string : undefined;
+      const moi =
+        typeof input.new_string === "string"
+          ? input.new_string
+          : typeof input.content === "string"
+            ? input.content
+            : undefined;
       ra.push({
         loai: "tool",
         ten: typeof block.name === "string" ? block.name : "?",
@@ -72,6 +92,8 @@ function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): SuKien[
         id: typeof block.id === "string" ? block.id : null,
         ...(typeof input.file_path === "string" ? { file: input.file_path } : {}),
         ...(typeof input.command === "string" ? { lenh: cat(input.command, CAT_THAM_SO) } : {}),
+        ...(cu !== undefined ? { cu: cat(cu, CAT_DIFF) } : {}),
+        ...(moi !== undefined ? { moi: cat(moi, CAT_DIFF) } : {}),
       });
     }
     if (nguon === "user" && block.type === "tool_result") {

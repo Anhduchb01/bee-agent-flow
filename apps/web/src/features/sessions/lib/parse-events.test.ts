@@ -53,6 +53,32 @@ describe("phanTichDong", () => {
     ).toEqual([]);
   });
 
+  it("tool Edit giữ old/new string cho khối diff đỏ/xanh", () => {
+    const dong = JSON.stringify({
+      type: "assistant",
+      message: {
+        content: [
+          {
+            type: "tool_use",
+            id: "toolu_9",
+            name: "Edit",
+            input: { file_path: "src/a.ts", old_string: "cũ 1\ncũ 2", new_string: "mới 1" },
+          },
+        ],
+      },
+    });
+    const ket = phanTichDong(dong);
+    expect(ket).toEqual([
+      expect.objectContaining({
+        loai: "tool",
+        ten: "Edit",
+        file: "src/a.ts",
+        cu: "cũ 1\ncũ 2",
+        moi: "mới 1",
+      }),
+    ]);
+  });
+
   it("loại không biết thì bỏ qua êm (mảng rỗng), không phải rác", () => {
     expect(phanTichDong('{"type":"rate_limit_event","x":1}')).toEqual([]);
     expect(phanTichDong('{"type":"system","subtype":"hook_started"}')).toEqual([]);

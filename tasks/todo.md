@@ -61,6 +61,9 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       (`ghep-the.ts` thuần + test fixture thật) — ● → ✓/✗, lỗi tự mở, kết quả
       mồ côi sau replay vẫn hiện; thinking gập, buffer riêng; num_turns.
       Click node phiên trên canvas → Sheet chứa LiveView tại chỗ.
+- [x] 🤖 **Dark mặc định + skin VSCode** (17/08): class `dark` ở root; diff
+      đỏ/xanh cho Edit/Write (+n −m), khối IN/OUT cho Bash, hộp người full-width,
+      ô nhập bo tròn nút ↑ #C15F3C. PRD §5 + spec §4.4 đã cập nhật.
 - [ ] Sau: lưu vị trí node · node evidence · rig hook-reply approvals
       (session-first §11) · terminal node thật (xterm+PTY, sau V2 — canvas.md §4).
 

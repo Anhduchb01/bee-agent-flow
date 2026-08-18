@@ -122,7 +122,7 @@ export function CanvasView({
         defaultNodes={flowNodes}
         defaultEdges={flowEdges}
         nodeTypes={nodeTypes}
-        colorMode="system"
+        colorMode="dark"
         fitView
         minZoom={0.2}
         nodesConnectable={false}

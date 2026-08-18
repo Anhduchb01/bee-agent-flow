@@ -22,6 +22,8 @@ export type Muc =
       id: string | null;
       file?: string;
       lenh?: string;
+      cu?: string;
+      moi?: string;
       thamSo: string;
       trangThai: "dang-chay" | "xong" | "loi";
       ketQua: string | null;
@@ -43,6 +45,8 @@ export function ghepThe(suKien: SuKien[]): Muc[] {
           id: sk.id ?? null,
           ...(sk.file !== undefined ? { file: sk.file } : {}),
           ...(sk.lenh !== undefined ? { lenh: sk.lenh } : {}),
+          ...(sk.cu !== undefined ? { cu: sk.cu } : {}),
+          ...(sk.moi !== undefined ? { moi: sk.moi } : {}),
           thamSo: sk.thamSo,
           trangThai: "dang-chay",
           ketQua: null,

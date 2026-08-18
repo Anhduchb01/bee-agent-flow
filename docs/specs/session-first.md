@@ -234,6 +234,11 @@ chốt, mang danh bot. Bốn bước của mô hình cũ còn một.
   mồ côi (tool_use nằm trong khúc `bee_replayed` đã cắt) vẫn hiện thành thẻ
   — mất kết quả tệ hơn mất tiêu đề. `result.num_turns` hiện ở dòng
   turn-finished.
+- **Dark mặc định + ngôn ngữ hình ảnh VSCode** *(17/08, PRD §5)*: Edit/Write
+  vẽ **khối diff đỏ/xanh** từ `old_string`/`new_string`/`content` (parse giữ
+  lại có trần 2000 ký tự, đếm `+n −m` ở summary); Bash vẽ khối **IN/OUT**;
+  message của người là hộp viền full-width chứ không phải bubble lệch; ô nhập
+  bo tròn, nút gửi ↑ #C15F3C.
 - Session list là **màn hình gốc mới** của app: nhóm theo repo, mỗi phiên một
   dòng — trạng thái, branch, PR (nếu có), tuổi, usage. `needs-human` nổi đỏ
   lên đầu.

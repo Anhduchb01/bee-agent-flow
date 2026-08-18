@@ -18,7 +18,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // Dark là mặc định (17/08) — theo Claude Code trong VSCode. Token sáng
+      // vẫn nguyên trong globals.css; bỏ class `dark` là quay lại.
+      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-body">{children}</body>
     </html>
