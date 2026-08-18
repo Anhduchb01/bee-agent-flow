@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type { BeeRepoDangKy, BeeSession } from "@/lib/bee/types";
 
 import { batDauPhien } from "../api/actions";
@@ -14,6 +13,9 @@ import { CHAT_OPTION, RepoCombobox } from "./repo-combobox";
  * "New session" — chọn repo ĐÃ ĐĂNG KÝ (repos.d, doctor kiểm được) hoặc
  * "No repo — just chat". Không có ô gõ repo tự do: repo mới phải đăng ký
  * trước (PAT phủ + branch protection) — ma sát có chủ đích, đúng chỗ.
+ *
+ * No title field: the session starts untitled and the FIRST chat message
+ * names it (auto-title in session-ctl), like Claude Code names sessions.
  *
  * Phiên có repo LUÔN có worktree ngay từ đầu — interview đứng trong repo,
  * "OK, do it" chỉ là chuyển chế độ đã chứng minh, không có bài nâng cấp.
@@ -29,7 +31,6 @@ export function NewSessionForm({
 }) {
   const router = useRouter();
   const [chon, setChon] = useState(repos[0]?.slug ?? CHAT_OPTION);
-  const [title, setTitle] = useState("");
   const [loi, setLoi] = useState("");
   const [dangMo, batDauMo] = useTransition();
 
@@ -38,13 +39,12 @@ export function NewSessionForm({
   function mo() {
     if (dangMo) return;
     batDauMo(async () => {
-      const ket = await batDauPhien({ repoSlug: laChat ? null : chon, title });
+      const ket = await batDauPhien({ repoSlug: laChat ? null : chon });
       if (!ket.ok) {
         setLoi(ket.message);
         return;
       }
       setLoi("");
-      setTitle("");
       if (onCreated && ket.phien !== null) {
         onCreated(ket.phien);
         router.refresh();
@@ -62,14 +62,9 @@ export function NewSessionForm({
         mo();
       }}
     >
-      <RepoCombobox repos={repos} value={chon} onChange={setChon} />
-      <Input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder={laChat ? "What do you want to talk through?" : "What do you want to build?"}
-        aria-label="Session title"
-        className="flex-1"
-      />
+      <div className="flex-1">
+        <RepoCombobox repos={repos} value={chon} onChange={setChon} />
+      </div>
       <Button type="submit" disabled={dangMo}>
         {dangMo ? "Starting…" : laChat ? "New chat" : "New session"}
       </Button>

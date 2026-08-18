@@ -25,7 +25,6 @@ const KHONG_QUYEN: KetQua = { ok: false, message: "You are not allowed to do thi
 export async function batDauPhien(input: {
   /** Slug của repo ĐÃ ĐĂNG KÝ, hoặc `null` = phiên chat không repo. */
   repoSlug: string | null;
-  title: string;
 }): Promise<KetQuaMoPhien> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: KHONG_QUYEN.message };
@@ -51,7 +50,9 @@ export async function batDauPhien(input: {
     slug,
     num,
     repo,
-    title: input.title.trim() || `Session ${num}`,
+    // Untitled on purpose — the first chat message names the session
+    // (auto-title in session-ctl), like Claude Code does.
+    title: null,
     worktree,
   });
   if (!ket.ok) return ket;

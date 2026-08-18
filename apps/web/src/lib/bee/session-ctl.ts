@@ -7,6 +7,7 @@ import fsc from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { deriveSessionTitle } from "./derive-title";
 import { laIdPhien } from "./session-id";
 
 /**
@@ -47,7 +48,8 @@ export async function moPhien(input: {
   slug: string;
   num: number;
   repo: string;
-  title: string;
+  /** `null` = untitled — the first chat message will name it (auto-title). */
+  title: string | null;
   /** `false` = phiên chat — runner bỏ qua clone/worktree, không bao giờ cấp tool. */
   worktree: boolean;
   systemPrompt?: string;
@@ -71,7 +73,7 @@ export async function moPhien(input: {
       slug: input.slug,
       num: input.num,
       repo: input.repo,
-      title: input.title.slice(0, 200),
+      title: input.title === null ? null : input.title.slice(0, 200),
       phase: "interview",
       worktree: input.worktree,
       system_prompt: input.systemPrompt ?? "",
@@ -121,7 +123,32 @@ export async function noiVaoPhien(id: string, text: string): Promise<KetQua> {
   const suKien =
     JSON.stringify({ type: "bee_user_say", text: gon, ts: new Date().toISOString() }) + "\n";
   await fs.appendFile(path.join(root(), "sessions", id, "run.jsonl"), suKien).catch(() => {});
+
+  // First message names the session, like Claude Code. Best-effort: a
+  // naming failure must never fail the send that already went through.
+  await autoTitleSession(id, gon);
   return { ok: true };
+}
+
+/**
+ * Give an untitled session (title null/empty) a name derived from its first
+ * message. No-op when a title already exists or the meta file is unreadable.
+ */
+export async function autoTitleSession(id: string, text: string): Promise<void> {
+  if (!laIdPhien(id)) return;
+  const file = path.join(root(), "sessions", id, "session.json");
+  try {
+    const raw = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, unknown>;
+    if (typeof raw.title === "string" && raw.title.trim() !== "") return;
+    raw.title = deriveSessionTitle(text);
+    // Same tmp + rename discipline as the rest of this file — the runner
+    // reads session.json and must never see half a file.
+    const tmp = `${file}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(raw, null, 2));
+    await fs.rename(tmp, file);
+  } catch {
+    // Missing/corrupt meta: skip naming, keep the session usable.
+  }
 }
 
 export async function dungPhien(id: string): Promise<KetQua> {
