@@ -3,6 +3,7 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { readDoctorFrom } from "./doctor-fs";
 import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
 import { listRunsIn, readRunIn } from "./runs-fs";
 import {
@@ -87,6 +88,7 @@ export function createDiskBeeSource(): BeeSource {
     listEvidence: (slug, num) => listEvidenceIn(path.join(root(), "evidence"), slug, num),
     readEvidenceFile: (segments) => readEvidenceFileIn(path.join(root(), "evidence"), segments),
 
+    readDoctor: () => readDoctorFrom(root()),
     listRepos: () => lietKeRepoTrong(root()),
     listSessions: () => lietKePhienTrong(root()),
     readSession: (id) => docPhienTrong(root(), id),

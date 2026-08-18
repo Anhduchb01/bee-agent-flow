@@ -253,6 +253,23 @@ export interface BeeRepoDangKy {
   repo: string;
 }
 
+/** One line of the A+ hygiene checklist — written by apps/runner/bin/doctor.sh. */
+export interface BeeDoctorCheck {
+  id: string;
+  ok: boolean;
+  /** Human hint: what passed, or how to fix what failed. */
+  detail: string;
+}
+
+/** Shape of `doctor.json` — the machine's self-check for the setup screen. */
+export interface BeeDoctor {
+  checked_at: string;
+  ok: boolean;
+  /** PAUSE file exists — the machine intentionally takes no new sessions. */
+  paused: boolean;
+  checks: BeeDoctorCheck[];
+}
+
 /** Toàn bộ đường ra vào `/srv/bee/`. Không module nào khác được chạm đĩa. */
 export interface BeeSource {
   /** Repo đã đăng ký — nguồn DUY NHẤT của dropdown chọn repo. */
@@ -270,6 +287,8 @@ export interface BeeSource {
    * hay không là chuyện của người đọc file.
    */
   sessionRunPath(id: string): string | null;
+  /** Latest doctor.json self-check; `null` = doctor has never run on this machine. */
+  readDoctor(): Promise<BeeDoctor | null>;
   readStatus(): Promise<StatusRead>;
   readRecent(limit?: number): Promise<BeeRecentRun[]>;
   /**

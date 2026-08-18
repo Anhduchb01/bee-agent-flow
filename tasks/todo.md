@@ -98,8 +98,14 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 
 ## S4 · Máy thật + vệ sinh A+
 
+- [x] 🤖 **S4.0** ~~Onboarding trên web~~ **XONG 18/08** — trang `/setup`:
+      5 bước cài (lệnh copy-paste theo install.sh) + checklist doctor SỐNG
+      (`readDoctor()` disk/fixture, `bee-doctor.service` oneshot + nút
+      "Run doctor again" qua systemctl) + danh sách repo đã đăng ký + bước
+      cuối nhúng NewSessionForm để test tại chỗ. Link "Setup" trong sidebar.
 - [ ] 🧑 **S4.1** Tạo fine-grained PAT (contents + PR + issues, đúng danh sách
       repo) · bật branch protection `main` từng repo · thử push main phải bị từ chối
+      → làm theo trang `/setup`, doctor phải xanh trên đó
 - [ ] 🧑 **S4.2** Cài `apps/runner` lên máy · login Claude dưới user `bee` ·
       `loginctl enable-linger bee` · `doctor.sh` xanh toàn bộ
 - [ ] 🤖 **S4.3** Chạy 6 bài rig của spec §8 trên máy thật — nghiệm thu thật

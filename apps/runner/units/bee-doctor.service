@@ -1,0 +1,10 @@
+# Oneshot on purpose: `systemctl --user start bee-doctor` blocks until the
+# checklist finishes, so the web's "Run doctor again" button reads a FRESH
+# doctor.json right after — no polling, no race.
+[Unit]
+Description=bee doctor — A+ hygiene checklist to doctor.json
+
+[Service]
+Type=oneshot
+ExecStart=/opt/bee/bin/doctor.sh
+TimeoutStartSec=120

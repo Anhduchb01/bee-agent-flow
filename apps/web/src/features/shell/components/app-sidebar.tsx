@@ -1,6 +1,13 @@
 "use client";
 
-import { CircleGaugeIcon, LogOutIcon, PlusIcon, TerminalIcon, WaypointsIcon } from "lucide-react";
+import {
+  CircleGaugeIcon,
+  LogOutIcon,
+  PlusIcon,
+  TerminalIcon,
+  WaypointsIcon,
+  WrenchIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -116,6 +123,16 @@ export function AppSidebar({
                 >
                   <WaypointsIcon />
                   <span>Canvas</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname.startsWith("/setup")}
+                  tooltip="Setup"
+                  render={<Link href="/setup" />}
+                >
+                  <WrenchIcon />
+                  <span>Setup</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

@@ -155,6 +155,33 @@ export function createFixtureBeeSource(): BeeSource {
       ];
     },
 
+    /*
+     * Doctor mẫu cố ý TRỘN xanh/đỏ + PAUSE bật: màn setup phải vẽ được cả
+     * ba trạng thái (đạt, hỏng kèm cách sửa, máy đang nằm im). Cảnh vừa-cài
+     * trả null — đúng hình dạng "doctor chưa từng chạy".
+     */
+    async readDoctor() {
+      if (chuaChayLanNao(await currentScene())) return null;
+      return {
+        checked_at: "2026-08-18T09:30:00Z",
+        ok: false,
+        paused: true,
+        checks: [
+          { id: "pat", ok: true, detail: "fine-grained PAT" },
+          { id: "repo:myapp", ok: true, detail: "branch protection bật trên main" },
+          {
+            id: "repo:blog",
+            ok: false,
+            detail: "CHƯA có branch protection trên main — push thẳng main đang mở",
+          },
+          { id: "may-sach", ok: true, detail: "không thấy SSH key / AWS / kube / GPG" },
+          { id: "linger", ok: false, detail: "chưa bật — chạy: loginctl enable-linger bee" },
+          { id: "reaper", ok: true, detail: "bee-reaper.timer đang chạy" },
+          { id: "dia", ok: true, detail: "/srv/bee ghi được" },
+        ],
+      };
+    },
+
     async listSessions(): Promise<BeeSession[]> {
       if (chuaChayLanNao(await currentScene())) return [];
       return [phienDemoDangChay(), phienDemoXong(), phienDemoChet()];
