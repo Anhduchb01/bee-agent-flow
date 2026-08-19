@@ -126,13 +126,22 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       `~/.local/srv/bee` (units template hoá vì /opt/bee root-owned còn
       mô hình cũ), linger BẬT, timers active, doctor chạy thật:
       ✓ claude/linger/reaper/dia · ✗ pat(gho_)/repos(trống)/may-sach.
-- [~] 🤖 **S4.3** Rig máy thật **5/7 XANH 18/08**: PAUSE gate qua systemd ·
+- [~] 🤖 **S4.3** Rig máy thật **6/7 XANH 19/08**: PAUSE gate qua systemd ·
       FIFO→claude thật→reply vào run.jsonl · kill -9 claude→trap đóng
       `failed` ngay · kill -9 session-run→reaper đóng trong 1 tick
       (reason:reaped, attempt:1, FIFO dọn, heartbeat thật) · id bẩn chết ở
       cửa · systemctl stop→`stopped` · web disk-mode boot (/login?next=,
-      SSE 401 đúng chỗ). **Còn thiếu**: rig 3+4 (worktree+tools — chờ 🧑
-      PAT fine-grained + repo đăng ký, S4.1) · rig 6 reboot (🧑 bấm).
+      SSE 401 đúng chỗ) · **rig 3 ✓** (gõ chen giữa Bash sleep 20 — CLI
+      đưa vào cùng lượt, trả lời gộp cả hai, không nuốt) · **rig 4 ✓**
+      (clone→worktree bee/lifebook-assessment-1 qua PAT thật; đổi pha
+      interview→work bằng watcher đóng FIFO; --resume nhớ CHUOI-XANH-99).
+      **Bug bắt được nhờ rig**: reaper cướp stop sạch khi unit đang
+      deactivating → sửa + rig-03 3b (810a943); install từng rơi nhánh
+      sudo ngầm → prefix mới `~/.local/bee` (ducba-owned; `~/.local/opt/bee`
+      root-owned còn sót, cần 🧑 `sudo rm -rf` lúc rảnh).
+      **Còn thiếu**: rig 6 reboot (🧑 bấm — reboot lúc có phiên chạy, gọi
+      tôi nghiệm thu sau khi máy lên) · 🧑 bật branch protection main cho
+      Anhduchb01/lifebook-assessment (doctor đang đỏ đúng).
 
 ## S5 · Ra internet
 
