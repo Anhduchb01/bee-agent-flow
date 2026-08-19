@@ -100,9 +100,11 @@ export function RepoRegistry({
         </ul>
       )}
       <p className="text-xs text-muted-foreground">
-        ✓ means doctor confirmed branch protection on that repo&apos;s default branch. Protecting
-        main needs repo admin — done in GitHub settings with YOUR account, never with the
-        machine&apos;s narrow PAT.
+        ✓ means doctor confirmed a fence in front of that repo&apos;s default branch: real GitHub
+        branch protection where available (needs repo admin, set in GitHub settings with YOUR
+        account), or — on GitHub Free, where private repos cannot have protection — the local
+        pre-push hook the runner installs, which refuses any push outside bee/*. Upgrade
+        trigger: repo goes public or the account goes Pro → enable real protection.
       </p>
     </div>
   );

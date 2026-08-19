@@ -49,8 +49,15 @@ if compgen -G "$BEE_ROOT/repos.d/*.env" >/dev/null; then
     if [[ -z "$DEF" ]]; then ghi "repo:$slug" false "không đọc được $REPO — PAT có quyền không?"; continue; fi
     if gh api "repos/$REPO/branches/$DEF/protection" >/dev/null 2>&1; then
       ghi "repo:$slug" true "branch protection bật trên $DEF"
+    elif [[ -x "$BEE_ROOT/repos/$slug.git/hooks/pre-push" ]]; then
+      # GitHub Free không cho protection trên repo private, và PAT hẹp cũng
+      # không đọc được endpoint đó — fence hạ cấp là pre-push hook local
+      # (session-run cài mỗi lần mở phiên). Nói rõ đây là fence yếu hơn.
+      ghi "repo:$slug" true "protection GitHub không kiểm được (plan Free / PAT hẹp) — fence local: pre-push chặn push ngoài bee/*"
+    elif [[ ! -d "$BEE_ROOT/repos/$slug.git" ]]; then
+      ghi "repo:$slug" true "chưa clone — fence pre-push sẽ được cài ở phiên đầu tiên"
     else
-      ghi "repo:$slug" false "CHƯA có branch protection trên $DEF — push thẳng main đang mở"
+      ghi "repo:$slug" false "KHÔNG có protection GitHub và thiếu pre-push hook trong bare clone"
     fi
   done
 else

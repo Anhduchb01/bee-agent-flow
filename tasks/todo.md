@@ -139,9 +139,14 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       deactivating → sửa + rig-03 3b (810a943); install từng rơi nhánh
       sudo ngầm → prefix mới `~/.local/bee` (ducba-owned; `~/.local/opt/bee`
       root-owned còn sót, cần 🧑 `sudo rm -rf` lúc rảnh).
-      **Còn thiếu**: rig 6 reboot (🧑 bấm — reboot lúc có phiên chạy, gọi
-      tôi nghiệm thu sau khi máy lên) · 🧑 bật branch protection main cho
-      Anhduchb01/lifebook-assessment (doctor đang đỏ đúng).
+      **Chốt 19/08**: rig 6 reboot — BỎ theo quyết định chủ dự án (đường
+      reaper-dọn-xác đã chứng minh bằng kill -9; reboot chỉ thêm niềm tin,
+      không thêm đường code). Branch protection: plan Free không bật được
+      trên repo private → fence hạ cấp `pre-push-bee` (chặn push ngoài
+      bee/* ngay trên máy, đã thử sống: push main bị từ chối), doctor ghi
+      rõ trạng thái hạ cấp, trigger nâng lại = repo public/account Pro.
+      Doctor giờ chỉ còn ✗ may-sach (máy dev — giá đã chấp nhận).
+      **→ S4 ĐÓNG. Tiếp theo: S5.**
 
 ## S5 · Ra internet
 

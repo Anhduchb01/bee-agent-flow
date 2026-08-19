@@ -184,6 +184,16 @@ cho phép nút "Run doctor again" trên web chạy lại checklist qua
   trạng thái đó thật thà.
 - Hàng rào phía GitHub (PRD §4.2): PAT hẹp + branch protection `main`. Đó là
   hai hàng rào **thật**; quy ước branch là kỷ luật, không phải hàng rào.
+- **Hạ cấp trên GitHub Free (chốt 19/08):** repo private trên plan Free
+  KHÔNG bật được branch protection/ruleset, và PAT hẹp cũng không đọc được
+  endpoint protection. Fence thay thế: `lib/pre-push-bee` — pre-push hook
+  session-run cài vào `hooks/` của bare clone MỖI lần mở phiên (idempotent);
+  mọi push từ worktree đi qua hook chung này, ref ngoài `refs/heads/bee/*`
+  bị từ chối (kể cả main). Đây là gờ giảm tốc, không phải ranh giới (agent
+  full-shell gỡ được) — doctor ghi rõ trạng thái hạ cấp trong check
+  `repo:<slug>`. **Trigger nâng lại:** repo lên public hoặc account lên
+  Pro → bật protection thật, doctor tự chuyển sang kiểm GitHub-side.
+  Rig-03 §4 chứng minh hook bằng push thật vào bare local.
 
 ---
 

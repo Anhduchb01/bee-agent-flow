@@ -102,6 +102,29 @@ rm -f "$RIG_STATE_FILE"
 "$RUNNER/bin/reaper.sh"
 grep -q '"reaped"' "$S4/meta.json" && kq ok "inactive thật mới bị reap" || kq no "xác thật không được dọn"
 
+echo "== 4 · pre-push fence: main bị chặn ngay trên máy, bee/* đi được =="
+# GitHub Free không cho branch protection trên repo private — fence hạ cấp
+# là pre-push hook trong bare clone, mọi push từ worktree phải đi qua nó.
+G="$T/git"; mkdir -p "$G"
+git init --bare --quiet "$G/upstream.git"
+git init --quiet "$G/seed" && (cd "$G/seed" && git config user.email t@t && git config user.name t \
+  && echo hi > f && git add f && git commit -qm init && git push -q "$G/upstream.git" HEAD:main)
+git clone --bare --quiet "$G/upstream.git" "$G/bare.git"
+cp "$RUNNER/lib/pre-push-bee" "$G/bare.git/hooks/pre-push" && chmod +x "$G/bare.git/hooks/pre-push"
+git --git-dir="$G/bare.git" worktree add --quiet -B "bee/demo-1" "$G/wt" main
+(cd "$G/wt" && git config user.email t@t && git config user.name t \
+  && echo more >> f && git add f && git commit -qm change)
+if (cd "$G/wt" && git push -q origin HEAD:refs/heads/main 2>/dev/null); then
+  kq no "push main phải bị pre-push hook chặn"
+else
+  kq ok "push main bị chặn ngay trên máy"
+fi
+if (cd "$G/wt" && git push -q origin HEAD:refs/heads/bee/demo-1 2>/dev/null); then
+  kq ok "push bee/* đi qua bình thường"
+else
+  kq no "push bee/* không được phép fail"
+fi
+
 rm -rf "$T"
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-03: TẤT CẢ XANH"; else echo "RIG-03: CÓ ĐỎ"; exit 1; fi

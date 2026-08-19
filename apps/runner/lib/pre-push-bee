@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# pre-push fence — installed into every bare clone's hooks/ by session-run.
+#
+# GitHub Free cannot protect main on private repos, so the GitHub-side
+# fence of the A+ model does not exist there. This hook is the downgraded
+# local fence: every push from a session worktree goes through the shared
+# bare repo's hooks, and anything that is not a bee/* branch is refused —
+# main included. It is a speed bump, not a boundary (a full-shell agent
+# could remove it); the real fences are listed in PRD §4.2 and the
+# upgrade trigger is: repo goes public or the account goes Pro → enable
+# real branch protection and doctor verifies it again.
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/bee/*) ;;
+    *)
+      echo "bee: push to $remote_ref refused — only bee/* branches may leave this machine" >&2
+      exit 1
+      ;;
+  esac
+done
+exit 0

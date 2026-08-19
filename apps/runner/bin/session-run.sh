@@ -120,6 +120,13 @@ elif [[ ! -d "$BARE" ]]; then
 fi
 
 if [[ "$CO_WORKTREE" == "yes" ]]; then
+  # Local push fence, refreshed EVERY session start (idempotent): pushes
+  # from worktrees run the shared bare repo's hooks, and this one refuses
+  # any ref that is not bee/*. On GitHub Free (no branch protection for
+  # private repos) this is the only fence in front of main.
+  cp "$(dirname "$(readlink -f "$0")")/../lib/pre-push-bee" "$BARE/hooks/pre-push"
+  chmod +x "$BARE/hooks/pre-push"
+
   # Nhánh mặc định lấy từ HEAD của bare clone — bài học origin/HEAD của mô hình cũ.
   DEF=$(git --git-dir="$BARE" symbolic-ref --short HEAD 2>/dev/null || echo main)
 
