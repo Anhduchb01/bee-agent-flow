@@ -142,11 +142,13 @@ export function CanvasView({
   edges,
   phien,
   repos = [],
+  skills = [],
 }: {
   nodes: NodeCanvas[];
   edges: EdgeCanvas[];
   phien: BeeSession[];
   repos?: BeeRepoDangKy[];
+  skills?: { name: string; moTa: string }[];
 }) {
   const router = useRouter();
   const [chon, setChon] = useState<BeeSession | null>(null);
@@ -261,7 +263,7 @@ export function CanvasView({
               <SheetTitle className="border-b border-border px-4 py-3 text-sm">
                 {chon.title ?? `${chon.slug}-${chon.num}`}
               </SheetTitle>
-              <LiveView phien={chon} />
+              <LiveView phien={chon} skills={skills} />
             </>
           )}
         </SheetContent>

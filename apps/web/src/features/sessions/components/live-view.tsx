@@ -17,6 +17,29 @@ const VSCODE_FONT =
   "'Segoe WPC', 'Segoe UI', system-ui, -apple-system, 'Ubuntu', 'Droid Sans', sans-serif";
 
 /**
+ * VSCode Dark Modern, scoped to the chat: overriding the theme's CSS vars
+ * here re-skins every descendant (cards, borders, code chips) to the exact
+ * editor palette without touching the rest of the app.
+ */
+const VSCODE_SKIN = {
+  fontFamily: VSCODE_FONT,
+  "--background": "#1f1f1f",
+  "--card": "#1f1f1f",
+  "--popover": "#202020",
+  "--secondary": "#252526",
+  "--muted": "#313131",
+  "--accent": "#2a2d2e",
+  "--input": "#3c3c3c",
+  "--border": "#2b2b2b",
+  "--foreground": "#cccccc",
+  "--body": "#cccccc",
+  "--card-foreground": "#cccccc",
+  "--accent-foreground": "#cccccc",
+  "--muted-foreground": "#9d9d9d",
+  "--font-mono": "'Cascadia Code', 'Consolas', 'SF Mono', Menlo, monospace",
+} as React.CSSProperties;
+
+/**
  * Slash palette, VSCode-style. Real CC slash commands live in the REPL
  * input layer and do NOT pass through stream-json — so each entry expands
  * to an instruction that triggers the matching global bee skill instead.
@@ -82,7 +105,14 @@ function VongNguCanh({ phanTram }: { phanTram: number }) {
  * Câu vừa gõ hiện qua đường stream (bee_user_say do action ghi sổ, SSE nhặt
  * trong ≤ 500ms) — một nguồn sự thật duy nhất, không lo hiện đúp.
  */
-export function LiveView({ phien }: { phien: BeeSession }) {
+export function LiveView({
+  phien,
+  skills = [],
+}: {
+  phien: BeeSession;
+  /** Global skills (~/.claude/skills) — appended to the "/" palette. */
+  skills?: { name: string; moTa: string }[];
+}) {
   const { suKien, dangGo, dangNghi, trangThai, ketThuc, boQua } = useSessionStream(phien.id);
   const [nhap, setNhap] = useState("");
   const [loi, setLoi] = useState("");
@@ -127,14 +157,26 @@ export function LiveView({ phien }: { phien: BeeSession }) {
 
   // "/..." opens the palette; picking one replaces the box with the skill
   // trigger for the user to edit or send. Chat sessions have no tools —
-  // no palette there.
+  // no palette there. Aliases first, then every installed global skill.
+  const tatCaLenh = [
+    ...LENH,
+    ...skills
+      .filter((s) => !LENH.some((l) => l.chen.includes(s.name)))
+      .map((s) => ({
+        ten: `/${s.name}`,
+        moTa: s.moTa,
+        chen: `Dùng skill ${s.name}: ${s.moTa}`,
+      })),
+  ];
   const goiLenh =
     phien.worktree && nhap.startsWith("/")
-      ? LENH.filter((l) => l.ten.startsWith(nhap.trim().split(" ")[0] ?? ""))
+      ? tatCaLenh
+          .filter((l) => l.ten.startsWith(nhap.trim().split(" ")[0] ?? ""))
+          .slice(0, 12)
       : [];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col" style={{ fontFamily: VSCODE_FONT }}>
+    <div className="flex min-h-0 flex-1 flex-col bg-background text-body" style={VSCODE_SKIN}>
       {/* thanh trạng thái */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-2 sm:px-6">
         <StatusDot tone={ketThuc === null ? "agent" : ketThuc === "done" ? "ok" : "down"} />
@@ -188,7 +230,7 @@ export function LiveView({ phien }: { phien: BeeSession }) {
               <ul
                 role="listbox"
                 aria-label="Commands"
-                className="absolute bottom-full left-0 mb-1 w-full rounded-card border border-border bg-card p-1 shadow-md"
+                className="absolute bottom-full left-0 mb-1 max-h-72 w-full overflow-y-auto rounded-card border border-border bg-popover p-1 shadow-md"
               >
                 {goiLenh.map((l) => (
                   <li key={l.ten} role="option" aria-selected={false}>

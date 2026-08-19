@@ -314,6 +314,8 @@ export interface BeeSource {
   readClaudeAuth(): Promise<BeeClaudeAuth>;
   /** Account-wide usage windows from the last refresh; `null` = never fetched. */
   readClaudeUsage(): Promise<BeeClaudeAccountUsage | null>;
+  /** Installed global skills (~/.claude/skills) — feeds the chat "/" palette. */
+  listSkills(): Promise<{ name: string; moTa: string }[]>;
   readStatus(): Promise<StatusRead>;
   readRecent(limit?: number): Promise<BeeRecentRun[]>;
   /**

@@ -162,6 +162,15 @@ export function createFixtureBeeSource(): BeeSource {
      *   hỏng kèm cách sửa lẫn banner nằm-im;
      * - còn lại → xanh toàn bộ: login về Overview như máy đã chạy ổn.
      */
+    /** Palette "/" trên fixture: đúng ba skill bee — đủ để e2e kiểm ổn định. */
+    async listSkills() {
+      return [
+        { name: "bee-create-issue", moTa: "Tạo GitHub issue cho hợp đồng task vừa chốt trong phiên bee." },
+        { name: "bee-push-pr", moTa: "Push branch của phiên bee và mở draft pull request." },
+        { name: "bee-update-pr", moTa: "Đẩy commit mới lên PR đang mở và comment tóm tắt." },
+      ];
+    },
+
     /** Số tài khoản dàn dựng — khớp các % mà fixture ClaudeSource vẫn vẽ. */
     async readClaudeUsage() {
       if (chuaChayLanNao(await currentScene())) return null;

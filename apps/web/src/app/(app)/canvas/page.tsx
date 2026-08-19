@@ -1,12 +1,17 @@
 import { CanvasView, dungDoThi, loadCanvas, loadRepos } from "@/features/sessions";
 import { PageHeader } from "@/features/shell";
 import { getActor } from "@/lib/auth";
+import { getBee } from "@/lib/bee";
 
 export default async function CanvasPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [{ nhom, artifacts, xemTruoc }, repos] = await Promise.all([loadCanvas(), loadRepos()]);
+  const [{ nhom, artifacts, xemTruoc }, repos, skills] = await Promise.all([
+    loadCanvas(),
+    loadRepos(),
+    getBee().listSkills(),
+  ]);
   const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc);
 
   return (
@@ -25,6 +30,7 @@ export default async function CanvasPage() {
           edges={edges}
           phien={nhom.flatMap((g) => g.phien)}
           repos={repos}
+          skills={skills}
         />
       </div>
     </div>

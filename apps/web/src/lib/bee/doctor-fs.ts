@@ -78,3 +78,36 @@ export async function readClaudeUsageFrom(root: string): Promise<BeeClaudeAccoun
   };
   return { five_hour: cuaSo(o.five_hour), seven_day: cuaSo(o.seven_day), fetched_at: o.fetched_at };
 }
+
+/** One installed skill — feeds the chat's "/" palette. */
+export interface BeeSkill {
+  name: string;
+  moTa: string;
+}
+
+/**
+ * Scan a skills directory (…/.claude/skills) for SKILL.md frontmatter.
+ * Description is cut to one palette-sized line; folders without a
+ * SKILL.md (or with broken frontmatter) are skipped silently.
+ */
+export async function readSkillsFrom(dir: string): Promise<BeeSkill[]> {
+  let folders: string[] = [];
+  try {
+    folders = await fs.readdir(dir);
+  } catch {
+    return [];
+  }
+  const ra: BeeSkill[] = [];
+  for (const f of folders) {
+    try {
+      const dau = (await fs.readFile(path.join(dir, f, "SKILL.md"), "utf8")).slice(0, 2000);
+      const name = /^name:\s*"?([^"\n]+?)"?\s*$/m.exec(dau)?.[1];
+      const moTa = /^description:\s*"?(.+?)"?\s*$/m.exec(dau)?.[1];
+      if (name === undefined || moTa === undefined) continue;
+      ra.push({ name, moTa: moTa.length > 120 ? `${moTa.slice(0, 120)}…` : moTa });
+    } catch {
+      // Not a skill folder.
+    }
+  }
+  return ra.sort((a, b) => a.name.localeCompare(b.name));
+}
