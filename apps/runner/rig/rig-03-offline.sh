@@ -143,6 +143,8 @@ grep -q "^PORT=" "$IT/srv/web.env" 2>/dev/null \
   && kq ok "web.env mẫu được tạo (PORT có sẵn)" || kq no "thiếu web.env mẫu"
 grep -q "BEE_SOURCE=disk" "$IT/srv/web.env" 2>/dev/null \
   && kq ok "web.env mặc định chạy disk — không bao giờ demo nhầm" || kq no "web.env thiếu BEE_SOURCE=disk"
+grep -q "CLAUDE_SOURCE=live" "$IT/srv/web.env" 2>/dev/null \
+  && kq ok "web.env bật Claude live — panel không hiện số dàn dựng" || kq no "web.env thiếu CLAUDE_SOURCE=live"
 
 rm -rf "$T"
 echo

@@ -4,7 +4,9 @@ import { dangNhap } from "./helpers";
 
 test("danh sách dự án có dải thống kê", async ({ page }) => {
   await dangNhap(page, "pm-linh");
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Add project" }).click();
+  // Sidebar + now registers repos on /setup; the legacy listing is reached
+  // directly, like them-du-an.spec does.
+  await page.goto("/projects");
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Projects");
   await expect(page.getByText("Agents working").first()).toBeVisible();

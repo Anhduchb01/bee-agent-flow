@@ -65,7 +65,13 @@ export function NewSessionForm({
       <div className="flex-1">
         <RepoCombobox repos={repos} value={chon} onChange={setChon} />
       </div>
-      <Button type="submit" disabled={dangMo}>
+      {/* Terracotta like the send button — the shadcn default (white in
+          dark) read as unstyled next to the VSCode skin. */}
+      <Button
+        type="submit"
+        disabled={dangMo}
+        className="bg-[#C15F3C] text-white hover:bg-[#a94f31]"
+      >
         {dangMo ? "Starting…" : laChat ? "New chat" : "New session"}
       </Button>
       {loi !== "" && <p className="text-xs text-destructive sm:ml-2">{loi}</p>}

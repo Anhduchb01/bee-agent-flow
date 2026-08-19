@@ -70,6 +70,9 @@ export function AppSidebar({
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1 group-data-[collapsible=icon]:px-0">
+          <span aria-hidden className="text-base">
+            🐝
+          </span>
           <span className="text-base font-semibold tracking-title text-foreground group-data-[collapsible=icon]:hidden">
             bee
           </span>
@@ -141,7 +144,9 @@ export function AppSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          <SidebarGroupAction title="Add project" render={<Link href="/projects" />}>
+          {/* Registering a repo lives on /setup now — the legacy /projects
+              add-flow writes to the old model and misled a real user. */}
+          <SidebarGroupAction title="Register repo" render={<Link href="/setup" />}>
             <PlusIcon />
           </SidebarGroupAction>
           <SidebarGroupContent>
@@ -149,9 +154,8 @@ export function AppSidebar({
               {duAn.map((d) => (
                 <SidebarMenuItem key={d.slug}>
                   <SidebarMenuButton
-                    isActive={pathname === `/p/${d.slug}`}
                     tooltip={d.slug}
-                    render={<Link href={`/p/${d.slug}`} />}
+                    render={<Link href="/sessions" />}
                   >
                     <StatusDot tone={d.tone} />
                     <span>{d.slug}</span>

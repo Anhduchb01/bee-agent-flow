@@ -59,8 +59,10 @@ test.describe("chặn đường thoát ra ngoài gốc bằng chứng", () => {
 
 test("chưa đăng nhập thì không đọc được một byte nào", async ({ browser }) => {
   const context = await browser.newContext();
+  // Relative URL so the request follows baseURL — a hardcoded port used to
+  // pass only because an unrelated dev server answered on it.
   const res = await context.request.get(
-    `http://127.0.0.1:3187${GOC}/myapp/45/9f3c1ab/loc-don-theo-trang-thai.gif`,
+    `${GOC}/myapp/45/9f3c1ab/loc-don-theo-trang-thai.gif`,
     { maxRedirects: 0 },
   );
 

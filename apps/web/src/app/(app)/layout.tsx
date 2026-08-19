@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { deriveHealth } from "@/features/health";
-import { loadProjects } from "@/features/project";
 import { AppSidebar, type DuAnTrongSidebar } from "@/features/shell";
 import { auth, signOut } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
@@ -45,19 +44,23 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     );
   }
 
-  const [projects, statusRead, sessions] = await Promise.all([
-    loadProjects(),
+  // Sidebar projects = REGISTERED repos (repos.d) — the same source the
+  // session combobox uses. The legacy loadProjects/status.json path showed
+  // an empty list on the new runner while the combobox listed repos fine.
+  const [repos, statusRead, sessions] = await Promise.all([
+    getBee().listRepos(),
     getBee().readStatus(),
     getBee().listSessions(),
   ]);
   const health = deriveHealth(statusRead);
   const running = sessions.filter((s) => s.status === "running").length;
 
-  const duAn: DuAnTrongSidebar[] = projects.map((p) => ({
-    slug: p.slug,
-    dangChay: p.running.length,
-    tone: p.repo === null ? "idle" : p.repo.paused ? "warn" : p.running.length > 0 ? "agent" : "ok",
-  }));
+  const duAn: DuAnTrongSidebar[] = repos.map((r) => {
+    const dangChay = sessions.filter(
+      (s) => s.slug === r.slug && s.status === "running",
+    ).length;
+    return { slug: r.slug, dangChay, tone: dangChay > 0 ? "agent" : "ok" };
+  });
 
   return (
     <TooltipProvider>

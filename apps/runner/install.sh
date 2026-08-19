@@ -61,6 +61,9 @@ PORT=3210
 HOSTNAME=127.0.0.1
 BEE_SOURCE=disk
 BEE_SRV=$BEE_ROOT
+# Claude panel: live = real service status + real (possibly empty) usage.
+# Leaving this unset would show staged fixture numbers on a real machine.
+CLAUDE_SOURCE=live
 # --- going to the internet (S5): create a GitHub OAuth app, then fill ---
 #GITHUB_SOURCE=live
 #AUTH_GITHUB_ID=
