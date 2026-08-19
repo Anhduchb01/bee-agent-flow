@@ -97,3 +97,32 @@ describe("LiveView — one mode, VSCode-style controls", () => {
     expect(screen.getByText("12%")).toBeInTheDocument();
   });
 });
+
+describe("slash palette", () => {
+  it("typing / lists bee commands; picking one inserts the skill trigger", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    render(<LiveView phien={PHIEN} />);
+
+    const o = screen.getByLabelText("Message to the agent");
+    await user.type(o, "/");
+    const menu = screen.getByRole("listbox", { name: "Commands" });
+    expect(menu).toHaveTextContent("/issue");
+    expect(menu).toHaveTextContent("/pr");
+
+    await user.click(screen.getByRole("button", { name: /create a github issue/i }));
+    expect(o).toHaveValue("Dùng skill bee-create-issue: tạo issue cho việc đang bàn trong phiên này.");
+  });
+
+  it("filters by what is typed and stays away from no-tool chat sessions", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    const { rerender } = render(<LiveView phien={PHIEN} />);
+    await user.type(screen.getByLabelText("Message to the agent"), "/up");
+    expect(screen.getByRole("listbox", { name: "Commands" })).toHaveTextContent("/update-pr");
+    expect(screen.queryByText("/issue")).not.toBeInTheDocument();
+
+    rerender(<LiveView phien={{ ...PHIEN, worktree: false }} />);
+    expect(screen.queryByRole("listbox", { name: "Commands" })).not.toBeInTheDocument();
+  });
+});

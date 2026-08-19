@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import {
   Background,
   Controls,
@@ -8,6 +9,8 @@ import {
   Panel,
   Position,
   ReactFlow,
+  useEdgesState,
+  useNodesState,
   type Edge,
   type Node,
   type NodeProps,
@@ -145,27 +148,55 @@ export function CanvasView({
   phien: BeeSession[];
   repos?: BeeRepoDangKy[];
 }) {
-  const flowNodes: Node[] = nodes.map((n) => ({ ...n, data: { ...n.data } }));
-  const flowEdges: Edge[] = edges.map((e) => ({ ...e }));
+  const router = useRouter();
   const [chon, setChon] = useState<BeeSession | null>(null);
+
+  // Controlled nodes + a 5s server refresh = the canvas updates LIVE: new
+  // sessions and freshly created issue/PR nodes appear without a reload.
+  // defaultNodes (uncontrolled) ignored refreshed props entirely.
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node>(
+    nodes.map((n) => ({ ...n, data: { ...n.data } })),
+  );
+  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState<Edge>(
+    edges.map((e) => ({ ...e })),
+  );
+  const khoaDoThi = JSON.stringify([nodes, edges]);
+  const khoaCu = useRef(khoaDoThi);
+  useEffect(() => {
+    // Only rebuild when the graph really changed — otherwise every poll
+    // would yank nodes out of the user's hands mid-drag.
+    if (khoaDoThi === khoaCu.current) return;
+    khoaCu.current = khoaDoThi;
+    setFlowNodes(nodes.map((n) => ({ ...n, data: { ...n.data } })));
+    setFlowEdges(edges.map((e) => ({ ...e })));
+  }, [khoaDoThi, nodes, edges, setFlowNodes, setFlowEdges]);
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (!document.hidden) router.refresh();
+    }, 5000);
+    return () => clearInterval(t);
+  }, [router]);
+
   // Chat panel width — restored from the last drag, VSCode-style. Lazy
   // init is safe: the Sheet only mounts when opened, all client-side.
   const [rongPanel, setRongPanel] = useState(() => {
-    if (typeof window === "undefined") return 576;
+    if (typeof window === "undefined") return 1152;
     try {
       const luu = Number(localStorage.getItem("bee-chat-width"));
-      return Number.isFinite(luu) && luu >= 360 ? luu : 576;
+      return Number.isFinite(luu) && luu >= 360 ? luu : 1152;
     } catch {
-      return 576;
+      return 1152;
     }
   });
-  const rongPanelRef = useRef(rongPanel);
+  const dangKeo = useRef<{ batDau: number; rong: number } | null>(null);
 
   return (
     <div className="h-full w-full">
       <ReactFlow
-        defaultNodes={flowNodes}
-        defaultEdges={flowEdges}
+        nodes={flowNodes}
+        edges={flowEdges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         colorMode="dark"
         fitView
@@ -190,37 +221,39 @@ export function CanvasView({
       <Sheet open={chon !== null} onOpenChange={(mo) => !mo && setChon(null)}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col gap-0 p-0 sm:max-w-none"
-          style={{ width: rongPanel }}
+          className="flex flex-col gap-0 p-0"
+          // Inline beats class: shadcn's built-in sm:max-w-sm silently pinned
+          // the panel at 384px, which also made dragging look dead.
+          style={{ width: rongPanel, maxWidth: "none" }}
         >
+          {/* Pointer CAPTURE, not window listeners: Radix's modal layer eats
+              window events, which is why the first version never dragged. */}
           <div
             role="separator"
             aria-orientation="vertical"
             aria-label="Resize chat panel"
-            className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize hover:bg-muted-foreground/30"
+            className="absolute inset-y-0 left-0 z-10 w-2 cursor-col-resize touch-none hover:bg-muted-foreground/30"
             onPointerDown={(e) => {
               e.preventDefault();
-              const batDau = e.clientX;
-              const rongCu = rongPanel;
-              const keo = (ev: PointerEvent) => {
-                const moi = Math.min(
-                  Math.max(rongCu + (batDau - ev.clientX), 360),
-                  window.innerWidth - 160,
-                );
-                rongPanelRef.current = moi;
-                setRongPanel(moi);
-              };
-              const tha = () => {
-                window.removeEventListener("pointermove", keo);
-                window.removeEventListener("pointerup", tha);
-                try {
-                  localStorage.setItem("bee-chat-width", String(rongPanelRef.current));
-                } catch {
-                  // Private mode — width just won't persist.
-                }
-              };
-              window.addEventListener("pointermove", keo);
-              window.addEventListener("pointerup", tha);
+              e.currentTarget.setPointerCapture(e.pointerId);
+              dangKeo.current = { batDau: e.clientX, rong: rongPanel };
+            }}
+            onPointerMove={(e) => {
+              if (dangKeo.current === null) return;
+              const moi = Math.min(
+                Math.max(dangKeo.current.rong + (dangKeo.current.batDau - e.clientX), 360),
+                window.innerWidth - 120,
+              );
+              setRongPanel(moi);
+            }}
+            onPointerUp={(e) => {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+              dangKeo.current = null;
+              try {
+                localStorage.setItem("bee-chat-width", String(rongPanel));
+              } catch {
+                // Private mode — width just won't persist.
+              }
             }}
           />
           {chon !== null && (

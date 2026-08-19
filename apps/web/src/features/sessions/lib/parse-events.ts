@@ -173,23 +173,27 @@ export function phanTichDong(dong: string): SuKien[] | null {
       return [];
     }
     case "result": {
-      // Context fill of the window — the number behind VSCode's little
-      // ring. Sum of input + cache tokens across models over the largest
-      // declared window; null when the result carries no modelUsage.
+      // Context fill of the window — the number behind VSCode's ring.
+      // MUST come from `usage` (the LAST turn's tokens = what sits in the
+      // window right now), not from modelUsage: that one accumulates cache
+      // reads across every turn of the session and hits "100%" in minutes.
       let nguCanh: number | null = null;
-      if (typeof raw.modelUsage === "object" && raw.modelUsage !== null) {
-        let dung = 0;
-        let cua = 0;
-        for (const m of Object.values(raw.modelUsage as Record<string, unknown>)) {
-          if (typeof m !== "object" || m === null) continue;
-          const u = m as Record<string, unknown>;
-          for (const k of ["inputTokens", "cacheReadInputTokens", "cacheCreationInputTokens"]) {
-            if (typeof u[k] === "number") dung += u[k] as number;
-          }
-          if (typeof u.contextWindow === "number") cua = Math.max(cua, u.contextWindow);
+      let dung = 0;
+      if (laObject(raw.usage)) {
+        for (const k of ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"]) {
+          const v = (raw.usage as Record<string, unknown>)[k];
+          if (typeof v === "number") dung += v;
         }
-        if (cua > 0) nguCanh = Math.min(100, Math.round((dung / cua) * 100));
       }
+      let cua = 0;
+      if (laObject(raw.modelUsage)) {
+        for (const m of Object.values(raw.modelUsage as Record<string, unknown>)) {
+          if (laObject(m) && typeof m.contextWindow === "number") {
+            cua = Math.max(cua, m.contextWindow);
+          }
+        }
+      }
+      if (dung > 0 && cua > 0) nguCanh = Math.min(100, Math.round((dung / cua) * 100));
       return [
         {
           loai: "ket-qua",

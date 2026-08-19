@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { ghepThe, type Muc } from "../lib/ghep-the";
 import type { SuKien } from "../lib/parse-events";
@@ -8,8 +10,30 @@ import type { SuKien } from "../lib/parse-events";
  * mặc định của app): mỗi tool là một mục "● Tên  tóm-tắt-mờ" mở ra panel —
  * Bash thành khối IN/OUT, Edit/Write thành khối diff đỏ/xanh, lỗi tự mở.
  * Ghép cặp nằm ở ghep-the.ts; đây chỉ là trình bày.
- * Đầu ra agent vẫn là PLAIN TEXT (PRD §4.1) — chưa render markdown.
  */
+
+/**
+ * Lời agent render MARKDOWN như VSCode (đổi 19/08). react-markdown dựng
+ * React elements và mặc định BỎ HTML thô trong nội dung — giữ nguyên bài
+ * chống HTML injection của bản plain text.
+ */
+function ChuAgent({ text }: { text: string }) {
+  return (
+    <div
+      className="space-y-2 text-[0.9375rem] leading-6 text-body
+        [&_a]:underline [&_a]:underline-offset-2
+        [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground
+        [&_code]:rounded [&_code]:bg-muted/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.8125rem]
+        [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_h3]:text-[0.9375rem] [&_h3]:font-semibold
+        [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5
+        [&_pre]:overflow-x-auto [&_pre]:rounded-control [&_pre]:border [&_pre]:border-border [&_pre]:bg-muted/40 [&_pre]:p-3
+        [&_pre_code]:bg-transparent [&_pre_code]:p-0
+        [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1"
+    >
+      <Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
+    </div>
+  );
+}
 export function EventStream({
   suKien,
   dangGo,
@@ -35,10 +59,10 @@ export function EventStream({
         </p>
       )}
       {dangGo !== "" && (
-        <p className="whitespace-pre-wrap text-[0.9375rem] leading-6 text-body" aria-label="Agent is typing">
-          {dangGo}
+        <div aria-label="Agent is typing">
+          <ChuAgent text={dangGo} />
           <span className="animate-pulse">▍</span>
-        </p>
+        </div>
       )}
     </div>
   );
@@ -56,9 +80,7 @@ function MotMuc({ m }: { m: Muc }) {
         </div>
       );
     case "agent-noi":
-      return (
-        <p className="whitespace-pre-wrap text-[0.9375rem] leading-6 text-body">{m.text}</p>
-      );
+      return <ChuAgent text={m.text} />;
     case "nghi":
       return (
         <details className="group">

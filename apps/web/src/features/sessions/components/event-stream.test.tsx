@@ -108,3 +108,24 @@ describe("EventStream", () => {
     expect(document.querySelector("img")).toBeNull();
   });
 });
+
+describe("markdown trong lời agent", () => {
+  it("bold / inline code / list render thành phần tử thật, như VSCode", () => {
+    render(
+      <EventStream
+        suKien={[{ loai: "agent-noi", text: "Đã xong **hai việc**: chạy `pnpm test`\n\n- một\n- hai" }]}
+        dangGo=""
+      />,
+    );
+    expect(screen.getByText("hai việc").tagName).toBe("STRONG");
+    expect(screen.getByText("pnpm test").tagName).toBe("CODE");
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("HTML thô trong nội dung KHÔNG được render — chống injection như bản plain", () => {
+    const { container } = render(
+      <EventStream suKien={[{ loai: "agent-noi", text: 'xin chào <img src=x onerror="alert(1)">' }]} dangGo="" />,
+    );
+    expect(container.querySelector("img")).toBeNull();
+  });
+});

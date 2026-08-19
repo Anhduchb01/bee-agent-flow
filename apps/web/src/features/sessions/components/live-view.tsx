@@ -17,6 +17,29 @@ const VSCODE_FONT =
   "'Segoe WPC', 'Segoe UI', system-ui, -apple-system, 'Ubuntu', 'Droid Sans', sans-serif";
 
 /**
+ * Slash palette, VSCode-style. Real CC slash commands live in the REPL
+ * input layer and do NOT pass through stream-json — so each entry expands
+ * to an instruction that triggers the matching global bee skill instead.
+ */
+const LENH = [
+  {
+    ten: "/issue",
+    moTa: "Create a GitHub issue from this session",
+    chen: "Dùng skill bee-create-issue: tạo issue cho việc đang bàn trong phiên này.",
+  },
+  {
+    ten: "/pr",
+    moTa: "Push the bee/* branch and open a draft PR",
+    chen: "Dùng skill bee-push-pr: push nhánh của phiên và mở draft pull request.",
+  },
+  {
+    ten: "/update-pr",
+    moTa: "Push new commits + summary comment to the open PR",
+    chen: "Dùng skill bee-update-pr: đẩy commit mới lên PR của phiên và comment tóm tắt thay đổi.",
+  },
+];
+
+/**
  * Context-fill ring, VSCode style: a small circle that fills as the
  * window fills. Only rendered once a result carried real numbers.
  */
@@ -102,6 +125,14 @@ export function LiveView({ phien }: { phien: BeeSession }) {
 
   const coChuMoi = nhap.trim() !== "";
 
+  // "/..." opens the palette; picking one replaces the box with the skill
+  // trigger for the user to edit or send. Chat sessions have no tools —
+  // no palette there.
+  const goiLenh =
+    phien.worktree && nhap.startsWith("/")
+      ? LENH.filter((l) => l.ten.startsWith(nhap.trim().split(" ")[0] ?? ""))
+      : [];
+
   return (
     <div className="flex min-h-0 flex-1 flex-col" style={{ fontFamily: VSCODE_FONT }}>
       {/* thanh trạng thái */}
@@ -147,12 +178,32 @@ export function LiveView({ phien }: { phien: BeeSession }) {
       <div className="p-3 sm:p-4">
         {dangChay ? (
           <form
-            className="rounded-panel border border-border bg-card px-3 py-2 focus-within:border-muted-foreground/40"
+            className="relative rounded-panel border border-border bg-card px-3 py-2 focus-within:border-muted-foreground/40"
             onSubmit={(e) => {
               e.preventDefault();
               gui();
             }}
           >
+            {goiLenh.length > 0 && (
+              <ul
+                role="listbox"
+                aria-label="Commands"
+                className="absolute bottom-full left-0 mb-1 w-full rounded-card border border-border bg-card p-1 shadow-md"
+              >
+                {goiLenh.map((l) => (
+                  <li key={l.ten} role="option" aria-selected={false}>
+                    <button
+                      type="button"
+                      onClick={() => setNhap(l.chen)}
+                      className="flex w-full items-baseline gap-2 rounded-control px-2 py-1.5 text-left hover:bg-accent"
+                    >
+                      <span className="font-mono text-sm text-body">{l.ten}</span>
+                      <span className="text-xs text-muted-foreground">{l.moTa}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Textarea
               value={nhap}
               onChange={(e) => setNhap(e.target.value)}
