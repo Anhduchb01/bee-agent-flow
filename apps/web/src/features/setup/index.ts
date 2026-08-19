@@ -9,5 +9,5 @@ export {
 export { ClaudeSetup } from "./components/claude-setup";
 export { RepoRegistry } from "./components/repo-registry";
 export { runDoctorAction } from "./api/actions";
-export { loadClaudeAuth, loadDoctor } from "./api/load";
+export { loadClaudeAuth, loadDoctor, loadEnvFiles } from "./api/load";
 export { postLoginTarget } from "./lib/post-login-target";

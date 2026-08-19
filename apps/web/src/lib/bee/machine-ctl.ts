@@ -489,6 +489,89 @@ export async function harvestClaudeUsage(): Promise<KetQua> {
   }
 }
 
+/*
+ * Per-repo env store (env.d/<slug>/…), managed from /setup: the files
+ * session-run overlays onto every worktree. Same discipline as the rest
+ * of this file — slug and relative path go through allowlists BEFORE any
+ * filesystem call, and a resolved-path check backstops the regex.
+ */
+const ENV_PATH_RE = /^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/;
+const ENV_MAX_BYTES = 64 * 1024;
+
+export interface BeeEnvFile {
+  duongDan: string;
+  noiDung: string;
+}
+
+function envDirOf(slug: string): string | null {
+  if (!SLUG_RE.test(slug)) return null;
+  return path.join(root(), "env.d", slug);
+}
+
+function envFileOf(slug: string, relPath: string): string | null {
+  const dir = envDirOf(slug);
+  if (dir === null) return null;
+  if (!ENV_PATH_RE.test(relPath) || relPath.split("/").includes("..")) return null;
+  const file = path.resolve(dir, relPath);
+  // Belt over the regex braces: the resolved path must stay inside env.d.
+  if (!file.startsWith(path.resolve(dir) + path.sep) && file !== path.resolve(dir)) return null;
+  return file;
+}
+
+export async function listEnvFiles(slug: string): Promise<BeeEnvFile[]> {
+  const dir = envDirOf(slug);
+  if (dir === null || isFixture()) return [];
+  const ra: BeeEnvFile[] = [];
+  async function quet(thuMuc: string, goc: string): Promise<void> {
+    let muc: string[] = [];
+    try {
+      muc = await fs.readdir(thuMuc);
+    } catch {
+      return;
+    }
+    for (const m of muc) {
+      const day = path.join(thuMuc, m);
+      const st = await fs.stat(day).catch(() => null);
+      if (st === null) continue;
+      if (st.isDirectory()) await quet(day, goc);
+      else ra.push({ duongDan: path.relative(goc, day), noiDung: await fs.readFile(day, "utf8") });
+    }
+  }
+  await quet(dir, dir);
+  return ra.sort((a, b) => a.duongDan.localeCompare(b.duongDan));
+}
+
+export async function saveEnvFile(slug: string, relPath: string, noiDung: string): Promise<KetQua> {
+  const file = envFileOf(slug, relPath);
+  if (file === null) return { ok: false, message: "Invalid path — relative, no '..', no leading slash." };
+  if (Buffer.byteLength(noiDung) > ENV_MAX_BYTES) {
+    return { ok: false, message: "Too large — env files carry keys, not data (max 64KB)." };
+  }
+  if (isFixture()) return { ok: true };
+  try {
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    const tmp = `${file}.tmp`;
+    await fs.writeFile(tmp, noiDung, { mode: 0o600 });
+    await fs.chmod(tmp, 0o600);
+    await fs.rename(tmp, file);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: `Could not save: ${(e as Error).message}` };
+  }
+}
+
+export async function deleteEnvFile(slug: string, relPath: string): Promise<KetQua> {
+  const file = envFileOf(slug, relPath);
+  if (file === null) return { ok: false, message: "Invalid path." };
+  if (isFixture()) return { ok: true };
+  try {
+    await fs.rm(file, { force: true });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: `Could not delete: ${(e as Error).message}` };
+  }
+}
+
 /** PAUSE file toggle — pausing is create, resuming is remove; both idempotent. */
 export async function setPaused(paused: boolean): Promise<KetQua> {
   if (isFixture()) return { ok: true };

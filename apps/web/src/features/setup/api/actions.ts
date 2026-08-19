@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 
 import { getActor } from "@/lib/auth";
 import {
+  deleteEnvFile,
   enableLinger,
   ghAuthLogin,
   registerRepo,
   runDoctor,
   saveClaudeToken,
+  saveEnvFile,
   setPaused,
   startClaudeSetup,
   submitClaudeCode,
@@ -98,6 +100,27 @@ export async function unregisterRepoAction(slug: string): Promise<KetQua> {
   await refresh();
   revalidatePath("/sessions");
   revalidatePath("/canvas");
+  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+/** Env files land in env.d/<slug> — session-run overlays them per worktree. */
+export async function saveEnvFileAction(
+  slug: string,
+  duongDan: string,
+  noiDung: string,
+): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await saveEnvFile(slug, duongDan, noiDung);
+  revalidatePath("/setup");
+  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+export async function deleteEnvFileAction(slug: string, duongDan: string): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await deleteEnvFile(slug, duongDan);
+  revalidatePath("/setup");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 

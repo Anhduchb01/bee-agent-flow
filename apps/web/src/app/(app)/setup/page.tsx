@@ -4,6 +4,7 @@ import {
   DoctorChecklist,
   LingerButton,
   loadClaudeAuth,
+  loadEnvFiles,
   loadDoctor,
   PatForm,
   PauseToggle,
@@ -62,6 +63,7 @@ export default async function SetupPage() {
     loadRepos(),
     loadClaudeAuth(),
   ]);
+  const envFiles = await loadEnvFiles(repos.map((r) => r.slug));
 
   const check = (id: string): boolean | null =>
     doctor?.checks.find((c) => c.id === id)?.ok ?? null;
@@ -127,7 +129,7 @@ bash apps/runner/install.sh`}</Cmd>
 
         <Step num={3} title="Register repos and protect their main branches">
           <Card>
-            <RepoRegistry repos={repos} protection={protection} />
+            <RepoRegistry repos={repos} protection={protection} envFiles={envFiles} />
           </Card>
         </Step>
 

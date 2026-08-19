@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import type { BeeRepoDangKy } from "@/lib/bee/types";
 
 import { registerRepoAction, unregisterRepoAction } from "../api/actions";
+import { EnvEditor } from "./env-editor";
 import { CheckMark } from "./machine-controls";
 
 /**
@@ -19,10 +20,13 @@ import { CheckMark } from "./machine-controls";
 export function RepoRegistry({
   repos,
   protection,
+  envFiles = {},
 }: {
   repos: BeeRepoDangKy[];
   /** `repo:<slug>` doctor result per slug; undefined = doctor has not seen it. */
   protection: Record<string, boolean | undefined>;
+  /** env.d store per slug — edited inline, overlaid onto every worktree. */
+  envFiles?: Record<string, { duongDan: string; noiDung: string }[]>;
 }) {
   const router = useRouter();
   const [repo, setRepo] = useState("");
@@ -78,23 +82,26 @@ export function RepoRegistry({
       ) : (
         <ul aria-label="Registered repos" className="flex flex-col gap-2">
           {repos.map((r) => (
-            <li key={r.slug} className="flex items-center gap-2 font-mono text-xs">
-              <CheckMark ok={protection[r.slug] ?? null} />
-              <span className="text-body">
-                {r.repo} <span className="text-muted-foreground">({r.slug})</span>
+            <li key={r.slug} className="flex flex-col font-mono text-xs">
+              <span className="flex items-center gap-2">
+                <CheckMark ok={protection[r.slug] ?? null} />
+                <span className="text-body">
+                  {r.repo} <span className="text-muted-foreground">({r.slug})</span>
+                </span>
+                <span className="flex-1" />
+                <a
+                  href={`https://github.com/${r.repo}/settings/branches`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  Protect main ↗
+                </a>
+                <Button size="sm" variant="ghost" disabled={dang} onClick={() => go(r.slug)}>
+                  Remove
+                </Button>
               </span>
-              <span className="flex-1" />
-              <a
-                href={`https://github.com/${r.repo}/settings/branches`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-muted-foreground underline-offset-2 hover:underline"
-              >
-                Protect main ↗
-              </a>
-              <Button size="sm" variant="ghost" disabled={dang} onClick={() => go(r.slug)}>
-                Remove
-              </Button>
+              <EnvEditor slug={r.slug} files={envFiles[r.slug] ?? []} />
             </li>
           ))}
         </ul>

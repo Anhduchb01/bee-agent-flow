@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ClaudeTokenForm, PatForm, PauseToggle } from "./machine-controls";
 import { RepoRegistry } from "./repo-registry";
-import { registerRepoAction, saveClaudeTokenAction, savePatAction } from "../api/actions";
+import { registerRepoAction, saveClaudeTokenAction, saveEnvFileAction, savePatAction } from "../api/actions";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -15,6 +15,8 @@ vi.mock("../api/actions", () => ({
   saveClaudeTokenAction: vi.fn(async () => ({ ok: true, message: "" })),
   setPausedAction: vi.fn(async () => ({ ok: true, message: "" })),
   registerRepoAction: vi.fn(async () => ({ ok: false, message: "Repository must be owner/name" })),
+  saveEnvFileAction: vi.fn(async () => ({ ok: true, message: "" })),
+  deleteEnvFileAction: vi.fn(async () => ({ ok: true, message: "" })),
   unregisterRepoAction: vi.fn(async () => ({ ok: true, message: "" })),
 }));
 
@@ -115,5 +117,28 @@ describe("RepoRegistry", () => {
 
     expect(vi.mocked(registerRepoAction)).toHaveBeenCalledWith("not-a-repo");
     expect(screen.getByText(/must be owner\/name/i)).toBeInTheDocument();
+  });
+});
+
+describe("EnvEditor", () => {
+  it("shows the store, saves an added file through the action, surfaces errors", async () => {
+    const user = userEvent.setup();
+    render(
+      <RepoRegistry
+        repos={[{ slug: "myapp", repo: "you/myapp" }]}
+        protection={{}}
+        envFiles={{ myapp: [{ duongDan: ".env", noiDung: "API_KEY=abc\n" }] }}
+      />,
+    );
+
+    await user.click(screen.getByText(/env files \(1\)/i));
+    expect(screen.getByLabelText("Content of .env")).toHaveValue("API_KEY=abc\n");
+
+    vi.mocked(saveEnvFileAction).mockResolvedValueOnce({ ok: false, message: "Invalid path" });
+    await user.type(screen.getByLabelText("New env file path for myapp"), "../evil");
+    await user.type(screen.getByLabelText("New env file content for myapp"), "X=1");
+    await user.click(screen.getByRole("button", { name: "Add env file" }));
+    expect(vi.mocked(saveEnvFileAction)).toHaveBeenCalledWith("myapp", "../evil", "X=1");
+    expect(await screen.findByText("Invalid path")).toBeInTheDocument();
   });
 });
