@@ -150,9 +150,15 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 
 ## S5 · Ra internet
 
-- [ ] 🤖 **S5.1** GitHub OAuth + allowlist login; ngoài allowlist thấy trang
-      trống nói thẳng, không lộ dữ liệu
-- [ ] 🧑 **S5.2** Cloudflare Access trước app
+- [x] 🤖 **S5.0** ~~Web thành service~~ **XONG 19/08** — `bee-web.service`
+      (install.sh render node+server.js, sống qua reboot nhờ linger) +
+      `web.env` một-file-config mặc định disk-mode 127.0.0.1:3210; khối
+      live-auth để sẵn dạng comment. Rig-03 case 5. Đang active trên máy.
+- [ ] 🧑→🤖 **S5.1** Tạo GitHub OAuth app + điền khối live trong
+      `~/.local/srv/bee/web.env` (🧑) → tôi nghiệm thu allowlist với
+      GITHUB_SOURCE=live: ngoài allowlist thấy trang trống nói thẳng,
+      không lộ dữ liệu (🤖)
+- [ ] 🧑 **S5.2** Cloudflare Tunnel + Access trước 127.0.0.1:3210
 - [ ] 🧑 **S5.3** Nghiệm thu toàn bộ checklist spec §10 **từ điện thoại, ngoài
       mạng nhà** → V1 xong
 
