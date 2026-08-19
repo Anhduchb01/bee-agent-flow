@@ -31,9 +31,11 @@ export default defineConfig({
     // khác ở đúng chỗ dễ sai nhất: bản standalone không tự mang `.next/static`,
     // nên thiếu bước copy là trang lên mà không có CSS lẫn JS. Đó là thứ phải
     // đỏ ở đây, không phải sau khi đã cài lên máy.
+    // `pnpm build` tự copy .next/static + public vào standalone — bài học
+    // 19/08: một bản build "gates" không copy đã đẩy web service lên mạng
+    // không CSS. Copy nằm trong build, không nằm trong trí nhớ của ai cả.
     command:
-      "pnpm build && cp -r .next/static .next/standalone/apps/web/.next/ && " +
-      `PORT=${PORT} HOSTNAME=127.0.0.1 node .next/standalone/apps/web/server.js`,
+      `pnpm build && PORT=${PORT} HOSTNAME=127.0.0.1 node .next/standalone/apps/web/server.js`,
     url: `http://127.0.0.1:${PORT}`,
     // KHÔNG dùng lại server đang chạy. Một server mồ côi từ lượt trước vẫn trả
     // HTML mới nhưng phục vụ chunk của bản build cũ, nên trang lên bình thường

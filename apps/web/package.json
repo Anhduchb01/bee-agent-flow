@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3187",
-    "build": "next build",
+    "build": "next build && cp -r .next/static .next/standalone/apps/web/.next/ && cp -r public .next/standalone/apps/web/",
     "start": "next start --port 3187",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
