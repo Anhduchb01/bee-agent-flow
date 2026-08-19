@@ -2,7 +2,7 @@ import "server-only";
 
 import { getBee } from "@/lib/bee";
 
-import { hanMucTu, tongHopMucDung } from "./aggregate";
+import { hanMucTu, hanMucTuTaiKhoan, tongHopMucDung } from "./aggregate";
 import type { ClaudeSnapshot, ClaudeSource, TrangThaiDichVu } from "./types";
 
 /**
@@ -108,14 +108,18 @@ export function createLiveClaudeSource(): ClaudeSource {
   return {
     async read(): Promise<ClaudeSnapshot> {
       const bee = getBee();
-      const [runs, rateLimit, dichVu] = await Promise.all([
+      const [runs, rateLimit, accountUsage, dichVu] = await Promise.all([
         bee.readRecent(DU_SO_DONG),
         bee.readClaudeRateLimit(),
+        bee.readClaudeUsage(),
         docDichVu(),
       ]);
 
       return {
-        hanMuc: hanMucTu(rateLimit),
+        // Account-wide windows (oauth usage endpoint, refreshed by the
+        // button) carry real percentages for BOTH windows — prefer them.
+        // rate_limit_event stays as fallback: status only, no percent.
+        hanMuc: accountUsage !== null ? hanMucTuTaiKhoan(accountUsage) : hanMucTu(rateLimit),
         mucDung: tongHopMucDung(runs),
         dichVu,
       };

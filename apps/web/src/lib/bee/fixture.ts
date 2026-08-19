@@ -162,6 +162,16 @@ export function createFixtureBeeSource(): BeeSource {
      *   hỏng kèm cách sửa lẫn banner nằm-im;
      * - còn lại → xanh toàn bộ: login về Overview như máy đã chạy ổn.
      */
+    /** Số tài khoản dàn dựng — khớp các % mà fixture ClaudeSource vẫn vẽ. */
+    async readClaudeUsage() {
+      if (chuaChayLanNao(await currentScene())) return null;
+      return {
+        five_hour: { percent: 38, resets_at: "2026-08-17T12:14:00Z" },
+        seven_day: { percent: 81, resets_at: "2026-08-20T10:00:00Z" },
+        fetched_at: "2026-08-17T10:00:00Z",
+      };
+    },
+
     /** Cùng câu chuyện với readDoctor: cảnh xanh đã có token, cảnh khác chưa. */
     async readClaudeAuth() {
       const canh = await currentScene();

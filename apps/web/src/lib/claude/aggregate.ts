@@ -5,7 +5,7 @@
  * không cần `server-only`. Đây là chỗ duy nhất biết công thức; `live.ts` chỉ
  * đọc file rồi gọi vào đây.
  */
-import type { BeeClaudeRateLimit, BeeRecentRun } from "@/lib/bee/types";
+import type { BeeClaudeAccountUsage, BeeClaudeRateLimit, BeeClaudeWindow, BeeRecentRun } from "@/lib/bee/types";
 
 import type { CuaSo, HanMuc, MucDung } from "./types";
 
@@ -113,4 +113,27 @@ export function hanMucTu(rl: BeeClaudeRateLimit | null): HanMuc[] {
       : "allowed";
 
   return [{ cuaSo: rl.rateLimitType, trangThai, phanTram: null, resetsAt: rl.resetsAt }];
+}
+
+/**
+ * Windows from the account-wide oauth usage endpoint — the one source that
+ * DOES emit a percentage (it powers Claude Code's /usage screen). Unlike
+ * rate_limit_event this covers the whole account, other machines included.
+ */
+export function hanMucTuTaiKhoan(acc: BeeClaudeAccountUsage): HanMuc[] {
+  const mot = (cuaSo: CuaSo, w: BeeClaudeWindow | null): HanMuc[] => {
+    if (w === null) return [];
+    const trangThai: HanMuc["trangThai"] =
+      w.percent >= 100 ? "exceeded" : w.percent >= 80 ? "warning" : "allowed";
+    const epoch = w.resets_at !== null ? Math.floor(Date.parse(w.resets_at) / 1000) : NaN;
+    return [
+      {
+        cuaSo,
+        trangThai,
+        phanTram: w.percent,
+        resetsAt: Number.isFinite(epoch) ? epoch : null,
+      },
+    ];
+  };
+  return [...mot("five_hour", acc.five_hour), ...mot("weekly", acc.seven_day)];
 }

@@ -264,6 +264,24 @@ export interface BeeDoctorCheck {
 /** How Claude is signed in on the machine — checked live, not via doctor. */
 export type BeeClaudeAuth = "token" | "interactive" | "none";
 
+/** One rate-limit window from the account-wide oauth usage endpoint. */
+export interface BeeClaudeWindow {
+  /** 0–100+, the ACCOUNT's utilization — not just this machine's share. */
+  percent: number;
+  resets_at: string | null;
+}
+
+/**
+ * `state/claude-usage.json` — written by the refresh action from
+ * api.anthropic.com/api/oauth/usage (the same source as Claude Code's
+ * /usage screen). Account-wide, unlike the per-session harvest.
+ */
+export interface BeeClaudeAccountUsage {
+  five_hour: BeeClaudeWindow | null;
+  seven_day: BeeClaudeWindow | null;
+  fetched_at: string;
+}
+
 /** Shape of `doctor.json` — the machine's self-check for the setup screen. */
 export interface BeeDoctor {
   checked_at: string;
@@ -294,6 +312,8 @@ export interface BeeSource {
   readDoctor(): Promise<BeeDoctor | null>;
   /** Live Claude sign-in status — works even before doctor has ever run. */
   readClaudeAuth(): Promise<BeeClaudeAuth>;
+  /** Account-wide usage windows from the last refresh; `null` = never fetched. */
+  readClaudeUsage(): Promise<BeeClaudeAccountUsage | null>;
   readStatus(): Promise<StatusRead>;
   readRecent(limit?: number): Promise<BeeRecentRun[]>;
   /**

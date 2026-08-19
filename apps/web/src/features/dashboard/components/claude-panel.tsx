@@ -59,7 +59,8 @@ function O({
 }
 
 function ThanhHanMuc({ hanMuc, now }: { hanMuc: HanMuc; now: number }) {
-  const conLai = Math.max(0, hanMuc.resetsAt * 1000 - now) / 1000;
+  const conLai =
+    hanMuc.resetsAt === null ? null : Math.max(0, hanMuc.resetsAt * 1000 - now) / 1000;
 
   return (
     <>
@@ -68,9 +69,11 @@ function ThanhHanMuc({ hanMuc, now }: { hanMuc: HanMuc; now: number }) {
         <span className="font-mono text-2xl leading-none tabular-nums tracking-title text-foreground">
           {hanMuc.phanTram === null ? "—" : `${hanMuc.phanTram}%`}
         </span>
-        <span className="text-xs text-muted-foreground">
-          new window in {khoangThoiGian(conLai)}
-        </span>
+        {conLai !== null && (
+          <span className="text-xs text-muted-foreground">
+            new window in {khoangThoiGian(conLai)}
+          </span>
+        )}
       </div>
 
       <Progress

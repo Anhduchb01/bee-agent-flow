@@ -36,8 +36,8 @@ export interface HanMuc {
    * bịa nhất trong cả màn hình.
    */
   phanTram: number | null;
-  /** Unix epoch giây, từ `resetsAt`. */
-  resetsAt: number;
+  /** Unix epoch giây; `null` khi nguồn không kèm giờ reset. */
+  resetsAt: number | null;
 }
 
 export interface MucDung {

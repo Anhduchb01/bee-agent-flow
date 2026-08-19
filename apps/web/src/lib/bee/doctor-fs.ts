@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import type { BeeClaudeAuth, BeeDoctor, BeeDoctorCheck } from "./types";
+import type { BeeClaudeAccountUsage, BeeClaudeAuth, BeeClaudeWindow, BeeDoctor, BeeDoctorCheck } from "./types";
 
 /**
  * Read the doctor.json that apps/runner/bin/doctor.sh writes. `null` means
@@ -56,4 +56,25 @@ export async function readClaudeAuthFrom(
   } catch {
     return "none";
   }
+}
+
+/** Narrowed read of state/claude-usage.json; missing or corrupt → null. */
+export async function readClaudeUsageFrom(root: string): Promise<BeeClaudeAccountUsage | null> {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(await fs.readFile(path.join(root, "state", "claude-usage.json"), "utf8"));
+  } catch {
+    return null;
+  }
+  if (typeof raw !== "object" || raw === null) return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.fetched_at !== "string") return null;
+
+  const cuaSo = (v: unknown): BeeClaudeWindow | null => {
+    if (typeof v !== "object" || v === null) return null;
+    const w = v as Record<string, unknown>;
+    if (typeof w.percent !== "number") return null;
+    return { percent: w.percent, resets_at: typeof w.resets_at === "string" ? w.resets_at : null };
+  };
+  return { five_hour: cuaSo(o.five_hour), seven_day: cuaSo(o.seven_day), fetched_at: o.fetched_at };
 }

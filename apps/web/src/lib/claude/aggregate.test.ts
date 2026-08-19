@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BeeRecentRun } from "@/lib/bee/types";
 
-import { hanMucTu, tongHopMucDung } from "./aggregate";
+import { hanMucTu, hanMucTuTaiKhoan, tongHopMucDung } from "./aggregate";
 
 const BAY_GIO = new Date("2026-08-14T15:00:00Z");
 
@@ -155,5 +155,36 @@ describe("hanMucTu", () => {
   // Một thanh dán nhãn sai tệ hơn hẳn một thanh vắng mặt.
   it("cửa sổ lạ thì bỏ hẳn chứ không quy về five_hour", () => {
     expect(hanMucTu({ ...goc, rateLimitType: "monthly" })).toEqual([]);
+  });
+});
+
+describe("hanMucTuTaiKhoan — account-wide windows from the oauth usage endpoint", () => {
+  it("maps both windows with REAL percentages and epoch resets", () => {
+    const hm = hanMucTuTaiKhoan({
+      five_hour: { percent: 9, resets_at: "2026-08-19T11:19:59.906684+00:00" },
+      seven_day: { percent: 27, resets_at: "2026-08-21T06:59:59.906706+00:00" },
+      fetched_at: "2026-08-19T07:00:00Z",
+    });
+    expect(hm).toHaveLength(2);
+    expect(hm[0]).toMatchObject({ cuaSo: "five_hour", phanTram: 9, trangThai: "allowed" });
+    expect(hm[0]!.resetsAt).toBe(Math.floor(Date.parse("2026-08-19T11:19:59.906684+00:00") / 1000));
+    expect(hm[1]).toMatchObject({ cuaSo: "weekly", phanTram: 27 });
+  });
+
+  it("percent drives the tone: ≥80 warns, ≥100 exceeded", () => {
+    const hm = hanMucTuTaiKhoan({
+      five_hour: { percent: 85, resets_at: null },
+      seven_day: { percent: 100, resets_at: null },
+      fetched_at: "2026-08-19T07:00:00Z",
+    });
+    expect(hm[0]!.trangThai).toBe("warning");
+    expect(hm[1]!.trangThai).toBe("exceeded");
+    expect(hm[0]!.resetsAt).toBeNull();
+  });
+
+  it("missing windows are dropped, not faked", () => {
+    expect(
+      hanMucTuTaiKhoan({ five_hour: null, seven_day: null, fetched_at: "x" }),
+    ).toEqual([]);
   });
 });

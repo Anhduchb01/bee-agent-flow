@@ -3,19 +3,25 @@
 import { revalidatePath } from "next/cache";
 
 import { getActor } from "@/lib/auth";
-import { harvestClaudeUsage } from "@/lib/bee/machine-ctl";
+import { fetchClaudeAccountUsage, harvestClaudeUsage } from "@/lib/bee/machine-ctl";
 
 export interface KetQua {
   ok: boolean;
   message: string;
 }
 
-/** Re-harvest usage + rate-limit from session files and refresh Overview. */
+/**
+ * Refresh = two sources, one click: the account-wide oauth usage endpoint
+ * (real percentages, matches /usage on any machine) plus the local session
+ * harvest (tokens/cost of what ran here). A failing endpoint does not
+ * block the local half — each reports its own truth.
+ */
 export async function refreshUsageAction(): Promise<KetQua> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: "You are not allowed to do this." };
 
-  const ket = await harvestClaudeUsage();
+  const [taiKhoan, local] = await Promise.all([fetchClaudeAccountUsage(), harvestClaudeUsage()]);
   revalidatePath("/");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  const loi = [taiKhoan, local].filter((k) => !k.ok).map((k) => (k.ok ? "" : k.message));
+  return loi.length === 0 ? { ok: true, message: "" } : { ok: false, message: loi.join(" · ") };
 }

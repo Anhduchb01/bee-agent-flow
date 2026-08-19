@@ -286,6 +286,99 @@ export async function unregisterRepo(slug: string): Promise<KetQua> {
 }
 
 /**
+ * Account-wide usage from api.anthropic.com/api/oauth/usage — the same
+ * endpoint behind Claude Code's /usage screen, so the numbers match what
+ * the user sees there, including work done on OTHER machines. Called only
+ * from the refresh button: the endpoint 429s under frequent polling.
+ * Token: the pasted setup-token first, else the machine's interactive
+ * credentials. A failed fetch leaves the previous snapshot untouched.
+ */
+export async function fetchClaudeAccountUsage(opts?: {
+  credentialsFile?: string;
+}): Promise<KetQua> {
+  if (isFixture()) return { ok: true };
+
+  let token = "";
+  try {
+    const env = await fs.readFile(path.join(root(), "claude.env"), "utf8");
+    token = /^CLAUDE_CODE_OAUTH_TOKEN=(sk-ant-oat01-\S+)$/m.exec(env)?.[1] ?? "";
+  } catch {
+    // No claude.env — try the interactive login below.
+  }
+  if (token === "") {
+    try {
+      const credFile =
+        opts?.credentialsFile ??
+        path.join(process.env.HOME ?? "", ".claude", ".credentials.json");
+      const cred = JSON.parse(await fs.readFile(credFile, "utf8")) as Record<string, unknown>;
+      const oauth = cred.claudeAiOauth;
+      if (typeof oauth === "object" && oauth !== null) {
+        const at = (oauth as Record<string, unknown>).accessToken;
+        if (typeof at === "string") token = at;
+      }
+    } catch {
+      // No credentials either.
+    }
+  }
+  if (token === "") {
+    return { ok: false, message: "No Claude token on this machine — sign in on /setup first." };
+  }
+
+  let res: Response;
+  try {
+    res = await fetch("https://api.anthropic.com/api/oauth/usage", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "anthropic-beta": "oauth-2025-04-20",
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (e) {
+    return { ok: false, message: `Could not reach the usage endpoint: ${(e as Error).message}` };
+  }
+  if (!res.ok) {
+    return { ok: false, message: `Usage endpoint answered ${res.status} — try again in a minute.` };
+  }
+
+  let raw: unknown;
+  try {
+    raw = await res.json();
+  } catch {
+    return { ok: false, message: "Usage endpoint returned something that is not JSON." };
+  }
+  const o = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+  const cuaSo = (v: unknown) => {
+    if (typeof v !== "object" || v === null) return null;
+    const w = v as Record<string, unknown>;
+    if (typeof w.utilization !== "number") return null;
+    return {
+      percent: w.utilization,
+      resets_at: typeof w.resets_at === "string" ? w.resets_at : null,
+    };
+  };
+  const usage = {
+    five_hour: cuaSo(o.five_hour),
+    seven_day: cuaSo(o.seven_day),
+    fetched_at: new Date().toISOString(),
+  };
+  if (usage.five_hour === null && usage.seven_day === null) {
+    return { ok: false, message: "Usage endpoint answered without any window data." };
+  }
+
+  try {
+    const stateDir = path.join(root(), "state");
+    await fs.mkdir(stateDir, { recursive: true });
+    const tmp = path.join(stateDir, ".claude-usage.json.tmp");
+    await fs.writeFile(tmp, JSON.stringify(usage));
+    await fs.rename(tmp, path.join(stateDir, "claude-usage.json"));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: `Could not write usage state: ${(e as Error).message}` };
+  }
+}
+
+/**
  * Harvest Claude usage from what the sessions ALREADY wrote to disk —
  * there is no `claude usage` CLI command, but every session's run.jsonl
  * carries rate_limit_event lines and its trap saves the final result as
