@@ -19,11 +19,19 @@ export BEE_ROOT="$T/srv"
 export BEE_RUNTIME="$T/run"
 mkdir -p "$BEE_ROOT/sessions" "$BEE_RUNTIME"
 
-# systemctl giả: is-active luôn trả inactive (mọi unit đều "chết")
+# Fake systemctl: state controlled per-test via $RIG_STATE_FILE — default
+# "inactive" (every unit is a corpse). Real is-active prints the state and
+# exits 0 only for "active"; the stub mirrors that contract.
 mkdir -p "$T/bin"
+export RIG_STATE_FILE="$T/systemctl-state"
 cat > "$T/bin/systemctl" <<'EOF'
 #!/usr/bin/env bash
-exit 3
+state="inactive"
+[[ -f "$RIG_STATE_FILE" ]] && state=$(cat "$RIG_STATE_FILE")
+# --quiet: no output, just the exit code — like the real thing.
+for a in "$@"; do [[ "$a" == "--quiet" ]] && exec [ "$state" == "active" ]; done
+echo "$state"
+[[ "$state" == "active" ]] && exit 0 || exit 3
 EOF
 chmod +x "$T/bin/systemctl"
 export PATH="$T/bin:$PATH"
@@ -78,6 +86,21 @@ p=sys.argv[1]; m=json.load(open(p)); m["status"]="running"; json.dump(m,open(p,"
 EOF
 "$RUNNER/bin/reaper.sh"
 grep -q '"needs_human": *true' "$S2/meta.json" && kq ok "lần 2: needs_human=true" || kq no "lần 2 thiếu needs_human"
+
+echo "== 3b · unit đang DỪNG (deactivating) không phải xác — stop sạch không bị cướp thành failed =="
+# Race có thật trên máy: systemctl stop → unit deactivating trong lúc trap
+# đang dọn; reaper tick đúng lúc đó từng cướp tay ghi failed/reaped đè lên
+# một cú stop sạch. Trạng thái chuyển tiếp là "đang sống", không phải xác.
+ID4="88888888-7777-6666-5555-444444444444"
+S4="$BEE_ROOT/sessions/$ID4"
+mkdir -p "$S4"
+printf '{"status":"running","attempt":0}\n' > "$S4/meta.json"
+echo "deactivating" > "$RIG_STATE_FILE"
+"$RUNNER/bin/reaper.sh"
+grep -q '"running"' "$S4/meta.json" && kq ok "deactivating: meta để yên cho trap đóng" || kq no "deactivating bị reap nhầm"
+rm -f "$RIG_STATE_FILE"
+"$RUNNER/bin/reaper.sh"
+grep -q '"reaped"' "$S4/meta.json" && kq ok "inactive thật mới bị reap" || kq no "xác thật không được dọn"
 
 rm -rf "$T"
 echo

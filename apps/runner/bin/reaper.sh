@@ -20,10 +20,17 @@ for meta in "$BEE_ROOT"/sessions/*/meta.json; do
   sdir=$(dirname "$meta")
   id=$(basename "$sdir")
 
-  if systemctl --user is-active --quiet "bee-session@$id" 2>/dev/null; then
-    song=$((song + 1))
-    continue
-  fi
+  # Transitional states are ALIVE: during `systemctl stop` the unit reads
+  # "deactivating" while the trap is still closing the books — reaping at
+  # that moment steals a clean stop and mislabels it failed/attempt+1.
+  # Only a settled inactive/failed unit is a corpse.
+  state=$(systemctl --user is-active "bee-session@$id" 2>/dev/null || true)
+  case "$state" in
+    active|activating|deactivating|reloading)
+      song=$((song + 1))
+      continue
+      ;;
+  esac
 
   # Xác. Đóng sổ trong đúng một tick — không cần ai nhớ hộ chuyện gì đã xảy ra.
   lan=$(( $(jq -r '.attempt // 0' "$meta") + 1 ))
