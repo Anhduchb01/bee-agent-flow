@@ -26,6 +26,9 @@ mkdir -p "$T/bin"
 export RIG_STATE_FILE="$T/systemctl-state"
 cat > "$T/bin/systemctl" <<'EOF'
 #!/usr/bin/env bash
+# Only is-active carries rig state; everything else (daemon-reload,
+# enable, start…) succeeds silently like a healthy systemd would.
+case " $* " in *" is-active "*) ;; *) exit 0 ;; esac
 state="inactive"
 [[ -f "$RIG_STATE_FILE" ]] && state=$(cat "$RIG_STATE_FILE")
 # --quiet: no output, just the exit code — like the real thing.
@@ -124,6 +127,22 @@ if (cd "$G/wt" && git push -q origin HEAD:refs/heads/bee/demo-1 2>/dev/null); th
 else
   kq no "push bee/* không được phép fail"
 fi
+
+echo "== 5 · install.sh dựng bee-web.service + web.env khi có bản build web =="
+IT="$T/install"; mkdir -p "$IT/home" "$IT/web/.next/standalone/apps/web"
+: > "$IT/web/.next/standalone/apps/web/server.js"
+HOME="$IT/home" BEE_PREFIX="$IT/opt" BEE_ROOT="$IT/srv" BEE_WEB="$IT/web" \
+  bash "$RUNNER/install.sh" >/dev/null 2>&1 || kq no "install.sh chạy lỗi"
+UNIT="$IT/home/.config/systemd/user/bee-web.service"
+[[ -f "$UNIT" ]] && kq ok "bee-web.service được render" || kq no "thiếu bee-web.service"
+grep -q "$IT/web/.next/standalone/apps/web/server.js" "$UNIT" 2>/dev/null \
+  && kq ok "ExecStart trỏ đúng server.js của bản build" || kq no "ExecStart sai đường"
+grep -q "EnvironmentFile=-$IT/srv/web.env" "$UNIT" 2>/dev/null \
+  && kq ok "unit đọc web.env từ BEE_ROOT" || kq no "unit không đọc web.env"
+grep -q "^PORT=" "$IT/srv/web.env" 2>/dev/null \
+  && kq ok "web.env mẫu được tạo (PORT có sẵn)" || kq no "thiếu web.env mẫu"
+grep -q "BEE_SOURCE=disk" "$IT/srv/web.env" 2>/dev/null \
+  && kq ok "web.env mặc định chạy disk — không bao giờ demo nhầm" || kq no "web.env thiếu BEE_SOURCE=disk"
 
 rm -rf "$T"
 echo

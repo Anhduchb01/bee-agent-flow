@@ -1,0 +1,17 @@
+# The web as a user unit: survives logout (linger) and reboot, and gives
+# Cloudflare Access a stable local origin. All runtime config lives in
+# @BEE_ROOT@/web.env — one file to edit, `systemctl --user restart bee-web`
+# to apply. Rendered by install.sh only when a standalone build exists.
+[Unit]
+Description=bee web — session dashboard
+After=network-online.target
+
+[Service]
+Environment=BEE_ROOT=@BEE_ROOT@
+EnvironmentFile=-@BEE_ROOT@/web.env
+ExecStart=@NODE@ @WEBSERVER@
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

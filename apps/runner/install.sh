@@ -37,10 +37,47 @@ echo "== 3 · User units =="
 UDIR="$HOME/.config/systemd/user"
 mkdir -p "$UDIR"
 for f in "$NGUON"/units/*.service "$NGUON"/units/*.timer; do
+  # bee-web needs the web build resolved first — handled in step 3b.
+  [[ "$(basename "$f")" == "bee-web.service" ]] && continue
   sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g" "$f" > "$UDIR/$(basename "$f")"
 done
 systemctl --user daemon-reload
 systemctl --user enable --now bee-reaper.timer bee-heartbeat.timer
+
+echo "== 3b · Web service =="
+# BEE_WEB overrides where the web app lives (default: sibling of runner).
+WEB_DIR="${BEE_WEB:-$(readlink -f "$NGUON/../web")}"
+WEB_SERVER="$WEB_DIR/.next/standalone/apps/web/server.js"
+NODE_BIN="$(command -v node || true)"
+if [[ -f "$WEB_SERVER" && -n "$NODE_BIN" ]]; then
+  # web.env is the ONE config file: defaults run disk mode on localhost —
+  # a unit-run web must never serve fixture demo data by accident. The
+  # live-auth block for S5 ships commented, ready to fill.
+  if [[ ! -f "$BEE_ROOT/web.env" ]]; then
+    cat > "$BEE_ROOT/web.env" <<EOF
+# bee web — runtime env (systemd EnvironmentFile). Edit, then:
+#   systemctl --user restart bee-web
+PORT=3210
+HOSTNAME=127.0.0.1
+BEE_SOURCE=disk
+BEE_SRV=$BEE_ROOT
+# --- going to the internet (S5): create a GitHub OAuth app, then fill ---
+#GITHUB_SOURCE=live
+#AUTH_GITHUB_ID=
+#AUTH_GITHUB_SECRET=
+#AUTH_SECRET=
+#ALLOWED_LOGINS=your-github-login
+#AUTH_URL=https://your-domain.example/api/auth
+EOF
+  fi
+  sed "s|@BEE_ROOT@|$BEE_ROOT|g; s|@NODE@|$NODE_BIN|g; s|@WEBSERVER@|$WEB_SERVER|g" \
+    "$NGUON/units/bee-web.service" > "$UDIR/bee-web.service"
+  systemctl --user daemon-reload
+  systemctl --user enable --now bee-web.service
+else
+  echo "  (bỏ qua: chưa có bản build web — chạy: cd apps/web && pnpm build &&"
+  echo "   cp -r .next/static .next/standalone/apps/web/.next/ — rồi cài lại)"
+fi
 
 echo "== 4 · Skill cho agent =="
 SKILL_DIR="$HOME/.claude/skills"
