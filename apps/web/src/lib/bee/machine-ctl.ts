@@ -285,6 +285,117 @@ export async function unregisterRepo(slug: string): Promise<KetQua> {
   }
 }
 
+/**
+ * Harvest Claude usage from what the sessions ALREADY wrote to disk —
+ * there is no `claude usage` CLI command, but every session's run.jsonl
+ * carries rate_limit_event lines and its trap saves the final result as
+ * usage.json. "Refresh" regenerates state/claude-rate-limit.json and
+ * state/recent.jsonl from those, in the exact shapes the old parsers
+ * (and thus the Overview panel) already accept.
+ */
+export async function harvestClaudeUsage(): Promise<KetQua> {
+  if (isFixture()) return { ok: true };
+
+  const sessionsDir = path.join(root(), "sessions");
+  let ids: string[] = [];
+  try {
+    ids = (await fs.readdir(sessionsDir)).filter((d) => /^[a-f0-9-]{36}$/.test(d));
+  } catch {
+    ids = [];
+  }
+
+  interface RateEvent { info: Record<string, unknown>; mtimeMs: number }
+  let latest: RateEvent | null = null;
+  const rows: string[] = [];
+
+  for (const id of ids) {
+    const sdir = path.join(sessionsDir, id);
+
+    // Last rate_limit_event of the most recently active session wins.
+    try {
+      const st = await fs.stat(path.join(sdir, "run.jsonl"));
+      const text = await fs.readFile(path.join(sdir, "run.jsonl"), "utf8");
+      for (const line of text.split("\n")) {
+        if (!line.includes('"rate_limit_event"')) continue;
+        try {
+          const d = JSON.parse(line) as Record<string, unknown>;
+          const info = d.rate_limit_info;
+          if (typeof info === "object" && info !== null) {
+            if (latest === null || st.mtimeMs >= latest.mtimeMs) {
+              latest = { info: info as Record<string, unknown>, mtimeMs: st.mtimeMs };
+            }
+          }
+        } catch {
+          // Half-written line mid-stream — skip.
+        }
+      }
+    } catch {
+      // No run.jsonl — nothing to harvest here.
+    }
+
+    // usage.json (the session's final result line) → one recent.jsonl row.
+    try {
+      const usage = JSON.parse(await fs.readFile(path.join(sdir, "usage.json"), "utf8")) as Record<string, unknown>;
+      const meta = JSON.parse(await fs.readFile(path.join(sdir, "meta.json"), "utf8")) as Record<string, unknown>;
+      const sess = JSON.parse(await fs.readFile(path.join(sdir, "session.json"), "utf8")) as Record<string, unknown>;
+
+      let tin = 0, tout = 0, tcr = 0, tcw = 0, cost = 0;
+      const mu = usage.modelUsage;
+      if (typeof mu === "object" && mu !== null) {
+        for (const m of Object.values(mu as Record<string, unknown>)) {
+          if (typeof m !== "object" || m === null) continue;
+          const u = m as Record<string, unknown>;
+          tin += typeof u.inputTokens === "number" ? u.inputTokens : 0;
+          tout += typeof u.outputTokens === "number" ? u.outputTokens : 0;
+          tcr += typeof u.cacheReadInputTokens === "number" ? u.cacheReadInputTokens : 0;
+          tcw += typeof u.cacheCreationInputTokens === "number" ? u.cacheCreationInputTokens : 0;
+          cost += typeof u.costUSD === "number" ? u.costUSD : 0;
+        }
+      }
+      rows.push(
+        JSON.stringify({
+          id,
+          repo: typeof sess.repo === "string" ? sess.repo : "",
+          number: typeof sess.num === "number" ? sess.num : 0,
+          rule: "session",
+          result: typeof meta.status === "string" ? meta.status : "unknown",
+          turns: typeof usage.num_turns === "number" ? usage.num_turns : 0,
+          duration_s: typeof usage.duration_ms === "number" ? Math.round(usage.duration_ms / 1000) : 0,
+          at: typeof meta.ended_at === "string" ? meta.ended_at : (meta.started_at ?? ""),
+          tokens_in: tin,
+          tokens_out: tout,
+          tokens_cache_read: tcr,
+          tokens_cache_write: tcw,
+          cost_usd: cost,
+          session_id: id,
+        }),
+      );
+    } catch {
+      // No usage.json (refused/never-spoke session) — skip the row.
+    }
+  }
+
+  try {
+    const stateDir = path.join(root(), "state");
+    await fs.mkdir(stateDir, { recursive: true });
+    // recent.jsonl is REGENERATED wholesale — sessions on disk are the one
+    // source of truth, so a re-harvest can never double-count.
+    const tmp = path.join(stateDir, ".recent.jsonl.tmp");
+    await fs.writeFile(tmp, rows.length > 0 ? rows.join("\n") + "\n" : "");
+    await fs.rename(tmp, path.join(stateDir, "recent.jsonl"));
+
+    if (latest !== null) {
+      const rl = JSON.stringify({ ...latest.info, seen_at: new Date().toISOString() });
+      const tmp2 = path.join(stateDir, ".claude-rate-limit.json.tmp");
+      await fs.writeFile(tmp2, rl);
+      await fs.rename(tmp2, path.join(stateDir, "claude-rate-limit.json"));
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: `Could not write usage state: ${(e as Error).message}` };
+  }
+}
+
 /** PAUSE file toggle — pausing is create, resuming is remove; both idempotent. */
 export async function setPaused(paused: boolean): Promise<KetQua> {
   if (isFixture()) return { ok: true };

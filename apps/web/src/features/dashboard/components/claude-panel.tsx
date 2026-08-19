@@ -11,6 +11,8 @@ import type { ClaudeSnapshot, HanMuc } from "@/lib/claude";
 import { khoangThoiGian } from "@/lib/duration";
 import { cn } from "@/lib/utils";
 
+import { RefreshUsageButton } from "./refresh-usage-button";
+
 const CUA_SO: Record<HanMuc["cuaSo"], string> = {
   five_hour: "5-hour limit",
   weekly: "Weekly limit",
@@ -94,7 +96,12 @@ export function ClaudePanel({ snapshot, now }: { snapshot: ClaudeSnapshot; now: 
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b bg-muted/30 px-5 py-3.5">
-        <CardTitle className="text-base tracking-title">Claude</CardTitle>
+        <CardTitle className="flex items-center text-base tracking-title">
+          Claude
+          <span className="ml-auto">
+            <RefreshUsageButton />
+          </span>
+        </CardTitle>
         <CardDescription className="flex items-center gap-1.5">
           <StatusDot tone={dichVuTone} />
           {dichVu.moTa}

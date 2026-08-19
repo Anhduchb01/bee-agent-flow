@@ -62,7 +62,9 @@ export function NewSessionForm({
         mo();
       }}
     >
-      <div className="flex-1">
+      {/* min-w-0: without it the flex child's min-width is the FULL repo
+          name, which shoves the button past the card edge on canvas. */}
+      <div className="min-w-0 flex-1">
         <RepoCombobox repos={repos} value={chon} onChange={setChon} />
       </div>
       {/* Terracotta like the send button — the shadcn default (white in
