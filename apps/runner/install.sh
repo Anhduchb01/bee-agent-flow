@@ -26,7 +26,7 @@ if [[ ! -d "$BEE_ROOT" ]]; then
     sudo chown "$USER:$USER" "$BEE_ROOT"
   fi
 fi
-mkdir -p "$BEE_ROOT"/{repos,repos.d,work,sessions}
+mkdir -p "$BEE_ROOT"/{repos,repos.d,env.d,work,sessions}
 # Nằm im cho tới khi có người chủ động gỡ — giống installer của mô hình cũ.
 [[ -e "$BEE_ROOT/PAUSE" ]] || touch "$BEE_ROOT/PAUSE"
 

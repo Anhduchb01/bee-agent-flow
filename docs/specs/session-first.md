@@ -141,6 +141,14 @@ apps/runner/
   → từ chối ngay với `reason:"unregistered-repo"` + lifecycle giải thích
   (rig-03 §2b). Lớp một ở web action (`listRepos`), lớp hai ở đây — đường
   "clone bất cứ gì trong session.json" không tồn tại.
+- **Env overlay (thêm 19/08)**: secret code cần lúc chạy nhưng git không
+  được mang — đặt vào `$BEE_ROOT/env.d/<slug>/` theo đúng cấu trúc repo
+  (`.env`, `apps/web/.env.local`, …). Mỗi lần mở phiên, session-run chép đè
+  toàn bộ vào worktree (đổi key một lần, phiên mới nào cũng nhận) VÀ ghi
+  từng đường dẫn vào `info/exclude` riêng của worktree — agent đọc được
+  key nhưng **không thể commit** chúng, kể cả khi .gitignore của repo sót.
+  Lưu ý tin cậy: key đặt ở đây là key agent full-tool dùng được — chỉ đặt
+  thứ đáng trao. Rig-03 §6 chứng minh offline bằng bare local + claude giả.
 - `trap` dọn: FIFO, cập nhật `meta.json`, **giữ** worktree (dọn worktree là
   việc của stop/reaper theo chính sách, không phải của trap — phiên fail còn
   cần xem xác).

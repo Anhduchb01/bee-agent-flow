@@ -144,6 +144,27 @@ if [[ "$CO_WORKTREE" == "yes" ]]; then
     git -C "$WT" config user.name  "bee-agent"
     git -C "$WT" config user.email "bee-agent@localhost"
   fi
+
+  # Env overlay: keys the code needs but git must never carry. Drop files
+  # under $BEE_ROOT/env.d/<slug>/ mirroring the repo layout (.env,
+  # apps/web/.env.local, …) — copied over the worktree on EVERY start, so
+  # updating a key once reaches every new session. Each copied path is
+  # also added to the worktree's private git exclude: the agent can READ
+  # the keys but can never commit them, even when .gitignore misses them.
+  ENVD="$BEE_ROOT/env.d/$SLUG"
+  if [[ -d "$ENVD" ]]; then
+    EXCL="$(git -C "$WT" rev-parse --git-path info/exclude)"
+    mkdir -p "$(dirname "$EXCL")"
+    SO_ENV=0
+    while IFS= read -r f; do
+      rel="${f#./}"
+      mkdir -p "$WT/$(dirname "$rel")"
+      cp "$ENVD/$rel" "$WT/$rel"
+      grep -qxF "/$rel" "$EXCL" 2>/dev/null || echo "/$rel" >> "$EXCL"
+      SO_ENV=$((SO_ENV + 1))
+    done < <(cd "$ENVD" && find . -type f)
+    (( SO_ENV > 0 )) && lifecycle "$SDIR" "Đã chép $SO_ENV file env từ env.d/$SLUG (git exclude, không thể commit)."
+  fi
 fi
 
 mkdir -p "$BEE_RUNTIME"

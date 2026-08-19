@@ -146,6 +146,46 @@ grep -q "BEE_SOURCE=disk" "$IT/srv/web.env" 2>/dev/null \
 grep -q "CLAUDE_SOURCE=live" "$IT/srv/web.env" 2>/dev/null \
   && kq ok "web.env bật Claude live — panel không hiện số dàn dựng" || kq no "web.env thiếu CLAUDE_SOURCE=live"
 
+echo "== 6 · env.d overlay: worktree nhận .env từ kho theo repo, git không thấy =="
+# claude giả: in một result rồi thoát sạch — đủ để session-run đi hết vòng đời.
+cat > "$T/bin/claude" <<'EOF'
+#!/usr/bin/env bash
+echo '{"type":"result","subtype":"success","num_turns":1}'
+exit 0
+EOF
+chmod +x "$T/bin/claude"
+
+# Bare "demo" local sẵn (session-run sẽ bỏ qua bước clone) + repo đăng ký.
+G6="$BEE_ROOT/repos/demo.git"
+git init --quiet "$T/seed6" && (cd "$T/seed6" && git config user.email t@t && git config user.name t \
+  && echo hi > f && git add f && git commit -qm init)
+mkdir -p "$BEE_ROOT/repos" "$BEE_ROOT/repos.d"
+git clone --bare --quiet "$T/seed6" "$G6"
+printf 'REPO=owner/demo\n' > "$BEE_ROOT/repos.d/demo.env"
+
+# Kho env: file gốc + file lồng theo đúng cấu trúc repo.
+mkdir -p "$BEE_ROOT/env.d/demo/apps/web"
+printf 'API_KEY=bi-mat\n' > "$BEE_ROOT/env.d/demo/.env"
+printf 'DB_URL=postgres://x\n' > "$BEE_ROOT/env.d/demo/apps/web/.env.local"
+
+ID6="33333333-4444-5555-6666-777777777777"
+S6="$BEE_ROOT/sessions/$ID6"
+mkdir -p "$S6"
+printf '{"id":"%s","slug":"demo","num":1,"repo":"owner/demo","phase":"work","worktree":true}\n' "$ID6" > "$S6/session.json"
+"$RUNNER/bin/session-run.sh" "$ID6" || true
+
+WT6="$BEE_ROOT/work/$ID6"
+[[ -f "$WT6/.env" ]] && kq ok "worktree nhận .env từ env.d" || kq no "thiếu .env trong worktree"
+[[ -f "$WT6/apps/web/.env.local" ]] && kq ok "file lồng theo cấu trúc repo cũng vào đúng chỗ" \
+  || kq no "file lồng không được chép"
+grep -q 'bee_lifecycle.*env' "$S6/run.jsonl" && kq ok "lifecycle nói rõ đã chép env" || kq no "chép env im lặng"
+# Chốt chặn: file env KHÔNG được lộ ra git — agent không thể lỡ tay commit.
+if [[ -z "$(git -C "$WT6" status --porcelain)" ]]; then
+  kq ok "git status sạch — env bị exclude, không thể commit nhầm"
+else
+  kq no "env lộ ra git status: $(git -C "$WT6" status --porcelain | head -2)"
+fi
+
 rm -rf "$T"
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-03: TẤT CẢ XANH"; else echo "RIG-03: CÓ ĐỎ"; exit 1; fi
