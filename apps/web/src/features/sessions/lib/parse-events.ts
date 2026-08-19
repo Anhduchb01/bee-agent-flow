@@ -36,7 +36,7 @@ export type SuKien =
       moi?: string;
     }
   | { loai: "tool-xong"; text: string; id?: string | null; loi?: boolean }
-  | { loai: "ket-qua"; loi: boolean; luot?: number | null }
+  | { loai: "ket-qua"; loi: boolean; luot?: number | null; nguCanh?: number | null }
   | { loai: "replay"; boQua: number }
   | {
       loai: "artifact";
@@ -172,14 +172,33 @@ export function phanTichDong(dong: string): SuKien[] | null {
       }
       return [];
     }
-    case "result":
+    case "result": {
+      // Context fill of the window — the number behind VSCode's little
+      // ring. Sum of input + cache tokens across models over the largest
+      // declared window; null when the result carries no modelUsage.
+      let nguCanh: number | null = null;
+      if (typeof raw.modelUsage === "object" && raw.modelUsage !== null) {
+        let dung = 0;
+        let cua = 0;
+        for (const m of Object.values(raw.modelUsage as Record<string, unknown>)) {
+          if (typeof m !== "object" || m === null) continue;
+          const u = m as Record<string, unknown>;
+          for (const k of ["inputTokens", "cacheReadInputTokens", "cacheCreationInputTokens"]) {
+            if (typeof u[k] === "number") dung += u[k] as number;
+          }
+          if (typeof u.contextWindow === "number") cua = Math.max(cua, u.contextWindow);
+        }
+        if (cua > 0) nguCanh = Math.min(100, Math.round((dung / cua) * 100));
+      }
       return [
         {
           loai: "ket-qua",
           loi: raw.subtype !== "success",
           luot: typeof raw.num_turns === "number" ? raw.num_turns : null,
+          nguCanh,
         },
       ];
+    }
     default:
       return [];
   }

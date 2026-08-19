@@ -31,7 +31,7 @@ export function SessionList({ nhom }: { nhom: NhomPhien[] }) {
   if (nhom.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No sessions yet. Start one above — describe an idea and the agent will interview you.
+        No sessions yet. Start one above and just say what you want done.
       </p>
     );
   }

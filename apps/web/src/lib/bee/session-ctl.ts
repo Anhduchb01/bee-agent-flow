@@ -74,7 +74,8 @@ export async function moPhien(input: {
       num: input.num,
       repo: input.repo,
       title: input.title === null ? null : input.title.slice(0, 200),
-      phase: "interview",
+      // One mode: kept for meta compat, no longer drives anything.
+      phase: "work",
       worktree: input.worktree,
       system_prompt: input.systemPrompt ?? "",
       max_turns: 120,
@@ -162,20 +163,3 @@ export async function dungPhien(id: string): Promise<KetQua> {
   }
 }
 
-/** "Ok làm đi" — đổi phase trong session.json; watcher của runner làm phần còn lại. */
-export async function chuyenSangLam(id: string): Promise<KetQua> {
-  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
-  if (laFixture()) return { ok: true };
-
-  const file = path.join(root(), "sessions", id, "session.json");
-  try {
-    const raw = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, unknown>;
-    raw.phase = "work";
-    const tmp = `${file}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(raw, null, 2));
-    await fs.rename(tmp, file);
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, message: `Could not switch phase: ${(e as Error).message}` };
-  }
-}

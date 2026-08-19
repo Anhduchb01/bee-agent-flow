@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
-import { chuyenSangLam, dungPhien, moPhien, noiVaoPhien } from "@/lib/bee/session-ctl";
+import { dungPhien, moPhien, noiVaoPhien } from "@/lib/bee/session-ctl";
 import type { BeeSession } from "@/lib/bee/types";
 
 export type KetQuaMoPhien =
@@ -79,11 +79,3 @@ export async function dungPhienAction(id: string): Promise<KetQua> {
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
-/** "OK, do it" — cửa chặn duy nhất: đổi phase, runner làm phần còn lại. */
-export async function okLamDiAction(id: string): Promise<KetQua> {
-  const actor = await getActor();
-  if (!actor) return KHONG_QUYEN;
-  const ket = await chuyenSangLam(id);
-  revalidatePath(`/sessions/${id}`);
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
-}

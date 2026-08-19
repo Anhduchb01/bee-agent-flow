@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Background,
   Controls,
@@ -148,6 +148,18 @@ export function CanvasView({
   const flowNodes: Node[] = nodes.map((n) => ({ ...n, data: { ...n.data } }));
   const flowEdges: Edge[] = edges.map((e) => ({ ...e }));
   const [chon, setChon] = useState<BeeSession | null>(null);
+  // Chat panel width — restored from the last drag, VSCode-style. Lazy
+  // init is safe: the Sheet only mounts when opened, all client-side.
+  const [rongPanel, setRongPanel] = useState(() => {
+    if (typeof window === "undefined") return 576;
+    try {
+      const luu = Number(localStorage.getItem("bee-chat-width"));
+      return Number.isFinite(luu) && luu >= 360 ? luu : 576;
+    } catch {
+      return 576;
+    }
+  });
+  const rongPanelRef = useRef(rongPanel);
 
   return (
     <div className="h-full w-full">
@@ -173,9 +185,44 @@ export function CanvasView({
         </Panel>
       </ReactFlow>
 
-      {/* Panel chat tại chỗ — cùng LiveView với trang riêng, một nguồn sự thật */}
+      {/* Panel chat tại chỗ — cùng LiveView với trang riêng, một nguồn sự thật.
+          Width is draggable like a VSCode side panel; remembered per browser. */}
       <Sheet open={chon !== null} onOpenChange={(mo) => !mo && setChon(null)}>
-        <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 p-0 sm:max-w-none"
+          style={{ width: rongPanel }}
+        >
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize chat panel"
+            className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize hover:bg-muted-foreground/30"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              const batDau = e.clientX;
+              const rongCu = rongPanel;
+              const keo = (ev: PointerEvent) => {
+                const moi = Math.min(
+                  Math.max(rongCu + (batDau - ev.clientX), 360),
+                  window.innerWidth - 160,
+                );
+                rongPanelRef.current = moi;
+                setRongPanel(moi);
+              };
+              const tha = () => {
+                window.removeEventListener("pointermove", keo);
+                window.removeEventListener("pointerup", tha);
+                try {
+                  localStorage.setItem("bee-chat-width", String(rongPanelRef.current));
+                } catch {
+                  // Private mode — width just won't persist.
+                }
+              };
+              window.addEventListener("pointermove", keo);
+              window.addEventListener("pointerup", tha);
+            }}
+          />
           {chon !== null && (
             <>
               <SheetTitle className="border-b border-border px-4 py-3 text-sm">

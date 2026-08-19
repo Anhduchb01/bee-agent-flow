@@ -148,6 +148,17 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       Doctor giờ chỉ còn ✗ may-sach (máy dev — giá đã chấp nhận).
       **→ S4 ĐÓNG. Tiếp theo: S5.**
 
+## S7b · Live view kiểu VSCode + bỏ phỏng vấn (19/08) ✅
+
+- [x] 🤖 MỘT chế độ: phiên repo = chat đủ tool từ câu đầu, hết interview +
+      "OK, do it" (runner bỏ watcher pha, web bỏ nút/label/action; spec §2.3
+      viết lại). Chat không repo vẫn không tool.
+- [x] 🤖 Nút tròn đổi vai: đang bận + ô trống = Dừng ■, có chữ = Gửi ↑
+      (message xếp hàng) · vòng context % từ modelUsage của result · font
+      VSCode · panel chat canvas kéo chiều rộng (localStorage).
+- [x] 🤖 Skill bee-* giữ GLOBAL (~/.claude/skills) — chốt hỏi 19/08: không
+      theo repo, per-repo chỉ khi cần flow đặc thù.
+
 ## S5 · Ra internet
 
 - [x] 🤖 **S5.0** ~~Web thành service~~ **XONG 19/08** — `bee-web.service`

@@ -149,59 +149,35 @@ fi
 mkdir -p "$BEE_RUNTIME"
 [[ -p "$FIFO" ]] || mkfifo -m 600 "$FIFO"
 
-# ── 5 · Vòng lặp pha: phỏng vấn ⇄ làm, cùng một session-id ─────────────────
-doc_phase() { jq -r '.phase // "interview"' "$SDIR/session.json"; }
+# ── 5 · Chạy claude — MỘT chế độ (chốt 19/08) ──────────────────────────────
+# Phiên repo là chat thường có đủ tool từ câu đầu; phiên chat không repo
+# không bao giờ có tool. Hết cửa phỏng vấn, hết "OK, do it" — cái còn lại
+# của cơ chế cũ là đường resume: chạy lại (restart, reboot) nối đúng phiên.
+ARGS=(-p --input-format stream-json --output-format stream-json --verbose
+      --include-partial-messages)
 
-while :; do
-  PHASE=$(doc_phase)
-  ARGS=(-p --input-format stream-json --output-format stream-json --verbose
-        --include-partial-messages)
+if grep -q '"type":"result"' "$SDIR/run.jsonl" 2>/dev/null; then
+  ARGS+=(--resume "$ID")
+else
+  ARGS+=(--session-id "$ID")
+fi
 
-  # Cùng một phiên xuyên các pha: lần chạy đầu đặt tên bằng --session-id,
-  # các lần sau nối lại bằng --resume. "Đã có lượt nào chưa" đọc từ chính
-  # run.jsonl — không cần file cờ riêng.
-  if grep -q '"type":"result"' "$SDIR/run.jsonl" 2>/dev/null; then
-    ARGS+=(--resume "$ID")
-  else
-    ARGS+=(--session-id "$ID")
-  fi
+if [[ "$CO_WORKTREE" == "no" ]]; then
+  ARGS+=(--allowedTools "" --max-turns 40)
+else
+  ARGS+=(--dangerously-skip-permissions --max-turns "$MAX_TURNS")
+fi
+[[ -n "$SYS_PROMPT" ]] && ARGS+=(--append-system-prompt "$SYS_PROMPT")
 
-  # Phiên chat không bao giờ có tool — kể cả khi ai đó sửa tay phase=work.
-  if [[ "$PHASE" == "interview" || "$CO_WORKTREE" == "no" ]]; then
-    # Ranh giới, không phải tinh chỉnh: pha phỏng vấn không có tool nào.
-    ARGS+=(--allowedTools "" --max-turns 40)
-  else
-    ARGS+=(--dangerously-skip-permissions --max-turns "$MAX_TURNS")
-  fi
-  [[ -n "$SYS_PROMPT" ]] && ARGS+=(--append-system-prompt "$SYS_PROMPT")
+exec 3<>"$FIFO"
+lifecycle "$SDIR" "Phiên đã khởi động."
+# BEE_SESSION_DIR cho skill bee-* ghi bee_artifact vào run.jsonl (spec canvas §1)
+( cd "$WT" && BEE_SESSION_DIR="$SDIR" exec claude "${ARGS[@]}" ) \
+  <&3 >>"$SDIR/run.jsonl" 2>>"$SDIR/stderr.log" &
+CPID=$!
 
-  exec 3<>"$FIFO"
-  lifecycle "$SDIR" "Phiên đã khởi động — chế độ: $PHASE."
-  # BEE_SESSION_DIR cho skill bee-* ghi bee_artifact vào run.jsonl (spec canvas §1)
-  ( cd "$WT" && BEE_SESSION_DIR="$SDIR" exec claude "${ARGS[@]}" ) \
-    <&3 >>"$SDIR/run.jsonl" 2>>"$SDIR/stderr.log" &
-  CPID=$!
-
-  DOI_PHA=""
-  while kill -0 "$CPID" 2>/dev/null; do
-    sleep 1
-    if [[ "$(doc_phase)" != "$PHASE" ]]; then
-      DOI_PHA=1
-      lifecycle "$SDIR" "Ok làm đi — chuyển sang chế độ làm, cùng phiên."
-      # Đóng người-ghi-thường-trực cuối cùng của FIFO → claude nhận EOF →
-      # thoát sạch sau khi xong lượt hiện tại. Không kill, không mất state.
-      exec 3>&-
-      wait "$CPID" 2>/dev/null || true
-      CPID=""
-      break
-    fi
-  done
-
-  if [[ -n "$DOI_PHA" ]]; then continue; fi
-
-  # claude tự thoát (hết lượt, lỗi, hoặc người dùng kết thúc hội thoại)
-  RC=0; wait "$CPID" 2>/dev/null || RC=$?
-  CPID=""
-  exec 3>&- 2>/dev/null || true
-  exit "$RC"
-done
+# claude tự thoát (hết lượt, lỗi, hoặc người dùng kết thúc hội thoại)
+RC=0; wait "$CPID" 2>/dev/null || RC=$?
+CPID=""
+exec 3>&- 2>/dev/null || true
+exit "$RC"

@@ -103,20 +103,17 @@ append một dòng `{"type":"bee_user_say","text":…,"ts":…}` vào `run.jsonl
 duy nhất cho quy tắc "runner là người ghi run.jsonl", và nó được phép tồn tại
 vì A+ cùng UID.
 
-### 2.3 Hai chế độ trong một phiên — "ok làm đi"
+### 2.3 MỘT chế độ (đổi 19/08 — bỏ phỏng vấn)
 
-| Chế độ | Cách chạy | Tool |
-|---|---|---|
-| **Phỏng vấn** | `claude --allowedTools ""` — cách spec-chat cũ đã chạy tốt | Không |
-| **Làm** | Bấm "ok làm đi" → runner **kết thúc tiến trình phỏng vấn, chạy lại `claude --resume <session-id>` với đủ tool** trong worktree | Đủ |
-
-Chọn restart-với-`--resume` thay vì đổi mode giữa tiến trình vì nó là đường
-**đã biết chạy được** (Ask đang dùng `--resume`). Đổi mode qua
-`control_request` của stream-json là đường mượt hơn — nằm ở §11, phải rig-test
-trước khi đổi.
-
-Với người dùng đây vẫn là *một* phiên: cùng session-id, cùng run.jsonl, cùng
-màn hình. `session.json` ghi `phase: "interview" | "work"`.
+Phiên repo là **chat thường có đủ tool từ câu đầu** (`--dangerously-skip-permissions`
+trong worktree); phiên chat không repo **không bao giờ có tool**
+(`--allowedTools ""`), bất kể session.json nói gì. Cửa phỏng vấn và nút
+"OK, do it" đã gỡ — người dùng thật thấy nó là ma sát không mua được an
+toàn tương xứng (ranh giới thật nằm ở worktree + bee/* + PAT hẹp + pre-push
+fence, không nằm ở cái nút). `phase` trong session.json giữ lại cho tương
+thích meta, không điều khiển gì nữa; đường `--resume` giữ nguyên — chạy lại
+unit (restart, reboot) nối đúng phiên cũ. Issue/PR agent tạo ra hiện thành
+node artifact nối vào phiên trên canvas (spec canvas §1).
 
 ---
 
@@ -232,12 +229,15 @@ Giữ nguyên thiết kế v1-live §4.2, đổi đường dẫn:
 - `meta.json` hết `running` → phát nốt rồi **đóng** — không EventSource treo.
 - Nhịp đọc 250ms.
 
-### 4.3 "Ok làm đi"
+### 4.3 ~~"Ok làm đi"~~ — ĐÃ GỠ (19/08, xem §2.3)
 
-Trong màn phỏng vấn, khi agent in hợp đồng → **một** nút. Bấm:
-`phase: "work"` vào session.json → runner chuyển chế độ (§2.3). Hết. Tạo
-issue **không còn là việc của nút này** — agent tự tạo bằng skill khi hợp đồng
-chốt, mang danh bot. Bốn bước của mô hình cũ còn một.
+Không còn nút chuyển pha. Điều khiển trong live view kiểu VSCode: nút tròn
+là **Gửi ↑** khi có chữ mới, thành **Dừng ■** khi agent đang bận mà ô gõ
+trống (gõ tiếp thì lại thành Gửi — message xếp hàng, rig S0.1); vòng tròn
+**context %** tính từ modelUsage của dòng `result` (input + cache tokens
+trên contextWindow); font stack theo VSCode; panel chat trên canvas kéo
+được chiều rộng, nhớ qua localStorage. Issue vẫn do agent tự tạo bằng
+skill, mang danh bot.
 
 ### 4.4 Màn hình live + danh sách phiên
 
