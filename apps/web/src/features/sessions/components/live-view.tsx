@@ -107,11 +107,11 @@ function VongNguCanh({ phanTram }: { phanTram: number }) {
  */
 export function LiveView({
   phien,
-  skills = [],
+  commands = [],
 }: {
   phien: BeeSession;
-  /** Global skills (~/.claude/skills) — appended to the "/" palette. */
-  skills?: { name: string; moTa: string }[];
+  /** Global slash commands (~/.claude/commands) — the "/" palette. */
+  commands?: { name: string; moTa: string }[];
 }) {
   const { suKien, dangGo, dangNghi, trangThai, ketThuc, boQua } = useSessionStream(phien.id);
   const [nhap, setNhap] = useState("");
@@ -155,18 +155,17 @@ export function LiveView({
 
   const coChuMoi = nhap.trim() !== "";
 
-  // "/..." opens the palette; picking one replaces the box with the skill
-  // trigger for the user to edit or send. Chat sessions have no tools —
-  // no palette there. Aliases first, then every installed global skill.
+  // "/..." opens the palette: the machine's global COMMANDS (expanded
+  // server-side on send, REPL-style — picking one keeps "/name " in the
+  // box for arguments) plus the three bee skill aliases. Chat sessions
+  // have no tools — no palette there.
   const tatCaLenh = [
     ...LENH,
-    ...skills
-      .filter((s) => !LENH.some((l) => l.chen.includes(s.name)))
-      .map((s) => ({
-        ten: `/${s.name}`,
-        moTa: s.moTa,
-        chen: `Dùng skill ${s.name}: ${s.moTa}`,
-      })),
+    ...commands.map((c) => ({
+      ten: `/${c.name}`,
+      moTa: c.moTa,
+      chen: `/${c.name} `,
+    })),
   ];
   const goiLenh =
     phien.worktree && nhap.startsWith("/")

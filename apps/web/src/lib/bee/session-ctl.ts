@@ -93,11 +93,16 @@ export async function moPhien(input: {
   }
 }
 
-export async function noiVaoPhien(id: string, text: string): Promise<KetQua> {
+/**
+ * `hienThi` là bản ghi sổ (mặc định = text): khi "/build args" được expand
+ * thành cả trang prompt, lịch sử vẫn hiện đúng cái người dùng GÕ — như
+ * REPL của VSCode — còn FIFO nhận bản đầy đủ.
+ */
+export async function noiVaoPhien(id: string, text: string, hienThi?: string): Promise<KetQua> {
   if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
   const gon = text.trim();
   if (gon === "") return { ok: false, message: "Empty message." };
-  if (gon.length > 32_000) return { ok: false, message: "Message too long (max 32KB)." };
+  if (gon.length > 64_000) return { ok: false, message: "Message too long (max 64KB)." };
 
   if (laFixture()) return { ok: true };
 
@@ -122,12 +127,12 @@ export async function noiVaoPhien(id: string, text: string): Promise<KetQua> {
   // sổ thì mở lại trang là mất sạch những câu đã gõ. Dòng ngắn + O_APPEND
   // là append nguyên tử — an toàn cạnh dòng runner đang ghi.
   const suKien =
-    JSON.stringify({ type: "bee_user_say", text: gon, ts: new Date().toISOString() }) + "\n";
+    JSON.stringify({ type: "bee_user_say", text: (hienThi ?? text).trim(), ts: new Date().toISOString() }) + "\n";
   await fs.appendFile(path.join(root(), "sessions", id, "run.jsonl"), suKien).catch(() => {});
 
   // First message names the session, like Claude Code. Best-effort: a
   // naming failure must never fail the send that already went through.
-  await autoTitleSession(id, gon);
+  await autoTitleSession(id, (hienThi ?? text).trim());
   return { ok: true };
 }
 

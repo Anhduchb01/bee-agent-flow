@@ -79,35 +79,64 @@ export async function readClaudeUsageFrom(root: string): Promise<BeeClaudeAccoun
   return { five_hour: cuaSo(o.five_hour), seven_day: cuaSo(o.seven_day), fetched_at: o.fetched_at };
 }
 
-/** One installed skill — feeds the chat's "/" palette. */
-export interface BeeSkill {
+/** One slash command (…/.claude/commands/<name>.md) — feeds the "/" palette. */
+export interface BeeCommand {
   name: string;
   moTa: string;
 }
 
 /**
- * Scan a skills directory (…/.claude/skills) for SKILL.md frontmatter.
- * Description is cut to one palette-sized line; folders without a
- * SKILL.md (or with broken frontmatter) are skipped silently.
+ * List the machine's global slash commands: every *.md in the commands
+ * dir, description from its frontmatter (falls back to the first body
+ * line), cut to one palette-sized line.
  */
-export async function readSkillsFrom(dir: string): Promise<BeeSkill[]> {
-  let folders: string[] = [];
+export async function readCommandsFrom(dir: string): Promise<BeeCommand[]> {
+  let files: string[] = [];
   try {
-    folders = await fs.readdir(dir);
+    files = await fs.readdir(dir);
   } catch {
     return [];
   }
-  const ra: BeeSkill[] = [];
-  for (const f of folders) {
+  const ra: BeeCommand[] = [];
+  for (const f of files) {
+    if (!f.endsWith(".md")) continue;
     try {
-      const dau = (await fs.readFile(path.join(dir, f, "SKILL.md"), "utf8")).slice(0, 2000);
-      const name = /^name:\s*"?([^"\n]+?)"?\s*$/m.exec(dau)?.[1];
-      const moTa = /^description:\s*"?(.+?)"?\s*$/m.exec(dau)?.[1];
-      if (name === undefined || moTa === undefined) continue;
-      ra.push({ name, moTa: moTa.length > 120 ? `${moTa.slice(0, 120)}…` : moTa });
+      const dau = (await fs.readFile(path.join(dir, f), "utf8")).slice(0, 2000);
+      const moTa =
+        /^description:\s*"?(.+?)"?\s*$/m.exec(dau)?.[1] ??
+        dau.replace(/^---[\s\S]*?---/, "").trim().split("\n")[0] ??
+        "";
+      if (moTa === "") continue;
+      ra.push({
+        name: f.slice(0, -3),
+        moTa: moTa.length > 120 ? `${moTa.slice(0, 120)}…` : moTa,
+      });
     } catch {
-      // Not a skill folder.
+      // Unreadable file — skip.
     }
   }
   return ra.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Expand "/name args" the way the Claude Code REPL would: body of the
+ * command file with $ARGUMENTS substituted. Unknown command or plain text
+ * → returned unchanged (the model just sees what was typed). The name is
+ * allowlisted before touching the filesystem.
+ */
+export async function expandCommandText(dir: string, text: string): Promise<string> {
+  if (!text.startsWith("/")) return text;
+  const [dau = "", ...conLai] = text.split(" ");
+  const name = dau.slice(1);
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) return text;
+  let body: string;
+  try {
+    body = await fs.readFile(path.join(dir, `${name}.md`), "utf8");
+  } catch {
+    return text;
+  }
+  body = body.replace(/^---[\s\S]*?---\s*/, "").trim();
+  const args = conLai.join(" ").trim();
+  if (body.includes("$ARGUMENTS")) return body.replaceAll("$ARGUMENTS", args);
+  return args === "" ? body : `${body}\n\nARGUMENTS: ${args}`;
 }

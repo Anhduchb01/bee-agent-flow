@@ -10,13 +10,13 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   if (!actor) return null;
 
   const { id } = await params;
-  const [phien, skills] = await Promise.all([loadSession(id), getBee().listSkills()]);
+  const [phien, skills] = await Promise.all([loadSession(id), getBee().listCommands()]);
   if (!phien) notFound();
 
   return (
     <div className="flex h-svh flex-col">
       <PageHeader title={phien.title ?? `${phien.slug}-${phien.num}`} />
-      <LiveView phien={phien} skills={skills} />
+      <LiveView phien={phien} commands={skills} />
     </div>
   );
 }

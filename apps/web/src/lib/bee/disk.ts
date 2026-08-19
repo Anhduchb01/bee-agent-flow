@@ -3,7 +3,7 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { readClaudeAuthFrom, readClaudeUsageFrom, readDoctorFrom, readSkillsFrom } from "./doctor-fs";
+import { readClaudeAuthFrom, readClaudeUsageFrom, readCommandsFrom, readDoctorFrom } from "./doctor-fs";
 import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
 import { listRunsIn, readRunIn } from "./runs-fs";
 import {
@@ -91,8 +91,8 @@ export function createDiskBeeSource(): BeeSource {
     readDoctor: () => readDoctorFrom(root()),
     readClaudeAuth: () => readClaudeAuthFrom(root()),
     readClaudeUsage: () => readClaudeUsageFrom(root()),
-    listSkills: () =>
-      readSkillsFrom(path.join(process.env.HOME ?? "", ".claude", "skills")),
+    listCommands: () =>
+      readCommandsFrom(path.join(process.env.HOME ?? "", ".claude", "commands")),
     listRepos: () => lietKeRepoTrong(root()),
     listSessions: () => lietKePhienTrong(root()),
     readSession: (id) => docPhienTrong(root(), id),

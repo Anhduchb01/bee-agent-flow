@@ -126,3 +126,19 @@ describe("slash palette", () => {
     expect(screen.queryByRole("listbox", { name: "Commands" })).not.toBeInTheDocument();
   });
 });
+
+describe("command palette (global ~/.claude/commands)", () => {
+  it("lists commands from props; picking keeps '/name ' in the box for arguments", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    render(
+      <LiveView
+        phien={PHIEN}
+        commands={[{ name: "build", moTa: "Implement tasks incrementally" }]}
+      />,
+    );
+    await user.type(screen.getByLabelText("Message to the agent"), "/bu");
+    await user.click(screen.getByRole("button", { name: /implement tasks incrementally/i }));
+    expect(screen.getByLabelText("Message to the agent")).toHaveValue("/build ");
+  });
+});

@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
+import path from "node:path";
+
+import { expandCommandText } from "@/lib/bee/doctor-fs";
 import { dungPhien, moPhien, noiVaoPhien } from "@/lib/bee/session-ctl";
 import type { BeeSession } from "@/lib/bee/types";
 
@@ -67,7 +70,13 @@ export async function batDauPhien(input: {
 export async function guiVaoPhien(id: string, text: string): Promise<KetQua> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await noiVaoPhien(id, text);
+  // "/build args" expands to the command file's body REPL-style; the
+  // history still shows what was typed. Plain text passes through as-is.
+  const moRong = await expandCommandText(
+    path.join(process.env.HOME ?? "", ".claude", "commands"),
+    text.trim(),
+  );
+  const ket = await noiVaoPhien(id, moRong, text);
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 

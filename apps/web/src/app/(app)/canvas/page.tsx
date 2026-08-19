@@ -10,7 +10,7 @@ export default async function CanvasPage() {
   const [{ nhom, artifacts, xemTruoc }, repos, skills] = await Promise.all([
     loadCanvas(),
     loadRepos(),
-    getBee().listSkills(),
+    getBee().listCommands(),
   ]);
   const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc);
 
@@ -30,7 +30,7 @@ export default async function CanvasPage() {
           edges={edges}
           phien={nhom.flatMap((g) => g.phien)}
           repos={repos}
-          skills={skills}
+          commands={skills}
         />
       </div>
     </div>
