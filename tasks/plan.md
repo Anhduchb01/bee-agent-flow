@@ -1,57 +1,74 @@
-# Plan — cập nhật 20/08/2026
+# Plan — cập nhật 20/08/2026 · **V1 NGHIỆM THU XONG**
 
 **Nguồn:** [`docs/specs/session-first.md`](../docs/specs/session-first.md) ·
 [`docs/specs/canvas.md`](../docs/specs/canvas.md) · PRD 3.0 ·
 checklist chi tiết: [`todo.md`](todo.md)
 
-**Đã xong:** S0 rig · S1 runner · S2–S3 web live · S6 canvas · S7 đánh bóng
-(combobox, auto-title, SSE test, e2e) · S7b một-chế-độ + skin VSCode ·
-S4 máy thật (install templated, doctor, pre-push fence, env.d overlay) ·
-S5.0 bee-web service · S5.1 GitHub OAuth live · S5.2 Tailscale
-(https://ducba.tail7d9c45.ts.net) · S8 action chips + flow skills
-(issue/PR template, bee-demo, bee-preview, record-screen vendored) ·
-responsive điện thoại toàn màn · xem chi tiết issue/PR ngay trên web.
+**V1 đóng 20/08** (chủ dự án xác nhận toàn flow chạy): runner systemd một-UID
+· web live chat skin VSCode · canvas + panel issue/PR trong app · action
+chips = flow Issue→Build→Review→PR→Demo→Preview · /setup trọn trên web ·
+Tailscale (https://ducba.tail7d9c45.ts.net) · GitHub OAuth allowlist ·
+install.sh một lệnh dựng đủ · responsive điện thoại.
+
+Việc lặt vặt còn treo (không chặn gì): 🧑 `sudo rm -rf ~/.local/opt/bee` ·
+đổi tên Chrome profile "Your Chrome" (Profile 10) → "Claude" · PAT đổi
+"All repositories" → "Only select repositories" (vệ sinh A+) · soạn
+`.bee/preview.sh` cho repo cần Docker khi dùng Preview lần đầu.
 
 ---
 
-## Đồ thị — còn lại để đóng V1
+## V2 — xếp lại 20/08 sau khi soi tài sản V1 để lại
+
+Nguyên tắc xếp: (1) mục nào V1 đã xây gần xong thì lên đầu — rẻ mà ăn ngay;
+(2) mục đụng runner cần rig thì đi riêng, không chặn các mục web.
 
 ```
-S5 · Ra internet (một việc tay + một buổi nghiệm thu)
-├ 🧑 Đổi GitHub OAuth app: Homepage + callback → URL ts.net
-│    (OAuth app chỉ nhận MỘT callback — từ đó mọi thiết bị dùng URL ts.net)
-└ 🧑 S5.3 checklist spec §10 từ điện thoại (4G + app Tailscale bật)
-         → mở app → login → mở phiên → chữ chạy → gõ chen → Stop
-         → **V1 XONG**
+V2.1 · Duyệt & merge PR ngay trong app          ← GỘP 3 mục cũ, làm TRƯỚC
+│  Nền V1 đã có: panel chi tiết PR (state/diff/checks/comment) + cache 60s
+│  + OAuth login đã mang scope `repo` (auth/index.ts) — token NGƯỜI bấm.
+│  Còn thiếu: nút Merge trong panel (gh api bằng token phiên đăng nhập,
+│  KHÔNG phải PAT của agent — merge mang tên người), gate checks xanh +
+│  confirm; mục Evidence trong panel (đọc sessions/<id>/evidence + ảnh
+│  .bee/evidence trên branch); AC của issue liên kết hiện cùng màn.
+│  = "màn duyệt 1 phút mobile" của plan cũ, không cần màn riêng.
+│
+V2.2 · Canvas sống                               ← teo còn việc nhỏ
+│  Nền V1: fetchArtifactDetail + cache đã trả state/checks.
+│  Còn thiếu: node PR đổi màu theo open/merged/closed + chấm checks;
+│  prefetch detail cho node đang hiện → panel mở tức thì lần đầu.
+│
+V2.3 · Preview + demo quản trên web
+│  Nền V1: bee-preview đã tạo unit bee-preview-* + tailscale serve;
+│  bee-demo đã ghi evidence/. Còn thiếu: bảng preview đang chạy
+│  (systemctl --user list-units bee-preview-*) + nút Stop; link video
+│  demo xem được trong app (chung evidence viewer V2.1).
+│
+V2.4 · Chips theo ngữ cảnh (nhỏ, làm kèm V2.1–V2.3)
+│  Chip sáng theo giai đoạn phiên: chưa issue → Issue nổi; có commit →
+│  PR nổi; có PR → Update-PR/Preview. Dữ liệu đã có trong run.jsonl.
+│
+V2.5 · Hook-reply approvals                      ← nặng nhất, rig TRƯỚC
+│  Thay dần --dangerously-skip-permissions: permission hook đẩy
+│  control_request ra stream → web render thẻ Approve/Deny trong chat →
+│  trả lời bơm ngược FIFO. Chính sách: auto-allow trong worktree,
+│  hỏi lệnh mạng/ngoài worktree. Đụng runner → rig riêng như S0.
+│
+V2.6 · Chat lại phiên đã dừng (--resume từ web)
+   Runner đã có đường resume nội bộ; thiếu action + nút "Continue" trên
+   phiên done/stopped.
 ```
 
-Việc lặt vặt còn treo (không chặn V1): 🧑 `sudo rm -rf ~/.local/opt/bee`
-(rác root-owned của lần cài hụt) · đặt tên lại Chrome profile chứa
-extension record-screen thành "Claude" (hiện là Profile 10 "Your Chrome") ·
-soạn `.bee/preview.sh` cho repo cần Docker (khi dùng chip Preview lần đầu).
-
-## V2 — spec trước khi code, theo thứ tự đề xuất
-
-```
-├ Nút merge trên web (token NGƯỜI bấm — không bao giờ là agent)
-├ Màn duyệt 1 phút mobile: evidence + AC + tóm tắt + merge trong một màn
-├ Trạng thái PR sống trên canvas (merged/closed đổi màu node — gh poll nhẹ)
-├ Hook-reply approvals: thẻ Approve/Deny trong chat (control_request qua
-│   stream → FIFO), thay dần --dangerously-skip-permissions
-├ Evidence viewer trong app: xem screenshot/video từ sessions/<id>/evidence
-├ Preview quản trên web: bảng preview đang chạy + nút stop (giờ là lệnh)
-└ Chat/Ask lại trên phiên đã dừng (--resume từ web)
-```
+**Không đổi từ plan cũ:** mọi mục V2 vẫn *spec ngắn trước khi code*; mục
+đụng runner (V2.5) bắt buộc rig chứng minh trước khi nối web.
 
 ## Checkpoint
 
 | Sau | Bạn duyệt gì |
 |---|---|
-| S5.3 | Toàn flow từ điện thoại ngoài mạng nhà → tick V1, rồi mới spec V2 |
-| V2 từng mục | Mỗi mục một spec ngắn + rig nếu đụng runner |
+| V2.1 | Merge một PR thật từ điện thoại, tên bạn đứng ở merge commit |
+| V2.5 rig | Bản rig hook-reply chạy được trước khi đụng session-run.sh |
 
-## Ngoài phạm vi (đừng để lẻn vào trước lúc V2 có spec)
+## Ngoài phạm vi (giữ nguyên ranh)
 
-Hàng đợi/đi ngủ (V3) · ngân sách hạn mức · bản tin buổi sáng · types
-`BeeStatus` cũ trong lib/bee (gỡ khi đụng tự nhiên) · lưu vị trí node
-canvas · terminal node xterm/PTY.
+Hàng đợi/đi ngủ (V3) · ngân sách hạn mức · bản tin buổi sáng · lưu vị trí
+node canvas · terminal node xterm/PTY · types `BeeStatus` cũ (gỡ khi đụng).

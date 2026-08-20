@@ -208,8 +208,10 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       🧑: đổi Homepage + Authorization callback của GitHub OAuth app sang
       URL ts.net (OAuth app chỉ nhận một callback → từ giờ dùng thống nhất
       URL ts.net trên mọi thiết bị, kể cả máy này).
-- [ ] 🧑 **S5.3** Nghiệm thu toàn bộ checklist spec §10 **từ điện thoại
-      (4G, bật Tailscale)** → V1 xong
+- [x] 🧑 **S5.3** ~~Nghiệm thu từ điện thoại~~ **XONG 20/08** — chủ dự án
+      xác nhận "toàn flow V1 đã ok". **→ V1 ĐÓNG. V2 xếp lại trong
+      plan.md (V2.1 duyệt & merge trong app đi trước — nền đã có sẵn từ
+      panel PR + OAuth scope repo).**
 
 ---
 
