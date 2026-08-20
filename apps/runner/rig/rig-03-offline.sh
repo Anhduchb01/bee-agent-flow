@@ -213,8 +213,18 @@ else
 fi
 
 ARGS7B=$(chay_mode "77777777-1111-2222-3333-444444444472" 72 ',"mode":"edits"')
-grep -q -- "--permission-mode acceptEdits" <<<"$ARGS7B" \
-  && kq ok "mode edits → --permission-mode acceptEdits" || kq no "mode edits sai cờ: $ARGS7B"
+if grep -q -- "--permission-mode acceptEdits" <<<"$ARGS7B" && grep -q -- "--permission-prompt-tool stdio" <<<"$ARGS7B"; then
+  kq ok "mode edits → acceptEdits + prompt-tool stdio (tool ngoài sửa file sẽ hỏi)"
+else
+  kq no "mode edits sai cờ: $ARGS7B"
+fi
+
+ARGS7D=$(chay_mode "77777777-1111-2222-3333-444444444474" 74 ',"mode":"manual"')
+if grep -q -- "--permission-mode default" <<<"$ARGS7D" && grep -q -- "--permission-prompt-tool stdio" <<<"$ARGS7D"; then
+  kq ok "mode manual → default + prompt-tool stdio (mọi tool hỏi qua stream)"
+else
+  kq no "mode manual sai cờ: $ARGS7D"
+fi
 
 # Không có mode (session.json cũ) = auto — hành vi V1 giữ nguyên.
 ARGS7C=$(chay_mode "77777777-1111-2222-3333-444444444473" 73 '')

@@ -203,6 +203,67 @@ export async function doiModePhien(id: string, mode: BeeSessionMode): Promise<Ke
   }
 }
 
+const REQUEST_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+
+/**
+ * Answer a manual-mode permission prompt (V2.5b): write the
+ * control_response into the SAME FIFO user messages travel through
+ * (rig-05 proved the CLI honors it — allow runs the tool, deny blocks it
+ * and lands in result.permission_denials). Ledger discipline mirrors
+ * bee_user_say: the bee_approval line is written only AFTER the FIFO
+ * accepted the response, so replay never shows an answer that never
+ * reached the agent.
+ */
+export async function traLoiQuyen(
+  id: string,
+  requestId: string,
+  choPhep: boolean,
+  /** Original tool input JSON (from the can_use_tool event) — echoed back on allow. */
+  inputJson: string,
+): Promise<KetQua> {
+  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
+  if (!REQUEST_ID_RE.test(requestId)) return { ok: false, message: "Invalid request id." };
+  if (inputJson.length > 64_000) return { ok: false, message: "Tool input too large." };
+  let input: unknown = {};
+  if (choPhep) {
+    try {
+      input = JSON.parse(inputJson);
+    } catch {
+      return { ok: false, message: "Invalid tool input." };
+    }
+  }
+  if (laFixture()) return { ok: true };
+
+  const response = choPhep
+    ? { behavior: "allow", updatedInput: input }
+    : { behavior: "deny", message: "Denied by the owner from the bee approval card." };
+  const dong =
+    JSON.stringify({
+      type: "control_response",
+      response: { subtype: "success", request_id: requestId, response },
+    }) + "\n";
+  try {
+    const fd = await fs.open(fifoCua(id), fsc.constants.O_WRONLY | fsc.constants.O_NONBLOCK);
+    try {
+      await fd.write(dong);
+    } finally {
+      await fd.close();
+    }
+  } catch {
+    return { ok: false, message: "Session is not accepting input — it may have ended." };
+  }
+
+  const suKien =
+    JSON.stringify({
+      type: "bee_approval",
+      request_id: requestId,
+      behavior: choPhep ? "allow" : "deny",
+      ts: new Date().toISOString(),
+    }) + "\n";
+  await fs.appendFile(path.join(root(), "sessions", id, "run.jsonl"), suKien).catch(() => {});
+  return { ok: true };
+}
+
 /**
  * Continue a finished/stopped session (V2.6): just start the unit again —
  * session-run's --resume branch reconnects the same conversation. Start is

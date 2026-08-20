@@ -16,6 +16,8 @@ export type Muc =
   | { loai: "nghi"; text: string }
   | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null; title: string | null }
   | { loai: "ket-qua"; loi: boolean; luot: number | null }
+  /** Manual-mode approval card; traLoi được ghép từ bee_approval theo requestId. */
+  | { loai: "xin-quyen"; requestId: string; ten: string; thamSo: string; traLoi: "allow" | "deny" | null }
   | {
       loai: "tool-card";
       ten: string;
@@ -93,6 +95,26 @@ export function ghepThe(suKien: SuKien[]): Muc[] {
       case "artifact":
         muc.push({ loai: "artifact", kind: sk.kind, url: sk.url, number: sk.number, title: sk.title });
         break;
+      case "xin-quyen":
+        muc.push({
+          loai: "xin-quyen",
+          requestId: sk.requestId,
+          ten: sk.ten,
+          thamSo: sk.thamSo,
+          traLoi: null,
+        });
+        break;
+      case "quyen-da-tra-loi": {
+        // Ghép ngược vào thẻ đã hỏi — thẻ đổi trạng thái, không thêm dòng mới.
+        for (let i = muc.length - 1; i >= 0; i -= 1) {
+          const m = muc[i]!;
+          if (m.loai === "xin-quyen" && m.requestId === sk.requestId) {
+            m.traLoi = sk.choPhep ? "allow" : "deny";
+            break;
+          }
+        }
+        break;
+      }
       case "ket-qua":
         muc.push({ loai: "ket-qua", loi: sk.loi, luot: sk.luot ?? null });
         break;

@@ -75,19 +75,22 @@ export function EventStream({
   dangGo,
   dangNghi = "",
   dangCho = false,
+  onTraLoiQuyen,
 }: {
   suKien: SuKien[];
   dangGo: string;
   dangNghi?: string;
   /** Busy but nothing streaming yet — show the shimmer line. */
   dangCho?: boolean;
+  /** Manual mode (V2.5b): answer an approval card. Absent = read-only view. */
+  onTraLoiQuyen?: (requestId: string, choPhep: boolean, inputJson: string) => void;
 }) {
   const muc = useMemo(() => ghepThe(suKien), [suKien]);
 
   return (
     <div role="log" aria-label="Session events" className="flex flex-col gap-4">
       {muc.map((m, i) => (
-        <MotMuc key={i} m={m} />
+        <MotMuc key={i} m={m} onTraLoiQuyen={onTraLoiQuyen} />
       ))}
       {dangNghi !== "" && (
         <p
@@ -108,8 +111,79 @@ export function EventStream({
   );
 }
 
-function MotMuc({ m }: { m: Muc }) {
+/** Bash's `command` reads better than raw JSON; other tools show the JSON. */
+function tomTatThamSo(ten: string, thamSo: string): string {
+  try {
+    const o = JSON.parse(thamSo) as Record<string, unknown>;
+    if (ten === "Bash" && typeof o.command === "string") return o.command;
+    if (typeof o.file_path === "string") return o.file_path;
+  } catch {
+    // fall through to raw
+  }
+  return thamSo;
+}
+
+/**
+ * Manual-mode approval card (V2.5b): the agent stops until the owner
+ * answers. Deny sends a reason the model can read and adapt to.
+ */
+function TheXinQuyen({
+  m,
+  onTraLoi,
+}: {
+  m: Extract<Muc, { loai: "xin-quyen" }>;
+  onTraLoi?: (requestId: string, choPhep: boolean, inputJson: string) => void;
+}) {
+  return (
+    <div className="rounded-card border border-amber-500/50 bg-amber-500/5 px-3.5 py-3">
+      <p className="mb-1.5 flex items-center gap-2 text-sm">
+        <span className="text-amber-500">⏸</span>
+        <span className="font-semibold text-body">Permission — {m.ten}</span>
+        {m.traLoi !== null && (
+          <span
+            className={`ml-auto font-mono text-xs ${
+              m.traLoi === "allow" ? "text-green-500" : "text-red-400"
+            }`}
+          >
+            {m.traLoi === "allow" ? "✓ allowed" : "✗ denied"}
+          </span>
+        )}
+      </p>
+      <pre className="overflow-x-auto rounded-control border border-border bg-muted/40 p-2 font-mono text-xs">
+        {tomTatThamSo(m.ten, m.thamSo)}
+      </pre>
+      {m.traLoi === null && onTraLoi !== undefined && (
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            onClick={() => onTraLoi(m.requestId, true, m.thamSo)}
+            className="rounded-control bg-[#C15F3C] px-3 py-1 text-xs font-medium text-white hover:bg-[#a94f31]"
+          >
+            Allow
+          </button>
+          <button
+            type="button"
+            onClick={() => onTraLoi(m.requestId, false, m.thamSo)}
+            className="rounded-control border border-border px-3 py-1 text-xs text-body hover:bg-accent"
+          >
+            Deny
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MotMuc({
+  m,
+  onTraLoiQuyen,
+}: {
+  m: Muc;
+  onTraLoiQuyen?: (requestId: string, choPhep: boolean, inputJson: string) => void;
+}) {
   switch (m.loai) {
+    case "xin-quyen":
+      return <TheXinQuyen m={m} onTraLoi={onTraLoiQuyen} />;
     case "lifecycle":
       return <p className="font-mono text-xs text-muted-foreground">· {m.text}</p>;
     case "nguoi-noi":

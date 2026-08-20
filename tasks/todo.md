@@ -222,6 +222,24 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 - [x] 🤖 **V2.4** Chip bước-kế-tiếp phát sáng: chưa issue → Issue; có issue
       → Build; có PR → Preview (đọc từ bee_artifact trong stream).
 
+## V2 đợt 2 (20/08) ✅ — V2.5b Manual mode + V2.6 Continue
+
+- [x] 🤖 **Rig-05** (online, claude thật): tìm ra cờ ẨN
+      `--permission-prompt-tool stdio` — không có nó CLI không phát
+      can_use_tool (model còn "diễn" output echo thay vì gọi tool);
+      allow qua FIFO → tool chạy thật; deny → bị chặn +
+      result.permission_denials ghi nhận. FINDINGS.md có đủ hình dạng JSON.
+- [x] 🤖 **V2.5b** Mode Manual vào menu (icon ✋): runner map default +
+      prompt-tool stdio (edits cũng thêm prompt-tool — tool ngoài sửa file
+      hỏi thay vì chết im; rig-03 case 7 phủ cả 4 mode); parse-events đọc
+      control_request/bee_approval; thẻ ⏸ Permission trong chat với
+      Allow/Deny (deny gửi lý do cho model); traLoiQuyen ghi
+      control_response vào FIFO TRƯỚC, bee_approval vào run.jsonl SAU —
+      replay giữ trạng thái thẻ; shimmer tắt khi bóng đang ở chân người.
+- [x] 🤖 **V2.6** Nút "Continue session" trên phiên đã done/stopped —
+      start unit (idempotent) → --resume nối đúng hội thoại, reload gắn
+      lại SSE.
+
 ## S5 · Ra internet
 
 - [x] 🤖 **S5.0** ~~Web thành service~~ **XONG 19/08** — `bee-web.service`

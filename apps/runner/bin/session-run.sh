@@ -186,14 +186,18 @@ fi
 if [[ "$CO_WORKTREE" == "no" ]]; then
   ARGS+=(--allowedTools "" --max-turns 40)
 else
-  # Session mode (V2.5a) — như menu mode của Claude Code trong VSCode.
+  # Session mode (V2.5) — như menu mode của Claude Code trong VSCode.
   # Đổi giữa chừng = web ghi mode mới + restart unit → nhánh --resume ở
   # trên nối đúng hội thoại với cờ mới. Giá trị lạ/thiếu = auto (hành vi V1).
+  # --permission-prompt-tool stdio (cờ ẨN, rig-05 chứng minh): prompt quyền
+  # thành control_request trên stream, web trả lời qua FIFO — mode manual
+  # hỏi mọi tool, mode edits chỉ hỏi tool ngoài sửa file.
   MODE=$(jq -r '.mode // "auto"' "$SDIR/session.json")
   case "$MODE" in
-    plan)  ARGS+=(--permission-mode plan --max-turns "$MAX_TURNS");;
-    edits) ARGS+=(--permission-mode acceptEdits --max-turns "$MAX_TURNS");;
-    *)     ARGS+=(--dangerously-skip-permissions --max-turns "$MAX_TURNS");;
+    plan)   ARGS+=(--permission-mode plan --max-turns "$MAX_TURNS");;
+    edits)  ARGS+=(--permission-mode acceptEdits --permission-prompt-tool stdio --max-turns "$MAX_TURNS");;
+    manual) ARGS+=(--permission-mode default --permission-prompt-tool stdio --max-turns "$MAX_TURNS");;
+    *)      ARGS+=(--dangerously-skip-permissions --max-turns "$MAX_TURNS");;
   esac
 fi
 [[ -n "$SYS_PROMPT" ]] && ARGS+=(--append-system-prompt "$SYS_PROMPT")

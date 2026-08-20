@@ -224,7 +224,7 @@ export interface BeeEvidenceTepTin {
   loai: "image" | "video" | "khac";
 }
 
-export const CAC_MODE_PHIEN = ["auto", "plan", "edits"] as const;
+export const CAC_MODE_PHIEN = ["auto", "plan", "edits", "manual"] as const;
 export type BeeSessionMode = (typeof CAC_MODE_PHIEN)[number];
 
 export interface BeeSession {

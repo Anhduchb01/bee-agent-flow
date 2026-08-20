@@ -70,3 +70,16 @@ describe("ghepThe", () => {
     expect(muc[0]).toMatchObject({ trangThai: "xong" });
   });
 });
+
+describe("thẻ xin-quyền (V2.5b)", () => {
+  it("bee_approval ghép ngược vào đúng thẻ theo requestId — không thêm dòng", () => {
+    const muc = ghepThe([
+      { loai: "xin-quyen", requestId: "r1", ten: "Bash", thamSo: '{"command":"ls"}' },
+      { loai: "xin-quyen", requestId: "r2", ten: "Write", thamSo: "{}" },
+      { loai: "quyen-da-tra-loi", requestId: "r1", choPhep: true },
+    ]);
+    expect(muc).toHaveLength(2);
+    expect(muc[0]).toMatchObject({ loai: "xin-quyen", requestId: "r1", traLoi: "allow" });
+    expect(muc[1]).toMatchObject({ loai: "xin-quyen", requestId: "r2", traLoi: null });
+  });
+});

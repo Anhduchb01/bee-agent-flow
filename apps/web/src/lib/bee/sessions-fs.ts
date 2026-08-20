@@ -64,7 +64,7 @@ export async function docPhienTrong(root: string, id: string): Promise<BeeSessio
     // trường này và chúng đều là phiên có worktree.
     worktree: s.worktree !== false,
     // Phiên cũ không có mode = auto (hành vi V1). Giá trị lạ cũng về auto.
-    mode: s.mode === "plan" || s.mode === "edits" ? s.mode : "auto",
+    mode: s.mode === "plan" || s.mode === "edits" || s.mode === "manual" ? s.mode : "auto",
     status,
     created_at: typeof s.created_at === "string" ? s.created_at : null,
     started_at: typeof meta.started_at === "string" ? meta.started_at : null,

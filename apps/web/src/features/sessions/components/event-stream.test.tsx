@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { EventStream } from "./event-stream";
 import type { SuKien } from "../lib/parse-events";
@@ -127,5 +127,45 @@ describe("markdown trong lời agent", () => {
       <EventStream suKien={[{ loai: "agent-noi", text: 'xin chào <img src=x onerror="alert(1)">' }]} dangGo="" />,
     );
     expect(container.querySelector("img")).toBeNull();
+  });
+});
+
+describe("approval card (V2.5b)", () => {
+  it("pending card shows the command and Allow/Deny; clicking Allow passes the input back", async () => {
+    const user = (await import("@testing-library/user-event")).default.setup();
+    const onTraLoi = vi.fn();
+    render(
+      <EventStream
+        suKien={[
+          {
+            loai: "xin-quyen",
+            requestId: "r1",
+            ten: "Bash",
+            thamSo: '{"command":"pnpm test"}',
+          },
+        ]}
+        dangGo=""
+        onTraLoiQuyen={onTraLoi}
+      />,
+    );
+    expect(screen.getByText("Permission — Bash")).toBeInTheDocument();
+    expect(screen.getByText("pnpm test")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Allow" }));
+    expect(onTraLoi).toHaveBeenCalledWith("r1", true, '{"command":"pnpm test"}');
+  });
+
+  it("answered card shows the verdict and drops the buttons", () => {
+    render(
+      <EventStream
+        suKien={[
+          { loai: "xin-quyen", requestId: "r1", ten: "Bash", thamSo: "{}" },
+          { loai: "quyen-da-tra-loi", requestId: "r1", choPhep: false },
+        ]}
+        dangGo=""
+        onTraLoiQuyen={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("✗ denied")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Allow" })).not.toBeInTheDocument();
   });
 });

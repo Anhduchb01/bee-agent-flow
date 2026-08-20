@@ -126,3 +126,45 @@ describe("gopSuKien trên fixture thật", () => {
     ]);
   });
 });
+
+describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
+  it("control_request/can_use_tool becomes an approval event; other subtypes are dropped", () => {
+    const dong = JSON.stringify({
+      type: "control_request",
+      request_id: "d72b0535-401f-4f41-92e3-78a8bfe6ceac",
+      request: {
+        subtype: "can_use_tool",
+        tool_name: "Bash",
+        input: { command: "cat /proc/sys/kernel/random/uuid" },
+      },
+    });
+    const { suKien } = gopSuKien([dong]);
+    expect(suKien).toEqual([
+      {
+        loai: "xin-quyen",
+        requestId: "d72b0535-401f-4f41-92e3-78a8bfe6ceac",
+        ten: "Bash",
+        thamSo: JSON.stringify({ command: "cat /proc/sys/kernel/random/uuid" }),
+      },
+    ]);
+
+    const init = JSON.stringify({
+      type: "control_request",
+      request_id: "x",
+      request: { subtype: "initialize" },
+    });
+    expect(gopSuKien([init]).suKien).toEqual([]);
+  });
+
+  it("bee_approval (web-written ledger line) becomes the answered event", () => {
+    const dong = JSON.stringify({
+      type: "bee_approval",
+      request_id: "abc-1",
+      behavior: "deny",
+      ts: "t",
+    });
+    expect(gopSuKien([dong]).suKien).toEqual([
+      { loai: "quyen-da-tra-loi", requestId: "abc-1", choPhep: false },
+    ]);
+  });
+});

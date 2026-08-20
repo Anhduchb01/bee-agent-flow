@@ -47,6 +47,10 @@ export type SuKien =
       cuaSoToken?: number | null;
     }
   | { loai: "replay"; boQua: number }
+  /** Manual mode (V2.5b): the agent asks permission for one tool call. */
+  | { loai: "xin-quyen"; requestId: string; ten: string; thamSo: string }
+  /** The owner's recorded answer (bee_approval) — pairs by requestId. */
+  | { loai: "quyen-da-tra-loi"; requestId: string; choPhep: boolean }
   | {
       loai: "artifact";
       kind: "issue" | "pr";
@@ -148,6 +152,39 @@ export function phanTichDong(dong: string): SuKien[] | null {
         : [];
     case "bee_replayed":
       return [{ loai: "replay", boQua: typeof raw.skipped === "number" ? raw.skipped : 0 }];
+    case "control_request": {
+      // Manual mode: --permission-prompt-tool stdio routes permission
+      // prompts onto the stream (rig-05). Only can_use_tool becomes UI.
+      const req = raw.request;
+      if (!laObject(req) || req.subtype !== "can_use_tool") return [];
+      if (typeof raw.request_id !== "string" || typeof req.tool_name !== "string") return [];
+      let thamSo = "{}";
+      try {
+        thamSo = JSON.stringify(req.input ?? {});
+      } catch {
+        thamSo = "{}";
+      }
+      return [
+        {
+          loai: "xin-quyen",
+          requestId: raw.request_id,
+          ten: req.tool_name,
+          thamSo: cat(thamSo, 64_000),
+        },
+      ];
+    }
+    case "bee_approval": {
+      // Ghi bởi web SAU khi control_response đã vào FIFO — replay không mất
+      // trạng thái đã-trả-lời của thẻ.
+      if (typeof raw.request_id !== "string") return [];
+      return [
+        {
+          loai: "quyen-da-tra-loi",
+          requestId: raw.request_id,
+          choPhep: raw.behavior === "allow",
+        },
+      ];
+    }
     case "bee_artifact": {
       // Nội dung run.jsonl là untrusted: kind phải nằm trong allowlist, và
       // url phải là GitHub thật — không mở cửa cho javascript: hay host lạ.

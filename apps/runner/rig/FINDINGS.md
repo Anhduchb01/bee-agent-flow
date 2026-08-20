@@ -52,3 +52,27 @@ restart + `--resume`. Không cần bàn giao hợp đồng thủ công giữa ha
 | `fixture-interject.jsonl` | Phiên có tool_use + gõ chen + partial messages | **Không có sự kiện `result`** — rig kill sớm khi thấy mã hiệu. Dùng test "phiên đang chạy" |
 | `fixture-resume-work.jsonl` | Phiên resume, có `tool_use` Write + `result` | Fixture "phiên trọn vẹn" |
 | `fixture-interview.jsonl` | Phiên không tool, chỉ text + `result` | Fixture chế độ phỏng vấn |
+
+## Rig 05 — hook-reply approvals (20/08, V2.5b)
+
+**Hỏi:** headless stream-json có phát yêu cầu xin quyền ra stream không, và
+trả lời qua stdin có gate được tool thật không?
+
+**Đáp — CÓ, nhưng phải bật đúng cờ:**
+
+1. Mặc định (không cờ gì): CLI KHÔNG phát `can_use_tool`. Model biết mình
+   không có đường hỏi nên thậm chí không thử tool — lần chạy đầu nó "diễn"
+   luôn output của `echo` thành text. Mồi rig phải là lệnh không đoán được
+   (uuid ngẫu nhiên) + chỉ định "use the Bash tool".
+2. **`--permission-prompt-tool stdio`** — cờ ẨN (không có trong --help,
+   tìm ra bằng probe): prompt quyền thành
+   `{"type":"control_request","request_id":…,"request":{"subtype":"can_use_tool","tool_name":…,"input":{…}}}`
+   trên stdout.
+3. Trả lời ghi vào stdin (FIFO sẵn có của session-run dùng được nguyên si):
+   `{"type":"control_response","response":{"subtype":"success","request_id":…,"response":{"behavior":"allow","updatedInput":<input>}}}`
+   → tool chạy thật (tool_result về stream). `{"behavior":"deny","message":…}`
+   → tool bị chặn, `result.permission_denials` ghi nhận.
+
+**Hệ quả:** mode `manual` = `--permission-mode default --permission-prompt-tool stdio`;
+mode `edits` cũng mang prompt-tool để tool ngoài sửa file HỎI thay vì chết im.
+Web ghi `bee_approval` vào run.jsonl SAU khi FIFO nhận — replay giữ trạng thái thẻ.

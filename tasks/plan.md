@@ -46,7 +46,7 @@ V2.4 · Chips theo ngữ cảnh ✅ XONG 20/08
 │  Chip sáng theo giai đoạn phiên: chưa issue → Issue nổi; có commit →
 │  PR nổi; có PR → Update-PR/Preview. Dữ liệu đã có trong run.jsonl.
 │
-V2.5 · SESSION MODES kiểu Claude Code VSCode     ← V2.5a XONG 20/08
+V2.5 · SESSION MODES kiểu Claude Code VSCode ✅ XONG CẢ 5a+5b 20/08
 │  Yêu cầu chủ dự án: mỗi phiên có mode, CHỌN LÚC TẠO và ĐỔI GIỮA CHAT
 │  (như menu Manual / Edit automatically / Plan / Auto của VSCode).
 │  Ánh xạ sang cờ CLI:
@@ -61,9 +61,8 @@ V2.5 · SESSION MODES kiểu Claude Code VSCode     ← V2.5a XONG 20/08
 │  control_request ra stream → web render thẻ Approve/Deny trong chat →
 │  trả lời bơm ngược FIFO. (b) đụng runner sâu nhất → RIG TRƯỚC như S0.
 │
-V2.6 · Chat lại phiên đã dừng (--resume từ web)
-   Runner đã có đường resume nội bộ; thiếu action + nút "Continue" trên
-   phiên done/stopped. (Dùng chung máy móc resume-đổi-cờ của V2.5a.)
+V2.6 · Chat lại phiên đã dừng ✅ XONG 20/08 (nút Continue = start unit,
+   --resume nối đúng hội thoại)
 ```
 
 **Không đổi từ plan cũ:** mọi mục V2 vẫn *spec ngắn trước khi code*; mục

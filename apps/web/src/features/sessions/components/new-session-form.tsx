@@ -9,11 +9,12 @@ import type { BeeRepoDangKy, BeeSession, BeeSessionMode } from "@/lib/bee/types"
 import { batDauPhien } from "../api/actions";
 import { CHAT_OPTION, RepoCombobox } from "./repo-combobox";
 
-/** Permission modes (V2.5a) — same menu as Claude Code in VSCode. */
+/** Permission modes (V2.5) — same menu as Claude Code in VSCode. */
 export const MODE_OPTIONS: { value: BeeSessionMode; label: string; moTa: string }[] = [
   { value: "auto", label: "Auto", moTa: "Full tools, no prompts — V1 behavior" },
   { value: "plan", label: "Plan", moTa: "Read-only: explores and presents a plan" },
-  { value: "edits", label: "Edits", moTa: "Edits files freely; bash is refused" },
+  { value: "edits", label: "Edits", moTa: "Edits files freely; other tools ask first" },
+  { value: "manual", label: "Manual", moTa: "Every tool asks — approve from the chat" },
 ];
 
 /**

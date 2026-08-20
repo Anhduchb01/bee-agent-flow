@@ -8,7 +8,14 @@ import path from "node:path";
 
 import { fetchArtifactDetail, type KetQuaArtifact } from "@/lib/bee/artifact-detail";
 import { expandCommandText } from "@/lib/bee/doctor-fs";
-import { doiModePhien, dungPhien, moPhien, noiVaoPhien, tiepTucPhien } from "@/lib/bee/session-ctl";
+import {
+  doiModePhien,
+  dungPhien,
+  moPhien,
+  noiVaoPhien,
+  tiepTucPhien,
+  traLoiQuyen,
+} from "@/lib/bee/session-ctl";
 import type { BeeEvidenceTepTin, BeeSession, BeeSessionMode } from "@/lib/bee/types";
 
 export type KetQuaMoPhien =
@@ -89,6 +96,19 @@ export async function dungPhienAction(id: string): Promise<KetQua> {
   if (!actor) return KHONG_QUYEN;
   const ket = await dungPhien(id);
   revalidatePath("/sessions");
+  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+/** Answer a manual-mode approval card (V2.5b) — validation in traLoiQuyen. */
+export async function traLoiQuyenAction(
+  id: string,
+  requestId: string,
+  choPhep: boolean,
+  inputJson: string,
+): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await traLoiQuyen(id, requestId, choPhep, inputJson);
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 

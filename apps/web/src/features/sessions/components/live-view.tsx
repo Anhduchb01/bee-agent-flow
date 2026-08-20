@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowUpIcon, ClipboardListIcon, SquareIcon, SquarePenIcon, ZapIcon } from "lucide-react";
+import {
+  ArrowUpIcon,
+  ClipboardListIcon,
+  HandIcon,
+  SquareIcon,
+  SquarePenIcon,
+  ZapIcon,
+} from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -8,7 +15,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusDot } from "@/components/status-dot";
 import type { BeeSession, BeeSessionMode } from "@/lib/bee/types";
 
-import { doiModeAction, dungPhienAction, guiVaoPhien, tiepTucAction } from "../api/actions";
+import {
+  doiModeAction,
+  dungPhienAction,
+  guiVaoPhien,
+  tiepTucAction,
+  traLoiQuyenAction,
+} from "../api/actions";
 import { useSessionStream } from "../hooks/use-session-stream";
 import { EventStream } from "./event-stream";
 import { MODE_OPTIONS } from "./new-session-form";
@@ -60,6 +73,7 @@ const MODE_ICONS: Record<BeeSessionMode, typeof ZapIcon> = {
   auto: ZapIcon,
   plan: ClipboardListIcon,
   edits: SquarePenIcon,
+  manual: HandIcon,
 };
 
 /**
@@ -307,6 +321,14 @@ export function LiveView({
   const coPR = suKien.some((s) => s.loai === "artifact" && s.kind === "pr");
   const goiY = !coIssue ? "issue" : !coPR ? "build" : "preview";
 
+  // An approval card without an answer = the ball is in the OWNER's court.
+  const daTraLoi = new Set(
+    suKien.filter((s) => s.loai === "quyen-da-tra-loi").map((s) => s.requestId),
+  );
+  const dangChoQuyen = suKien.some(
+    (s) => s.loai === "xin-quyen" && !daTraLoi.has(s.requestId),
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background text-body" style={VSCODE_SKIN}>
       {/* thanh trạng thái */}
@@ -350,7 +372,15 @@ export function LiveView({
             suKien={suKien}
             dangGo={dangGo}
             dangNghi={dangNghi}
-            dangCho={dangBan && dangGo === "" && dangNghi === ""}
+            // Shimmer says "the AGENT is working" — while an approval card
+            // waits for the OWNER, showing it would be a lie.
+            dangCho={dangBan && dangGo === "" && dangNghi === "" && !dangChoQuyen}
+            onTraLoiQuyen={(requestId, choPhep, inputJson) =>
+              batDauGui(async () => {
+                const ket = await traLoiQuyenAction(phien.id, requestId, choPhep, inputJson);
+                if (!ket.ok) setLoi(ket.message);
+              })
+            }
           />
         )}
       </div>
