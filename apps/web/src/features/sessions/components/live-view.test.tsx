@@ -120,24 +120,30 @@ describe("LiveView — one mode, VSCode-style controls", () => {
   });
 });
 
-describe("session mode switch (V2.5a) — the VSCode-style mode menu", () => {
-  it("repo session shows the mode select with the session's mode; changing calls the action", async () => {
+describe("session mode switch (V2.5a) — the VSCode-style mode menu by the send button", () => {
+  it("trigger shows the current mode; picking another calls the action and closes", async () => {
     const user = userEvent.setup();
     mockStream({});
     const { doiModeAction } = await import("../api/actions");
     render(<LiveView phien={{ ...PHIEN, mode: "auto" }} />);
 
-    const chon = screen.getByLabelText("Session mode");
-    expect(chon).toHaveValue("auto");
-    await user.selectOptions(chon, "plan");
+    const nut = screen.getByRole("button", { name: "Session mode" });
+    expect(nut).toHaveTextContent("Auto");
+    await user.click(nut);
+    // Menu mở LÊN trên: từng mode có tên + mô tả, mode hiện tại đánh dấu.
+    const menu = screen.getByRole("menu", { name: "Session modes" });
+    expect(menu).toHaveTextContent("Read-only");
+    await user.click(screen.getByRole("menuitemradio", { name: /plan/i }));
+
     expect(vi.mocked(doiModeAction)).toHaveBeenCalledWith(PHIEN.id, "plan");
-    expect(chon).toHaveValue("plan");
+    expect(nut).toHaveTextContent("Plan");
+    expect(screen.queryByRole("menu", { name: "Session modes" })).not.toBeInTheDocument();
   });
 
   it("chat sessions (no tools) have no mode menu", () => {
     mockStream({});
     render(<LiveView phien={{ ...PHIEN, worktree: false }} />);
-    expect(screen.queryByLabelText("Session mode")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Session mode" })).not.toBeInTheDocument();
   });
 });
 

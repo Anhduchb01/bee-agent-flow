@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpIcon, SquareIcon } from "lucide-react";
+import { ArrowUpIcon, ClipboardListIcon, SquareIcon, SquarePenIcon, ZapIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,85 @@ const CHIP_FLOW = [
   { lenh: "demo", nhan: "Demo" },
   { lenh: "preview", nhan: "Preview" },
 ];
+
+const MODE_ICONS: Record<BeeSessionMode, typeof ZapIcon> = {
+  auto: ZapIcon,
+  plan: ClipboardListIcon,
+  edits: SquarePenIcon,
+};
+
+/**
+ * VSCode-style mode menu, docked by the send button: "⚡ Auto" opens an
+ * upward panel listing each mode with its one-line description, current
+ * one checked. Switching restarts the agent under the hood (--resume, the
+ * conversation is kept).
+ */
+function ModeMenu({
+  mode,
+  disabled,
+  onPick,
+}: {
+  mode: BeeSessionMode;
+  disabled: boolean;
+  onPick: (m: BeeSessionMode) => void;
+}) {
+  const [mo, setMo] = useState(false);
+  const Icon = MODE_ICONS[mode];
+  const hienTai = MODE_OPTIONS.find((m) => m.value === mode);
+  return (
+    <div
+      className="relative"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setMo(false);
+      }}
+    >
+      <button
+        type="button"
+        aria-label="Session mode"
+        aria-haspopup="menu"
+        aria-expanded={mo}
+        disabled={disabled}
+        onClick={() => setMo((x) => !x)}
+        title="Switch permission mode — the agent restarts and resumes this conversation"
+        className="flex h-7 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground hover:bg-accent hover:text-body disabled:opacity-40"
+      >
+        <Icon className="size-3.5" />
+        {hienTai?.label}
+      </button>
+      {mo && (
+        <div
+          role="menu"
+          aria-label="Session modes"
+          className="absolute right-0 bottom-full z-20 mb-2 w-72 rounded-card border border-border bg-popover p-1 shadow-md"
+        >
+          {MODE_OPTIONS.map((m) => {
+            const MIcon = MODE_ICONS[m.value];
+            return (
+              <button
+                key={m.value}
+                type="button"
+                role="menuitemradio"
+                aria-checked={m.value === mode}
+                onClick={() => {
+                  setMo(false);
+                  onPick(m.value);
+                }}
+                className="flex w-full items-start gap-2.5 rounded-control px-2.5 py-2 text-left hover:bg-accent"
+              >
+                <MIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-body">{m.label}</span>
+                  <span className="block text-xs text-muted-foreground">{m.moTa}</span>
+                </span>
+                {m.value === mode && <span className="text-sm text-body">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** 104635 → "105k", 1000000 → "1M" — the ring's numbers must scan fast. */
 function tomTatToken(n: number): string {
@@ -233,23 +312,6 @@ export function LiveView({
         <span className="shrink-0 font-mono text-xs text-muted-foreground">
           {ketThuc === null ? (dangBan ? "working…" : "idle") : ketThuc}
         </span>
-        {/* Mode switch (V2.5a) — restart+resume dưới nắp, hội thoại giữ nguyên */}
-        {phien.worktree && dangChay && (
-          <select
-            value={mode}
-            disabled={dangDoiMode}
-            onChange={(e) => doiMode(e.target.value as BeeSessionMode)}
-            aria-label="Session mode"
-            title="Switch permission mode — the agent restarts and resumes this conversation"
-            className="shrink-0 rounded-control border border-border bg-transparent px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
-          >
-            {MODE_OPTIONS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        )}
         <span className="flex-1" />
         {dangChay && (
           <Button size="sm" variant="outline" onClick={() => void dungPhienAction(phien.id)}>
@@ -360,6 +422,9 @@ export function LiveView({
                 <VongNguCanh phanTram={nguCanh} dung={nguCanhDung} cua={nguCanhCua} />
               )}
               <span className="flex-1" />
+              {phien.worktree && (
+                <ModeMenu mode={mode} disabled={dangDoiMode} onPick={doiMode} />
+              )}
               {dangBan && !coChuMoi ? (
                 // Running and nothing new typed → the button is Stop, like
                 // VSCode. Typing flips it back to send (the message queues).
