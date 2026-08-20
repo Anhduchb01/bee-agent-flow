@@ -2,7 +2,8 @@ import Link from "next/link";
 
 import { Eyebrow } from "@/components/eyebrow";
 import { StatusDot } from "@/components/status-dot";
-import { ClaudePanel, loadDashboard, SevenDaysChart } from "@/features/dashboard";
+import { ClaudePanel, loadDashboard, PreviewsCard, SevenDaysChart } from "@/features/dashboard";
+import { listPreviews } from "@/lib/bee/machine-ctl";
 import { deriveHealth, SystemHealth } from "@/features/health";
 import { loadSessions } from "@/features/sessions";
 import { PageHeader } from "@/features/shell";
@@ -12,7 +13,11 @@ export default async function TongQuanPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [view, nhom] = await Promise.all([loadDashboard(), loadSessions()]);
+  const [view, nhom, previews] = await Promise.all([
+    loadDashboard(),
+    loadSessions(),
+    listPreviews(),
+  ]);
   const health = deriveHealth(view.statusRead);
 
   const active = nhom.flatMap((g) =>
@@ -27,6 +32,7 @@ export default async function TongQuanPage() {
 
       <div className="flex flex-col gap-6 p-4 sm:p-6">
         <SystemHealth health={health} />
+        <PreviewsCard previews={previews} />
 
         {/* minmax(0,…) on BOTH breakpoints: the mobile single column also
             needs it, or the Claude card's min-content blows past 390px. */}

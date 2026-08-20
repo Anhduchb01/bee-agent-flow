@@ -238,3 +238,45 @@ export async function timEvidenceChoArtifact(
   }
   return null;
 }
+
+/** Last bee_preview line a session logged (V2.3) — the running preview's coords. */
+export interface BeePreviewGhiSo {
+  sessionId: string;
+  unit: string;
+  url: string;
+  port: number;
+  ts: string | null;
+}
+
+export async function docPreviewTrong(root: string, id: string): Promise<BeePreviewGhiSo | null> {
+  const file = duongDanRunTrong(root, id);
+  if (!file) return null;
+  let text: string;
+  try {
+    text = await fs.readFile(file, "utf8");
+  } catch {
+    return null;
+  }
+  let cuoi: BeePreviewGhiSo | null = null;
+  for (const dong of text.split("\n")) {
+    if (!dong.includes('"bee_preview"')) continue;
+    let raw: unknown;
+    try {
+      raw = JSON.parse(dong);
+    } catch {
+      continue;
+    }
+    if (!laObject(raw) || raw.type !== "bee_preview") continue;
+    if (typeof raw.unit !== "string" || !/^bee-preview-[a-z0-9][a-z0-9-]*$/.test(raw.unit)) continue;
+    if (typeof raw.url !== "string" || !raw.url.startsWith("https://")) continue;
+    if (typeof raw.port !== "number" || !Number.isInteger(raw.port)) continue;
+    cuoi = {
+      sessionId: id,
+      unit: raw.unit,
+      url: raw.url,
+      port: raw.port,
+      ts: typeof raw.ts === "string" ? raw.ts : null,
+    };
+  }
+  return cuoi;
+}

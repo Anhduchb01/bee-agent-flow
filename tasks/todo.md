@@ -204,6 +204,24 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       token / cửa sổ 1,000,000 (model claude-fable-5[1m]) → 10% là ĐÚNG,
       chỉ là màn hình câm. dungToken/cuaSoToken vào sự kiện ket-qua.
 
+## V2 đợt 1 (20/08) ✅ — V2.1→V2.4 + mode menu cạnh nút gửi
+
+- [x] 🤖 Mode menu dời xuống cạnh nút gửi đúng kiểu VSCode: "⚡ Auto" mở
+      panel lên trên, mỗi mode có mô tả + dấu ✓.
+- [x] 🤖 **V2.1** Màn duyệt 1 phút trong panel PR: AC của issue "Closes #N"
+      tự kéo vào (mở sẵn) + Evidence của phiên đẻ ra PR (ảnh inline, video
+      phát được) qua route /api/evidence dạng session/<id>/<file> — dùng
+      lại resolveEvidencePath, 2 chốt giữ nguyên. Merge = link GitHub.
+- [x] 🤖 **V2.2** Node artifact sống: merged tím / closed đỏ (PR) xám
+      (issue) / draft xám / open xanh + glyph checks ✓✗●; fetch ≤12
+      node, theo nhịp đổi đồ thị + 60s (khớp TTL cache server) — kiêm
+      prefetch nên panel mở nóng.
+- [x] 🤖 **V2.3** Card "Live previews" trên Overview: đọc dòng bee_preview
+      trong run.jsonl, lọc unit còn active (regex allowlist trước argv),
+      link mở tab + nút Stop (systemctl stop + tailscale serve off).
+- [x] 🤖 **V2.4** Chip bước-kế-tiếp phát sáng: chưa issue → Issue; có issue
+      → Build; có PR → Preview (đọc từ bee_artifact trong stream).
+
 ## S5 · Ra internet
 
 - [x] 🤖 **S5.0** ~~Web thành service~~ **XONG 19/08** — `bee-web.service`

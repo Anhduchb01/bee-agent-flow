@@ -587,3 +587,88 @@ export async function setPaused(paused: boolean): Promise<KetQua> {
     return { ok: false, message: `Could not update PAUSE: ${(e as Error).message}` };
   }
 }
+
+/* ── V2.3 · Live previews — list what bee-preview started, stop it ──────── */
+
+import { docPreviewTrong } from "./sessions-fs";
+import { laIdPhien } from "./session-id";
+import type { BeePreviewGhiSo } from "./sessions-fs";
+
+const PREVIEW_UNIT_RE = /^bee-preview-[a-z0-9][a-z0-9-]*$/;
+
+export interface BeePreviewSong extends BeePreviewGhiSo {
+  slug: string;
+}
+
+type RunCtl = (cmd: string, args: string[]) => Promise<{ stdout: string }>;
+
+/**
+ * Previews the bee-preview skill started: read every session's last
+ * bee_preview line, keep the ones whose transient unit is STILL active.
+ * The unit name from run.jsonl passes the allowlist regex before it ever
+ * reaches systemctl's argv — run.jsonl content is agent-written.
+ */
+export async function listPreviews(opts?: { runCtl?: RunCtl }): Promise<BeePreviewSong[]> {
+  if (isFixture()) {
+    return [
+      {
+        sessionId: "de300000-0000-4000-8000-000000000001",
+        slug: "myapp",
+        unit: "bee-preview-myapp-41",
+        url: "https://demo.tailnet.example:3441",
+        port: 3441,
+        ts: "2026-08-20T10:00:00Z",
+      },
+    ];
+  }
+  const runCtl = opts?.runCtl ?? ((cmd: string, args: string[]) => run(cmd, args));
+  let ids: string[];
+  try {
+    ids = await fs.readdir(path.join(root(), "sessions"));
+  } catch {
+    return [];
+  }
+  const ra: BeePreviewSong[] = [];
+  const daThay = new Set<string>();
+  for (const id of ids) {
+    if (!laIdPhien(id)) continue;
+    const p = await docPreviewTrong(root(), id);
+    if (p === null || daThay.has(p.unit)) continue;
+    if (!PREVIEW_UNIT_RE.test(p.unit)) continue;
+    daThay.add(p.unit);
+    try {
+      await runCtl("systemctl", ["--user", "is-active", `${p.unit}.service`]);
+    } catch {
+      continue; // unit gone or inactive — preview is not live
+    }
+    // slug from the unit name: bee-preview-<slug>-<num>
+    const slug = p.unit.replace(/^bee-preview-/, "").replace(/-\d+$/, "");
+    ra.push({ ...p, slug });
+  }
+  return ra.sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
+/** Stop a preview: unit down + the tailscale serve mapping released. */
+export async function stopPreview(
+  unit: string,
+  port: number,
+  opts?: { runCtl?: RunCtl },
+): Promise<KetQua> {
+  if (!PREVIEW_UNIT_RE.test(unit)) return { ok: false, message: "Invalid preview unit." };
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    return { ok: false, message: "Invalid port." };
+  }
+  if (isFixture()) return { ok: true };
+  const runCtl = opts?.runCtl ?? ((cmd: string, args: string[]) => run(cmd, args));
+  try {
+    await runCtl("systemctl", ["--user", "stop", `${unit}.service`]);
+  } catch (e) {
+    return { ok: false, message: `Could not stop ${unit}: ${(e as Error).message}` };
+  }
+  try {
+    await runCtl("tailscale", ["serve", `--https=${port}`, "off"]);
+  } catch {
+    // Best-effort: the app is down either way; a stale serve mapping just 502s.
+  }
+  return { ok: true };
+}

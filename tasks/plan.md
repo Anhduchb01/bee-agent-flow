@@ -23,7 +23,7 @@ Nguyên tắc xếp: (1) mục nào V1 đã xây gần xong thì lên đầu —
 (2) mục đụng runner cần rig thì đi riêng, không chặn các mục web.
 
 ```
-V2.1 · Màn duyệt trong app — merge là LINK sang GitHub (chốt 20/08)
+V2.1 · Màn duyệt trong app ✅ XONG 20/08 (merge = link GitHub)
 │  Nền V1 đã có: panel chi tiết PR (state/diff/checks/comment) + cache 60s.
 │  Còn thiếu: mục Evidence trong panel (đọc sessions/<id>/evidence + ảnh
 │  .bee/evidence trên branch) + AC của issue liên kết hiện cùng màn →
@@ -31,18 +31,18 @@ V2.1 · Màn duyệt trong app — merge là LINK sang GitHub (chốt 20/08)
 │  KHÔNG làm nút merge in-app (chủ dự án chốt — link là đủ; OAuth login
 │  vẫn sẵn scope `repo` nếu sau này đổi ý).
 │
-V2.2 · Canvas sống                               ← teo còn việc nhỏ
+V2.2 · Canvas sống ✅ XONG 20/08
 │  Nền V1: fetchArtifactDetail + cache đã trả state/checks.
 │  Còn thiếu: node PR đổi màu theo open/merged/closed + chấm checks;
 │  prefetch detail cho node đang hiện → panel mở tức thì lần đầu.
 │
-V2.3 · Preview + demo quản trên web
+V2.3 · Preview + demo quản trên web ✅ XONG 20/08 (card Overview: link + Stop; video demo xem trong panel evidence)
 │  Nền V1: bee-preview đã tạo unit bee-preview-* + tailscale serve;
 │  bee-demo đã ghi evidence/. Còn thiếu: bảng preview đang chạy
 │  (systemctl --user list-units bee-preview-*) + nút Stop; link video
 │  demo xem được trong app (chung evidence viewer V2.1).
 │
-V2.4 · Chips theo ngữ cảnh (nhỏ, làm kèm V2.1–V2.3)
+V2.4 · Chips theo ngữ cảnh ✅ XONG 20/08
 │  Chip sáng theo giai đoạn phiên: chưa issue → Issue nổi; có commit →
 │  PR nổi; có PR → Update-PR/Preview. Dữ liệu đã có trong run.jsonl.
 │

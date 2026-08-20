@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getActor } from "@/lib/auth";
-import { fetchClaudeAccountUsage, harvestClaudeUsage } from "@/lib/bee/machine-ctl";
+import { fetchClaudeAccountUsage, harvestClaudeUsage, stopPreview } from "@/lib/bee/machine-ctl";
 
 export interface KetQua {
   ok: boolean;
@@ -24,4 +24,13 @@ export async function refreshUsageAction(): Promise<KetQua> {
   revalidatePath("/");
   const loi = [taiKhoan, local].filter((k) => !k.ok).map((k) => (k.ok ? "" : k.message));
   return loi.length === 0 ? { ok: true, message: "" } : { ok: false, message: loi.join(" · ") };
+}
+
+/** Stop a live preview (V2.3) — validation lives in stopPreview. */
+export async function stopPreviewAction(unit: string, port: number): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return { ok: false, message: "You are not allowed to do this." };
+  const ket = await stopPreview(unit, port);
+  revalidatePath("/");
+  return ket.ok ? { ok: true, message: "" } : ket;
 }
