@@ -1,24 +1,28 @@
 ---
 name: bee-update-pr
-description: Đẩy commit mới lên PR đang mở của phiên bee và comment tóm tắt thay đổi. Dùng sau khi sửa theo góp ý hoặc làm tiếp trên một PR đã mở.
+description: Push new commits to the bee session's open PR and leave a summary comment. Use after addressing review feedback or continuing work on an already-open PR.
 ---
 
 # bee-update-pr
 
-Cập nhật PR đang mở: push commit mới + một comment nói rõ đã đổi gì.
+Update an open PR: push new commits + one comment saying what changed.
 
-## Cách làm
+## Steps
 
-1. Kiểm branch như `bee-push-pr` (chỉ `bee/*`).
-2. `git push` — PR trên cùng branch tự cập nhật.
-3. Comment tóm tắt, để người review không phải đọc lại cả diff:
+1. Check the branch like `bee-push-pr` does (`bee/*` only).
+2. `git push` — the PR on the same branch updates itself.
+3. If the update changes anything visible, refresh the evidence the same
+   way `bee-push-pr` demands: green-run screenshots committed under
+   `.bee/evidence/`, referenced in the comment.
+4. Comment a summary so the reviewer does not have to re-read the whole diff:
 
 ```bash
 gh pr comment --body-file - <<'BODY'
-Đã cập nhật: <một-hai câu — đổi gì, vì sao, test nào xanh>
+Updated: <one or two sentences — what changed, why, which tests are green>
 BODY
 ```
 
-## Không bao giờ
+## Never
 
-- `--force` đè lịch sử người khác đã review, trừ khi chính mình vừa rebase và nói rõ trong comment.
+- `--force` over history someone already reviewed, unless you yourself just
+  rebased and say so explicitly in the comment.

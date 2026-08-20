@@ -1,33 +1,51 @@
 ---
 name: bee-create-issue
-description: Tạo GitHub issue cho hợp đồng task vừa chốt trong phiên bee. Dùng khi người dùng đã đồng ý hợp đồng ("ok làm đi") và task chưa có issue — issue là nơi kết quả rơi xuống, không phải hàng đợi.
+description: Create a GitHub issue for the task contract agreed in a bee session. Use when the user has agreed on a task and no issue exists yet — the issue is where results land, not a work queue.
 ---
 
 # bee-create-issue
 
-Tạo issue ghi lại hợp đồng task. Chạy `gh` trực tiếp — token là fine-grained
-PAT phạm vi hẹp, hàng rào thật nằm ở phạm vi PAT và branch protection.
+Create an issue recording the task contract. Runs `gh` directly — the token
+is a narrowly-scoped fine-grained PAT; the real fence is the PAT scope and
+branch protection.
 
-## Cách làm
+## Steps
 
-1. Xác định repo: đọc remote của worktree hiện tại — `git remote get-url origin`.
-   **Chỉ được tạo issue trên đúng repo này.**
-2. Soạn nội dung từ hợp đồng đã chốt trong hội thoại: tiêu đề một dòng,
-   thân gồm bối cảnh + tiêu chí nghiệm thu (checkbox) + ràng buộc.
-3. Tạo, dùng body qua stdin để không lộ nội dung vào argv:
+1. Determine the repo: read the current worktree's remote —
+   `git remote get-url origin`. **Only ever create issues on this repo.**
+2. Draft the body from the contract agreed in the conversation, following
+   the template below EXACTLY. If the conversation does not yet give you
+   clear acceptance criteria, ASK before creating — an issue without AC
+   cannot be accepted or verified.
+3. Create it, passing the body via stdin so it never leaks into argv:
 
 ```bash
-gh issue create --title "<tiêu đề>" --body-file - <<'BODY'
-<thân issue>
+gh issue create --title "<one line, starts with a verb>" --body-file - <<'BODY'
+## Context
+<why this is needed — 2-3 sentences an outsider can follow>
+
+## What to build
+<the concrete deliverable>
+
+## Acceptance criteria
+- [ ] <AC 1 — observable, verifiable>
+- [ ] <AC 2>
+- [ ] All four gates green: lint / typecheck / test / build
+
+## Constraints
+<technical limits, file scope, deadline if any — otherwise "None">
+
+## Out of scope
+<things that LOOK in-scope but are not — blocks scope creep>
 BODY
 ```
 
-4. **Ghi sổ cho canvas** — chỉ khi đang chạy trong một phiên bee
-   (`BEE_SESSION_DIR` tồn tại; chạy ngoài phiên thì bỏ qua, đừng nổ):
+4. **Log it for the canvas** — only when running inside a bee session
+   (`BEE_SESSION_DIR` exists; outside a session, skip silently):
 
 ```bash
-# URL do `gh issue create` in ra; TITLE là tiêu đề vừa dùng. Ghi bằng jq —
-# title có dấu nháy hay ký tự lạ vẫn thành JSON hợp lệ, printf thì không.
+# URL is printed by `gh issue create`; TITLE is the title you used. Write
+# with jq — titles with quotes or odd characters still become valid JSON.
 if [ -n "${BEE_SESSION_DIR:-}" ] && [ -n "$URL" ]; then
   NUM=$(printf '%s' "$URL" | grep -oE '[0-9]+$' || echo null)
   jq -cn --arg url "$URL" --arg title "$TITLE" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
@@ -37,9 +55,10 @@ if [ -n "${BEE_SESSION_DIR:-}" ] && [ -n "$URL" ]; then
 fi
 ```
 
-5. Báo lại URL issue cho người dùng trong một câu.
+5. Report the issue URL back to the user in one sentence.
 
-## Không bao giờ
+## Never
 
-- Tạo issue trên repo khác với remote của worktree.
-- Gắn nhãn điều phối (`agent:*`, `status:*`) — mô hình nhãn-hàng-đợi đã bỏ.
+- Create an issue on any repo other than the worktree's remote.
+- Add orchestration labels (`agent:*`, `status:*`) — the label-queue model is gone.
+- Create an issue without clear acceptance criteria.

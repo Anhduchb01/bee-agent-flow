@@ -1,44 +1,70 @@
 ---
 name: bee-push-pr
-description: Push branch của phiên bee và mở draft pull request. Dùng khi đã có commit đáng cho người xem — kết quả phải rơi xuống GitHub dưới dạng PR, không bao giờ push thẳng main.
+description: Push the bee session's branch and open a draft pull request with evidence (snapshots required for UI changes). Use when there are commits worth showing — results must land on GitHub as a PR, never pushed straight to main.
 ---
 
 # bee-push-pr
 
-Push branch hiện tại và mở draft PR. `main` có branch protection nên push
-thẳng sẽ bị GitHub từ chối — đường duy nhất vào main là nút merge của người.
+Push the current branch and open a draft PR. `main` is fenced (branch
+protection or the pre-push hook), so a direct push is refused — the only
+road into main is a human pressing merge. **A PR without evidence is an
+unfinished PR**: a visible change demands visible proof.
 
-## Cách làm
+## Steps
 
-1. **Kiểm branch trước — bắt buộc.** Từ chối nếu branch hiện tại không bắt
-   đầu bằng `bee/`:
+1. **Check the branch first — mandatory.** Refuse unless the current branch
+   starts with `bee/`:
 
 ```bash
 BR=$(git branch --show-current)
-case "$BR" in bee/*) ;; *) echo "TỪ CHỐI: đang ở '$BR', chỉ push branch bee/*"; exit 1;; esac
+case "$BR" in bee/*) ;; *) echo "REFUSED: on '$BR', only bee/* branches may be pushed"; exit 1;; esac
 ```
 
-2. Đảm bảo mọi thay đổi định đưa lên đã được commit. **Không** `git add -A`
-   mù quáng — kiểm `git status` xem có file lạ (`.env*`, credential) không.
-3. Push và mở draft PR:
+2. **Capture evidence BEFORE opening the PR** — mandatory when the change
+   has a UI or any observable behavior; skip ONLY for pure refactors with
+   no behavior change:
+   - Run the tests with the camera on per the `e2e-evidence-capture` skill
+     (video: 'on'). **Artifacts may only come from a fully GREEN run.**
+   - Take 1–4 screenshots matching the acceptance criteria (Playwright
+     `page.screenshot`), desktop AND a 390px viewport for web changes.
+   - Commit screenshots to the branch at `.bee/evidence/<short-branch>/*.png`
+     (small PNGs, a few hundred KB each at most). Videos are NOT committed —
+     they live at `$BEE_SESSION_DIR/evidence/` on the machine.
+
+3. Make sure everything you intend to ship is committed. **No** blind
+   `git add -A` — check `git status` for strays (`.env*`, credentials).
+
+4. Push and open the draft PR with the template below (if a section does
+   not apply, say why — never delete it silently):
 
 ```bash
 git push -u origin "$BR"
-gh pr create --draft --title "<tiêu đề>" --body-file - <<'BODY'
-## Tóm tắt
-<đã đổi gì và vì sao — người đọc trong 20 giây phải hiểu>
+OWNER_REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+gh pr create --draft --title "<title>" --body-file - <<BODY
+## Summary
+<what changed and why — a reader must get it in 20 seconds>
 
-## Kiểm chứng
-<đã chạy test gì, kết quả>
+## Verification
+- [ ] lint / typecheck / test / build — all four gates green
+- <which tests prove which AC, spec count, flake-guard repeats if any>
 
-Closes #<số issue nếu có>
+## Snapshots
+<!-- images committed on the branch, embedded via blob?raw=true — private repos still render them for authorized viewers -->
+![<what image 1 shows>](https://github.com/${OWNER_REPO}/blob/${BR}/.bee/evidence/<dir>/<file1>.png?raw=true)
+![<what image 2 shows — 390px mobile shot for UI changes>](https://github.com/${OWNER_REPO}/blob/${BR}/.bee/evidence/<dir>/<file2>.png?raw=true)
+
+## Demo / Preview
+- Video: \`$BEE_SESSION_DIR/evidence/<file>.webm\` (if recorded via /demo)
+- Live preview: <tailnet URL if started via /preview, otherwise "not running">
+
+Closes #<issue number if any>
 BODY
 ```
 
-4. **Ghi sổ cho canvas** — chỉ khi `BEE_SESSION_DIR` tồn tại:
+5. **Log it for the canvas** — only when `BEE_SESSION_DIR` exists:
 
 ```bash
-# Ghi bằng jq — title có dấu nháy hay ký tự lạ vẫn thành JSON hợp lệ.
+# Write with jq — titles with quotes or odd characters still become valid JSON.
 if [ -n "${BEE_SESSION_DIR:-}" ]; then
   gh pr view --json url,number,title \
     --jq '{type:"bee_artifact", kind:"pr", url:.url, number:.number, title:.title}' \
@@ -47,9 +73,11 @@ if [ -n "${BEE_SESSION_DIR:-}" ]; then
 fi
 ```
 
-5. Báo lại URL PR trong một câu.
+6. Report the PR URL back in one sentence.
 
-## Không bao giờ
+## Never
 
-- Push branch không phải `bee/*`. Không `--force` trừ khi chính mình vừa rebase branch này.
-- Merge PR — merge là của người, luôn luôn.
+- Push a non-`bee/*` branch. No `--force` unless you yourself just rebased this branch.
+- Merge the PR — merging belongs to humans, always.
+- Embed images from a RED test run, or stitch images from different runs.
+- Commit videos or oversized images into the repo.

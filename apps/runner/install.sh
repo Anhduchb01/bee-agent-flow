@@ -87,6 +87,12 @@ SKILL_DIR="$HOME/.claude/skills"
 mkdir -p "$SKILL_DIR"
 cp -r "$NGUON"/skills/* "$SKILL_DIR/"
 
+# Global commands back the chat's action chips (/issue /pr /demo /preview) —
+# a chip only renders when its command exists here.
+CMD_DIR="$HOME/.claude/commands"
+mkdir -p "$CMD_DIR"
+cp "$NGUON"/commands/*.md "$CMD_DIR/"
+
 echo
 echo "== Xong. Hệ thống ĐANG NẰM IM ($BEE_ROOT/PAUSE tồn tại). =="
 echo "Mọi bước còn lại làm TRÊN WEB: mở app, đăng nhập — trang /setup sẽ dẫn:"
