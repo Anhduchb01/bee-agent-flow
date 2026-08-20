@@ -109,6 +109,40 @@ describe("fetchArtifactDetail — parsing", () => {
     });
   });
 
+  it("PAT without Checks:read → retries the PR WITHOUT statusCheckRollup, checks=null", async () => {
+    const runGh = vi
+      .fn<(args: string[]) => Promise<{ stdout: string }>>()
+      .mockRejectedValueOnce(
+        new Error(
+          "GraphQL: Resource not accessible by personal access token (repository.pullRequest.statusCheckRollup…)",
+        ),
+      )
+      .mockResolvedValueOnce({
+        stdout: JSON.stringify({
+          number: 10,
+          title: "Terms pages",
+          state: "OPEN",
+          body: "",
+          author: { login: "bee-agent" },
+          createdAt: "t",
+          url: "https://github.com/you/myapp/pull/10",
+          isDraft: true,
+          baseRefName: "main",
+          headRefName: "bee/myapp-3",
+          additions: 5,
+          deletions: 1,
+          changedFiles: 2,
+        }),
+      });
+    const ket = await fetchArtifactDetail("you/myapp", "pr", 10, { runGh });
+    expect(ket.ok).toBe(true);
+    if (!ket.ok) return;
+    expect(ket.detail.title).toBe("Terms pages");
+    expect(ket.detail.pr?.checks).toBeNull();
+    // Lượt 2 không được mang statusCheckRollup nữa.
+    expect(runGh.mock.calls[1]![0].join(",")).not.toContain("statusCheckRollup");
+  });
+
   it("gh failing or spewing non-JSON comes back as data, not a throw", async () => {
     const chet = vi.fn(async () => {
       throw new Error("gh: Not Found (HTTP 404)");

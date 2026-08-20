@@ -162,25 +162,34 @@ export async function fetchArtifactDetail(
 
   const runGh = opts?.runGh ?? ((args: string[]) => run("gh", args));
   const chung = "number,title,state,body,author,createdAt,url,labels,comments";
+  const prFields = `${chung},isDraft,baseRefName,headRefName,additions,deletions,changedFiles`;
   const args =
     kind === "issue"
       ? ["issue", "view", String(number), "-R", repo, "--json", chung]
-      : [
-          "pr",
-          "view",
-          String(number),
-          "-R",
-          repo,
-          "--json",
-          `${chung},isDraft,baseRefName,headRefName,additions,deletions,changedFiles,statusCheckRollup`,
-        ];
+      : ["pr", "view", String(number), "-R", repo, "--json", `${prFields},statusCheckRollup`];
 
   let goc: Record<string, unknown>;
   try {
     const { stdout } = await runGh(args);
     goc = JSON.parse(stdout) as Record<string, unknown>;
   } catch (e) {
-    return { ok: false, message: `Could not load ${kind} #${number}: ${(e as Error).message}` };
+    const msg = (e as Error).message;
+    // A fine-grained PAT without Checks:read cannot resolve
+    // statusCheckRollup ("Resource not accessible by personal access
+    // token"). The rest of the PR is still readable — retry without the
+    // field instead of showing the user an empty panel.
+    if (kind === "pr" && /not accessible by personal access token/i.test(msg)) {
+      try {
+        const { stdout } = await runGh([
+          "pr", "view", String(number), "-R", repo, "--json", prFields,
+        ]);
+        goc = JSON.parse(stdout) as Record<string, unknown>;
+      } catch (e2) {
+        return { ok: false, message: `Could not load pr #${number}: ${(e2 as Error).message}` };
+      }
+    } else {
+      return { ok: false, message: `Could not load ${kind} #${number}: ${msg}` };
+    }
   }
 
   const author = (goc.author ?? {}) as Record<string, unknown>;
