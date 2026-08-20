@@ -238,6 +238,27 @@ export function createFixtureBeeSource(): BeeSource {
       return ds.find((p) => p.id === id) ?? null;
     },
 
+    async findArtifactEvidence(_repo, _kind, _number) {
+      // Fixture: reuse the demo shots that already live in fixtures/evidence
+      // so the review panel shows real images without a machine.
+      const goc = "/api/evidence/myapp/45/9f3c1ab";
+      return {
+        sessionId: "de300000-0000-4000-8000-000000000001",
+        files: [
+          {
+            name: "loc-don-theo-trang-thai-1.png",
+            url: `${goc}/shots/loc-don-theo-trang-thai-1.png`,
+            loai: "image",
+          },
+          {
+            name: "giu-bo-loc-khi-tai-lai.gif",
+            url: `${goc}/giu-bo-loc-khi-tai-lai.gif`,
+            loai: "image",
+          },
+        ],
+      };
+    },
+
     async sessionArtifacts(id): Promise<BeeArtifact[]> {
       if (chuaChayLanNao(await currentScene())) return [];
       // Phiên đang chạy mới có issue; phiên xong có đủ issue + PR — canvas

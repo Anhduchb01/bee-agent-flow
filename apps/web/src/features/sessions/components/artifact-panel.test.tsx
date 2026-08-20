@@ -2,10 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ArtifactPanel } from "./artifact-panel";
-import { loadArtifactDetailAction } from "../api/actions";
+import { loadArtifactDetailAction, loadArtifactEvidenceAction } from "../api/actions";
 
 vi.mock("../api/actions", () => ({
-  loadArtifactDetailAction: vi.fn(),
+  loadArtifactDetailAction: vi.fn(async () => ({ ok: false, message: "x" })),
+  loadArtifactEvidenceAction: vi.fn(async () => null),
 }));
 
 const DETAIL = {
@@ -47,6 +48,43 @@ describe("ArtifactPanel", () => {
       "href",
       DETAIL.url,
     );
+  });
+
+  it("V2.1: evidence images render and 'Closes #N' pulls the issue's AC in", async () => {
+    vi.mocked(loadArtifactDetailAction).mockImplementation(async (_repo, kind, number) => {
+      if (kind === "issue") {
+        return {
+          ok: true,
+          detail: {
+            ...DETAIL,
+            kind: "issue",
+            number,
+            title: "Export CSV",
+            body: "## Acceptance criteria\n- [ ] header row",
+            pr: null,
+          },
+        };
+      }
+      return { ok: true, detail: { ...DETAIL, body: "Done.\n\nCloses #7" } };
+    });
+    vi.mocked(loadArtifactEvidenceAction).mockResolvedValueOnce({
+      sessionId: "s1",
+      files: [
+        { name: "shot.png", url: "/api/evidence/session/s1/shot.png", loai: "image" },
+        { name: "demo.webm", url: "/api/evidence/session/s1/demo.webm", loai: "video" },
+      ],
+    });
+    render(<ArtifactPanel repo="you/myapp" kind="pr" number={12} url={DETAIL.url} />);
+
+    expect(await screen.findByAltText("shot.png")).toHaveAttribute(
+      "src",
+      "/api/evidence/session/s1/shot.png",
+    );
+    expect(screen.getByLabelText("demo.webm")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Acceptance criteria — issue #7/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("header row")).toBeInTheDocument();
   });
 
   it("gh failure shows the reason as data — the GitHub button still works", async () => {

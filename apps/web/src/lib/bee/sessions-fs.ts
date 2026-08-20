@@ -4,7 +4,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { laIdPhien } from "./session-id";
-import type { BeeArtifact, BeeRepoDangKy, BeeSession, PhaCuaPhien, TrangThaiPhien } from "./types";
+import type {
+  BeeArtifact,
+  BeeEvidenceTepTin,
+  BeeRepoDangKy,
+  BeeSession,
+  PhaCuaPhien,
+  TrangThaiPhien,
+} from "./types";
 
 /**
  * Đọc `sessions/` trên đĩa. Cùng bài với runs-fs: JSON từ đĩa là `unknown`,
@@ -184,6 +191,50 @@ export async function docCauCuoiTrong(root: string, id: string): Promise<string 
         if (gon !== "") return gon.slice(0, 140);
       }
     }
+  }
+  return null;
+}
+
+function loaiTep(name: string): BeeEvidenceTepTin["loai"] {
+  if (/\.(png|jpe?g|gif|webp)$/i.test(name)) return "image";
+  if (/\.(webm|mp4)$/i.test(name)) return "video";
+  return "khac";
+}
+
+/**
+ * Evidence for an issue/PR (V2.1): find the session whose run.jsonl logged
+ * this artifact, then list its evidence dir. The review panel gets real
+ * screenshots/videos next to the diff — no GitHub round-trip.
+ */
+export async function timEvidenceChoArtifact(
+  root: string,
+  repo: string,
+  kind: "issue" | "pr",
+  number: number,
+): Promise<{ sessionId: string; files: BeeEvidenceTepTin[] } | null> {
+  for (const phien of await lietKePhienTrong(root)) {
+    const arts = await docArtifactsTrong(root, phien.id);
+    const trung = arts.some(
+      (a) =>
+        a.kind === kind &&
+        a.number === number &&
+        a.url.startsWith(`https://github.com/${repo}/`),
+    );
+    if (!trung) continue;
+    let names: string[];
+    try {
+      names = await fs.readdir(path.join(root, "sessions", phien.id, "evidence"));
+    } catch {
+      names = []; // session matched, just no evidence captured
+    }
+    return {
+      sessionId: phien.id,
+      files: names.sort().map((n) => ({
+        name: n,
+        url: `/api/evidence/session/${phien.id}/${encodeURIComponent(n)}`,
+        loai: loaiTep(n),
+      })),
+    };
   }
   return null;
 }

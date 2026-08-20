@@ -9,7 +9,7 @@ import path from "node:path";
 import { fetchArtifactDetail, type KetQuaArtifact } from "@/lib/bee/artifact-detail";
 import { expandCommandText } from "@/lib/bee/doctor-fs";
 import { doiModePhien, dungPhien, moPhien, noiVaoPhien } from "@/lib/bee/session-ctl";
-import type { BeeSession, BeeSessionMode } from "@/lib/bee/types";
+import type { BeeEvidenceTepTin, BeeSession, BeeSessionMode } from "@/lib/bee/types";
 
 export type KetQuaMoPhien =
   | { ok: true; id: string; phien: BeeSession | null }
@@ -117,5 +117,18 @@ export async function loadArtifactDetailAction(
   const actor = await getActor();
   if (!actor) return { ok: false, message: KHONG_QUYEN.message };
   return fetchArtifactDetail(repo, kind, number);
+}
+
+/** Evidence của phiên đã đẻ ra artifact này (V2.1) — ảnh/video cho màn duyệt. */
+export async function loadArtifactEvidenceAction(
+  repo: string,
+  kind: "issue" | "pr",
+  number: number,
+): Promise<{ sessionId: string; files: BeeEvidenceTepTin[] } | null> {
+  const actor = await getActor();
+  if (!actor) return null;
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return null;
+  if (!Number.isInteger(number) || number <= 0) return null;
+  return getBee().findArtifactEvidence(repo, kind, number);
 }
 

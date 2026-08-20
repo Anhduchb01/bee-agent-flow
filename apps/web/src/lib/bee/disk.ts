@@ -13,6 +13,7 @@ import {
   duongDanRunTrong,
   lietKePhienTrong,
   lietKeRepoTrong,
+  timEvidenceChoArtifact,
 } from "./sessions-fs";
 import { parseClaudeRateLimit, parseRecentLine, parseStatus } from "./parse";
 import type { BeeClaudeRateLimit, BeeRecentRun, BeeSource, StatusRead } from "./types";
@@ -86,7 +87,17 @@ export function createDiskBeeSource(): BeeSource {
     readRun: (slug, num, dir) => readRunIn(path.join(root(), "runs"), slug, num, dir),
 
     listEvidence: (slug, num) => listEvidenceIn(path.join(root(), "evidence"), slug, num),
-    readEvidenceFile: (segments) => readEvidenceFileIn(path.join(root(), "evidence"), segments),
+    // "session/<id>/<file>" serves the NEW model's per-session evidence dir;
+    // anything else falls through to the legacy evidence/ tree. Both paths
+    // go through resolveEvidencePath — no segment escapes its root.
+    readEvidenceFile: (segments) =>
+      segments[0] === "session" && segments.length === 3
+        ? readEvidenceFileIn(path.join(root(), "sessions"), [
+            segments[1]!,
+            "evidence",
+            segments[2]!,
+          ])
+        : readEvidenceFileIn(path.join(root(), "evidence"), segments),
 
     readDoctor: () => readDoctorFrom(root()),
     readClaudeAuth: () => readClaudeAuthFrom(root()),
@@ -97,6 +108,8 @@ export function createDiskBeeSource(): BeeSource {
     listSessions: () => lietKePhienTrong(root()),
     readSession: (id) => docPhienTrong(root(), id),
     sessionArtifacts: (id) => docArtifactsTrong(root(), id),
+    findArtifactEvidence: (repo, kind, number) =>
+      timEvidenceChoArtifact(root(), repo, kind, number),
     sessionPreview: (id) => docCauCuoiTrong(root(), id),
     sessionRunPath: (id) => duongDanRunTrong(root(), id),
   };

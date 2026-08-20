@@ -7,8 +7,9 @@ import remarkGfm from "remark-gfm";
 import { StatusDot, type Tone } from "@/components/status-dot";
 import { Button } from "@/components/ui/button";
 
-import { loadArtifactDetailAction } from "../api/actions";
+import { loadArtifactDetailAction, loadArtifactEvidenceAction } from "../api/actions";
 import type { BeeArtifactDetail } from "@/lib/bee/artifact-detail";
+import type { BeeEvidenceTepTin } from "@/lib/bee/types";
 
 /**
  * Issue/PR detail WITHOUT leaving the app — body, labels, comments, PR
@@ -61,6 +62,8 @@ export function ArtifactPanel({
 }) {
   const [detail, setDetail] = useState<BeeArtifactDetail | null>(null);
   const [loi, setLoi] = useState("");
+  const [evidence, setEvidence] = useState<BeeEvidenceTepTin[]>([]);
+  const [acIssue, setAcIssue] = useState<BeeArtifactDetail | null>(null);
 
   // No sync reset here: the caller keys this component by repo+kind+number,
   // so switching target remounts with clean state.
@@ -71,10 +74,29 @@ export function ArtifactPanel({
       if (ket.ok) setDetail(ket.detail);
       else setLoi(ket.message);
     });
+    // Evidence loads in parallel — the panel must not wait for a disk scan.
+    void loadArtifactEvidenceAction(repo, kind, number).then((ket) => {
+      if (song && ket !== null) setEvidence(ket.files.filter((f) => f.loai !== "khac"));
+    });
     return () => {
       song = false;
     };
   }, [repo, kind, number]);
+
+  // The 1-minute review needs the CONTRACT next to the result: a PR whose
+  // body says "Closes #N" pulls that issue's acceptance criteria in.
+  useEffect(() => {
+    if (detail === null || detail.kind !== "pr") return;
+    const m = /[Cc]loses #(\d+)/.exec(detail.body);
+    if (m === null) return;
+    let song = true;
+    void loadArtifactDetailAction(repo, "issue", Number(m[1])).then((ket) => {
+      if (song && ket.ok) setAcIssue(ket.detail);
+    });
+    return () => {
+      song = false;
+    };
+  }, [detail, repo]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -124,6 +146,50 @@ export function ArtifactPanel({
               <ChuGithub text={detail.body} />
             ) : (
               <p className="text-sm text-muted-foreground italic">No description.</p>
+            )}
+
+            {acIssue !== null && (
+              <details open className="border-t border-border pt-3">
+                <summary className="cursor-pointer font-mono text-xs text-muted-foreground">
+                  Acceptance criteria — issue #{acIssue.number}: {acIssue.title}
+                </summary>
+                <div className="mt-2">
+                  <ChuGithub text={acIssue.body} />
+                </div>
+              </details>
+            )}
+
+            {evidence.length > 0 && (
+              <div className="flex flex-col gap-2 border-t border-border pt-3">
+                <p className="font-mono text-xs text-muted-foreground">
+                  Evidence — from the session that produced this {kind}
+                </p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {evidence.map((f) =>
+                    f.loai === "video" ? (
+                      <video
+                        key={f.name}
+                        src={f.url}
+                        controls
+                        preload="metadata"
+                        aria-label={f.name}
+                        className="w-full rounded-control border border-border"
+                      />
+                    ) : (
+                      <a key={f.name} href={f.url} target="_blank" rel="noopener noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- served
+                            by our own authed evidence route, next/image adds nothing */}
+                        <img
+                          src={f.url}
+                          alt={f.name}
+                          loading="lazy"
+                          className="w-full rounded-control border border-border"
+                        />
+                      </a>
+                    ),
+                  )}
+                </div>
+              </div>
             )}
 
             {detail.comments.length > 0 && (

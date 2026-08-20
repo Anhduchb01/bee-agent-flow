@@ -217,6 +217,13 @@ export type PhaCuaPhien = "interview" | "work";
  */
 export type TrangThaiPhien = "starting" | "running" | "done" | "stopped" | "failed";
 
+/** One evidence file of a session (V2.1), url served by /api/evidence. */
+export interface BeeEvidenceTepTin {
+  name: string;
+  url: string;
+  loai: "image" | "video" | "khac";
+}
+
 export const CAC_MODE_PHIEN = ["auto", "plan", "edits"] as const;
 export type BeeSessionMode = (typeof CAC_MODE_PHIEN)[number];
 
@@ -309,6 +316,12 @@ export interface BeeSource {
   readSession(id: string): Promise<BeeSession | null>;
   /** Issue/PR phiên này đã tạo — quét dòng `bee_artifact` trong run.jsonl. */
   sessionArtifacts(id: string): Promise<BeeArtifact[]>;
+  /** Evidence của phiên đã đẻ ra issue/PR này — `null` khi không phiên nào khớp. */
+  findArtifactEvidence(
+    repo: string,
+    kind: "issue" | "pr",
+    number: number,
+  ): Promise<{ sessionId: string; files: BeeEvidenceTepTin[] } | null>;
   /** Câu cuối agent nói — preview một dòng cho node canvas. `null` khi chưa nói gì. */
   sessionPreview(id: string): Promise<string | null>;
   /**
