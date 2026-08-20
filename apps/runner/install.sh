@@ -26,9 +26,12 @@ if [[ ! -d "$BEE_ROOT" ]]; then
     sudo chown "$USER:$USER" "$BEE_ROOT"
   fi
 fi
+# FIRST install pauses the machine; a RE-install must not silently re-pause
+# a machine the owner already flipped live (found the hard way 20/08).
+MOI_CAI=1
+[[ -d "$BEE_ROOT/sessions" ]] && MOI_CAI=0
 mkdir -p "$BEE_ROOT"/{repos,repos.d,env.d,work,sessions}
-# Nằm im cho tới khi có người chủ động gỡ — giống installer của mô hình cũ.
-[[ -e "$BEE_ROOT/PAUSE" ]] || touch "$BEE_ROOT/PAUSE"
+[[ $MOI_CAI -eq 1 ]] && touch "$BEE_ROOT/PAUSE"
 
 echo "== 3 · User units =="
 # Units are templates: @PREFIX@/@BEE_ROOT@ are rendered here so BEE_PREFIX
@@ -93,8 +96,19 @@ CMD_DIR="$HOME/.claude/commands"
 mkdir -p "$CMD_DIR"
 cp "$NGUON"/commands/*.md "$CMD_DIR/"
 
+# record-screen (vendored, MIT — see its ATTRIBUTION.md) needs its node
+# deps once. Best-effort: recording is optional, install must not die here.
+if command -v npm >/dev/null && [[ ! -d "$SKILL_DIR/record-screen/scripts/node_modules" ]]; then
+  (cd "$SKILL_DIR/record-screen/scripts" && npm install --no-fund --no-audit --silent) \
+    || echo "  (record-screen: npm install lỗi — quay demo tab Chrome sẽ chưa dùng được)"
+fi
+
 echo
-echo "== Xong. Hệ thống ĐANG NẰM IM ($BEE_ROOT/PAUSE tồn tại). =="
+if [[ -e "$BEE_ROOT/PAUSE" ]]; then
+  echo "== Xong. Hệ thống ĐANG NẰM IM ($BEE_ROOT/PAUSE tồn tại). =="
+else
+  echo "== Xong. Cài lại trên máy ĐANG LIVE — giữ nguyên trạng thái, không tạo PAUSE. =="
+fi
 echo "Mọi bước còn lại làm TRÊN WEB: mở app, đăng nhập — trang /setup sẽ dẫn:"
 echo "  linger (nút) · token Claude (chạy 'claude setup-token' ở máy bất kỳ rồi dán)"
 echo "  · PAT GitHub (dán) · đăng ký repo (form) · doctor · gỡ PAUSE (nút)."
@@ -102,3 +116,6 @@ echo "Chỉ branch protection main là bật tay trên GitHub — trang /setup c
 echo
 echo "Không dùng web thì đường cũ vẫn chạy: loginctl enable-linger $USER · gh auth login"
 echo "· repos.d/<slug>.env · $PREFIX/bin/doctor.sh · rm $BEE_ROOT/PAUSE"
+echo
+echo "Tuỳ chọn (quay demo tab Chrome thật): mở chrome://extensions ở profile riêng"
+echo "cho agent → Developer mode → Load unpacked → $HOME/.claude/skills/record-screen/extension"

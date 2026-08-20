@@ -1,17 +1,18 @@
 # 🐝 bee-agent-flow
 
 **Claude Code trên web — treo 24/7, mở từ bất cứ đâu kể cả điện thoại.** Quản
-lý n phiên agent theo từng repo: nói ý tưởng, agent phỏng vấn, nói *"ok làm
-đi"*, nhìn nó làm live, gõ chen, dừng — hoặc thả việc rồi đi ngủ. Issue, PR,
-push là việc agent tự làm bằng skill.
+lý n phiên agent theo từng repo: mở phiên là chat đủ tool ngay từ câu đầu,
+nhìn nó làm live, gõ chen, dừng — hoặc thả việc rồi đi ngủ. Cả flow
+*Issue → Build → Review → PR (kèm snapshot) → Demo → Preview* là một hàng
+nút bấm ngay trên ô chat, không cần gõ lệnh trên điện thoại.
 
 Gồm các phần dùng được độc lập:
 
 | Phần | Là gì | Trạng thái |
 |---|---|---|
 | **Template cho Claude Code** — [`.claude/`](.claude/) | Bộ slash command và agent skill. Copy vào repo của bạn là dùng được ngay | Dùng được |
-| **`runner` — nền chạy phiên** — [`apps/runner/`](apps/runner/) | Phiên agent là systemd unit: sống qua đóng trình duyệt, tự dọn khi chết, kiểm vệ sinh A+ | **Đang xây** — S0 (rig hai ẩn số) đã xong |
-| **`web` — mặt điều khiển** — [`apps/web/`](apps/web/) | Danh sách phiên theo repo, xem live, gõ chen, dừng, duyệt | 15 feature slice trên fixture · đang chuyển sang session-first |
+| **`runner` — nền chạy phiên** — [`apps/runner/`](apps/runner/) | Phiên agent là systemd unit: sống qua đóng trình duyệt, tự dọn khi chết, kiểm vệ sinh A+; kèm skill/command flow của bee | **Chạy thật** — cài bằng `install.sh`, rig offline xanh |
+| **`web` — mặt điều khiển** — [`apps/web/`](apps/web/) | Sessions + canvas + chat skin VSCode, action chips, /setup trên web, responsive điện thoại | **Chạy thật** — systemd service sau Tailscale |
 | **`bee` reconciler** — [`apps/reconciler/`](apps/reconciler/) | Mô hình cũ (hai UID, hàng đợi nhãn, tick 30s) | **Đóng băng làm fallback** — nhánh `feat/bee-m3-and-web-spec` |
 
 > **Bắt đầu đọc ở đâu:** [`docs/PRD_bee-agent-flow.md`](docs/PRD_bee-agent-flow.md)
@@ -118,22 +119,28 @@ phù hợp, hoặc bạn yêu cầu theo tên.
 ## 🖥️ Vòng đời một phiên
 
 ```
-Mở app → chọn repo → New session
-  → CHẾ ĐỘ PHỎNG VẤN (không tool): nói ý tưởng, agent hỏi lại
-  → "ok làm đi"                        ← cửa chặn duy nhất = chuyển chế độ
-  → CHẾ ĐỘ LÀM (đủ tool, cùng phiên): sửa code trong worktree, chạy test,
-    tự tạo issue, tự push branch bee/<slug>-<n>, tự mở draft PR
+Mở app → chọn repo → New session (chat đủ tool từ câu đầu — một chế độ duy nhất)
+  → nói ý tưởng, chat cho tới khi ra task
+  → bấm chip trên ô chat (mỗi chip = một command, điện thoại khỏi gõ "/"):
+      [Issue]   → issue có template + tiêu chí nghiệm thu (bee-create-issue)
+      [Build]   → TDD từng task (incremental-implementation)
+      [Review]  → review 5 trục (code-review-and-quality)
+      [PR]      → draft PR bằng-chứng-trước: snapshot commit vào
+                  .bee/evidence/ nhúng thẳng vào body (bee-push-pr)
+      [Demo]    → video demo — Playwright headless, hoặc record-screen
+                  quay tab Chrome thật (bee-demo)
+      [Preview] → server sống trong worktree + link HTTPS qua tailnet
+                  để bấm thử từ điện thoại; repo cần Docker tự lo trong
+                  .bee/preview.sh (bee-preview)
   → xem live · gõ chen · dừng — từ điện thoại
-  → duyệt và merge (V2), mang tên người bấm
+  → duyệt và merge, mang tên người bấm
 ```
 
-Hai điểm đã **chứng minh bằng rig trên máy thật** (S0, 17/08 —
-[`apps/runner/rig/FINDINGS.md`](apps/runner/rig/FINDINGS.md)):
-
-- Gõ chen lúc agent đang giữa một tool call: **CLI xếp hàng và tiếp thu** — ô
-  gõ được phép hứa "agent sẽ đọc".
-- Phỏng vấn không tool → `--resume` với đủ tool: **phiên nhớ nguyên hợp đồng**
-  — "ok làm đi" thật sự là một phiên, hai chế độ.
+Điểm đã **chứng minh bằng rig trên máy thật** (S0, 17/08 —
+[`apps/runner/rig/FINDINGS.md`](apps/runner/rig/FINDINGS.md)): gõ chen lúc
+agent đang giữa một tool call — **CLI xếp hàng và tiếp thu**, ô gõ được phép
+hứa "agent sẽ đọc". Issue/PR do agent tạo hiện thành node trên canvas, nối
+vào phiên sinh ra chúng.
 
 ## 🔒 Vệ sinh A+ — điều kiện tiên quyết, `doctor` kiểm
 
@@ -161,9 +168,25 @@ cho khách — thì dừng nhận việc và quay về mô hình hai UID ở nh�
 3. **Build:** lặp `/build`, hoặc `/build auto` sau khi duyệt plan.
 4. **Kiểm tra & ship:** `/test` → `/review` → `/ship`.
 
-**Chạy hệ thống phiên** — đang xây theo [`tasks/plan.md`](tasks/plan.md)
-(S0 ✓ → S1 runner ∥ S2 web → S3 nối → S4 máy thật → S5 internet). Hướng dẫn
-cài sẽ nằm ở `apps/runner/install.sh` khi S1 xong.
+**Chạy hệ thống phiên trên máy của bạn** — một lệnh ở máy, phần còn lại trên web:
+
+```bash
+git clone <repo> && cd bee-agent-flow
+cd apps/web && pnpm install && pnpm build && cd ../..
+bash apps/runner/install.sh          # BEE_PREFIX/BEE_ROOT override được
+```
+
+`install.sh` idempotent (cài lại không đè trạng thái live), tự dựng:
+runner + user units + `bee-web.service` + `web.env` + toàn bộ skill/command
+của bee vào `~/.claude/` — kể cả `record-screen` và dep npm của nó. Sau đó
+mở web → đăng nhập → trang `/setup` dẫn nốt: linger, token Claude, PAT,
+đăng ký repo, env files, doctor, gỡ PAUSE. Ra internet bằng Tailscale:
+`tailscale up` + `tailscale serve --bg <port>`.
+
+Hai bước tay duy nhất còn lại: branch protection trên GitHub (trang /setup
+có link thẳng), và nếu muốn quay demo tab Chrome thật — load extension
+`~/.claude/skills/record-screen/extension` vào một profile Chrome riêng
+(khuyến nghị đặt tên `Claude`).
 
 ---
 

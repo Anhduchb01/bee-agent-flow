@@ -270,6 +270,14 @@ skill, mang danh bot.
 - Session list là **màn hình gốc mới** của app: nhóm theo repo, mỗi phiên một
   dòng — trạng thái, branch, PR (nếu có), tuổi, usage. `needs-human` nổi đỏ
   lên đầu.
+- **Action chips** *(20/08)*: phiên repo có hàng nút cuộn ngang ngay trên ô
+  nhập — `Issue · Build · Review · PR · Demo · Preview`, đúng thứ tự flow.
+  **Mỗi chip = một global command**: bấm là GỬI `"/name"` qua đúng đường
+  `expandCommandText` như tự gõ (điện thoại khỏi với phím "/"); chip chỉ
+  render khi command tồn tại trong `~/.claude/commands` (nguồn:
+  `apps/runner/commands/`, install.sh copy). Palette "/" không còn alias
+  cứng — chỉ liệt kê command thật trên máy. Phiên chat không repo: không
+  chip, không palette.
 
 ### 4.5 Auth — FR-6.5
 
@@ -336,14 +344,18 @@ chỉ MỘT thứ bắt buộc ở máy:
 
 ## 5. Skills — agent tự làm việc GitHub
 
-Đặt ở `~/.claude/skills/` của user `bee` (không nằm trong repo đích — không
-theo worktree, không bị agent của phiên khác sửa):
+Đặt ở `~/.claude/skills/` (nguồn: `apps/runner/skills/`, install.sh copy —
+không nằm trong repo đích, không theo worktree, không bị agent của phiên
+khác sửa). Viết bằng **tiếng Anh** kể cả template issue/PR (quy ước 20/08 —
+chúng đổ ra GitHub):
 
 | Skill | Làm gì | Ghi chú |
 |---|---|---|
-| `bee-create-issue` | `gh issue create` trên repo của phiên | Gọi khi hợp đồng phỏng vấn chốt |
-| `bee-push-pr` | push branch của phiên + `gh pr create --draft` | Từ chối nếu branch hiện tại ≠ `bee/*` |
-| `bee-update-pr` | push tiếp + comment tóm tắt thay đổi | |
+| `bee-create-issue` | `gh issue create` trên repo của phiên, **template bắt buộc**: Context / What to build / Acceptance criteria (checkbox) / Constraints / Out of scope | Chưa rõ AC thì hỏi lại, không tạo mù |
+| `bee-push-pr` | push + `gh pr create --draft`, **bằng-chứng-trước**: snapshot từ lượt test XANH commit vào `.bee/evidence/`, nhúng `blob…?raw=true` vào body (template: Summary / Verification / Snapshots / Demo·Preview) | Từ chối nếu branch ≠ `bee/*`; video không commit |
+| `bee-update-pr` | push tiếp + comment tóm tắt; đổi UI thì làm mới evidence | |
+| `bee-demo` *(20/08)* | video demo: Playwright headless quay lượt chạy xanh → `$BEE_SESSION_DIR/evidence/`; hoặc `record-screen` quay tab Chrome thật (extension, vendored MIT) | Không ghép video nhiều lượt chạy |
+| `bee-preview` *(20/08)* | server sống trong worktree dưới transient systemd unit (`systemd-run --user`), port 3400+num, `tailscale serve --https=PORT` → link bấm từ điện thoại; công thức per-repo `env.d/<slug>/.bee/preview.sh` (overlay chép vào worktree, git-excluded) — repo cần Docker tự `compose up -d` trong script, `COMPOSE_PROJECT_NAME` theo phiên | Chỉ bind 127.0.0.1; một preview mỗi repo một lúc (V1) |
 
 Skill là hướng dẫn + script mỏng gọi `gh` trực tiếp — **không broker**. Hàng
 rào là PAT hẹp + branch protection, không phải code trong skill.
