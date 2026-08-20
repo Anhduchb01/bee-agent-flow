@@ -159,6 +159,23 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 - [x] 🤖 Skill bee-* giữ GLOBAL (~/.claude/skills) — chốt hỏi 19/08: không
       theo repo, per-repo chỉ khi cần flow đặc thù.
 
+## S8 · Action chips + flow skills (20/08) ✅
+
+- [x] 🤖 6 chip bấm-là-gửi trên ô chat (phiên repo): Issue → Build → Review
+      → PR → Demo → Preview — mỗi chip gửi thẳng "/command" qua đúng đường
+      expandCommandText, chip chỉ hiện khi command tồn tại trên máy; palette
+      "/" bỏ alias cứng, chỉ đọc ~/.claude/commands.
+- [x] 🤖 Skill global: bee-create-issue + template (AC bắt buộc),
+      bee-push-pr + template PR bằng-chứng-trước (snapshot commit vào
+      .bee/evidence/ nhúng blob?raw=true, video để trong session dir),
+      bee-demo (Playwright headless / record-screen tab Chrome),
+      bee-preview (transient systemd unit + tailscale serve --https=PORT,
+      công thức per-repo qua env.d/<slug>/.bee/preview.sh — repo cần Docker
+      tự lo trong script, COMPOSE_PROJECT_NAME theo phiên).
+- [x] 🤖 Command mới: /issue /pr /demo /preview (+ /build /review sẵn có).
+- [x] 🤖 Cài record-screen (soi code trước khi cài — chỉ localhost:9234,
+      dep ws+ffmpeg-static). 🧑 còn: load extension vào Chrome một lần.
+
 ## S5 · Ra internet
 
 - [x] 🤖 **S5.0** ~~Web thành service~~ **XONG 19/08** — `bee-web.service`

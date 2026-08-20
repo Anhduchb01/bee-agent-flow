@@ -40,26 +40,19 @@ const VSCODE_SKIN = {
 } as React.CSSProperties;
 
 /**
- * Slash palette, VSCode-style. Real CC slash commands live in the REPL
- * input layer and do NOT pass through stream-json — so each entry expands
- * to an instruction that triggers the matching global bee skill instead.
+ * The task flow as tap-first chips: idea → issue → build → review → PR
+ * (evidence-first) → demo/preview. Each chip IS a global command — tapping
+ * sends "/name" through the same server-side expansion as typing it, so
+ * phone users never have to reach for the "/" key. A chip only renders
+ * when its command actually exists on the machine (~/.claude/commands).
  */
-const LENH = [
-  {
-    ten: "/issue",
-    moTa: "Create a GitHub issue from this session",
-    chen: "Dùng skill bee-create-issue: tạo issue cho việc đang bàn trong phiên này.",
-  },
-  {
-    ten: "/pr",
-    moTa: "Push the bee/* branch and open a draft PR",
-    chen: "Dùng skill bee-push-pr: push nhánh của phiên và mở draft pull request.",
-  },
-  {
-    ten: "/update-pr",
-    moTa: "Push new commits + summary comment to the open PR",
-    chen: "Dùng skill bee-update-pr: đẩy commit mới lên PR của phiên và comment tóm tắt thay đổi.",
-  },
+const CHIP_FLOW = [
+  { lenh: "issue", nhan: "Issue" },
+  { lenh: "build", nhan: "Build" },
+  { lenh: "review", nhan: "Review" },
+  { lenh: "pr", nhan: "PR" },
+  { lenh: "demo", nhan: "Demo" },
+  { lenh: "preview", nhan: "Preview" },
 ];
 
 /**
@@ -153,26 +146,35 @@ export function LiveView({
     });
   }
 
+  /** Chip tap = the command is SENT, not typed — that is the whole point. */
+  function guiLenh(lenh: string) {
+    if (dangGui) return;
+    batDauGui(async () => {
+      const ket = await guiVaoPhien(phien.id, `/${lenh}`);
+      setLoi(ket.ok ? "" : ket.message);
+    });
+  }
+
   const coChuMoi = nhap.trim() !== "";
 
   // "/..." opens the palette: the machine's global COMMANDS (expanded
   // server-side on send, REPL-style — picking one keeps "/name " in the
-  // box for arguments) plus the three bee skill aliases. Chat sessions
-  // have no tools — no palette there.
-  const tatCaLenh = [
-    ...LENH,
-    ...commands.map((c) => ({
-      ten: `/${c.name}`,
-      moTa: c.moTa,
-      chen: `/${c.name} `,
-    })),
-  ];
+  // box for arguments). Chat sessions have no tools — no palette there.
+  const tatCaLenh = commands.map((c) => ({
+    ten: `/${c.name}`,
+    moTa: c.moTa,
+    chen: `/${c.name} `,
+  }));
   const goiLenh =
     phien.worktree && nhap.startsWith("/")
       ? tatCaLenh
           .filter((l) => l.ten.startsWith(nhap.trim().split(" ")[0] ?? ""))
           .slice(0, 12)
       : [];
+
+  // Flow chips: only the ones whose command the machine actually has.
+  const coLenh = new Set(commands.map((c) => c.name));
+  const chips = phien.worktree ? CHIP_FLOW.filter((c) => coLenh.has(c.lenh)) : [];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background text-body" style={VSCODE_SKIN}>
@@ -219,6 +221,28 @@ export function LiveView({
 
       {/* ô gõ — hộp bo tròn kiểu Claude Code; nút đổi vai theo trạng thái */}
       <div className="p-3 sm:p-4">
+        {/* Action chips: the whole flow tappable — no "/" typing on a phone.
+            One scrollable row so six chips never wrap the input area taller. */}
+        {dangChay && chips.length > 0 && (
+          <div
+            role="toolbar"
+            aria-label="Session actions"
+            className="mb-2 flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {chips.map((c) => (
+              <button
+                key={c.lenh}
+                type="button"
+                aria-label={`Run /${c.lenh}`}
+                disabled={dangGui}
+                onClick={() => guiLenh(c.lenh)}
+                className="shrink-0 rounded-full border border-border bg-secondary px-3 py-1 text-xs text-body hover:bg-accent disabled:opacity-40"
+              >
+                {c.nhan}
+              </button>
+            ))}
+          </div>
+        )}
         {dangChay ? (
           <form
             className="relative rounded-panel border border-border bg-card px-3 py-2 focus-within:border-muted-foreground/40"

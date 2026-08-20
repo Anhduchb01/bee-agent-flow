@@ -98,47 +98,70 @@ describe("LiveView — one mode, VSCode-style controls", () => {
   });
 });
 
-describe("slash palette", () => {
-  it("typing / lists bee commands; picking one inserts the skill trigger", async () => {
+describe("slash palette (global ~/.claude/commands)", () => {
+  const COMMANDS = [
+    { name: "build", moTa: "Implement tasks incrementally" },
+    { name: "issue", moTa: "Create a GitHub issue" },
+  ];
+
+  it("typing / lists the machine's commands; picking keeps '/name ' for arguments", async () => {
     const user = userEvent.setup();
     mockStream({});
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView phien={PHIEN} commands={COMMANDS} />);
 
     const o = screen.getByLabelText("Message to the agent");
     await user.type(o, "/");
     const menu = screen.getByRole("listbox", { name: "Commands" });
+    expect(menu).toHaveTextContent("/build");
     expect(menu).toHaveTextContent("/issue");
-    expect(menu).toHaveTextContent("/pr");
 
-    await user.click(screen.getByRole("button", { name: /create a github issue/i }));
-    expect(o).toHaveValue("Dùng skill bee-create-issue: tạo issue cho việc đang bàn trong phiên này.");
+    await user.click(screen.getByRole("button", { name: /implement tasks incrementally/i }));
+    expect(o).toHaveValue("/build ");
   });
 
   it("filters by what is typed and stays away from no-tool chat sessions", async () => {
     const user = userEvent.setup();
     mockStream({});
-    const { rerender } = render(<LiveView phien={PHIEN} />);
-    await user.type(screen.getByLabelText("Message to the agent"), "/up");
-    expect(screen.getByRole("listbox", { name: "Commands" })).toHaveTextContent("/update-pr");
-    expect(screen.queryByText("/issue")).not.toBeInTheDocument();
+    const { rerender } = render(<LiveView phien={PHIEN} commands={COMMANDS} />);
+    await user.type(screen.getByLabelText("Message to the agent"), "/is");
+    expect(screen.getByRole("listbox", { name: "Commands" })).toHaveTextContent("/issue");
+    expect(screen.queryByText("/build")).not.toBeInTheDocument();
 
-    rerender(<LiveView phien={{ ...PHIEN, worktree: false }} />);
+    rerender(<LiveView phien={{ ...PHIEN, worktree: false }} commands={COMMANDS} />);
     expect(screen.queryByRole("listbox", { name: "Commands" })).not.toBeInTheDocument();
   });
 });
 
-describe("command palette (global ~/.claude/commands)", () => {
-  it("lists commands from props; picking keeps '/name ' in the box for arguments", async () => {
+describe("action chips — the phone-first flow buttons", () => {
+  const FLOW_COMMANDS = ["issue", "build", "review", "pr", "demo", "preview"].map((n) => ({
+    name: n,
+    moTa: n,
+  }));
+
+  it("repo session shows the flow chips in order; tapping one SENDS the command", async () => {
     const user = userEvent.setup();
     mockStream({});
-    render(
-      <LiveView
-        phien={PHIEN}
-        commands={[{ name: "build", moTa: "Implement tasks incrementally" }]}
-      />,
-    );
-    await user.type(screen.getByLabelText("Message to the agent"), "/bu");
-    await user.click(screen.getByRole("button", { name: /implement tasks incrementally/i }));
-    expect(screen.getByLabelText("Message to the agent")).toHaveValue("/build ");
+    const { guiVaoPhien } = await import("../api/actions");
+    render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+
+    const chips = screen.getByRole("toolbar", { name: "Session actions" });
+    expect(chips).toHaveTextContent("Issue");
+    expect(chips).toHaveTextContent("Preview");
+
+    await user.click(screen.getByRole("button", { name: "Run /issue" }));
+    expect(vi.mocked(guiVaoPhien)).toHaveBeenCalledWith(PHIEN.id, "/issue");
+  });
+
+  it("only chips whose command exists on the machine appear", () => {
+    mockStream({});
+    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "b" }]} />);
+    expect(screen.getByRole("button", { name: "Run /build" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Run /issue" })).not.toBeInTheDocument();
+  });
+
+  it("chat sessions (no tools) get no chips", () => {
+    mockStream({});
+    render(<LiveView phien={{ ...PHIEN, worktree: false }} commands={FLOW_COMMANDS} />);
+    expect(screen.queryByRole("toolbar", { name: "Session actions" })).not.toBeInTheDocument();
   });
 });
