@@ -46,7 +46,7 @@ V2.4 · Chips theo ngữ cảnh (nhỏ, làm kèm V2.1–V2.3)
 │  Chip sáng theo giai đoạn phiên: chưa issue → Issue nổi; có commit →
 │  PR nổi; có PR → Update-PR/Preview. Dữ liệu đã có trong run.jsonl.
 │
-V2.5 · SESSION MODES kiểu Claude Code VSCode     ← định nghĩa lại 20/08
+V2.5 · SESSION MODES kiểu Claude Code VSCode     ← V2.5a XONG 20/08
 │  Yêu cầu chủ dự án: mỗi phiên có mode, CHỌN LÚC TẠO và ĐỔI GIỮA CHAT
 │  (như menu Manual / Edit automatically / Plan / Auto của VSCode).
 │  Ánh xạ sang cờ CLI:
@@ -54,10 +54,10 @@ V2.5 · SESSION MODES kiểu Claude Code VSCode     ← định nghĩa lại 20/
 │    Plan   = --permission-mode plan           (chỉ đọc + trình kế hoạch)
 │    Edits  = --permission-mode acceptEdits    (sửa file tự do, bash hỏi)
 │    Manual = default + permission hook        (mọi tool hỏi trước)
-│  Việc: (a) mode trong session.json + selector ở NewSessionForm + menu
-│  đổi mode trên thanh chat; đổi giữa chừng = runner restart claude
-│  --resume với cờ mới (đường resume đã chứng minh ở rig S0.2 — nhớ
-│  nguyên ngữ cảnh); (b) riêng Manual/Edits cần hook-reply: hook đẩy
+│  (a) ✅ XONG 20/08: mode trong session.json + selector lúc tạo + menu
+│  trên thanh chat (optimistic, đổi = restart --resume, rig-03 case 7
+│  chứng minh cờ tới exec; session.json cũ = auto); Manual chưa có UI
+│  nên chưa bày ra menu. (b) riêng Manual/Edits-hỏi cần hook-reply: đẩy
 │  control_request ra stream → web render thẻ Approve/Deny trong chat →
 │  trả lời bơm ngược FIFO. (b) đụng runner sâu nhất → RIG TRƯỚC như S0.
 │

@@ -6,11 +6,12 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusDot } from "@/components/status-dot";
-import type { BeeSession } from "@/lib/bee/types";
+import type { BeeSession, BeeSessionMode } from "@/lib/bee/types";
 
-import { dungPhienAction, guiVaoPhien } from "../api/actions";
+import { doiModeAction, dungPhienAction, guiVaoPhien } from "../api/actions";
 import { useSessionStream } from "../hooks/use-session-stream";
 import { EventStream } from "./event-stream";
+import { MODE_OPTIONS } from "./new-session-form";
 
 /** VSCode's chat font stack — the panel should read like the editor's chat. */
 const VSCODE_FONT =
@@ -133,6 +134,22 @@ export function LiveView({
   const [nhap, setNhap] = useState("");
   const [loi, setLoi] = useState("");
   const [dangGui, batDauGui] = useTransition();
+  // Optimistic — the prop only refreshes on a server re-render.
+  const [mode, setMode] = useState<BeeSessionMode>(phien.mode ?? "auto");
+  const [dangDoiMode, batDauDoiMode] = useTransition();
+
+  function doiMode(moi: BeeSessionMode) {
+    if (dangDoiMode || moi === mode) return;
+    batDauDoiMode(async () => {
+      const truoc = mode;
+      setMode(moi);
+      const ket = await doiModeAction(phien.id, moi);
+      if (!ket.ok) {
+        setMode(truoc);
+        setLoi(ket.message);
+      }
+    });
+  }
 
   const dangChay = ketThuc === null;
 
@@ -216,6 +233,23 @@ export function LiveView({
         <span className="shrink-0 font-mono text-xs text-muted-foreground">
           {ketThuc === null ? (dangBan ? "working…" : "idle") : ketThuc}
         </span>
+        {/* Mode switch (V2.5a) — restart+resume dưới nắp, hội thoại giữ nguyên */}
+        {phien.worktree && dangChay && (
+          <select
+            value={mode}
+            disabled={dangDoiMode}
+            onChange={(e) => doiMode(e.target.value as BeeSessionMode)}
+            aria-label="Session mode"
+            title="Switch permission mode — the agent restarts and resumes this conversation"
+            className="shrink-0 rounded-control border border-border bg-transparent px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
+          >
+            {MODE_OPTIONS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        )}
         <span className="flex-1" />
         {dangChay && (
           <Button size="sm" variant="outline" onClick={() => void dungPhienAction(phien.id)}>

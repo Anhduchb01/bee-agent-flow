@@ -186,6 +186,42 @@ else
   kq no "env lộ ra git status: $(git -C "$WT6" status --porcelain | head -2)"
 fi
 
+echo "== 7 · session mode (V2.5a): mode trong session.json thành đúng cờ CLI =="
+# claude giả ghi lại argv — kiểm cờ thật sự đến được exec, không đoán qua code.
+cat > "$T/bin/claude" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" > "${BEE_SESSION_DIR}/claude-args.txt"
+echo '{"type":"result","subtype":"success","num_turns":1}'
+exit 0
+EOF
+chmod +x "$T/bin/claude"
+
+chay_mode() { # $1=id  $2=num (branch bee/demo-<num> phải chưa tồn tại)  $3=json-mode-field ("" = không có)
+  local id="$1" sd="$BEE_ROOT/sessions/$1"
+  mkdir -p "$sd"
+  printf '{"id":"%s","slug":"demo","num":%s,"repo":"owner/demo","phase":"work","worktree":true%s}\n' \
+    "$id" "$2" "$3" > "$sd/session.json"
+  "$RUNNER/bin/session-run.sh" "$id" || true
+  cat "$sd/claude-args.txt" 2>/dev/null
+}
+
+ARGS7=$(chay_mode "77777777-1111-2222-3333-444444444471" 71 ',"mode":"plan"')
+if grep -q -- "--permission-mode plan" <<<"$ARGS7" && ! grep -q -- "--dangerously-skip-permissions" <<<"$ARGS7"; then
+  kq ok "mode plan → --permission-mode plan, KHÔNG skip-permissions"
+else
+  kq no "mode plan sai cờ: $ARGS7"
+fi
+
+ARGS7B=$(chay_mode "77777777-1111-2222-3333-444444444472" 72 ',"mode":"edits"')
+grep -q -- "--permission-mode acceptEdits" <<<"$ARGS7B" \
+  && kq ok "mode edits → --permission-mode acceptEdits" || kq no "mode edits sai cờ: $ARGS7B"
+
+# Không có mode (session.json cũ) = auto — hành vi V1 giữ nguyên.
+ARGS7C=$(chay_mode "77777777-1111-2222-3333-444444444473" 73 '')
+grep -q -- "--dangerously-skip-permissions" <<<"$ARGS7C" \
+  && kq ok "thiếu mode → auto (skip-permissions) — session.json cũ không đổi hành vi" \
+  || kq no "thiếu mode sai cờ: $ARGS7C"
+
 rm -rf "$T"
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-03: TẤT CẢ XANH"; else echo "RIG-03: CÓ ĐỎ"; exit 1; fi

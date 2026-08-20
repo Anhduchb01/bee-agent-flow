@@ -217,6 +217,9 @@ export type PhaCuaPhien = "interview" | "work";
  */
 export type TrangThaiPhien = "starting" | "running" | "done" | "stopped" | "failed";
 
+export const CAC_MODE_PHIEN = ["auto", "plan", "edits"] as const;
+export type BeeSessionMode = (typeof CAC_MODE_PHIEN)[number];
+
 export interface BeeSession {
   id: string;
   slug: string;
@@ -226,6 +229,12 @@ export interface BeeSession {
   phase: PhaCuaPhien;
   /** `false` = phiên chat: không worktree, không branch, không bao giờ có tool. */
   worktree: boolean;
+  /**
+   * Permission mode (V2.5a) — như menu mode của Claude Code trong VSCode:
+   * auto = skip permissions (mặc định) · plan = chỉ đọc + trình kế hoạch ·
+   * edits = sửa file tự do, bash bị từ chối. Manual chờ hook-reply (V2.5b).
+   */
+  mode?: BeeSessionMode;
   status: TrangThaiPhien;
   created_at: string | null;
   started_at: string | null;

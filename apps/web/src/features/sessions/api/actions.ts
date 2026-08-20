@@ -8,8 +8,8 @@ import path from "node:path";
 
 import { fetchArtifactDetail, type KetQuaArtifact } from "@/lib/bee/artifact-detail";
 import { expandCommandText } from "@/lib/bee/doctor-fs";
-import { dungPhien, moPhien, noiVaoPhien } from "@/lib/bee/session-ctl";
-import type { BeeSession } from "@/lib/bee/types";
+import { doiModePhien, dungPhien, moPhien, noiVaoPhien } from "@/lib/bee/session-ctl";
+import type { BeeSession, BeeSessionMode } from "@/lib/bee/types";
 
 export type KetQuaMoPhien =
   | { ok: true; id: string; phien: BeeSession | null }
@@ -29,6 +29,8 @@ const KHONG_QUYEN: KetQua = { ok: false, message: "You are not allowed to do thi
 export async function batDauPhien(input: {
   /** Slug của repo ĐÃ ĐĂNG KÝ, hoặc `null` = phiên chat không repo. */
   repoSlug: string | null;
+  /** Permission mode (V2.5a) — mặc định "auto"; phiên chat bỏ qua. */
+  mode?: BeeSessionMode;
 }): Promise<KetQuaMoPhien> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: KHONG_QUYEN.message };
@@ -58,6 +60,7 @@ export async function batDauPhien(input: {
     // (auto-title in session-ctl), like Claude Code does.
     title: null,
     worktree,
+    mode: input.mode,
   });
   if (!ket.ok) return ket;
 
@@ -85,6 +88,18 @@ export async function dungPhienAction(id: string): Promise<KetQua> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await dungPhien(id);
+  revalidatePath("/sessions");
+  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+/**
+ * Mode switch mid-session (V2.5a): validation + restart-resume live in
+ * doiModePhien; here only the auth guard and cache revalidation.
+ */
+export async function doiModeAction(id: string, mode: BeeSessionMode): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await doiModePhien(id, mode);
   revalidatePath("/sessions");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }

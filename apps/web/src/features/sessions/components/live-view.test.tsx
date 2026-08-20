@@ -10,6 +10,8 @@ import { useSessionStream } from "../hooks/use-session-stream";
 vi.mock("../api/actions", () => ({
   guiVaoPhien: vi.fn(async () => ({ ok: true, message: "" })),
   dungPhienAction: vi.fn(async () => ({ ok: true, message: "" })),
+  doiModeAction: vi.fn(async () => ({ ok: true, message: "" })),
+  batDauPhien: vi.fn(),
 }));
 vi.mock("../hooks/use-session-stream", () => ({
   useSessionStream: vi.fn(),
@@ -115,6 +117,27 @@ describe("LiveView — one mode, VSCode-style controls", () => {
       screen.getByLabelText("Context 10% full — 105k/1M tokens"),
     ).toBeInTheDocument();
     expect(screen.getByText("· 105k/1M")).toBeInTheDocument();
+  });
+});
+
+describe("session mode switch (V2.5a) — the VSCode-style mode menu", () => {
+  it("repo session shows the mode select with the session's mode; changing calls the action", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    const { doiModeAction } = await import("../api/actions");
+    render(<LiveView phien={{ ...PHIEN, mode: "auto" }} />);
+
+    const chon = screen.getByLabelText("Session mode");
+    expect(chon).toHaveValue("auto");
+    await user.selectOptions(chon, "plan");
+    expect(vi.mocked(doiModeAction)).toHaveBeenCalledWith(PHIEN.id, "plan");
+    expect(chon).toHaveValue("plan");
+  });
+
+  it("chat sessions (no tools) have no mode menu", () => {
+    mockStream({});
+    render(<LiveView phien={{ ...PHIEN, worktree: false }} />);
+    expect(screen.queryByLabelText("Session mode")).not.toBeInTheDocument();
   });
 });
 

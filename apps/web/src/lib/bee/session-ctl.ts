@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 
 import { deriveSessionTitle } from "./derive-title";
 import { laIdPhien } from "./session-id";
+import { CAC_MODE_PHIEN, type BeeSessionMode } from "./types";
 
 /**
  * Điều khiển phiên: mở / nói vào / dừng / chuyển chế độ. Trong mô hình A+
@@ -52,6 +53,8 @@ export async function moPhien(input: {
   title: string | null;
   /** `false` = phiên chat — runner bỏ qua clone/worktree, không bao giờ cấp tool. */
   worktree: boolean;
+  /** Permission mode (V2.5a) — mặc định "auto". Phiên chat bỏ qua (không tool). */
+  mode?: BeeSessionMode;
   systemPrompt?: string;
 }): Promise<KetQuaPhien> {
   if (!SLUG_RE.test(input.slug)) return { ok: false, message: "Invalid project slug." };
@@ -61,6 +64,8 @@ export async function moPhien(input: {
     return { ok: false, message: "Invalid repository (owner/name)." };
   }
   if (!Number.isInteger(input.num) || input.num < 1) return { ok: false, message: "Invalid number." };
+  const mode: BeeSessionMode = input.mode ?? "auto";
+  if (!CAC_MODE_PHIEN.includes(mode)) return { ok: false, message: "Invalid session mode." };
 
   if (laFixture()) return { ok: true, id: PHIEN_DEMO };
 
@@ -77,6 +82,7 @@ export async function moPhien(input: {
       // One mode: kept for meta compat, no longer drives anything.
       phase: "work",
       worktree: input.worktree,
+      mode,
       system_prompt: input.systemPrompt ?? "",
       max_turns: 120,
       created_at: new Date().toISOString(),
@@ -154,6 +160,46 @@ export async function autoTitleSession(id: string, text: string): Promise<void> 
     await fs.rename(tmp, file);
   } catch {
     // Missing/corrupt meta: skip naming, keep the session usable.
+  }
+}
+
+/**
+ * Mode switch mid-session (V2.5a): write the new mode, then restart the
+ * unit ONLY if it is running — session-run resumes the same conversation
+ * (`--resume`, proven in rig S0.2) with the new permission flags. A
+ * stopped session just gets the new mode for its next start; restart on
+ * a dead unit would resurrect it, which is not what a mode change means.
+ */
+export async function doiModePhien(id: string, mode: BeeSessionMode): Promise<KetQua> {
+  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
+  if (!CAC_MODE_PHIEN.includes(mode)) return { ok: false, message: "Invalid session mode." };
+  if (laFixture()) return { ok: true };
+
+  const file = path.join(root(), "sessions", id, "session.json");
+  try {
+    const raw = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, unknown>;
+    if (raw.worktree === false) {
+      return { ok: false, message: "Chat sessions have no tools — no mode to switch." };
+    }
+    raw.mode = mode;
+    const tmp = `${file}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(raw, null, 2));
+    await fs.rename(tmp, file);
+  } catch (e) {
+    return { ok: false, message: `Could not change mode: ${(e as Error).message}` };
+  }
+
+  const unit = `bee-session@${id}.service`;
+  try {
+    await run("systemctl", ["--user", "is-active", unit]);
+  } catch {
+    return { ok: true }; // not running — mode applies on the next start
+  }
+  try {
+    await run("systemctl", ["--user", "restart", unit]);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: `Mode saved but restart failed: ${(e as Error).message}` };
   }
 }
 

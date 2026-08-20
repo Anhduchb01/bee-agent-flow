@@ -4,10 +4,17 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
-import type { BeeRepoDangKy, BeeSession } from "@/lib/bee/types";
+import type { BeeRepoDangKy, BeeSession, BeeSessionMode } from "@/lib/bee/types";
 
 import { batDauPhien } from "../api/actions";
 import { CHAT_OPTION, RepoCombobox } from "./repo-combobox";
+
+/** Permission modes (V2.5a) — same menu as Claude Code in VSCode. */
+export const MODE_OPTIONS: { value: BeeSessionMode; label: string; moTa: string }[] = [
+  { value: "auto", label: "Auto", moTa: "Full tools, no prompts — V1 behavior" },
+  { value: "plan", label: "Plan", moTa: "Read-only: explores and presents a plan" },
+  { value: "edits", label: "Edits", moTa: "Edits files freely; bash is refused" },
+];
 
 /**
  * "New session" — chọn repo ĐÃ ĐĂNG KÝ (repos.d, doctor kiểm được) hoặc
@@ -31,6 +38,7 @@ export function NewSessionForm({
 }) {
   const router = useRouter();
   const [chon, setChon] = useState(repos[0]?.slug ?? CHAT_OPTION);
+  const [mode, setMode] = useState<BeeSessionMode>("auto");
   const [loi, setLoi] = useState("");
   const [dangMo, batDauMo] = useTransition();
 
@@ -39,7 +47,7 @@ export function NewSessionForm({
   function mo() {
     if (dangMo) return;
     batDauMo(async () => {
-      const ket = await batDauPhien({ repoSlug: laChat ? null : chon });
+      const ket = await batDauPhien({ repoSlug: laChat ? null : chon, mode });
       if (!ket.ok) {
         setLoi(ket.message);
         return;
@@ -67,6 +75,22 @@ export function NewSessionForm({
       <div className="min-w-0 flex-1">
         <RepoCombobox repos={repos} value={chon} onChange={setChon} />
       </div>
+      {/* Mode như menu VSCode — phiên chat không tool nên không có mode. */}
+      {!laChat && (
+        <select
+          value={mode}
+          onChange={(e) => setMode(e.target.value as BeeSessionMode)}
+          aria-label="Session mode"
+          title={MODE_OPTIONS.find((m) => m.value === mode)?.moTa}
+          className="h-9 rounded-control border border-border bg-transparent px-2 font-mono text-sm text-body"
+        >
+          {MODE_OPTIONS.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+      )}
       {/* Terracotta like the send button — the shadcn default (white in
           dark) read as unstyled next to the VSCode skin. */}
       <Button

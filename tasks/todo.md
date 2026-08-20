@@ -189,6 +189,21 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       kiểu; `gh issue|pr view --json` qua runGh tiêm được (test không cần
       gh thật); lỗi là dữ liệu. Fixture trả staged detail cho demo/e2e.
 
+## V2.5a · Session modes (20/08) ✅ + 2 fix phản hồi chat
+
+- [x] 🤖 Mode mỗi phiên như menu VSCode: Auto (skip-permissions, mặc định) /
+      Plan (--permission-mode plan) / Edits (acceptEdits) — chọn lúc tạo
+      (NewSessionForm) + đổi giữa chat (select trên thanh trạng thái,
+      optimistic, doiModePhien ghi session.json tmp+rename rồi restart
+      unit CHỈ KHI đang active → --resume giữ hội thoại). Phiên chat không
+      mode. Rig-03 case 7: stub claude ghi argv — cờ thật tới exec, thiếu
+      mode = auto. Manual để V2.5b (cần hook-reply).
+- [x] 🤖 Shimmer "đang làm" kiểu VSCode (✳ + từ xoay 2.5s) khi agent nợ câu
+      trả lời mà chưa có gì stream — hết cảnh giây đầu nhìn như chết.
+- [x] 🤖 Ring context nói rõ số: "10% · 105k/1M" — kiểm số thật: 104,635
+      token / cửa sổ 1,000,000 (model claude-fable-5[1m]) → 10% là ĐÚNG,
+      chỉ là màn hình câm. dungToken/cuaSoToken vào sự kiện ket-qua.
+
 ## S5 · Ra internet
 
 - [x] 🤖 **S5.0** ~~Web thành service~~ **XONG 19/08** — `bee-web.service`
