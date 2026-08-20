@@ -144,11 +144,27 @@ const FIXTURE_DETAIL: BeeArtifactDetail = {
   },
 };
 
+// The doomed-call memo and a short TTL cache. Both are per-process, which
+// is exactly the lifetime we want: bee-web is one long-lived server.
+// - patKhongDocDuocChecks: once GraphQL refused statusCheckRollup for this
+//   PAT, every later PR fetch skips that call instead of re-failing it.
+// - cache: reopening the same panel within TTL_MS is instant; 60s is
+//   short enough that a merged/closed state never looks stale for long.
+let patKhongDocDuocChecks = false;
+const TTL_MS = 60_000;
+const cache = new Map<string, { luc: number; detail: BeeArtifactDetail }>();
+
+/** Test hook — resets the memo and cache between cases. */
+export function resetArtifactDetailCache(): void {
+  patKhongDocDuocChecks = false;
+  cache.clear();
+}
+
 export async function fetchArtifactDetail(
   repo: string,
   kind: "issue" | "pr",
   number: number,
-  opts?: { runGh?: RunGh },
+  opts?: { runGh?: RunGh; now?: () => number },
 ): Promise<KetQuaArtifact> {
   if (!REPO_RE.test(repo)) return { ok: false, message: "Invalid repository." };
   if (kind !== "issue" && kind !== "pr") return { ok: false, message: "Invalid kind." };
@@ -160,27 +176,57 @@ export async function fetchArtifactDetail(
     return { ok: false, message: `${repo} is not a registered repo on this machine.` };
   }
 
+  const now = opts?.now ?? Date.now;
+  const khoa = `${repo}#${kind}#${number}`;
+  const cu = cache.get(khoa);
+  if (cu !== undefined && now() - cu.luc < TTL_MS) return { ok: true, detail: cu.detail };
+
   const runGh = opts?.runGh ?? ((args: string[]) => run("gh", args));
   const chung = "number,title,state,body,author,createdAt,url,labels,comments";
   const prFields = `${chung},isDraft,baseRefName,headRefName,headRefOid,additions,deletions,changedFiles`;
   const args =
     kind === "issue"
       ? ["issue", "view", String(number), "-R", repo, "--json", chung]
-      : ["pr", "view", String(number), "-R", repo, "--json", `${prFields},statusCheckRollup`];
+      : [
+          "pr",
+          "view",
+          String(number),
+          "-R",
+          repo,
+          "--json",
+          patKhongDocDuocChecks ? prFields : `${prFields},statusCheckRollup`,
+        ];
 
-  let goc: Record<string, unknown>;
   // Personal fine-grained PATs cannot read GitHub Actions check RUNS
   // (no "Checks" permission in the UI), which kills the whole GraphQL
   // query. Fallback: refetch without the field, then take the verdict
   // from the commit-status REST API — that one only needs
   // "Commit statuses: read" and covers deploy checks like Vercel.
+  async function docStatusRest(goc: Record<string, unknown>): Promise<"pass" | "fail" | "pending" | null> {
+    const sha = chuoi(goc.headRefOid);
+    if (!/^[0-9a-f]{40}$/.test(sha)) return null;
+    try {
+      const { stdout } = await runGh(["api", `repos/${repo}/commits/${sha}/status`]);
+      const st = JSON.parse(stdout) as Record<string, unknown>;
+      if (so(st.total_count) === 0) return null;
+      const state = chuoi(st.state);
+      return state === "success" ? "pass" : state === "pending" ? "pending" : "fail";
+    } catch {
+      return null; // status API refused too — show no verdict
+    }
+  }
+
+  let goc: Record<string, unknown>;
   let checksThayThe: "pass" | "fail" | "pending" | null | undefined;
   try {
     const { stdout } = await runGh(args);
     goc = JSON.parse(stdout) as Record<string, unknown>;
+    // Memoized skip: the rollup field never ran, get the verdict via REST.
+    if (kind === "pr" && patKhongDocDuocChecks) checksThayThe = await docStatusRest(goc);
   } catch (e) {
     const msg = (e as Error).message;
     if (kind === "pr" && /not accessible by personal access token/i.test(msg)) {
+      patKhongDocDuocChecks = true; // remember — stop paying for this call
       try {
         const { stdout } = await runGh([
           "pr", "view", String(number), "-R", repo, "--json", prFields,
@@ -189,56 +235,38 @@ export async function fetchArtifactDetail(
       } catch (e2) {
         return { ok: false, message: `Could not load pr #${number}: ${(e2 as Error).message}` };
       }
-      const sha = chuoi(goc.headRefOid);
-      if (/^[0-9a-f]{40}$/.test(sha)) {
-        try {
-          const { stdout } = await runGh(["api", `repos/${repo}/commits/${sha}/status`]);
-          const st = JSON.parse(stdout) as Record<string, unknown>;
-          if (so(st.total_count) > 0) {
-            const state = chuoi(st.state);
-            checksThayThe =
-              state === "success" ? "pass" : state === "pending" ? "pending" : "fail";
-          } else {
-            checksThayThe = null;
-          }
-        } catch {
-          checksThayThe = null; // status API refused too — show no verdict
-        }
-      } else {
-        checksThayThe = null;
-      }
+      checksThayThe = await docStatusRest(goc);
     } else {
       return { ok: false, message: `Could not load ${kind} #${number}: ${msg}` };
     }
   }
 
   const author = (goc.author ?? {}) as Record<string, unknown>;
-  return {
-    ok: true,
-    detail: {
-      kind,
-      number: so(goc.number) || number,
-      url: chuoi(goc.url),
-      title: chuoi(goc.title, `${kind} #${number}`),
-      state: chuoi(goc.state, "OPEN"),
-      body: chuoi(goc.body),
-      author: chuoi(author.login, "unknown"),
-      createdAt: chuoi(goc.createdAt),
-      labels: docLabels(goc.labels),
-      comments: docComments(goc.comments),
-      pr:
-        kind === "pr"
-          ? {
-              draft: goc.isDraft === true,
-              base: chuoi(goc.baseRefName),
-              head: chuoi(goc.headRefName),
-              additions: so(goc.additions),
-              deletions: so(goc.deletions),
-              changedFiles: so(goc.changedFiles),
-              checks:
-                checksThayThe !== undefined ? checksThayThe : docChecks(goc.statusCheckRollup),
-            }
-          : null,
-    },
+  const detail: BeeArtifactDetail = {
+    kind,
+    number: so(goc.number) || number,
+    url: chuoi(goc.url),
+    title: chuoi(goc.title, `${kind} #${number}`),
+    state: chuoi(goc.state, "OPEN"),
+    body: chuoi(goc.body),
+    author: chuoi(author.login, "unknown"),
+    createdAt: chuoi(goc.createdAt),
+    labels: docLabels(goc.labels),
+    comments: docComments(goc.comments),
+    pr:
+      kind === "pr"
+        ? {
+            draft: goc.isDraft === true,
+            base: chuoi(goc.baseRefName),
+            head: chuoi(goc.headRefName),
+            additions: so(goc.additions),
+            deletions: so(goc.deletions),
+            changedFiles: so(goc.changedFiles),
+            checks:
+              checksThayThe !== undefined ? checksThayThe : docChecks(goc.statusCheckRollup),
+          }
+        : null,
   };
+  cache.set(khoa, { luc: now(), detail });
+  return { ok: true, detail };
 }

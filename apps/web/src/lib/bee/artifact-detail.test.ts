@@ -3,11 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fetchArtifactDetail } from "./artifact-detail";
+import { fetchArtifactDetail, resetArtifactDetailCache } from "./artifact-detail";
 
 let dir = "";
 
 beforeEach(async () => {
+  resetArtifactDetailCache();
   dir = await fs.mkdtemp(path.join(os.tmpdir(), "bee-artifact-"));
   process.env.BEE_SRV = dir;
   process.env.BEE_SOURCE = "disk";
@@ -191,6 +192,63 @@ describe("fetchArtifactDetail — parsing", () => {
     const rac = vi.fn(async () => ({ stdout: "not json" }));
     const ket2 = await fetchArtifactDetail("you/myapp", "issue", 1, { runGh: rac });
     expect(ket2.ok).toBe(false);
+  });
+});
+
+describe("fetchArtifactDetail — speed", () => {
+  const PR_JSON = (n: number) =>
+    JSON.stringify({
+      number: n,
+      title: `PR ${n}`,
+      state: "OPEN",
+      body: "",
+      author: { login: "bee-agent" },
+      createdAt: "t",
+      url: `https://github.com/you/myapp/pull/${n}`,
+      isDraft: false,
+      baseRefName: "main",
+      headRefName: `bee/myapp-${n}`,
+      headRefOid: "b".repeat(40),
+      additions: 1,
+      deletions: 0,
+      changedFiles: 1,
+    });
+
+  it("after ONE PAT refusal, later PR fetches skip the doomed rollup call entirely", async () => {
+    const runGh = vi
+      .fn<(args: string[]) => Promise<{ stdout: string }>>()
+      .mockRejectedValueOnce(new Error("Resource not accessible by personal access token"))
+      .mockResolvedValueOnce({ stdout: PR_JSON(1) })
+      .mockResolvedValueOnce({ stdout: JSON.stringify({ state: "success", total_count: 1 }) })
+      // Second fetch (different PR): straight to no-rollup + status = 2 calls.
+      .mockResolvedValueOnce({ stdout: PR_JSON(2) })
+      .mockResolvedValueOnce({ stdout: JSON.stringify({ state: "success", total_count: 1 }) });
+
+    await fetchArtifactDetail("you/myapp", "pr", 1, { runGh });
+    const ket = await fetchArtifactDetail("you/myapp", "pr", 2, { runGh });
+    expect(ket.ok).toBe(true);
+    if (ket.ok) expect(ket.detail.pr?.checks).toBe("pass");
+    expect(runGh).toHaveBeenCalledTimes(5);
+    // Call 4 (first of the second fetch) must already omit statusCheckRollup.
+    expect(runGh.mock.calls[3]![0].join(",")).not.toContain("statusCheckRollup");
+  });
+
+  it("within the TTL, reopening the same PR touches gh ZERO times", async () => {
+    let t = 1_000_000;
+    const now = () => t;
+    const runGh = vi
+      .fn<(args: string[]) => Promise<{ stdout: string }>>()
+      .mockResolvedValue({ stdout: PR_JSON(3) });
+
+    await fetchArtifactDetail("you/myapp", "pr", 3, { runGh, now });
+    const soLanDau = runGh.mock.calls.length;
+    const ket = await fetchArtifactDetail("you/myapp", "pr", 3, { runGh, now });
+    expect(ket.ok).toBe(true);
+    expect(runGh.mock.calls.length).toBe(soLanDau);
+
+    t += 61_000; // TTL passed → refetch
+    await fetchArtifactDetail("you/myapp", "pr", 3, { runGh, now });
+    expect(runGh.mock.calls.length).toBeGreaterThan(soLanDau);
   });
 });
 
