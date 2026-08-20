@@ -23,14 +23,13 @@ Nguyên tắc xếp: (1) mục nào V1 đã xây gần xong thì lên đầu —
 (2) mục đụng runner cần rig thì đi riêng, không chặn các mục web.
 
 ```
-V2.1 · Duyệt & merge PR ngay trong app          ← GỘP 3 mục cũ, làm TRƯỚC
-│  Nền V1 đã có: panel chi tiết PR (state/diff/checks/comment) + cache 60s
-│  + OAuth login đã mang scope `repo` (auth/index.ts) — token NGƯỜI bấm.
-│  Còn thiếu: nút Merge trong panel (gh api bằng token phiên đăng nhập,
-│  KHÔNG phải PAT của agent — merge mang tên người), gate checks xanh +
-│  confirm; mục Evidence trong panel (đọc sessions/<id>/evidence + ảnh
-│  .bee/evidence trên branch); AC của issue liên kết hiện cùng màn.
-│  = "màn duyệt 1 phút mobile" của plan cũ, không cần màn riêng.
+V2.1 · Màn duyệt trong app — merge là LINK sang GitHub (chốt 20/08)
+│  Nền V1 đã có: panel chi tiết PR (state/diff/checks/comment) + cache 60s.
+│  Còn thiếu: mục Evidence trong panel (đọc sessions/<id>/evidence + ảnh
+│  .bee/evidence trên branch) + AC của issue liên kết hiện cùng màn →
+│  đọc 1 phút là quyết được; bấm "Open on GitHub ↗" để merge ở GitHub.
+│  KHÔNG làm nút merge in-app (chủ dự án chốt — link là đủ; OAuth login
+│  vẫn sẵn scope `repo` nếu sau này đổi ý).
 │
 V2.2 · Canvas sống                               ← teo còn việc nhỏ
 │  Nền V1: fetchArtifactDetail + cache đã trả state/checks.
@@ -47,26 +46,36 @@ V2.4 · Chips theo ngữ cảnh (nhỏ, làm kèm V2.1–V2.3)
 │  Chip sáng theo giai đoạn phiên: chưa issue → Issue nổi; có commit →
 │  PR nổi; có PR → Update-PR/Preview. Dữ liệu đã có trong run.jsonl.
 │
-V2.5 · Hook-reply approvals                      ← nặng nhất, rig TRƯỚC
-│  Thay dần --dangerously-skip-permissions: permission hook đẩy
+V2.5 · SESSION MODES kiểu Claude Code VSCode     ← định nghĩa lại 20/08
+│  Yêu cầu chủ dự án: mỗi phiên có mode, CHỌN LÚC TẠO và ĐỔI GIỮA CHAT
+│  (như menu Manual / Edit automatically / Plan / Auto của VSCode).
+│  Ánh xạ sang cờ CLI:
+│    Auto   = --dangerously-skip-permissions   (mặc định, hành vi V1)
+│    Plan   = --permission-mode plan           (chỉ đọc + trình kế hoạch)
+│    Edits  = --permission-mode acceptEdits    (sửa file tự do, bash hỏi)
+│    Manual = default + permission hook        (mọi tool hỏi trước)
+│  Việc: (a) mode trong session.json + selector ở NewSessionForm + menu
+│  đổi mode trên thanh chat; đổi giữa chừng = runner restart claude
+│  --resume với cờ mới (đường resume đã chứng minh ở rig S0.2 — nhớ
+│  nguyên ngữ cảnh); (b) riêng Manual/Edits cần hook-reply: hook đẩy
 │  control_request ra stream → web render thẻ Approve/Deny trong chat →
-│  trả lời bơm ngược FIFO. Chính sách: auto-allow trong worktree,
-│  hỏi lệnh mạng/ngoài worktree. Đụng runner → rig riêng như S0.
+│  trả lời bơm ngược FIFO. (b) đụng runner sâu nhất → RIG TRƯỚC như S0.
 │
 V2.6 · Chat lại phiên đã dừng (--resume từ web)
    Runner đã có đường resume nội bộ; thiếu action + nút "Continue" trên
-   phiên done/stopped.
+   phiên done/stopped. (Dùng chung máy móc resume-đổi-cờ của V2.5a.)
 ```
 
 **Không đổi từ plan cũ:** mọi mục V2 vẫn *spec ngắn trước khi code*; mục
-đụng runner (V2.5) bắt buộc rig chứng minh trước khi nối web.
+đụng runner (V2.5b hook-reply) bắt buộc rig chứng minh trước khi nối web.
 
 ## Checkpoint
 
 | Sau | Bạn duyệt gì |
 |---|---|
-| V2.1 | Merge một PR thật từ điện thoại, tên bạn đứng ở merge commit |
-| V2.5 rig | Bản rig hook-reply chạy được trước khi đụng session-run.sh |
+| V2.1 | Mở panel PR trên điện thoại: evidence + AC đọc 1 phút → bấm link sang GitHub merge |
+| V2.5a | Tạo phiên Plan mode, đổi sang Auto giữa chat — ngữ cảnh còn nguyên |
+| V2.5b rig | Bản rig hook-reply chạy được trước khi đụng session-run.sh |
 
 ## Ngoài phạm vi (giữ nguyên ranh)
 
