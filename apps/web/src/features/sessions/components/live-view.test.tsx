@@ -241,4 +241,33 @@ describe("action chips — the phone-first flow buttons", () => {
     render(<LiveView phien={{ ...PHIEN, worktree: false }} commands={FLOW_COMMANDS} />);
     expect(screen.queryByRole("toolbar", { name: "Session actions" })).not.toBeInTheDocument();
   });
+
+  it("V2.4: the flow's NEXT step glows — no issue → Issue; issue → Build; PR → Preview", () => {
+    const chip = (ten: string) => screen.getByRole("button", { name: `Run /${ten}` });
+
+    mockStream({});
+    const { unmount } = render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+    expect(chip("issue")).toHaveAttribute("data-suggested");
+    expect(chip("build")).not.toHaveAttribute("data-suggested");
+    unmount();
+
+    mockStream({
+      suKien: [
+        { loai: "artifact", kind: "issue", url: "https://github.com/you/myapp/issues/7", number: 7, title: null },
+      ],
+    });
+    const r2 = render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+    expect(chip("build")).toHaveAttribute("data-suggested");
+    r2.unmount();
+
+    mockStream({
+      suKien: [
+        { loai: "artifact", kind: "issue", url: "https://github.com/you/myapp/issues/7", number: 7, title: null },
+        { loai: "artifact", kind: "pr", url: "https://github.com/you/myapp/pull/8", number: 8, title: null },
+      ],
+    });
+    render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+    expect(chip("preview")).toHaveAttribute("data-suggested");
+    expect(chip("issue")).not.toHaveAttribute("data-suggested");
+  });
 });

@@ -299,6 +299,14 @@ export function LiveView({
   const coLenh = new Set(commands.map((c) => c.name));
   const chips = phien.worktree ? CHIP_FLOW.filter((c) => coLenh.has(c.lenh)) : [];
 
+  // V2.4 — the flow's next step glows: no issue yet → Issue; issue but no
+  // PR → Build; PR open → Preview. Read from the artifact events the
+  // session itself logged (replay-truncated history may miss old ones —
+  // a wrong glow is a nudge, not a gate).
+  const coIssue = suKien.some((s) => s.loai === "artifact" && s.kind === "issue");
+  const coPR = suKien.some((s) => s.loai === "artifact" && s.kind === "pr");
+  const goiY = !coIssue ? "issue" : !coPR ? "build" : "preview";
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background text-body" style={VSCODE_SKIN}>
       {/* thanh trạng thái */}
@@ -362,9 +370,14 @@ export function LiveView({
                 key={c.lenh}
                 type="button"
                 aria-label={`Run /${c.lenh}`}
+                data-suggested={c.lenh === goiY || undefined}
                 disabled={dangGui}
                 onClick={() => guiLenh(c.lenh)}
-                className="shrink-0 rounded-full border border-border bg-secondary px-3 py-1 text-xs text-body hover:bg-accent disabled:opacity-40"
+                className={`shrink-0 rounded-full border px-3 py-1 text-xs hover:bg-accent disabled:opacity-40 ${
+                  c.lenh === goiY
+                    ? "border-[#C15F3C]/70 bg-[#C15F3C]/10 text-body"
+                    : "border-border bg-secondary text-body"
+                }`}
               >
                 {c.nhan}
               </button>
