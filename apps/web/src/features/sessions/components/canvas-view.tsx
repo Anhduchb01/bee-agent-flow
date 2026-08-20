@@ -24,6 +24,7 @@ import type { BeeRepoDangKy, BeeSession, TrangThaiPhien } from "@/lib/bee/types"
 import { khoangThoiGian } from "@/lib/duration";
 
 import type { EdgeCanvas, NodeArtifact, NodeCanvas, NodeNhanRepo, NodePhien } from "../lib/build-graph";
+import { ArtifactPanel } from "./artifact-panel";
 import { LiveView } from "./live-view";
 import { NewSessionForm } from "./new-session-form";
 
@@ -94,13 +95,10 @@ function PhienNode({ data }: NodeProps<FlowPhien>) {
 }
 
 function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
+  // Click mở panel chi tiết NGAY TRÊN canvas (onNodeClick); ↗ là lối tắt
+  // sang GitHub — stopPropagation để hai đường không giẫm nhau.
   return (
-    <a
-      href={data.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block w-56 rounded-control border border-border bg-secondary px-3 py-2"
-    >
+    <div className="w-56 cursor-pointer rounded-control border border-border bg-secondary px-3 py-2">
       <Handle type="target" position={Position.Left} className="!bg-muted-foreground" />
       <span className="flex items-center gap-2">
         {/* Xanh lá cho issue mở, tím cho PR — đúng ngôn ngữ màu của GitHub */}
@@ -115,12 +113,31 @@ function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
         {tuoi(data.ts) !== null && (
           <span className="font-mono text-[0.625rem] text-muted-foreground">{tuoi(data.ts)}</span>
         )}
+        <a
+          href={data.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="font-mono text-xs text-muted-foreground hover:text-body"
+          aria-label="Open on GitHub"
+        >
+          ↗
+        </a>
       </span>
       {data.title !== null && (
         <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{data.title}</p>
       )}
-    </a>
+    </div>
   );
+}
+
+/** github.com URL → what the detail action needs. Anything else: no panel. */
+function bocArtifactUrl(
+  url: string,
+): { repo: string; kind: "issue" | "pr"; number: number } | null {
+  const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/(issues|pull)\/(\d+)/.exec(url);
+  if (m === null) return null;
+  return { repo: m[1]!, kind: m[2] === "pull" ? "pr" : "issue", number: Number(m[3]) };
 }
 
 function NhanRepoNode({ data }: NodeProps<FlowNhanRepo>) {
@@ -152,6 +169,13 @@ export function CanvasView({
 }) {
   const router = useRouter();
   const [chon, setChon] = useState<BeeSession | null>(null);
+  const [xemArtifact, setXemArtifact] = useState<{
+    repo: string;
+    kind: "issue" | "pr";
+    number: number;
+    url: string;
+    title: string | null;
+  } | null>(null);
 
   // Controlled nodes + a 5s server refresh = the canvas updates LIVE: new
   // sessions and freshly created issue/PR nodes appear without a reload.
@@ -207,6 +231,16 @@ export function CanvasView({
         deleteKeyCode={null}
         onNodeClick={(_, node) => {
           if (node.type === "phien") setChon(phien.find((p) => p.id === node.id) ?? null);
+          if (node.type === "artifact") {
+            const d = node.data as FlowArtifact["data"];
+            const boc = bocArtifactUrl(d.url);
+            if (boc !== null) {
+              setXemArtifact({ ...boc, url: d.url, title: (d.title as string | null) ?? null });
+            } else {
+              // URL lạ (không phải github.com issues/pull) — mở thẳng tab mới.
+              window.open(d.url, "_blank", "noopener,noreferrer");
+            }
+          }
         }}
       >
         <Background gap={24} />
@@ -266,6 +300,36 @@ export function CanvasView({
                 {chon.title ?? `${chon.slug}-${chon.num}`}
               </SheetTitle>
               <LiveView phien={chon} commands={commands} />
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Panel chi tiết issue/PR — đọc từ gh của máy, nút ↗ cho phần còn lại */}
+      <Sheet open={xemArtifact !== null} onOpenChange={(mo) => !mo && setXemArtifact(null)}>
+        <SheetContent
+          side="right"
+          className="flex flex-col gap-0 p-0"
+          style={{ width: "min(560px, 100vw)", maxWidth: "100vw" }}
+        >
+          {xemArtifact !== null && (
+            <>
+              <SheetTitle className="border-b border-border px-4 py-3 pr-10 text-sm">
+                <span className="font-mono text-muted-foreground">
+                  {xemArtifact.kind === "pr" ? "PR" : "Issue"} #{xemArtifact.number} ·{" "}
+                  {xemArtifact.repo}
+                </span>
+                {xemArtifact.title !== null && (
+                  <span className="mt-0.5 block truncate">{xemArtifact.title}</span>
+                )}
+              </SheetTitle>
+              <ArtifactPanel
+                key={`${xemArtifact.repo}#${xemArtifact.kind}#${xemArtifact.number}`}
+                repo={xemArtifact.repo}
+                kind={xemArtifact.kind}
+                number={xemArtifact.number}
+                url={xemArtifact.url}
+              />
             </>
           )}
         </SheetContent>

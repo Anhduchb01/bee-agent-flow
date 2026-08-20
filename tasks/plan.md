@@ -1,74 +1,57 @@
-# Plan — sau V4 đợt 1+2 (cập nhật 18/08/2026)
+# Plan — cập nhật 20/08/2026
 
 **Nguồn:** [`docs/specs/session-first.md`](../docs/specs/session-first.md) ·
-[`docs/specs/canvas.md`](../docs/specs/canvas.md) · PRD 3.0
-**Đã xong:** S0 (rig) · S1 (runner) · S2–S3 (web live) · S6 (canvas + skin
-VSCode + tạo phiên + repo đăng ký) · V4 đợt 1+2 (xoá mô hình cũ, −4.816 dòng).
-Web chỉ còn một mô hình: `/` · `/login` · `/projects` · `/p/[slug]` ·
-`/t/[slug]/[num]` · `/sessions` · `/sessions/[id]` · `/canvas`.
+[`docs/specs/canvas.md`](../docs/specs/canvas.md) · PRD 3.0 ·
+checklist chi tiết: [`todo.md`](todo.md)
+
+**Đã xong:** S0 rig · S1 runner · S2–S3 web live · S6 canvas · S7 đánh bóng
+(combobox, auto-title, SSE test, e2e) · S7b một-chế-độ + skin VSCode ·
+S4 máy thật (install templated, doctor, pre-push fence, env.d overlay) ·
+S5.0 bee-web service · S5.1 GitHub OAuth live · S5.2 Tailscale
+(https://ducba.tail7d9c45.ts.net) · S8 action chips + flow skills
+(issue/PR template, bee-demo, bee-preview, record-screen vendored) ·
+responsive điện thoại toàn màn · xem chi tiết issue/PR ngay trên web.
 
 ---
 
-## Điều quyết định thứ tự bây giờ
-
-Code trên fixture đã đi trước phần nghiệm thu rất xa. **Rủi ro lớn nhất còn
-lại không nằm trong code — nằm ở chỗ chưa có phiên thật nào chạy trên máy
-thật.** Vậy: một đợt đánh bóng UI ngắn (S7, có yêu cầu mới của bạn), trả nợ
-test, rồi dồn toàn lực sang S4/S5 — nơi cần tay bạn.
-
-## Đồ thị
+## Đồ thị — còn lại để đóng V1
 
 ```
-S7 · Đánh bóng + trả nợ (fixture, 🤖)
-├ S7.1 Repo combobox: search NẰM TRONG dropdown        ← yêu cầu 18/08
-├ S7.2 Unit test route SSE (nợ spec §8)
-└ S7.3 E2E flow phiên trên fixture: mở → chữ chạy → gõ chen → dừng
-        │
-        ▼
-S4 · Máy thật + vệ sinh A+                     ← CỬA NGHIỆM THU THẬT
-├ S4.1 🧑 PAT hẹp + branch protection + repos.d
-├ S4.2 🧑 install runner · login claude · linger · doctor xanh
-└ S4.3 🤖 6 bài rig spec §8 trên máy thật (kill -9, reboot, 2 phiên song song…)
-        │
-        ▼
-S5 · Ra internet
-├ S5.1 🤖 OAuth allowlist nghiệm thu với GITHUB_SOURCE=live ✅
-├ S5.2 🤖 Tailscale serve → https://ducba.tail7d9c45.ts.net ✅ (đổi hướng
-│        từ Cloudflare 20/08 — tailnet riêng thay vì mở ra internet)
-└ S5.3 🧑 checklist spec §10 từ điện thoại (4G + Tailscale) → **V1 XONG**
-        │
-        ▼
-V2 (spec trước khi code)
-├ Nút merge (token người bấm — duyetPR đã chờ sẵn, lệnh cấm đã gỡ)
-├ Màn duyệt 1 phút mobile (evidence + AC + tóm tắt)
-├ Trạng thái PR sống (merged/closed) cho node canvas — lib/github
-├ Rig hook-reply approvals (thay dần --dangerously-skip-permissions)
-└ Làm lại chat/Ask trên runner phiên (đã xoá bản socket cũ)
+S5 · Ra internet (một việc tay + một buổi nghiệm thu)
+├ 🧑 Đổi GitHub OAuth app: Homepage + callback → URL ts.net
+│    (OAuth app chỉ nhận MỘT callback — từ đó mọi thiết bị dùng URL ts.net)
+└ 🧑 S5.3 checklist spec §10 từ điện thoại (4G + app Tailscale bật)
+         → mở app → login → mở phiên → chữ chạy → gõ chen → Stop
+         → **V1 XONG**
 ```
 
-## S7.1 — Repo combobox (yêu cầu mới, làm đầu tiên)
+Việc lặt vặt còn treo (không chặn V1): 🧑 `sudo rm -rf ~/.local/opt/bee`
+(rác root-owned của lần cài hụt) · đặt tên lại Chrome profile chứa
+extension record-screen thành "Claude" (hiện là Profile 10 "Your Chrome") ·
+soạn `.bee/preview.sh` cho repo cần Docker (khi dùng chip Preview lần đầu).
 
-**Hiện tại:** form New session = `<select>` repo + ô title *bên cạnh* — hai ô
-rời. **Đích:** một nút dropdown duy nhất; bấm mở panel có **ô search ngay
-trong dropdown**, gõ để lọc repo (tìm không dấu), phím ↑↓ + Enter chọn,
-mục "No repo — just chat" ghim cuối. Không còn ô search/select đứng cạnh nhau.
+## V2 — spec trước khi code, theo thứ tự đề xuất
 
-- Cách làm: combobox tự dựng bằng Popover + Input (repo ít, không cần
-  virtualize; shadcn Command chưa cài — không thêm dependency).
-- Nghiệm thu: mở bằng click + phím; gõ "my" lọc còn `you/myapp`; Esc đóng
-  không đổi lựa chọn; hoạt động trong cả `/sessions` lẫn Panel trên `/canvas`;
-  test component theo role (combobox/listbox/option); 4 cổng xanh.
+```
+├ Nút merge trên web (token NGƯỜI bấm — không bao giờ là agent)
+├ Màn duyệt 1 phút mobile: evidence + AC + tóm tắt + merge trong một màn
+├ Trạng thái PR sống trên canvas (merged/closed đổi màu node — gh poll nhẹ)
+├ Hook-reply approvals: thẻ Approve/Deny trong chat (control_request qua
+│   stream → FIFO), thay dần --dangerously-skip-permissions
+├ Evidence viewer trong app: xem screenshot/video từ sessions/<id>/evidence
+├ Preview quản trên web: bảng preview đang chạy + nút stop (giờ là lệnh)
+└ Chat/Ask lại trên phiên đã dừng (--resume từ web)
+```
 
 ## Checkpoint
 
 | Sau | Bạn duyệt gì |
 |---|---|
-| S7 | Combobox trên fixture + suite xanh — xong là **khoá code fixture**, không thêm tính năng trước S4 |
-| S4.3 | 6 bài rig máy thật — nghiệm thu thật đầu tiên của toàn mô hình |
-| S5.3 | Từ điện thoại ngoài mạng nhà → tick V1, rồi mới spec V2 |
+| S5.3 | Toàn flow từ điện thoại ngoài mạng nhà → tick V1, rồi mới spec V2 |
+| V2 từng mục | Mỗi mục một spec ngắn + rig nếu đụng runner |
 
-## Ngoài phạm vi (đừng để lẻn vào trước V2)
+## Ngoài phạm vi (đừng để lẻn vào trước lúc V2 có spec)
 
-Nút merge · hàng đợi/đi ngủ (V3) · types `BeeStatus` cũ trong lib/bee (gỡ khi
-đụng tự nhiên) · lưu vị trí node canvas · terminal node xterm/PTY · markdown
-trong live view.
+Hàng đợi/đi ngủ (V3) · ngân sách hạn mức · bản tin buổi sáng · types
+`BeeStatus` cũ trong lib/bee (gỡ khi đụng tự nhiên) · lưu vị trí node
+canvas · terminal node xterm/PTY.

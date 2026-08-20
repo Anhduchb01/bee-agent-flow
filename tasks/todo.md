@@ -176,6 +176,19 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 - [x] 🤖 Cài record-screen (soi code trước khi cài — chỉ localhost:9234,
       dep ws+ffmpeg-static). 🧑 còn: load extension vào Chrome một lần.
 
+## S9 · Xem issue/PR ngay trên web (20/08) ✅
+
+- [x] 🤖 Click node issue/PR trên canvas → panel chi tiết TRONG app:
+      state/draft/author/branch, +n −m + số file + verdict checks (gộp
+      statusCheckRollup: fail > pending > pass), labels, body + comment
+      render markdown (react-markdown, HTML thô bị bỏ — nội dung untrusted),
+      nút "Open on GitHub ↗" luôn có kể cả khi gh lỗi. ↗ trên node vẫn đi
+      thẳng GitHub (stopPropagation).
+- [x] 🤖 `fetchArtifactDetail` (lib/bee/artifact-detail.ts): allowlist
+      trước exec — repo regex + PHẢI có trong repos.d, kind/number kiểm
+      kiểu; `gh issue|pr view --json` qua runGh tiêm được (test không cần
+      gh thật); lỗi là dữ liệu. Fixture trả staged detail cho demo/e2e.
+
 ## S5 · Ra internet
 
 - [x] 🤖 **S5.0** ~~Web thành service~~ **XONG 19/08** — `bee-web.service`

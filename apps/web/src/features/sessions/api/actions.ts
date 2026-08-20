@@ -6,6 +6,7 @@ import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
 import path from "node:path";
 
+import { fetchArtifactDetail, type KetQuaArtifact } from "@/lib/bee/artifact-detail";
 import { expandCommandText } from "@/lib/bee/doctor-fs";
 import { dungPhien, moPhien, noiVaoPhien } from "@/lib/bee/session-ctl";
 import type { BeeSession } from "@/lib/bee/types";
@@ -86,5 +87,20 @@ export async function dungPhienAction(id: string): Promise<KetQua> {
   const ket = await dungPhien(id);
   revalidatePath("/sessions");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+/**
+ * Issue/PR detail for the in-app viewer — read on demand when a panel
+ * opens, never polled. Validation and the registered-repo allowlist live
+ * in fetchArtifactDetail.
+ */
+export async function loadArtifactDetailAction(
+  repo: string,
+  kind: "issue" | "pr",
+  number: number,
+): Promise<KetQuaArtifact> {
+  const actor = await getActor();
+  if (!actor) return { ok: false, message: KHONG_QUYEN.message };
+  return fetchArtifactDetail(repo, kind, number);
 }
 
