@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -34,14 +34,51 @@ function ChuAgent({ text }: { text: string }) {
     </div>
   );
 }
+/**
+ * VSCode-style shimmer for the seconds when the agent owes an answer but
+ * nothing streams yet ("Pontificating…"). Without it the first message of
+ * a session looks dead for 3-5s while the model reads the repo context.
+ */
+const NHIP_TU = [
+  "Thinking",
+  "Reading the repo",
+  "Pondering",
+  "Assembling context",
+  "Reasoning",
+  "Cooking",
+  "Percolating",
+];
+
+function NhipChay() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((x) => (x + 1) % NHIP_TU.length), 2500);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <p
+      aria-label="Agent is working"
+      className="flex animate-pulse items-center gap-2 text-sm text-muted-foreground"
+    >
+      <span aria-hidden className="text-[#C15F3C]">
+        ✳
+      </span>
+      {NHIP_TU[i]}…
+    </p>
+  );
+}
+
 export function EventStream({
   suKien,
   dangGo,
   dangNghi = "",
+  dangCho = false,
 }: {
   suKien: SuKien[];
   dangGo: string;
   dangNghi?: string;
+  /** Busy but nothing streaming yet — show the shimmer line. */
+  dangCho?: boolean;
 }) {
   const muc = useMemo(() => ghepThe(suKien), [suKien]);
 
@@ -64,6 +101,7 @@ export function EventStream({
           <span className="animate-pulse">▍</span>
         </div>
       )}
+      {dangCho && <NhipChay />}
     </div>
   );
 }

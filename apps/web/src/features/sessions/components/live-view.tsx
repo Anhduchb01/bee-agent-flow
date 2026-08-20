@@ -55,19 +55,40 @@ const CHIP_FLOW = [
   { lenh: "preview", nhan: "Preview" },
 ];
 
+/** 104635 → "105k", 1000000 → "1M" — the ring's numbers must scan fast. */
+function tomTatToken(n: number): string {
+  if (n >= 1_000_000) {
+    const trieu = n / 1_000_000;
+    return `${Number.isInteger(trieu) ? trieu : trieu.toFixed(1)}M`;
+  }
+  if (n >= 1000) return `${Math.round(n / 1000)}k`;
+  return String(n);
+}
+
 /**
  * Context-fill ring, VSCode style: a small circle that fills as the
  * window fills. Only rendered once a result carried real numbers.
+ * Shows the RAW tokens next to the % — "10%" alone reads as a bug when
+ * the window is 1M and the system prompt + skills already cost ~100k.
  */
-function VongNguCanh({ phanTram }: { phanTram: number }) {
+function VongNguCanh({
+  phanTram,
+  dung = null,
+  cua = null,
+}: {
+  phanTram: number;
+  dung?: number | null;
+  cua?: number | null;
+}) {
   const r = 6;
   const chuVi = 2 * Math.PI * r;
+  const soLieu = dung !== null && cua !== null ? `${tomTatToken(dung)}/${tomTatToken(cua)}` : null;
+  const nhan =
+    soLieu === null
+      ? `Context ${phanTram}% full`
+      : `Context ${phanTram}% full — ${soLieu} tokens`;
   return (
-    <span
-      className="inline-flex items-center gap-1"
-      title={`Context ${phanTram}% full`}
-      aria-label={`Context ${phanTram}% full`}
-    >
+    <span className="inline-flex items-center gap-1" title={nhan} aria-label={nhan}>
       <svg width="16" height="16" viewBox="0 0 16 16" className="-rotate-90">
         <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.5" />
         <circle
@@ -82,7 +103,9 @@ function VongNguCanh({ phanTram }: { phanTram: number }) {
           className={phanTram >= 80 ? "text-destructive" : "text-muted-foreground"}
         />
       </svg>
-      <span className="font-mono text-xs text-muted-foreground">{phanTram}%</span>
+      <span className="font-mono text-xs text-muted-foreground">
+        {phanTram}%{soLieu !== null && <span className="hidden sm:inline"> · {soLieu}</span>}
+      </span>
     </span>
   );
 }
@@ -124,10 +147,14 @@ export function LiveView({
 
   // Latest context fill — from the newest result that carried numbers.
   let nguCanh: number | null = null;
+  let nguCanhDung: number | null = null;
+  let nguCanhCua: number | null = null;
   for (let i = suKien.length - 1; i >= 0; i--) {
     const s = suKien[i]!;
     if (s.loai === "ket-qua" && typeof s.nguCanh === "number") {
       nguCanh = s.nguCanh;
+      nguCanhDung = typeof s.dungToken === "number" ? s.dungToken : null;
+      nguCanhCua = typeof s.cuaSoToken === "number" ? s.cuaSoToken : null;
       break;
     }
   }
@@ -215,7 +242,12 @@ export function LiveView({
             {trangThai === "dang-noi" ? "Connecting…" : "Waiting for the session to speak…"}
           </p>
         ) : (
-          <EventStream suKien={suKien} dangGo={dangGo} dangNghi={dangNghi} />
+          <EventStream
+            suKien={suKien}
+            dangGo={dangGo}
+            dangNghi={dangNghi}
+            dangCho={dangBan && dangGo === "" && dangNghi === ""}
+          />
         )}
       </div>
 
@@ -290,7 +322,9 @@ export function LiveView({
               }}
             />
             <div className="mt-1.5 flex items-center gap-2">
-              {nguCanh !== null && <VongNguCanh phanTram={nguCanh} />}
+              {nguCanh !== null && (
+                <VongNguCanh phanTram={nguCanh} dung={nguCanhDung} cua={nguCanhCua} />
+              )}
               <span className="flex-1" />
               {dangBan && !coChuMoi ? (
                 // Running and nothing new typed → the button is Stop, like

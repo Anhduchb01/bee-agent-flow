@@ -114,8 +114,15 @@ describe("gopSuKien trên fixture thật", () => {
     expect(suKien.some((s) => s.loai === "tool" && s.ten === "Write")).toBe(true);
     expect(suKien.filter((s) => s.loai === "ket-qua")).toEqual([
       // nguCanh 4%: real modelUsage from the recorded stream — the number
-      // behind the context ring.
-      { loai: "ket-qua", loi: false, luot: 2, nguCanh: 4 },
+      // behind the context ring, plus the raw tokens it derives from.
+      {
+        loai: "ket-qua",
+        loi: false,
+        luot: 2,
+        nguCanh: 4,
+        dungToken: 41752,
+        cuaSoToken: 1_000_000,
+      },
     ]);
   });
 });

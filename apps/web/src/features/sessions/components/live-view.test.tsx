@@ -96,6 +96,54 @@ describe("LiveView — one mode, VSCode-style controls", () => {
     expect(screen.getByLabelText("Context 12% full")).toBeInTheDocument();
     expect(screen.getByText("12%")).toBeInTheDocument();
   });
+
+  it("ring spells out the raw tokens — 10% of a 1M window must not read as a bug", () => {
+    mockStream({
+      suKien: [
+        {
+          loai: "ket-qua",
+          loi: false,
+          luot: 1,
+          nguCanh: 10,
+          dungToken: 104_635,
+          cuaSoToken: 1_000_000,
+        },
+      ],
+    });
+    render(<LiveView phien={PHIEN} />);
+    expect(
+      screen.getByLabelText("Context 10% full — 105k/1M tokens"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("· 105k/1M")).toBeInTheDocument();
+  });
+});
+
+describe("working indicator — VSCode-style shimmer while the agent owes an answer", () => {
+  it("busy with NOTHING streaming yet → the indicator runs", () => {
+    mockStream({ suKien: [{ loai: "nguoi-noi", text: "what is this repo?" }] });
+    render(<LiveView phien={PHIEN} />);
+    expect(screen.getByLabelText("Agent is working")).toBeInTheDocument();
+  });
+
+  it("text or thinking streaming → the indicator yields to the real stream", () => {
+    mockStream({
+      suKien: [{ loai: "nguoi-noi", text: "do it" }],
+      dangGo: "Answer star",
+    });
+    render(<LiveView phien={PHIEN} />);
+    expect(screen.queryByLabelText("Agent is working")).not.toBeInTheDocument();
+  });
+
+  it("idle (result landed) → no indicator", () => {
+    mockStream({
+      suKien: [
+        { loai: "nguoi-noi", text: "do it" },
+        { loai: "ket-qua", loi: false, luot: 1, nguCanh: 5 },
+      ],
+    });
+    render(<LiveView phien={PHIEN} />);
+    expect(screen.queryByLabelText("Agent is working")).not.toBeInTheDocument();
+  });
 });
 
 describe("slash palette (global ~/.claude/commands)", () => {

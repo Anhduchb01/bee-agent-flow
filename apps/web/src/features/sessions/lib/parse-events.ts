@@ -36,7 +36,16 @@ export type SuKien =
       moi?: string;
     }
   | { loai: "tool-xong"; text: string; id?: string | null; loi?: boolean }
-  | { loai: "ket-qua"; loi: boolean; luot?: number | null; nguCanh?: number | null }
+  | {
+      loai: "ket-qua";
+      loi: boolean;
+      luot?: number | null;
+      nguCanh?: number | null;
+      /** Raw numbers behind the ring — the % alone reads as "wrong" when
+          the window is 1M and the system prompt already costs 100k. */
+      dungToken?: number | null;
+      cuaSoToken?: number | null;
+    }
   | { loai: "replay"; boQua: number }
   | {
       loai: "artifact";
@@ -200,6 +209,8 @@ export function phanTichDong(dong: string): SuKien[] | null {
           loi: raw.subtype !== "success",
           luot: typeof raw.num_turns === "number" ? raw.num_turns : null,
           nguCanh,
+          dungToken: dung > 0 ? dung : null,
+          cuaSoToken: cua > 0 ? cua : null,
         },
       ];
     }
