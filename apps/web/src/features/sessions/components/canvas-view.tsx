@@ -23,6 +23,8 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import type { BeeRepoDangKy, BeeSession, TrangThaiPhien } from "@/lib/bee/types";
 import { khoangThoiGian } from "@/lib/duration";
 
+import { loadArtifactDetailAction } from "../api/actions";
+import { bocArtifactUrl, mauArtifact, type ArtifactSong } from "../lib/artifact-live";
 import type { EdgeCanvas, NodeArtifact, NodeCanvas, NodeNhanRepo, NodePhien } from "../lib/build-graph";
 import { ArtifactPanel } from "./artifact-panel";
 import { LiveView } from "./live-view";
@@ -97,18 +99,29 @@ function PhienNode({ data }: NodeProps<FlowPhien>) {
 function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
   // Click mở panel chi tiết NGAY TRÊN canvas (onNodeClick); ↗ là lối tắt
   // sang GitHub — stopPropagation để hai đường không giẫm nhau.
+  const live = (data as { live?: ArtifactSong | null }).live ?? null;
+  const checks = live?.checks != null ? CHECKS_GLYPH[live.checks] : null;
   return (
     <div className="w-56 cursor-pointer rounded-control border border-border bg-secondary px-3 py-2">
       <Handle type="target" position={Position.Left} className="!bg-muted-foreground" />
       <span className="flex items-center gap-2">
-        {/* Xanh lá cho issue mở, tím cho PR — đúng ngôn ngữ màu của GitHub */}
-        <span className={data.kind === "pr" ? "text-purple-400" : "text-green-500"}>
+        <span className={mauArtifact(data.kind, live)} title={live?.state.toLowerCase()}>
           {data.kind === "pr" ? "⇄" : "◉"}
         </span>
         <span className="font-mono text-xs font-semibold text-body">
           {data.kind === "pr" ? "PR" : "Issue"}
           {data.number !== null ? ` #${data.number}` : ""}
         </span>
+        {live !== null && live.state !== "OPEN" && (
+          <span className="font-mono text-[0.625rem] text-muted-foreground">
+            {live.state.toLowerCase()}
+          </span>
+        )}
+        {checks !== null && (
+          <span className={`font-mono text-[0.625rem] ${checks.mau}`} title={`checks ${live?.checks}`}>
+            {checks.ky}
+          </span>
+        )}
         <span className="flex-1" />
         {tuoi(data.ts) !== null && (
           <span className="font-mono text-[0.625rem] text-muted-foreground">{tuoi(data.ts)}</span>
@@ -131,14 +144,11 @@ function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
   );
 }
 
-/** github.com URL → what the detail action needs. Anything else: no panel. */
-function bocArtifactUrl(
-  url: string,
-): { repo: string; kind: "issue" | "pr"; number: number } | null {
-  const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/(issues|pull)\/(\d+)/.exec(url);
-  if (m === null) return null;
-  return { repo: m[1]!, kind: m[2] === "pull" ? "pr" : "issue", number: Number(m[3]) };
-}
+const CHECKS_GLYPH: Record<string, { ky: string; mau: string }> = {
+  pass: { ky: "✓", mau: "text-green-500" },
+  fail: { ky: "✗", mau: "text-red-400" },
+  pending: { ky: "●", mau: "text-amber-500" },
+};
 
 function NhanRepoNode({ data }: NodeProps<FlowNhanRepo>) {
   return (
@@ -202,6 +212,54 @@ export function CanvasView({
     }, 5000);
     return () => clearInterval(t);
   }, [router]);
+
+  // V2.2 — live artifact state. One fetch per visible artifact node (cap
+  // 12), re-run when the graph changes and every 60s (matches the server
+  // cache TTL). Doubles as PREFETCH: the detail panel opens warm.
+  const [songTheo, setSongTheo] = useState<Record<string, ArtifactSong>>({});
+  useEffect(() => {
+    let song = true;
+    async function tai() {
+      const arts = nodes.filter((n): n is NodeArtifact => n.type === "artifact").slice(0, 12);
+      const cap = await Promise.all(
+        arts.map(async (n) => {
+          const boc = bocArtifactUrl(n.data.url);
+          if (boc === null) return null;
+          const ket = await loadArtifactDetailAction(boc.repo, boc.kind, boc.number);
+          if (!ket.ok) return null;
+          return [
+            n.data.url,
+            {
+              state: ket.detail.state,
+              draft: ket.detail.pr?.draft ?? false,
+              checks: ket.detail.pr?.checks ?? null,
+            },
+          ] as const;
+        }),
+      );
+      if (song) {
+        setSongTheo(Object.fromEntries(cap.filter((c): c is NonNullable<typeof c> => c !== null)));
+      }
+    }
+    void tai();
+    const t = setInterval(() => {
+      if (!document.hidden) void tai();
+    }, 60_000);
+    return () => {
+      song = false;
+      clearInterval(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- khoaDoThi IS the nodes' identity
+  }, [khoaDoThi]);
+  useEffect(() => {
+    setFlowNodes((ns) =>
+      ns.map((n) =>
+        n.type === "artifact"
+          ? { ...n, data: { ...n.data, live: songTheo[(n.data as { url: string }).url] ?? null } }
+          : n,
+      ),
+    );
+  }, [songTheo, setFlowNodes]);
 
   // Chat panel width — restored from the last drag, VSCode-style. Lazy
   // init is safe: the Sheet only mounts when opened, all client-side.
