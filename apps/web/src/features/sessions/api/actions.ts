@@ -8,7 +8,7 @@ import path from "node:path";
 
 import { fetchArtifactDetail, type KetQuaArtifact } from "@/lib/bee/artifact-detail";
 import { expandCommandText } from "@/lib/bee/doctor-fs";
-import { doiModePhien, dungPhien, moPhien, noiVaoPhien } from "@/lib/bee/session-ctl";
+import { doiModePhien, dungPhien, moPhien, noiVaoPhien, tiepTucPhien } from "@/lib/bee/session-ctl";
 import type { BeeEvidenceTepTin, BeeSession, BeeSessionMode } from "@/lib/bee/types";
 
 export type KetQuaMoPhien =
@@ -88,6 +88,15 @@ export async function dungPhienAction(id: string): Promise<KetQua> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await dungPhien(id);
+  revalidatePath("/sessions");
+  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+/** Continue a finished/stopped session (V2.6) — start = resume, idempotent. */
+export async function tiepTucAction(id: string): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await tiepTucPhien(id);
   revalidatePath("/sessions");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }

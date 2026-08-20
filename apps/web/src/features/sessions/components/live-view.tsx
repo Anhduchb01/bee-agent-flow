@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusDot } from "@/components/status-dot";
 import type { BeeSession, BeeSessionMode } from "@/lib/bee/types";
 
-import { doiModeAction, dungPhienAction, guiVaoPhien } from "../api/actions";
+import { doiModeAction, dungPhienAction, guiVaoPhien, tiepTucAction } from "../api/actions";
 import { useSessionStream } from "../hooks/use-session-stream";
 import { EventStream } from "./event-stream";
 import { MODE_OPTIONS } from "./new-session-form";
@@ -464,9 +464,29 @@ export function LiveView({
             </div>
           </form>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Session ended ({ketThuc}). Open a new session to continue this conversation.
-          </p>
+          // V2.6: continuing IS possible — start = resume, same conversation.
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-muted-foreground">Session ended ({ketThuc}).</p>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={dangGui}
+              onClick={() =>
+                batDauGui(async () => {
+                  const ket = await tiepTucAction(phien.id);
+                  if (ket.ok) {
+                    // Full reload: the SSE stream closed on bee_done — a
+                    // fresh page reattaches it to the resumed session.
+                    window.location.reload();
+                  } else {
+                    setLoi(ket.message);
+                  }
+                })
+              }
+            >
+              {dangGui ? "Continuing…" : "Continue session"}
+            </Button>
+          </div>
         )}
         {loi !== "" && <p className="mt-1 text-xs text-destructive">{loi}</p>}
       </div>

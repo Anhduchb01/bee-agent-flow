@@ -11,6 +11,7 @@ vi.mock("../api/actions", () => ({
   guiVaoPhien: vi.fn(async () => ({ ok: true, message: "" })),
   dungPhienAction: vi.fn(async () => ({ ok: true, message: "" })),
   doiModeAction: vi.fn(async () => ({ ok: true, message: "" })),
+  tiepTucAction: vi.fn(async () => ({ ok: true, message: "" })),
   batDauPhien: vi.fn(),
 }));
 vi.mock("../hooks/use-session-stream", () => ({
@@ -144,6 +145,24 @@ describe("session mode switch (V2.5a) — the VSCode-style mode menu by the send
     mockStream({});
     render(<LiveView phien={{ ...PHIEN, worktree: false }} />);
     expect(screen.queryByRole("button", { name: "Session mode" })).not.toBeInTheDocument();
+  });
+});
+
+describe("continue a finished session (V2.6)", () => {
+  it("ended session shows Continue; clicking calls the action", async () => {
+    const user = userEvent.setup();
+    mockStream({ ketThuc: "done" });
+    const { tiepTucAction } = await import("../api/actions");
+    const reload = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { ...window.location, reload },
+      writable: true,
+    });
+    render(<LiveView phien={PHIEN} />);
+
+    await user.click(screen.getByRole("button", { name: /continue session/i }));
+    expect(vi.mocked(tiepTucAction)).toHaveBeenCalledWith(PHIEN.id);
+    expect(reload).toHaveBeenCalled();
   });
 });
 

@@ -203,6 +203,28 @@ export async function doiModePhien(id: string, mode: BeeSessionMode): Promise<Ke
   }
 }
 
+/**
+ * Continue a finished/stopped session (V2.6): just start the unit again —
+ * session-run's --resume branch reconnects the same conversation. Start is
+ * idempotent (already-running = no-op), so no state check beyond the
+ * session actually existing.
+ */
+export async function tiepTucPhien(id: string): Promise<KetQua> {
+  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
+  if (laFixture()) return { ok: true };
+  try {
+    await fs.access(path.join(root(), "sessions", id, "session.json"));
+  } catch {
+    return { ok: false, message: "No such session on this machine." };
+  }
+  try {
+    await run("systemctl", ["--user", "start", `bee-session@${id}.service`]);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: `Could not continue session: ${(e as Error).message}` };
+  }
+}
+
 export async function dungPhien(id: string): Promise<KetQua> {
   if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
   if (laFixture()) return { ok: true };
