@@ -109,7 +109,8 @@ describe("fetchArtifactDetail — parsing", () => {
     });
   });
 
-  it("PAT without Checks:read → retries the PR WITHOUT statusCheckRollup, checks=null", async () => {
+  it("PAT without Checks:read → PR refetched without the field, verdict comes from commit status REST", async () => {
+    const SHA = "9fcca0170e99d85f10035bd8b3de7a2500d8b9a7";
     const runGh = vi
       .fn<(args: string[]) => Promise<{ stdout: string }>>()
       .mockRejectedValueOnce(
@@ -129,18 +130,54 @@ describe("fetchArtifactDetail — parsing", () => {
           isDraft: true,
           baseRefName: "main",
           headRefName: "bee/myapp-3",
+          headRefOid: SHA,
           additions: 5,
           deletions: 1,
           changedFiles: 2,
         }),
+      })
+      .mockResolvedValueOnce({
+        stdout: JSON.stringify({ state: "failure", total_count: 1 }),
       });
     const ket = await fetchArtifactDetail("you/myapp", "pr", 10, { runGh });
     expect(ket.ok).toBe(true);
     if (!ket.ok) return;
     expect(ket.detail.title).toBe("Terms pages");
-    expect(ket.detail.pr?.checks).toBeNull();
-    // Lượt 2 không được mang statusCheckRollup nữa.
+    expect(ket.detail.pr?.checks).toBe("fail");
+    // Lượt 2 không được mang statusCheckRollup nữa; lượt 3 là REST status.
     expect(runGh.mock.calls[1]![0].join(",")).not.toContain("statusCheckRollup");
+    expect(runGh.mock.calls[2]![0]).toEqual([
+      "api",
+      `repos/you/myapp/commits/${SHA}/status`,
+    ]);
+  });
+
+  it("fallback with NO statuses on the commit → checks stays null, panel still renders", async () => {
+    const runGh = vi
+      .fn<(args: string[]) => Promise<{ stdout: string }>>()
+      .mockRejectedValueOnce(new Error("Resource not accessible by personal access token"))
+      .mockResolvedValueOnce({
+        stdout: JSON.stringify({
+          number: 11,
+          title: "No CI here",
+          state: "OPEN",
+          body: "",
+          author: { login: "bee-agent" },
+          createdAt: "t",
+          url: "https://github.com/you/myapp/pull/11",
+          isDraft: false,
+          baseRefName: "main",
+          headRefName: "bee/myapp-4",
+          headRefOid: "a".repeat(40),
+          additions: 1,
+          deletions: 0,
+          changedFiles: 1,
+        }),
+      })
+      .mockResolvedValueOnce({ stdout: JSON.stringify({ state: "pending", total_count: 0 }) });
+    const ket = await fetchArtifactDetail("you/myapp", "pr", 11, { runGh });
+    expect(ket.ok).toBe(true);
+    if (ket.ok) expect(ket.detail.pr?.checks).toBeNull();
   });
 
   it("gh failing or spewing non-JSON comes back as data, not a throw", async () => {

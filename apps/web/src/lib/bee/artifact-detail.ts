@@ -162,22 +162,24 @@ export async function fetchArtifactDetail(
 
   const runGh = opts?.runGh ?? ((args: string[]) => run("gh", args));
   const chung = "number,title,state,body,author,createdAt,url,labels,comments";
-  const prFields = `${chung},isDraft,baseRefName,headRefName,additions,deletions,changedFiles`;
+  const prFields = `${chung},isDraft,baseRefName,headRefName,headRefOid,additions,deletions,changedFiles`;
   const args =
     kind === "issue"
       ? ["issue", "view", String(number), "-R", repo, "--json", chung]
       : ["pr", "view", String(number), "-R", repo, "--json", `${prFields},statusCheckRollup`];
 
   let goc: Record<string, unknown>;
+  // Personal fine-grained PATs cannot read GitHub Actions check RUNS
+  // (no "Checks" permission in the UI), which kills the whole GraphQL
+  // query. Fallback: refetch without the field, then take the verdict
+  // from the commit-status REST API — that one only needs
+  // "Commit statuses: read" and covers deploy checks like Vercel.
+  let checksThayThe: "pass" | "fail" | "pending" | null | undefined;
   try {
     const { stdout } = await runGh(args);
     goc = JSON.parse(stdout) as Record<string, unknown>;
   } catch (e) {
     const msg = (e as Error).message;
-    // A fine-grained PAT without Checks:read cannot resolve
-    // statusCheckRollup ("Resource not accessible by personal access
-    // token"). The rest of the PR is still readable — retry without the
-    // field instead of showing the user an empty panel.
     if (kind === "pr" && /not accessible by personal access token/i.test(msg)) {
       try {
         const { stdout } = await runGh([
@@ -186,6 +188,24 @@ export async function fetchArtifactDetail(
         goc = JSON.parse(stdout) as Record<string, unknown>;
       } catch (e2) {
         return { ok: false, message: `Could not load pr #${number}: ${(e2 as Error).message}` };
+      }
+      const sha = chuoi(goc.headRefOid);
+      if (/^[0-9a-f]{40}$/.test(sha)) {
+        try {
+          const { stdout } = await runGh(["api", `repos/${repo}/commits/${sha}/status`]);
+          const st = JSON.parse(stdout) as Record<string, unknown>;
+          if (so(st.total_count) > 0) {
+            const state = chuoi(st.state);
+            checksThayThe =
+              state === "success" ? "pass" : state === "pending" ? "pending" : "fail";
+          } else {
+            checksThayThe = null;
+          }
+        } catch {
+          checksThayThe = null; // status API refused too — show no verdict
+        }
+      } else {
+        checksThayThe = null;
       }
     } else {
       return { ok: false, message: `Could not load ${kind} #${number}: ${msg}` };
@@ -215,7 +235,8 @@ export async function fetchArtifactDetail(
               additions: so(goc.additions),
               deletions: so(goc.deletions),
               changedFiles: so(goc.changedFiles),
-              checks: docChecks(goc.statusCheckRollup),
+              checks:
+                checksThayThe !== undefined ? checksThayThe : docChecks(goc.statusCheckRollup),
             }
           : null,
     },
