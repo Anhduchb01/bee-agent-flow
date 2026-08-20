@@ -141,7 +141,8 @@ Hai điểm đã **chứng minh bằng rig trên máy thật** (S0, 17/08 —
    ngoài PAT + login Claude; `.env` production không nằm trên máy, không nằm trong repo.
 2. Fine-grained PAT: đúng danh sách repo, đúng 3 quyền (contents · PR · issues).
 3. Branch protection `main` từng repo — push thẳng bị từ chối với **mọi** token.
-4. Cloudflare Access + GitHub OAuth allowlist ở cửa trước.
+4. Tailscale ở rìa (web chỉ bind localhost, chỉ tailnet chạm được) +
+   GitHub OAuth allowlist ở cửa trước.
 5. Xem billing Claude + audit log GitHub mỗi sáng.
 
 Vi phạm dòng nào trong **5 cò súng** ([PRD §0.2](docs/PRD_bee-agent-flow.md)) —

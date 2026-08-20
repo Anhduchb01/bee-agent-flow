@@ -273,9 +273,16 @@ skill, mang danh bot.
 
 ### 4.5 Auth — FR-6.5
 
-GitHub OAuth (allowlist login) + Cloudflare Access ở rìa. Route nào cũng tự
-kiểm — giữ nguyên kỷ luật cũ. Ngoài allowlist: đăng nhập được, thấy trang
-trống nói thẳng "bạn không có quyền", không lộ dữ liệu.
+GitHub OAuth (allowlist login) trong app + **Tailscale ở rìa** (đổi từ
+Cloudflare Access 20/08): web chỉ bind 127.0.0.1:3210, `tailscale serve`
+proxy HTTPS ra `https://ducba.tail7d9c45.ts.net` — chỉ thiết bị trong
+tailnet của chủ máy chạm được, không có cổng nào mở ra internet công cộng,
+TLS do Tailscale tự cấp. Lý do đổi: máy solo một người dùng thì tailnet
+riêng an toàn hơn một URL public sau Access, và không phụ thuộc domain.
+Route nào cũng tự kiểm — giữ nguyên kỷ luật cũ. Ngoài allowlist: đăng nhập
+được, thấy trang trống nói thẳng "bạn không có quyền", không lộ dữ liệu.
+GitHub OAuth app chỉ nhận MỘT callback → Homepage + callback trỏ URL
+ts.net, mọi thiết bị (kể cả chính máy chạy web) đều vào bằng URL đó.
 
 ### 4.6 Màn onboarding `/setup` (thêm 18/08, tương tác hoá cùng ngày)
 

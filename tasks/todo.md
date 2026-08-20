@@ -165,13 +165,21 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       (install.sh render node+server.js, sống qua reboot nhờ linger) +
       `web.env` một-file-config mặc định disk-mode 127.0.0.1:3210; khối
       live-auth để sẵn dạng comment. Rig-03 case 5. Đang active trên máy.
-- [ ] 🧑→🤖 **S5.1** Tạo GitHub OAuth app + điền khối live trong
-      `~/.local/srv/bee/web.env` (🧑) → tôi nghiệm thu allowlist với
-      GITHUB_SOURCE=live: ngoài allowlist thấy trang trống nói thẳng,
-      không lộ dữ liệu (🤖)
-- [ ] 🧑 **S5.2** Cloudflare Tunnel + Access trước 127.0.0.1:3210
-- [ ] 🧑 **S5.3** Nghiệm thu toàn bộ checklist spec §10 **từ điện thoại, ngoài
-      mạng nhà** → V1 xong
+- [x] 🧑→🤖 **S5.1** ~~OAuth app + khối live web.env~~ **XONG 19/08** —
+      GITHUB_SOURCE=live, login GitHub thật chạy (chủ dự án xác nhận bằng
+      màn hình), ALLOWED_LOGINS=Anhduchb01.
+- [x] 🤖 **S5.2** ~~Cloudflare Tunnel~~ → **TAILSCALE, XONG 20/08** (đổi
+      hướng sau khi cân rủi ro: tailnet riêng, không mở cổng ra internet
+      công cộng, TLS tự cấp cho `ducba.tail7d9c45.ts.net`). Đã làm:
+      `tailscale up` + app iPhone cùng account (🧑), `tailscale serve --bg
+      3210` → https://ducba.tail7d9c45.ts.net proxy 127.0.0.1:3210,
+      `AUTH_URL` trong web.env trỏ URL ts.net, restart bee-web — probe
+      /login + /api/auth/providers trả callback ts.net đúng. Còn MỘT việc
+      🧑: đổi Homepage + Authorization callback của GitHub OAuth app sang
+      URL ts.net (OAuth app chỉ nhận một callback → từ giờ dùng thống nhất
+      URL ts.net trên mọi thiết bị, kể cả máy này).
+- [ ] 🧑 **S5.3** Nghiệm thu toàn bộ checklist spec §10 **từ điện thoại
+      (4G, bật Tailscale)** → V1 xong
 
 ---
 

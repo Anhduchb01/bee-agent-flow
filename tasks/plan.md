@@ -32,9 +32,10 @@ S4 · Máy thật + vệ sinh A+                     ← CỬA NGHIỆM THU TH�
         │
         ▼
 S5 · Ra internet
-├ S5.1 🤖 OAuth allowlist nghiệm thu với GITHUB_SOURCE=live
-├ S5.2 🧑 Cloudflare Access
-└ S5.3 🧑 checklist spec §10 từ điện thoại → **V1 XONG**
+├ S5.1 🤖 OAuth allowlist nghiệm thu với GITHUB_SOURCE=live ✅
+├ S5.2 🤖 Tailscale serve → https://ducba.tail7d9c45.ts.net ✅ (đổi hướng
+│        từ Cloudflare 20/08 — tailnet riêng thay vì mở ra internet)
+└ S5.3 🧑 checklist spec §10 từ điện thoại (4G + Tailscale) → **V1 XONG**
         │
         ▼
 V2 (spec trước khi code)

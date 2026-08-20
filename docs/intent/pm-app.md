@@ -59,7 +59,8 @@ mỗi ngày.
 - Stack: **Next.js 16** + Tailwind + **shadcn**, theo quy ước của Frontend Guide
   (feature slice, barrel `index.ts`, TanStack Query giữ server state, Zustand chỉ
   giữ state UI, Zod ở biên form, Vitest + MSW + Playwright).
-- Vào được từ internet: **Cloudflare Access** ở rìa + **GitHub OAuth** trong app.
+- Vào được từ mọi nơi: **Tailscale** ở rìa (tailnet riêng, chốt 20/08 thay
+  Cloudflare Access) + **GitHub OAuth** trong app.
 - 1 dự án = **1 repo**, luôn luôn.
 
 ### Ba chỗ Frontend Guide không áp thẳng được

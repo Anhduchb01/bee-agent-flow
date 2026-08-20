@@ -23,7 +23,7 @@ trái với luật thường lệ. Phần bash ở §3 phải review tách riên
 | Phiên live sống ở đâu | **"Như Claude Code trong VSCode"** — xem §2, phương án lai: `bee-task@` giữ vòng đời, `stream-json` hai chiều giữ tính tương tác |
 | "Ok làm đi" có tạo issue không | **Có.** Tạo issue trước rồi mới chạy. Nhãn vẫn gắn để đọc, **không** còn là hàng đợi |
 | Can thiệp lúc đang chạy | **Xem + Dừng + Nói chen giữa chừng** |
-| OAuth + Cloudflare Access thật | **Có, nằm trong V1.** Không có nó thì "giao việc từ điện thoại" không tồn tại |
+| OAuth + rìa mạng thật | **Có, nằm trong V1.** Không có nó thì "giao việc từ điện thoại" không tồn tại. Rìa chốt là **Tailscale** (20/08) — tailnet riêng thay cho Cloudflare Access |
 
 **Không nằm trong V1:** hàng đợi do app sở hữu · chế độ đi ngủ · ngân sách hạn
 mức · nút merge · bản tin buổi sáng. Xem PRD §7.1.
@@ -458,7 +458,8 @@ hẹp trong `parse-events.ts`.
       kẹt ở `running`
 - [ ] Phiên xong → có draft PR, link mở được sang GitHub
 - [ ] Làm được **toàn bộ** những việc trên **trên điện thoại, ngoài mạng nhà**
-      (Cloudflare Access + GitHub OAuth thật)
+      (4G + app Tailscale bật, mở https://ducba.tail7d9c45.ts.net, GitHub
+      OAuth thật)
 - [ ] Người ngoài allowlist đăng nhập được nhưng **không thấy gì**
 - [ ] `say` với `id` chứa `../` bị từ chối ở cả hai phía
 - [ ] File yêu cầu với `slug` lạ hoặc chứa `@` `/` `..` → bị từ chối, **không**

@@ -187,7 +187,7 @@ bấm) · FR-4.3 tóm tắt "đã đổi gì" · FR-4.4 diff thì link sang GitH
 | FR-6.2 | Reaper: phiên chết (`kill -9`, mất điện) → phát hiện và đóng sổ trong một tick; hai lần liên tiếp → cờ cần người | **P0** |
 | FR-6.3 | Heartbeat: hệ nền chết im lặng → app báo đỏ, không giấu | **P0** |
 | FR-6.4 | Kill switch: một file PAUSE → không mở phiên mới | **P0** |
-| FR-6.5 | Vào từ internet: Cloudflare Access + GitHub OAuth allowlist | **P0** |
+| FR-6.5 | Vào từ mọi nơi: Tailscale ở rìa (chốt 20/08, thay Cloudflare Access) + GitHub OAuth allowlist | **P0** |
 | FR-6.6 | Điện thoại là hạng nhất | **P0** |
 
 ---
@@ -216,8 +216,9 @@ bấm) · FR-4.3 tóm tắt "đã đổi gì" · FR-4.4 diff thì link sang GitH
 2. **Fine-grained PAT:** chỉ các repo làm việc; quyền contents + pull-requests
    + issues. Không bao giờ dùng token tài khoản đầy đủ.
 3. **Branch protection `main`** trên từng repo: cấm push trực tiếp, bắt buộc PR.
-4. **Cloudflare Access + OAuth allowlist** — cửa trước luôn khoá; người ngoài
-   allowlist đăng nhập được nhưng không thấy gì.
+4. **Tailscale + OAuth allowlist** — web chỉ bind localhost, `tailscale
+   serve` proxy HTTPS cho riêng tailnet (không cổng nào mở ra internet
+   công cộng); người ngoài allowlist đăng nhập được nhưng không thấy gì.
 5. **Xem lại mỗi sáng:** billing Claude + audit log GitHub (bản tin V3 kiêm luôn).
 
 Web app vẫn giữ kỷ luật cũ, vì chúng rẻ và đúng bất kể mô hình: mọi route tự
@@ -237,7 +238,7 @@ cơ chế bắt.
 
 ```
 Trình duyệt (kể cả điện thoại)
-   │  HTTPS qua Cloudflare Access + GitHub OAuth (allowlist)
+   │  HTTPS qua Tailscale (tailnet riêng) + GitHub OAuth (allowlist)
    ▼
 bee-web ──────────────── cùng UID `bee` ──────────────── phiên agent
    │  systemctl --user start bee-session@<id>   ← không sudo, không socket, không cầu
@@ -311,7 +312,7 @@ rule 08 (spec) · hộp thư 5 loại suy từ nhãn · orch/agent tách user.
 
 Runner mới (`bee-session@` user unit + session-run.sh) · màn session manager
 (n phiên theo repo) · chuyển chế độ phỏng vấn→làm trong một phiên · skills
-issue/PR/push · doctor checklist A+ · OAuth + Cloudflare Access thật.
+issue/PR/push · doctor checklist A+ · OAuth thật + Tailscale ở rìa.
 
 **Đã xong (17/08):** S0 — hai ẩn số gỡ bằng rig, cả hai thuận
 ([rig/FINDINGS.md](../apps/runner/rig/FINDINGS.md)); 3 fixture `run.jsonl`
