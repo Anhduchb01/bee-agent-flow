@@ -14,7 +14,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   if (!phien) notFound();
 
   return (
-    <div className="flex h-svh flex-col">
+    <div className="flex h-dvh flex-col">
       <PageHeader title={phien.title ?? `${phien.slug}-${phien.num}`} />
       <LiveView phien={phien} commands={skills} />
     </div>

@@ -55,12 +55,13 @@ function MotFile({ slug, file }: { slug: string; file: EnvFile }) {
           Save
         </Button>
       </div>
+      {/* text-base on phones — under 16px iOS Safari zooms in on focus. */}
       <Textarea
         value={noiDung}
         onChange={(e) => setNoiDung(e.target.value)}
         aria-label={`Content of ${file.duongDan}`}
         rows={3}
-        className="font-mono text-xs"
+        className="font-mono text-base sm:text-xs"
       />
       {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
     </div>
@@ -109,7 +110,7 @@ export function EnvEditor({ slug, files }: { slug: string; files: EnvFile[] }) {
             onChange={(e) => setDuongDan(e.target.value)}
             placeholder=".env or apps/web/.env.local — path inside the repo"
             aria-label={`New env file path for ${slug}`}
-            className="font-mono text-xs"
+            className="font-mono text-base sm:text-xs"
           />
           <Textarea
             value={noiDung}
@@ -117,7 +118,7 @@ export function EnvEditor({ slug, files }: { slug: string; files: EnvFile[] }) {
             placeholder={"API_KEY=…\nDB_URL=…"}
             aria-label={`New env file content for ${slug}`}
             rows={3}
-            className="font-mono text-xs"
+            className="font-mono text-base sm:text-xs"
           />
           <div className="flex items-center gap-2">
             {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}

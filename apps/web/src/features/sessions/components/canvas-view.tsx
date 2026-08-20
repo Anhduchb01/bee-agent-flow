@@ -225,8 +225,10 @@ export function CanvasView({
           side="right"
           className="flex flex-col gap-0 p-0"
           // Inline beats class: shadcn's built-in sm:max-w-sm silently pinned
-          // the panel at 384px, which also made dragging look dead.
-          style={{ width: rongPanel, maxWidth: "none" }}
+          // the panel at 384px, which also made dragging look dead. 100vw cap:
+          // the remembered desktop width (default 1152) must never overflow a
+          // phone screen.
+          style={{ width: rongPanel, maxWidth: "100vw" }}
         >
           {/* Pointer CAPTURE, not window listeners: Radix's modal layer eats
               window events, which is why the first version never dragged. */}

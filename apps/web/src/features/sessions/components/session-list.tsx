@@ -66,7 +66,8 @@ function MotDong({ p }: { p: BeeSession }) {
         {p.needs_human && (
           <span className="font-mono text-xs text-destructive">needs you</span>
         )}
-        <span className="font-mono text-xs tabular-nums text-muted-foreground">
+        {/* Branch name is desktop detail — on a phone the title needs the room. */}
+        <span className="hidden font-mono text-xs tabular-nums text-muted-foreground sm:inline">
           bee/{p.slug}-{p.num}
         </span>
         <span className="font-mono text-xs text-muted-foreground">{NHAN[p.status]}</span>

@@ -113,7 +113,9 @@ export function RepoCombobox({
             placeholder="Search repos…"
             aria-label="Search repos"
             aria-activedescendant={options[active] ? `repo-option-${options[active].value}` : undefined}
-            className="mb-1 h-8 w-full rounded-control border border-border bg-transparent px-2 text-sm text-body outline-none placeholder:text-muted-foreground"
+            // text-base on phones: anything under 16px makes iOS Safari
+            // auto-zoom the page the moment this input gets focus.
+            className="mb-1 h-8 w-full rounded-control border border-border bg-transparent px-2 text-base text-body outline-none placeholder:text-muted-foreground sm:text-sm"
           />
           <ul id="repo-combobox-listbox" role="listbox" aria-label="Repositories" className="max-h-56 overflow-y-auto">
             {matched.length === 0 && (

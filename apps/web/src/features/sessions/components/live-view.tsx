@@ -179,10 +179,12 @@ export function LiveView({
       {/* thanh trạng thái */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-2 sm:px-6">
         <StatusDot tone={ketThuc === null ? "agent" : ketThuc === "done" ? "ok" : "down"} />
-        <span className="font-mono text-xs text-muted-foreground">
+        {/* min-w-0 + truncate: repo · branch is the longest string on the
+            bar — on a phone it must give way, never push Stop off-screen. */}
+        <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">
           {phien.repo} · {phien.worktree ? `bee/${phien.slug}-${phien.num}` : "chat"}
         </span>
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="shrink-0 font-mono text-xs text-muted-foreground">
           {ketThuc === null ? (dangBan ? "working…" : "idle") : ketThuc}
         </span>
         <span className="flex-1" />

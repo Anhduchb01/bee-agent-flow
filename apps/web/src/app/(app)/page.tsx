@@ -28,7 +28,9 @@ export default async function TongQuanPage() {
       <div className="flex flex-col gap-6 p-4 sm:p-6">
         <SystemHealth health={health} />
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        {/* minmax(0,…) on BOTH breakpoints: the mobile single column also
+            needs it, or the Claude card's min-content blows past 390px. */}
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           <ClaudePanel snapshot={view.claude} now={view.readAt} />
 
           <section className="flex flex-col gap-4 rounded-card border border-border bg-card p-5">

@@ -85,15 +85,16 @@ export function RepoRegistry({
             <li key={r.slug} className="flex flex-col font-mono text-xs">
               <span className="flex items-center gap-2">
                 <CheckMark ok={protection[r.slug] ?? null} />
-                <span className="text-body">
+                {/* Repo name yields (truncate) so the two actions stay on-screen
+                    on a phone instead of pushing past the card edge. */}
+                <span className="min-w-0 flex-1 truncate text-body">
                   {r.repo} <span className="text-muted-foreground">({r.slug})</span>
                 </span>
-                <span className="flex-1" />
                 <a
                   href={`https://github.com/${r.repo}/settings/branches`}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-muted-foreground underline-offset-2 hover:underline"
+                  className="shrink-0 text-muted-foreground underline-offset-2 hover:underline"
                 >
                   Protect main ↗
                 </a>

@@ -21,7 +21,10 @@ export function PageHeader({
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4 sm:px-6">
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-4" />
-      <h1 className="text-xl font-semibold tracking-heading text-foreground">{title}</h1>
+      {/* Auto-titled sessions can be a whole sentence — truncate on phones. */}
+      <h1 className="min-w-0 truncate text-xl font-semibold tracking-heading text-foreground">
+        {title}
+      </h1>
       {meta ? <div className="hidden items-center gap-2 sm:flex">{meta}</div> : null}
       {children ? <div className="ml-auto flex items-center gap-2">{children}</div> : null}
     </header>

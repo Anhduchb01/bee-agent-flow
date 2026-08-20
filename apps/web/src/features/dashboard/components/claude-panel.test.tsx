@@ -1,7 +1,17 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { ClaudeSnapshot } from "@/lib/claude";
+
+// The refresh button pulls in a server action whose import chain reaches
+// next-auth, which vitest cannot resolve (`next/server`). Mock the module
+// boundary — the panel under test only needs the button to render.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+vi.mock("../api/actions", () => ({
+  refreshUsageAction: vi.fn(async () => ({ ok: true, message: "" })),
+}));
 
 import { ClaudePanel } from "./claude-panel";
 

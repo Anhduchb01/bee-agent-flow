@@ -15,7 +15,7 @@ export default async function CanvasPage() {
   const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc);
 
   return (
-    <div className="flex h-svh flex-col">
+    <div className="flex h-dvh flex-col">
       <PageHeader
         title="Canvas"
         meta={
