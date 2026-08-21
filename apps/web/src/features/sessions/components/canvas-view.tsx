@@ -111,6 +111,9 @@ function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
   return (
     <div className="w-56 cursor-pointer rounded-control border border-border bg-secondary px-3 py-2">
       <Handle type="target" position={Position.Left} className="!bg-muted-foreground" />
+      {/* Source handle BẮT BUỘC để dây PR → 🎬 demo vẽ được — thiếu nó
+          React Flow lặng lẽ bỏ edge dù dữ liệu có (bug 21/08). */}
+      <Handle type="source" position={Position.Right} className="!bg-muted-foreground" />
       <span className="flex items-center gap-2">
         <span className={mauArtifact(data.kind, live)} title={live?.state.toLowerCase()}>
           {data.kind === "pr" ? "⇄" : "◉"}
