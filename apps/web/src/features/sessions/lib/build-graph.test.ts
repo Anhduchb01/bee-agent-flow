@@ -31,13 +31,23 @@ describe("dungDoThi", () => {
       },
     );
 
-    // 2 nhãn repo + 2 phiên + 2 artifact
+    // 2 container repo + 2 phiên + 2 artifact
     expect(nodes).toHaveLength(6);
 
-    // Hai cột khác x; artifact dạt phải phiên của nó
+    // Mỗi repo MỘT container: group đứng TRƯỚC con (React Flow bắt buộc),
+    // con mang parentId + extent parent, hai container khác x.
+    const nhomA = nodes.find((n) => n.id === "group-you/myapp");
+    const nhomB = nodes.find((n) => n.id === "group-you/blog");
+    expect(nhomA?.type).toBe("repo-group");
+    expect(nhomA?.position.x).not.toBe(nhomB?.position.x);
+    expect(nodes.findIndex((n) => n.id === "group-you/myapp")).toBeLessThan(
+      nodes.findIndex((n) => n.id === A),
+    );
     const nodeA = nodes.find((n) => n.id === A);
-    const nodeB = nodes.find((n) => n.id === B);
-    expect(nodeA?.position.x).not.toBe(nodeB?.position.x);
+    expect(nodeA?.type === "phien" && nodeA.parentId).toBe("group-you/myapp");
+    expect(nodeA?.type === "phien" && nodeA.extent).toBe("parent");
+
+    // Artifact dạt phải phiên (toạ độ TƯƠNG ĐỐI trong container)
     const artifactPr = nodes.find((n) => n.id === `${A}-pr-123`);
     expect(artifactPr?.position.x).toBeGreaterThan(nodeA?.position.x ?? Infinity);
 

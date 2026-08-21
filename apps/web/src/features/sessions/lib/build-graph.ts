@@ -6,15 +6,18 @@ import type { NhomPhien } from "../api/load";
  * Dựng đồ thị canvas từ dữ liệu phiên — THUẦN, không import React Flow, để
  * test được không cần DOM và để server dựng sẵn, client chỉ vẽ.
  *
- * Layout là hàm của dữ liệu, không phải trạng thái: repo là cột, phiên xếp
- * dọc, artifact dạt phải phiên đẻ ra nó. V1 không lưu vị trí kéo tay —
- * reload về auto-layout (spec canvas §2).
+ * Mỗi repo là MỘT CONTAINER (group node của React Flow): phiên/artifact/demo
+ * là con, vị trí TƯƠNG ĐỐI trong container, `extent:"parent"` giữ con không
+ * kéo lọt ra ngoài — kéo container là cả cụm đi theo. V1 không lưu vị trí
+ * kéo tay — reload (hoặc nút Tidy) về auto-layout (spec canvas §2).
  */
 
 export interface NodePhien {
   id: string;
   type: "phien";
   position: { x: number; y: number };
+  parentId?: string;
+  extent?: "parent";
   data: {
     title: string;
     nhanh: string;
@@ -31,6 +34,8 @@ export interface NodeArtifact {
   id: string;
   type: "artifact";
   position: { x: number; y: number };
+  parentId?: string;
+  extent?: "parent";
   data: {
     kind: BeeArtifact["kind"];
     number: number | null;
@@ -40,26 +45,30 @@ export interface NodeArtifact {
   };
 }
 
-export interface NodeNhanRepo {
+/** Container một repo — group node, style mang kích thước tính sẵn. */
+export interface NodeNhomRepo {
   id: string;
-  type: "nhan-repo";
+  type: "repo-group";
   position: { x: number; y: number };
   data: { repo: string };
+  style: { width: number; height: number };
 }
 
-/** 🎬 demo video node (phương án A): attached to the PR its session made. */
+/** 🎬 demo video node: attached to the PR its session made. */
 export interface NodeDemo {
   id: string;
   type: "demo";
   position: { x: number; y: number };
+  parentId?: string;
+  extent?: "parent";
   data: {
     name: string;
-    /** /api/evidence/session/… — same-origin, authed, plays in a tab. */
+    /** /api/evidence/session/… — same-origin, authed. */
     url: string;
   };
 }
 
-export type NodeCanvas = NodePhien | NodeArtifact | NodeNhanRepo | NodeDemo;
+export type NodeCanvas = NodePhien | NodeArtifact | NodeNhomRepo | NodeDemo;
 
 export interface EdgeCanvas {
   id: string;
@@ -67,10 +76,18 @@ export interface EdgeCanvas {
   target: string;
 }
 
-const RONG_COT = 560;
+const PAD = 24;
+const CAO_HEADER = 44;
 const CAO_PHIEN = 120;
 const CAO_ARTIFACT = 84;
-const LECH_ARTIFACT_X = 300;
+const CAO_DEMO = 64;
+const X_PHIEN = PAD;
+const X_ARTIFACT = PAD + 300;
+const X_DEMO = X_ARTIFACT + 280;
+const RONG_PHIEN = 256; // w-64
+const RONG_ARTIFACT = 224; // w-56
+const RONG_DEMO = 208; // w-52
+const KHOANG_CACH_NHOM = 48;
 
 export function dungDoThi(
   nhom: NhomPhien[],
@@ -82,16 +99,21 @@ export function dungDoThi(
   const nodes: NodeCanvas[] = [];
   const edges: EdgeCanvas[] = [];
 
-  nhom.forEach((g, cot) => {
-    const x = cot * RONG_COT;
-    nodes.push({ id: `repo-${g.repo}`, type: "nhan-repo", position: { x, y: 0 }, data: { repo: g.repo } });
+  let nhomX = 0;
+  for (const g of nhom) {
+    const idNhom = `group-${g.repo}`;
+    const con: NodeCanvas[] = [];
+    let y = CAO_HEADER;
+    let coArtifact = false;
+    let coDemo = false;
 
-    let y = 48;
     for (const p of g.phien) {
-      nodes.push({
+      con.push({
         id: p.id,
         type: "phien",
-        position: { x, y },
+        position: { x: X_PHIEN, y },
+        parentId: idNhom,
+        extent: "parent",
         data: {
           title: p.title ?? `${p.slug}-${p.num}`,
           // Phiên chat không có branch — node nói thật điều đó thay vì bịa tên nhánh.
@@ -106,11 +128,14 @@ export function dungDoThi(
 
       const cua = artifacts[p.id] ?? [];
       cua.forEach((a, i) => {
+        coArtifact = true;
         const idA = `${p.id}-${a.kind}-${a.number ?? i}`;
-        nodes.push({
+        con.push({
           id: idA,
           type: "artifact",
-          position: { x: x + LECH_ARTIFACT_X, y: y + i * CAO_ARTIFACT },
+          position: { x: X_ARTIFACT, y: y + i * CAO_ARTIFACT },
+          parentId: idNhom,
+          extent: "parent",
           data: { kind: a.kind, number: a.number, url: a.url, title: a.title, ts: a.ts },
         });
         edges.push({ id: `e-${idA}`, source: p.id, target: idA });
@@ -121,14 +146,17 @@ export function dungDoThi(
       const clip = videos[p.id] ?? [];
       const prIdx = cua.findIndex((a) => a.kind === "pr");
       clip.forEach((v, i) => {
+        coDemo = true;
         const idV = `${p.id}-demo-${i}`;
-        nodes.push({
+        con.push({
           id: idV,
           type: "demo",
           position: {
-            x: x + LECH_ARTIFACT_X + (prIdx >= 0 ? 280 : 0),
-            y: y + (prIdx >= 0 ? prIdx * CAO_ARTIFACT : cua.length * CAO_ARTIFACT) + i * 64,
+            x: prIdx >= 0 ? X_DEMO : X_ARTIFACT,
+            y: y + (prIdx >= 0 ? prIdx * CAO_ARTIFACT : cua.length * CAO_ARTIFACT) + i * CAO_DEMO,
           },
+          parentId: idNhom,
+          extent: "parent",
           data: { name: v.name, url: v.url },
         });
         edges.push({
@@ -138,10 +166,29 @@ export function dungDoThi(
         });
       });
 
-      // Phiên chiếm chỗ theo cái cao hơn: chính nó hay chồng artifact của nó.
-      y += Math.max(CAO_PHIEN, cua.length * CAO_ARTIFACT + clip.length * 64) + 24;
+      // Phiên chiếm chỗ theo cái cao hơn: chính nó hay chồng artifact + demo.
+      y += Math.max(CAO_PHIEN, cua.length * CAO_ARTIFACT + clip.length * CAO_DEMO) + 24;
     }
-  });
+
+    // Kích thước container theo thứ xa phải nhất nó thật sự chứa.
+    const rong = coDemo
+      ? X_DEMO + RONG_DEMO + PAD
+      : coArtifact
+        ? X_ARTIFACT + RONG_ARTIFACT + PAD
+        : X_PHIEN + RONG_PHIEN + PAD;
+    const cao = Math.max(y, CAO_HEADER + CAO_PHIEN) + PAD - 24;
+
+    // Group PHẢI đứng trước con trong mảng — React Flow yêu cầu vậy.
+    nodes.push({
+      id: idNhom,
+      type: "repo-group",
+      position: { x: nhomX, y: 0 },
+      data: { repo: g.repo },
+      style: { width: rong, height: cao },
+    });
+    nodes.push(...con);
+    nhomX += rong + KHOANG_CACH_NHOM;
+  }
 
   return { nodes, edges };
 }

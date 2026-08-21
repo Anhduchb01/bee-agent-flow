@@ -257,6 +257,19 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       link bee — giờ mở https://ducba.tail7d9c45.ts.net/pr/lifebook-assessment/12
       là thấy đủ ảnh + video.
 
+## Canvas v3 (21/08) ✅ — container repo + preview video tại chỗ
+
+- [x] 🤖 Node 🎬 click → Sheet phát video NGAY TRÊN canvas (autoplay,
+      controls, link raw ↗) — không rời đồ thị; dây vẫn nối từ node PR.
+- [x] 🤖 Container theo repo: group node React Flow — phiên/artifact/demo
+      là con (parentId + extent:"parent", toạ độ tương đối), kéo container
+      cả cụm đi theo, kích thước tự tính theo thứ xa phải nhất; group đứng
+      trước con trong mảng (React Flow bắt buộc). Bỏ nhãn repo rời.
+- [x] 🤖 Nút "⌗ Tidy layout" góc phải: rebuild từ auto-layout — kéo rối
+      tay một nút là gọn lại (vị trí vốn không lưu, spec canvas §2).
+- [x] 🤖 Kiểm trên DỮ LIỆU THẬT (disk mode + dev login): 2 container,
+      node demo nối PR #12, video Lifebook phát trong Sheet.
+
 ## S5 · Ra internet
 
 - [x] 🤖 **S5.0** ~~Web thành service~~ **XONG 19/08** — `bee-web.service`

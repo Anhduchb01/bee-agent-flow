@@ -30,7 +30,7 @@ import type {
   NodeArtifact,
   NodeCanvas,
   NodeDemo,
-  NodeNhanRepo,
+  NodeNhomRepo,
   NodePhien,
 } from "../lib/build-graph";
 import { ArtifactPanel } from "./artifact-panel";
@@ -56,7 +56,7 @@ const TONE: Record<TrangThaiPhien, Tone> = {
 
 type FlowPhien = Node<NodePhien["data"] & Record<string, unknown>, "phien">;
 type FlowArtifact = Node<NodeArtifact["data"] & Record<string, unknown>, "artifact">;
-type FlowNhanRepo = Node<NodeNhanRepo["data"] & Record<string, unknown>, "nhan-repo">;
+type FlowNhomRepo = Node<NodeNhomRepo["data"] & Record<string, unknown>, "repo-group">;
 
 /** "2h ago" từ ISO — tính lúc render, node canvas không cần đồng hồ chạy. */
 function tuoi(ts: string | null): string | null {
@@ -159,38 +159,51 @@ const CHECKS_GLYPH: Record<string, { ky: string; mau: string }> = {
 
 type FlowDemo = Node<NodeDemo["data"] & Record<string, unknown>, "demo">;
 
-/** 🎬 demo video — same-origin authed url, plays right in a new tab. */
+/** 🎬 demo video — click previews IN a canvas sheet; ↗ opens the raw file. */
 function DemoNode({ data }: NodeProps<FlowDemo>) {
   return (
-    <a
-      href={data.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block w-52 rounded-control border border-border bg-secondary px-3 py-2"
-      title="Open demo video"
+    <div
+      className="w-52 cursor-pointer rounded-control border border-border bg-secondary px-3 py-2"
+      title="Preview demo video"
     >
       <Handle type="target" position={Position.Left} className="!bg-muted-foreground" />
       <span className="flex items-center gap-2">
         <span aria-hidden>🎬</span>
         <span className="min-w-0 truncate font-mono text-xs text-body">{data.name}</span>
-        <span className="ml-auto shrink-0 text-xs text-muted-foreground">↗</span>
+        <a
+          href={data.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="ml-auto shrink-0 text-xs text-muted-foreground hover:text-body"
+          aria-label="Open raw video"
+        >
+          ↗
+        </a>
       </span>
-    </a>
+    </div>
   );
 }
 
-function NhanRepoNode({ data }: NodeProps<FlowNhanRepo>) {
+/**
+ * Container một repo: group node — con nằm trong, kéo container cả cụm đi
+ * theo, `extent:"parent"` giữ con không lọt ra ngoài. Kích thước do
+ * build-graph tính (node.style), div này chỉ việc phủ kín.
+ */
+function RepoGroupNode({ data }: NodeProps<FlowNhomRepo>) {
   return (
-    <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
-      {data.repo}
-    </span>
+    <div className="h-full w-full rounded-card border border-border/70 bg-muted/10">
+      <p className="px-4 py-3 font-mono text-xs uppercase tracking-wide text-muted-foreground">
+        {data.repo}
+      </p>
+    </div>
   );
 }
 
 const nodeTypes: NodeTypes = {
   phien: PhienNode,
   artifact: ArtifactNode,
-  "nhan-repo": NhanRepoNode,
+  "repo-group": RepoGroupNode,
   demo: DemoNode,
 };
 
@@ -216,6 +229,7 @@ export function CanvasView({
     url: string;
     title: string | null;
   } | null>(null);
+  const [xemVideo, setXemVideo] = useState<{ name: string; url: string } | null>(null);
 
   // Controlled nodes + a 5s server refresh = the canvas updates LIVE: new
   // sessions and freshly created issue/PR nodes appear without a reload.
@@ -319,6 +333,10 @@ export function CanvasView({
         deleteKeyCode={null}
         onNodeClick={(_, node) => {
           if (node.type === "phien") setChon(phien.find((p) => p.id === node.id) ?? null);
+          if (node.type === "demo") {
+            const d = node.data as NodeDemo["data"];
+            setXemVideo({ name: d.name, url: d.url });
+          }
           if (node.type === "artifact") {
             const d = node.data as FlowArtifact["data"];
             const boc = bocArtifactUrl(d.url);
@@ -337,6 +355,20 @@ export function CanvasView({
             node mới hiện sau router.refresh, không rời đồ thị */}
         <Panel position="top-left" className="w-[26rem] max-w-[calc(100vw-2rem)]">
           <NewSessionForm repos={repos} onCreated={(p) => setChon(p)} />
+        </Panel>
+        {/* Kéo tay xong rối mắt? Một nút quay về auto-layout — vị trí không
+            được lưu (spec canvas §2), nên đây chỉ là rebuild từ props. */}
+        <Panel position="top-right">
+          <button
+            type="button"
+            onClick={() => {
+              setFlowNodes(nodes.map((n) => ({ ...n, data: { ...n.data } })));
+              setFlowEdges(edges.map((e) => ({ ...e })));
+            }}
+            className="rounded-control border border-border bg-card px-3 py-1.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-body"
+          >
+            ⌗ Tidy layout
+          </button>
         </Panel>
       </ReactFlow>
 
@@ -388,6 +420,40 @@ export function CanvasView({
                 {chon.title ?? `${chon.slug}-${chon.num}`}
               </SheetTitle>
               <LiveView phien={chon} commands={commands} />
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* 🎬 preview video demo ngay trên canvas — không rời đồ thị */}
+      <Sheet open={xemVideo !== null} onOpenChange={(mo) => !mo && setXemVideo(null)}>
+        <SheetContent
+          side="right"
+          className="flex flex-col gap-0 p-0"
+          style={{ width: "min(760px, 100vw)", maxWidth: "100vw" }}
+        >
+          {xemVideo !== null && (
+            <>
+              <SheetTitle className="border-b border-border px-4 py-3 pr-10 font-mono text-sm">
+                🎬 {xemVideo.name}
+              </SheetTitle>
+              <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+                <video
+                  src={xemVideo.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full rounded-control border border-border"
+                />
+                <a
+                  href={xemVideo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="self-start font-mono text-xs text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  Open raw file ↗
+                </a>
+              </div>
             </>
           )}
         </SheetContent>
