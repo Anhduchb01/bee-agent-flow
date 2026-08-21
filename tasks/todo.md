@@ -240,6 +240,23 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
       start unit (idempotent) → --resume nối đúng hội thoại, reload gắn
       lại SSE.
 
+## Phương án A — evidence xem trên bee (21/08) ✅
+
+- [x] 🤖 Chẩn bệnh: repo PRIVATE thì GitHub không render ảnh blob inline
+      trong PR (camo không đọc được private blob) — link bấm vẫn xem được.
+- [x] 🤖 Route `/pr/[slug]/[number]`: màn duyệt full-page (ArtifactPanel) có
+      URL — từ GitHub một chạm sang bee xem ảnh inline + video phát được +
+      AC của issue liên kết.
+- [x] 🤖 Skill bee-push-pr: snapshot copy thêm vào $BEE_SESSION_DIR/evidence
+      (panel tự hiện) + sau khi mở PR tự comment "📎 Review on bee: 
+      https://<tailnet>/pr/<slug>/<num>" (best-effort khi có tailscale).
+- [x] 🤖 Node 🎬 demo trên canvas: phiên có video trong evidence → node gắn
+      vào node PR (chưa có PR thì gắn vào phiên), click mở video tab mới
+      (url /api/evidence cùng origin, có auth).
+- [x] 🤖 Retro-fix PR #12 lifebook: copy 3 PNG vào evidence phiên + comment
+      link bee — giờ mở https://ducba.tail7d9c45.ts.net/pr/lifebook-assessment/12
+      là thấy đủ ảnh + video.
+
 ## S5 · Ra internet
 
 - [x] 🤖 **S5.0** ~~Web thành service~~ **XONG 19/08** — `bee-web.service`

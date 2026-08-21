@@ -9,6 +9,7 @@ import { listRunsIn, readRunIn } from "./runs-fs";
 import {
   docArtifactsTrong,
   docCauCuoiTrong,
+  docEvidenceTrong,
   docPhienTrong,
   duongDanRunTrong,
   lietKePhienTrong,
@@ -108,6 +109,7 @@ export function createDiskBeeSource(): BeeSource {
     listSessions: () => lietKePhienTrong(root()),
     readSession: (id) => docPhienTrong(root(), id),
     sessionArtifacts: (id) => docArtifactsTrong(root(), id),
+    listSessionEvidence: (id) => docEvidenceTrong(root(), id),
     findArtifactEvidence: (repo, kind, number) =>
       timEvidenceChoArtifact(root(), repo, kind, number),
     sessionPreview: (id) => docCauCuoiTrong(root(), id),

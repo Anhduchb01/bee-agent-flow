@@ -316,6 +316,8 @@ export interface BeeSource {
   readSession(id: string): Promise<BeeSession | null>;
   /** Issue/PR phiên này đã tạo — quét dòng `bee_artifact` trong run.jsonl. */
   sessionArtifacts(id: string): Promise<BeeArtifact[]>;
+  /** Evidence dir của MỘT phiên — canvas dùng để mọc node 🎬 demo. */
+  listSessionEvidence(id: string): Promise<BeeEvidenceTepTin[]>;
   /** Evidence của phiên đã đẻ ra issue/PR này — `null` khi không phiên nào khớp. */
   findArtifactEvidence(
     repo: string,

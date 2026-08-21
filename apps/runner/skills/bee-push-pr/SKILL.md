@@ -30,6 +30,16 @@ case "$BR" in bee/*) ;; *) echo "REFUSED: on '$BR', only bee/* branches may be p
    - Commit screenshots to the branch at `.bee/evidence/<short-branch>/*.png`
      (small PNGs, a few hundred KB each at most). Videos are NOT committed —
      they live at `$BEE_SESSION_DIR/evidence/` on the machine.
+   - ALSO copy the same screenshots into the session's evidence dir — the
+     bee review page renders them inline there (private repos cannot show
+     committed images inline in a PR body):
+
+```bash
+if [ -n "${BEE_SESSION_DIR:-}" ]; then
+  mkdir -p "$BEE_SESSION_DIR/evidence"
+  cp .bee/evidence/*/*.png "$BEE_SESSION_DIR/evidence/" 2>/dev/null || true
+fi
+```
 
 3. Make sure everything you intend to ship is committed. **No** blind
    `git add -A` — check `git status` for strays (`.env*`, credentials).
@@ -49,7 +59,9 @@ gh pr create --draft --title "<title>" --body-file - <<BODY
 - <which tests prove which AC, spec count, flake-guard repeats if any>
 
 ## Snapshots
-<!-- images committed on the branch, embedded via blob?raw=true — private repos still render them for authorized viewers -->
+<!-- On PRIVATE repos GitHub shows these as links only (its image proxy cannot
+     read private blobs) — inline viewing lives on the bee review page,
+     linked in the comment posted right after this PR is created. -->
 ![<what image 1 shows>](https://github.com/${OWNER_REPO}/blob/${BR}/.bee/evidence/<dir>/<file1>.png?raw=true)
 ![<what image 2 shows — 390px mobile shot for UI changes>](https://github.com/${OWNER_REPO}/blob/${BR}/.bee/evidence/<dir>/<file2>.png?raw=true)
 
@@ -73,7 +85,20 @@ if [ -n "${BEE_SESSION_DIR:-}" ]; then
 fi
 ```
 
-6. Report the PR URL back in one sentence.
+6. **Post the bee review link** — the page that DOES render snapshots and
+   the demo video inline (plan A). Best-effort: skip silently when
+   tailscale is absent.
+
+```bash
+NUM=$(gh pr view --json number --jq .number)
+SLUG=$(printf '%s' "$BR" | sed 's|^bee/||; s|-[0-9]*$||')
+HOST=$(tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty' | sed 's/\.$//')
+if [ -n "$HOST" ] && [ -n "$NUM" ]; then
+  gh pr comment --body "📎 **Review on bee** (snapshots + demo video inline): https://$HOST/pr/$SLUG/$NUM"
+fi
+```
+
+7. Report the PR URL back in one sentence.
 
 ## Never
 

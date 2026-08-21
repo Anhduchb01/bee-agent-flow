@@ -238,6 +238,12 @@ export function createFixtureBeeSource(): BeeSource {
       return ds.find((p) => p.id === id) ?? null;
     },
 
+    async listSessionEvidence() {
+      // Fixture has no per-session evidence store — the demo node stays a
+      // real-machine feature; the review panel is covered separately below.
+      return [];
+    },
+
     async findArtifactEvidence(_repo, _kind, _number) {
       // Fixture: reuse the demo shots that already live in fixtures/evidence
       // so the review panel shows real images without a machine.

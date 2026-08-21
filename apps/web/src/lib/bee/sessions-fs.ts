@@ -201,6 +201,22 @@ function loaiTep(name: string): BeeEvidenceTepTin["loai"] {
   return "khac";
 }
 
+/** List one session's evidence dir, typed and url'd for the web. */
+export async function docEvidenceTrong(root: string, id: string): Promise<BeeEvidenceTepTin[]> {
+  if (!laIdPhien(id)) return [];
+  let names: string[];
+  try {
+    names = await fs.readdir(path.join(root, "sessions", id, "evidence"));
+  } catch {
+    return [];
+  }
+  return names.sort().map((n) => ({
+    name: n,
+    url: `/api/evidence/session/${id}/${encodeURIComponent(n)}`,
+    loai: loaiTep(n),
+  }));
+}
+
 /**
  * Evidence for an issue/PR (V2.1): find the session whose run.jsonl logged
  * this artifact, then list its evidence dir. The review panel gets real
@@ -221,20 +237,7 @@ export async function timEvidenceChoArtifact(
         a.url.startsWith(`https://github.com/${repo}/`),
     );
     if (!trung) continue;
-    let names: string[];
-    try {
-      names = await fs.readdir(path.join(root, "sessions", phien.id, "evidence"));
-    } catch {
-      names = []; // session matched, just no evidence captured
-    }
-    return {
-      sessionId: phien.id,
-      files: names.sort().map((n) => ({
-        name: n,
-        url: `/api/evidence/session/${phien.id}/${encodeURIComponent(n)}`,
-        loai: loaiTep(n),
-      })),
-    };
+    return { sessionId: phien.id, files: await docEvidenceTrong(root, phien.id) };
   }
   return null;
 }

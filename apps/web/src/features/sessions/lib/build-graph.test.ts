@@ -74,3 +74,30 @@ describe("dungDoThi", () => {
     expect(node?.type === "phien" && node.data.nhanh).toBe("chat");
   });
 });
+
+describe("node 🎬 demo (phương án A)", () => {
+  it("video của phiên treo vào node PR khi có, vào node phiên khi chưa có PR", () => {
+    const phien = {
+      id: "p1", slug: "myapp", num: 1, repo: "you/myapp", title: "t", phase: "work" as const,
+      worktree: true, status: "done" as const, created_at: null, started_at: null,
+      ended_at: null, attempt: 0, needs_human: false,
+    };
+    const coPR = dungDoThi(
+      [{ repo: "you/myapp", phien: [phien] }],
+      { p1: [{ kind: "pr", url: "https://github.com/you/myapp/pull/9", number: 9, ts: null, title: null }] },
+      {},
+      { p1: [{ name: "demo.webm", url: "/api/evidence/session/p1/demo.webm" }] },
+    );
+    const nodeDemo = coPR.nodes.find((n) => n.type === "demo");
+    expect(nodeDemo).toMatchObject({ data: { name: "demo.webm" } });
+    expect(coPR.edges).toContainEqual({ id: "e-p1-demo-0", source: "p1-pr-9", target: "p1-demo-0" });
+
+    const chuaPR = dungDoThi(
+      [{ repo: "you/myapp", phien: [phien] }],
+      { p1: [] },
+      {},
+      { p1: [{ name: "demo.webm", url: "/x" }] },
+    );
+    expect(chuaPR.edges).toContainEqual({ id: "e-p1-demo-0", source: "p1", target: "p1-demo-0" });
+  });
+});

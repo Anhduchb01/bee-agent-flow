@@ -25,7 +25,14 @@ import { khoangThoiGian } from "@/lib/duration";
 
 import { loadArtifactDetailAction } from "../api/actions";
 import { bocArtifactUrl, mauArtifact, type ArtifactSong } from "../lib/artifact-live";
-import type { EdgeCanvas, NodeArtifact, NodeCanvas, NodeNhanRepo, NodePhien } from "../lib/build-graph";
+import type {
+  EdgeCanvas,
+  NodeArtifact,
+  NodeCanvas,
+  NodeDemo,
+  NodeNhanRepo,
+  NodePhien,
+} from "../lib/build-graph";
 import { ArtifactPanel } from "./artifact-panel";
 import { LiveView } from "./live-view";
 import { NewSessionForm } from "./new-session-form";
@@ -150,6 +157,28 @@ const CHECKS_GLYPH: Record<string, { ky: string; mau: string }> = {
   pending: { ky: "●", mau: "text-amber-500" },
 };
 
+type FlowDemo = Node<NodeDemo["data"] & Record<string, unknown>, "demo">;
+
+/** 🎬 demo video — same-origin authed url, plays right in a new tab. */
+function DemoNode({ data }: NodeProps<FlowDemo>) {
+  return (
+    <a
+      href={data.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block w-52 rounded-control border border-border bg-secondary px-3 py-2"
+      title="Open demo video"
+    >
+      <Handle type="target" position={Position.Left} className="!bg-muted-foreground" />
+      <span className="flex items-center gap-2">
+        <span aria-hidden>🎬</span>
+        <span className="min-w-0 truncate font-mono text-xs text-body">{data.name}</span>
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground">↗</span>
+      </span>
+    </a>
+  );
+}
+
 function NhanRepoNode({ data }: NodeProps<FlowNhanRepo>) {
   return (
     <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
@@ -162,6 +191,7 @@ const nodeTypes: NodeTypes = {
   phien: PhienNode,
   artifact: ArtifactNode,
   "nhan-repo": NhanRepoNode,
+  demo: DemoNode,
 };
 
 export function CanvasView({

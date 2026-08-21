@@ -38,25 +38,33 @@ export async function loadSession(id: string): Promise<BeeSession | null> {
   return getBee().readSession(id);
 }
 
-/** Dữ liệu cho trang canvas: nhóm phiên + artifact + preview câu cuối. */
+/** Dữ liệu cho trang canvas: nhóm phiên + artifact + preview câu cuối + demo. */
 export async function loadCanvas(): Promise<{
   nhom: NhomPhien[];
   artifacts: Record<string, BeeArtifact[]>;
   xemTruoc: Record<string, string | null>;
+  videos: Record<string, { name: string; url: string }[]>;
 }> {
   const nhom = await loadSessions();
   const bee = getBee();
   const artifacts: Record<string, BeeArtifact[]> = {};
   const xemTruoc: Record<string, string | null> = {};
+  const videos: Record<string, { name: string; url: string }[]> = {};
   await Promise.all(
     nhom.flatMap((g) =>
       g.phien.map(async (p) => {
-        [artifacts[p.id], xemTruoc[p.id]] = await Promise.all([
+        let evidence;
+        [artifacts[p.id], xemTruoc[p.id], evidence] = await Promise.all([
           bee.sessionArtifacts(p.id),
           bee.sessionPreview(p.id),
+          bee.listSessionEvidence(p.id),
         ]);
+        // Chỉ video mọc node 🎬 — ảnh đã sống trong panel duyệt PR.
+        videos[p.id] = evidence
+          .filter((f) => f.loai === "video")
+          .map((f) => ({ name: f.name, url: f.url }));
       }),
     ),
   );
-  return { nhom, artifacts, xemTruoc };
+  return { nhom, artifacts, xemTruoc, videos };
 }

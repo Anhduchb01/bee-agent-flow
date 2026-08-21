@@ -47,7 +47,19 @@ export interface NodeNhanRepo {
   data: { repo: string };
 }
 
-export type NodeCanvas = NodePhien | NodeArtifact | NodeNhanRepo;
+/** 🎬 demo video node (phương án A): attached to the PR its session made. */
+export interface NodeDemo {
+  id: string;
+  type: "demo";
+  position: { x: number; y: number };
+  data: {
+    name: string;
+    /** /api/evidence/session/… — same-origin, authed, plays in a tab. */
+    url: string;
+  };
+}
+
+export type NodeCanvas = NodePhien | NodeArtifact | NodeNhanRepo | NodeDemo;
 
 export interface EdgeCanvas {
   id: string;
@@ -64,6 +76,8 @@ export function dungDoThi(
   nhom: NhomPhien[],
   artifacts: Record<string, BeeArtifact[]>,
   xemTruoc: Record<string, string | null> = {},
+  /** Demo videos per session (name + authed url) — grows a 🎬 node each. */
+  videos: Record<string, { name: string; url: string }[]> = {},
 ): { nodes: NodeCanvas[]; edges: EdgeCanvas[] } {
   const nodes: NodeCanvas[] = [];
   const edges: EdgeCanvas[] = [];
@@ -102,8 +116,30 @@ export function dungDoThi(
         edges.push({ id: `e-${idA}`, source: p.id, target: idA });
       });
 
+      // 🎬 demo videos hang off the PR node (the artifact they evidence);
+      // a session with no PR yet parks them on the session node itself.
+      const clip = videos[p.id] ?? [];
+      const prIdx = cua.findIndex((a) => a.kind === "pr");
+      clip.forEach((v, i) => {
+        const idV = `${p.id}-demo-${i}`;
+        nodes.push({
+          id: idV,
+          type: "demo",
+          position: {
+            x: x + LECH_ARTIFACT_X + (prIdx >= 0 ? 280 : 0),
+            y: y + (prIdx >= 0 ? prIdx * CAO_ARTIFACT : cua.length * CAO_ARTIFACT) + i * 64,
+          },
+          data: { name: v.name, url: v.url },
+        });
+        edges.push({
+          id: `e-${idV}`,
+          source: prIdx >= 0 ? `${p.id}-pr-${cua[prIdx]!.number ?? prIdx}` : p.id,
+          target: idV,
+        });
+      });
+
       // Phiên chiếm chỗ theo cái cao hơn: chính nó hay chồng artifact của nó.
-      y += Math.max(CAO_PHIEN, cua.length * CAO_ARTIFACT) + 24;
+      y += Math.max(CAO_PHIEN, cua.length * CAO_ARTIFACT + clip.length * 64) + 24;
     }
   });
 

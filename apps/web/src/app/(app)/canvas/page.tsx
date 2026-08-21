@@ -7,12 +7,12 @@ export default async function CanvasPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [{ nhom, artifacts, xemTruoc }, repos, skills] = await Promise.all([
+  const [{ nhom, artifacts, xemTruoc, videos }, repos, skills] = await Promise.all([
     loadCanvas(),
     loadRepos(),
     getBee().listCommands(),
   ]);
-  const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc);
+  const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc, videos);
 
   return (
     <div className="flex h-dvh flex-col">
