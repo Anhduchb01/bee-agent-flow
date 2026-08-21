@@ -506,7 +506,7 @@
       <rect class="n-hum" x="16" y="330" width="204" height="118" rx="7"></rect>
       <text class="t"   x="32" y="356">Bạn</text>
       <text class="tsm" x="32" y="378">trình duyệt · điện thoại</text>
-      <text class="tsm" x="32" y="396">Cloudflare Access</text>
+      <text class="tsm" x="32" y="396">Tailscale · tailnet riêng</text>
       <text class="tsm" x="32" y="414">+ GitHub OAuth allowlist</text>
       <text class="ts"  x="32" y="438">merge luôn mang tên bạn (V2)</text>
 
@@ -630,16 +630,16 @@
       </defs>
 
       <rect class="n-hum" x="14" y="34" width="142" height="64" rx="6"></rect>
-      <text class="tm"  x="28" y="58">“ok làm đi”</text>
-      <text class="tsm" x="28" y="80">một nút, một lần</text>
+      <text class="tm"  x="28" y="58">tin nhắn đầu</text>
+      <text class="tsm" x="28" y="80">tự đặt tên phiên</text>
 
       <rect class="n-web" x="176" y="34" width="142" height="64" rx="6"></rect>
-      <text class="tm"  x="190" y="58">chuyển chế độ</text>
-      <text class="tsm" x="190" y="80">phase: work</text>
+      <text class="tm"  x="190" y="58">FIFO nhận</text>
+      <text class="tsm" x="190" y="80">bee_user_say ghi sổ</text>
 
       <rect class="n-agnt" x="338" y="34" width="142" height="64" rx="6"></rect>
-      <text class="tm"  x="352" y="58">resume có tool</text>
-      <text class="tsm" x="352" y="80">cùng session-id</text>
+      <text class="tm"  x="352" y="58">đủ tool từ câu đầu</text>
+      <text class="tsm" x="352" y="80">theo mode phiên</text>
 
       <rect class="n-web" x="500" y="34" width="142" height="64" rx="6"></rect>
       <text class="tm"  x="514" y="58">chữ chạy</text>
@@ -717,50 +717,58 @@
 
 <!-- ====================================================================== -->
 <section>
-  <div class="sec-head"><span class="view">Hai chế độ</span><h2>“Ok làm đi” — một phiên, hai chế độ</h2></div>
+  <div class="sec-head"><span class="view">Modes</span><h2>Một chế độ chat — bốn mức quyền, đổi giữa chừng</h2></div>
 
   <p class="col">
-    Cửa chặn duy nhất của cả sản phẩm là một lần <strong>chuyển chế độ</strong>
-    bên trong một phiên — không phải một màn hình khác, không phải một nhãn.
+    Cửa "phỏng vấn → ok làm đi" đã bỏ (19/08): phiên repo là chat có
+    <strong>đủ tool từ tin nhắn đầu tiên</strong>; phiên không repo không bao
+    giờ có tool. Thứ thay thế nó là <strong>mode per-phiên</strong> như menu
+    của Claude Code trong VSCode — chọn lúc tạo, đổi ngay giữa chat (menu
+    cạnh nút gửi). Đổi mode = web ghi <code>session.json</code> rồi restart
+    unit → nhánh <code>--resume</code> nối đúng hội thoại với cờ mới (đường
+    resume chứng minh ở rig S0.2 vẫn là xương sống, chỉ đổi vai).
   </p>
 
   <div class="table-wrap col">
     <table>
-      <thead><tr><th>Chế độ</th><th>Cách chạy</th><th>Tool</th></tr></thead>
+      <thead><tr><th>Mode</th><th>Cờ CLI</th><th>Hành vi</th></tr></thead>
       <tbody>
-        <tr>
-          <td><b>Phỏng vấn</b></td>
-          <td><code>claude --allowedTools ""</code> — hỏi tới khi thành hợp đồng task</td>
-          <td>Không có gì</td>
-        </tr>
-        <tr>
-          <td><b>Làm</b></td>
-          <td>Runner kết thúc tiến trình phỏng vấn, chạy lại
-              <code>claude --resume &lt;session-id&gt;</code> với đủ tool, trong worktree</td>
-          <td>Đủ — kể cả <code>gh</code></td>
-        </tr>
+        <tr><td><b>Auto</b> ⚡</td><td><code>--dangerously-skip-permissions</code></td>
+            <td>Làm hết không hỏi — mặc định, hàng rào nằm ở A+ chứ không ở hộp thoại</td></tr>
+        <tr><td><b>Plan</b></td><td><code>--permission-mode plan</code></td>
+            <td>Chỉ đọc + trình kế hoạch — khảo sát an toàn rồi đổi sang Auto</td></tr>
+        <tr><td><b>Edits</b></td><td><code>acceptEdits</code> + prompt-tool stdio</td>
+            <td>Sửa file tự do; tool khác hỏi qua thẻ trong chat</td></tr>
+        <tr><td><b>Manual</b> ✋</td><td><code>default</code> + prompt-tool stdio</td>
+            <td>Mọi tool hỏi trước — thẻ ⏸ Allow/Deny, bấm được từ điện thoại</td></tr>
       </tbody>
     </table>
   </div>
 
   <div class="note ok">
-    <p class="note-h">Đã chứng minh bằng rig S0.2</p>
+    <p class="note-h">Đã chứng minh bằng rig-05 (20/08)</p>
     <p>
-      Pha phỏng vấn chốt một hợp đồng có mã hiệu; pha resume chỉ nghe đúng câu
-      <em>"Ok làm đi — thực hiện đúng hợp đồng đã chốt"</em>, không được nhắc
-      lại nội dung — và agent tạo đúng file, đúng mã hiệu. Phiên <b>nhớ</b>,
-      không phải <b>nhìn lại</b>. Đường <code>control_request</code> (đổi mode
-      không cần restart) mượt hơn nhưng chưa kiểm chứng — nằm ở spec §11.
+      <code>--permission-prompt-tool stdio</code> là cờ <b>ẩn</b> (không có
+      trong --help, tìm ra bằng probe): prompt quyền thành dòng
+      <code>control_request/can_use_tool</code> trên stream; web trả
+      <code>control_response</code> qua đúng cái FIFO tin nhắn vẫn đi —
+      allow thì tool chạy thật, deny thì bị chặn và
+      <code>result.permission_denials</code> ghi nhận. Thẻ đã-trả-lời sống
+      qua replay nhờ dòng <code>bee_approval</code> web ghi sổ SAU khi FIFO nhận.
     </p>
   </div>
 
   <p class="col">
-    Sau khi chuyển chế độ, agent tự làm nốt phần GitHub bằng skill:
-    <code>bee-create-issue</code> khi hợp đồng chốt, <code>bee-push-pr</code>
-    khi có commit đáng cho người xem (từ chối nếu branch hiện tại không phải
-    <code>bee/*</code>), <code>bee-update-pr</code> cho các lần sau. Skill là
-    hướng dẫn cộng script mỏng gọi <code>gh</code> — hàng rào là PAT hẹp và
-    branch protection, không phải code trong skill.
+    Phần GitHub agent tự làm bằng skill — cả flow là hàng chip bấm được trên ô
+    chat: <code>bee-create-issue</code> (issue có template AC) →
+    <code>bee-push-pr</code> (draft PR <em>bằng-chứng-trước</em>: snapshot
+    commit vào <code>.bee/evidence/</code>, từ chối branch ngoài
+    <code>bee/*</code>) → <code>bee-demo</code> (video Playwright từ lượt chạy
+    xanh) → <code>bee-preview</code> (server sống + link tailnet). Repo
+    private không render ảnh inline trong PR, nên PR mang link về trang duyệt
+    <code>/pr/&lt;slug&gt;/&lt;số&gt;</code> của bee — ảnh, video và AC của
+    issue liên kết hiện ở đó; canvas mọc node 🎬 nối vào node PR. Hàng rào vẫn
+    là PAT hẹp và fence trước <code>main</code>, không phải code trong skill.
   </p>
 </section>
 
@@ -789,7 +797,7 @@
             <td>Branch protection <code>main</code> từng repo</td>
             <td>Agent (hoặc kẻ cầm PAT) push thẳng main — không ai duyệt gì nữa</td></tr>
         <tr><td class="num">4</td>
-            <td>Cloudflare Access + GitHub OAuth allowlist ở cửa trước</td>
+            <td>Tailscale ở rìa (web bind localhost, chỉ tailnet chạm được) + GitHub OAuth allowlist</td>
             <td>Mặt điều khiển của một máy chạy code tự động mở toang ra internet</td></tr>
         <tr><td class="num">5</td>
             <td>Xem billing Claude + audit log GitHub mỗi sáng</td>
@@ -1011,18 +1019,22 @@ $XDG_RUNTIME_DIR/bee/&lt;id&gt;.in   FIFO — đường vào một phiên</code>
     <table>
       <thead><tr><th>Mốc</th><th>Nội dung</th><th>Code</th><th>Nghiệm thu</th></tr></thead>
       <tbody>
-        <tr><td><b>S0</b></td><td>Rig hai ẩn số: gõ chen giữa tool call · phỏng vấn → resume có tool</td>
+        <tr><td><b>S0–S3</b></td><td>Rig hai ẩn số · runner · web đọc luồng · nối điều khiển</td>
             <td><span class="chip ok">đủ</span></td>
-            <td><span class="chip ok">xong 17/08 — cả hai thuận, 3 fixture thật</span></td></tr>
-        <tr><td><b>S1</b></td><td><code>apps/runner/</code>: session-run.sh · units + linger · reaper · doctor</td>
-            <td><span class="chip no">chưa</span></td><td>—</td></tr>
-        <tr><td><b>S2</b></td><td>Web đọc luồng: parse-events · route SSE · màn live + session list</td>
-            <td><span class="chip no">chưa</span></td><td>—</td></tr>
-        <tr><td><b>S3</b></td><td>Nối: start/say/stop · "ok làm đi" chuyển chế độ · 3 skill GitHub</td>
-            <td><span class="chip no">chưa</span></td><td>—</td></tr>
-        <tr><td><b>S4</b></td><td>Máy thật + vệ sinh A+: PAT, branch protection, 6 bài rig nghiệm thu</td>
-            <td>—</td><td><span class="chip no">chưa</span></td></tr>
-        <tr><td><b>S5</b></td><td>Ra internet: OAuth allowlist + Cloudflare Access → thử từ điện thoại</td>
+            <td><span class="chip ok">xong 17/08 — rig + fixture thật</span></td></tr>
+        <tr><td><b>S4</b></td><td>Máy thật + vệ sinh A+: cài templated, doctor, pre-push fence (Free plan), env.d overlay</td>
+            <td><span class="chip ok">đủ</span></td>
+            <td><span class="chip ok">xong 19/08 — rig trên máy thật, 2 bug thật bị rig bắt</span></td></tr>
+        <tr><td><b>S5</b></td><td>Ra internet: GitHub OAuth allowlist + <b>Tailscale</b> (đổi từ Cloudflare 20/08)</td>
+            <td><span class="chip ok">đủ</span></td>
+            <td><span class="chip ok">xong 20/08 — login + flow từ điện thoại</span></td></tr>
+        <tr><td><b>V2</b></td><td>Duyệt trong app · canvas sống + container · preview/demo quản trên web · modes ⚡✋ · approvals · Continue</td>
+            <td><span class="chip ok">đủ</span></td>
+            <td><span class="chip ok">xong 20–21/08 — rig-05 + 358 test</span></td></tr>
+        <tr><td><b>Flow thật</b></td><td>lifebook: 1 câu lệnh → issue #11 → 4 cổng xanh → PR #12 + snapshot → video demo</td>
+            <td>—</td>
+            <td><span class="chip ok">xong 21/08 — 55 lượt, 0 lần hỏi tay</span></td></tr>
+        <tr><td><b>V3</b></td><td>Vận hành bền (trần run.jsonl, dọn sau merge) · hàng đợi/đi ngủ · ngân sách hạn mức</td>
             <td><span class="chip no">chưa</span></td><td>—</td></tr>
       </tbody>
     </table>
@@ -1032,7 +1044,8 @@ $XDG_RUNTIME_DIR/bee/&lt;id&gt;.in   FIFO — đường vào một phiên</code>
   <ul class="col">
     <li><b>Dùng lại nguyên:</b> mẫu chạy claude stream-json + <code>usage</code>/<code>stop_reason</code>
       (agent-exec.sh) · logic dọn xác và heartbeat · thiết kế SSE tail theo offset ·
-      15 feature slice web trên fixture · cửa sổ phỏng vấn.</li>
+      15 feature slice web trên fixture. (Cửa sổ phỏng vấn cũng được mang
+      theo, rồi bỏ hẳn 19/08 khi chốt một-chế-độ.)</li>
     <li><b>Đóng băng, xoá ở V4:</b> cầu socket spec-chat · sudoers/polkit hai UID ·
       rule 07/08 (hàng đợi nhãn) · hộp thư 5 loại suy từ nhãn.</li>
     <li><b>Fallback trọn vẹn:</b> nhánh <code>feat/bee-m3-and-web-spec</code>,
