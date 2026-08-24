@@ -357,7 +357,7 @@ repo-group; khi phiên chạy thì node phiên thật thay chỗ.
 
 ### Phase 4 · Bản tin sáng (FR-5.3 P1)
 
-#### T10 · Tổng hợp đêm qua
+#### T10 · Tổng hợp đêm qua — ✅ XONG 24/08
 **Mô tả:** Từ `sessions/*/meta.json` + artifact + `queue.json`: chạy gì, xong gì,
 kẹt gì **và vì sao** — câu tiếng người, không phải mã lỗi (PRD: "câu đọc được").
 
@@ -368,7 +368,7 @@ kẹt gì **và vì sao** — câu tiếng người, không phải mã lỗi (PR
 **Verification** · [ ] test thuần trên fixture 3 kịch bản · [ ] đọc thật một sáng
 **Dependencies:** T8 · **Files:** `features/brief/*` · **Scope:** M
 
-#### T11 · Lối vào bản tin
+#### T11 · Lối vào bản tin — ✅ XONG 24/08
 **Mô tả:** Trang `/brief` + dòng tóm tắt trên Overview khi có bản tin chưa đọc.
 
 **Acceptance criteria** · [ ] Mở app buổi sáng là thấy ngay, không phải đi tìm

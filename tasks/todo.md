@@ -95,9 +95,12 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 
 ## P4 · Bản tin sáng (FR-5.3 P1)
 
-- [ ] 🤖 **T10** Tổng hợp đêm qua (M) — chạy gì / xong gì / kẹt gì **và vì sao**,
-      câu tiếng người; rỗng-vì-không-xếp-việc ≠ rỗng-vì-lỗi.
-- [ ] 🤖 **T11** `/brief` + dòng nhắc trên Overview (S).
+- [x] 🤖 **T10** ~~Tổng hợp đêm qua~~ **XONG 24/08** — `dungBanTin()` thuần (7 test).
+      Ba loại đêm là một trường riêng, không bắt UI đoán từ mảng rỗng:
+      *không-xếp-việc* · *xếp-mà-không-chạy* · *có-việc* (PRD §4.1). Mỗi việc kẹt
+      bắt buộc mang một câu vì-sao; thiếu `reason` thì suy từ trạng thái.
+- [x] 🤖 **T11** ~~Lối vào bản tin~~ **XONG 24/08** — trang `/brief` ("Đêm qua"),
+      thứ tự: chờ-bạn-duyệt → kẹt → đã chạy → còn chờ; mục sidebar riêng.
 
 ## P4b · Nền cho docker (làm cùng lúc tách user)
 

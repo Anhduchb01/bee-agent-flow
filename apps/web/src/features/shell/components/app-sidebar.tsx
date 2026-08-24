@@ -3,6 +3,7 @@
 import {
   CircleGaugeIcon,
   KanbanIcon,
+  SunriseIcon,
   LogOutIcon,
   PlusIcon,
   TerminalIcon,
@@ -166,6 +167,17 @@ export function AppSidebar({
                 >
                   <KanbanIcon />
                   <span>Projects</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname.startsWith("/brief")}
+                  tooltip="Đêm qua"
+                  onClick={dongTrenDienThoai}
+                  render={<Link href="/brief" />}
+                >
+                  <SunriseIcon />
+                  <span>Đêm qua</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
