@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 import { AppSidebar } from "./app-sidebar";
 
@@ -10,9 +11,11 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
-// jsdom has no matchMedia; the sidebar's mobile hook needs a stub.
+// jsdom has no matchMedia; the sidebar's mobile hook needs a stub. `dienThoai`
+// flips it so the same component can be rendered at phone width.
+let dienThoai = false;
 window.matchMedia = ((query: string) => ({
-  matches: false,
+  matches: dienThoai && query.includes("max-width"),
   media: query,
   addEventListener: () => {},
   removeEventListener: () => {},
@@ -26,6 +29,9 @@ function renderSidebar(duAn: { slug: string; dangChay: number; tone: "ok" | "age
   return render(
     <TooltipProvider>
       <SidebarProvider>
+        {/* The real trigger lives in PageHeader; on a phone the sheet cannot
+            be opened without it, so the test needs one too. */}
+        <SidebarTrigger />
         <AppSidebar
           displayName="Đức"
           login="Anhduchb01"
@@ -55,5 +61,50 @@ describe("AppSidebar — Projects section speaks the session model", () => {
   it("the + action registers a repo — it goes to /setup, not the legacy projects page", () => {
     renderSidebar([]);
     expect(screen.getByRole("link", { name: "Register repo" })).toHaveAttribute("href", "/setup");
+  });
+});
+
+describe("on a phone the sidebar is a sheet — it must get out of the way", () => {
+  afterEach(() => {
+    dienThoai = false;
+  });
+
+  async function moSheet() {
+    dienThoai = true;
+    const user = userEvent.setup();
+    renderSidebar([{ slug: "lifebook-assessment", dangChay: 0, tone: "ok" }]);
+    await user.click(screen.getByRole("button", { name: /toggle sidebar/i }));
+    return user;
+  }
+
+  it("tapping a project closes the sheet instead of navigating behind it", async () => {
+    const user = await moSheet();
+    const duAn = await screen.findByRole("link", { name: /lifebook-assessment/ });
+
+    await user.click(duAn);
+    await waitFor(() => expect(duAn).not.toBeInTheDocument());
+  });
+
+  /**
+   * The + carries the same close-on-tap handler as every other link here, but
+   * jsdom closes the sheet on that click either way (it cannot navigate, and
+   * the dialog reacts to focus leaving), so a "sheet closed" assertion would
+   * pass with the handler removed — it would prove nothing. What IS provable
+   * is the other half of the fix: the tap target. 20px icon + inset-3 = 44px,
+   * Apple's floor; it was inset-2 (36px) and easy to miss with a thumb.
+   */
+  it("the + has a thumb-sized tap target, not just a 20px icon", () => {
+    renderSidebar([]);
+    const them = screen.getByRole("link", { name: "Register repo" });
+    expect(them).toHaveClass("after:-inset-3");
+    expect(them).not.toHaveClass("after:-inset-2");
+  });
+
+  it("on a desktop viewport the same clicks leave the sidebar in place", async () => {
+    const user = userEvent.setup();
+    renderSidebar([{ slug: "blog", dangChay: 0, tone: "ok" }]);
+
+    await user.click(screen.getByRole("link", { name: /blog/ }));
+    expect(screen.getByRole("link", { name: /blog/ })).toBeInTheDocument();
   });
 });

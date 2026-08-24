@@ -27,6 +27,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 export interface DuAnTrongSidebar {
@@ -65,6 +66,18 @@ export function AppSidebar({
   dangXuat: () => Promise<void>;
 }) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  /**
+   * On a phone the sidebar IS a sheet over the page, and nothing used to
+   * close it: tapping a project or the + navigated underneath while the
+   * sheet stayed up, so the whole Projects section read as "not tappable".
+   * Every link in here closes it on the way out. Desktop is untouched —
+   * there the sidebar is not covering anything.
+   */
+  function dongTrenDienThoai() {
+    if (isMobile) setOpenMobile(false);
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -102,6 +115,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname === "/"}
                   tooltip="Overview"
+                  onClick={dongTrenDienThoai}
                   render={<Link href="/" />}
                 >
                   <CircleGaugeIcon />
@@ -112,6 +126,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname.startsWith("/sessions")}
                   tooltip="Sessions"
+                  onClick={dongTrenDienThoai}
                   render={<Link href="/sessions" />}
                 >
                   <TerminalIcon />
@@ -122,6 +137,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname.startsWith("/canvas")}
                   tooltip="Canvas"
+                  onClick={dongTrenDienThoai}
                   render={<Link href="/canvas" />}
                 >
                   <WaypointsIcon />
@@ -132,6 +148,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname.startsWith("/setup")}
                   tooltip="Setup"
+                  onClick={dongTrenDienThoai}
                   render={<Link href="/setup" />}
                 >
                   <WrenchIcon />
@@ -146,7 +163,16 @@ export function AppSidebar({
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
           {/* Registering a repo lives on /setup now — the legacy /projects
               add-flow writes to the old model and misled a real user. */}
-          <SidebarGroupAction title="Register repo" render={<Link href="/setup" />}>
+          {/* after:-inset-3 lifts the tap target from 36px to 44px (Apple's
+              floor) without moving the 20px icon; md:after:hidden in the
+              base class keeps the mouse behaviour unchanged. */}
+          <SidebarGroupAction
+            title="Register repo"
+            aria-label="Register repo"
+            className="after:-inset-3"
+            onClick={dongTrenDienThoai}
+            render={<Link href="/setup" />}
+          >
             <PlusIcon />
           </SidebarGroupAction>
           <SidebarGroupContent>
@@ -155,6 +181,7 @@ export function AppSidebar({
                 <SidebarMenuItem key={d.slug}>
                   <SidebarMenuButton
                     tooltip={d.slug}
+                    onClick={dongTrenDienThoai}
                     render={<Link href="/sessions" />}
                   >
                     <StatusDot tone={d.tone} />

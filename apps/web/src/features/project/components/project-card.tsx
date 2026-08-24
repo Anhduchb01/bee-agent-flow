@@ -25,10 +25,21 @@ function So({ nhan, gia }: { nhan: string; gia: string }) {
 export function ProjectCard({ project }: { project: ProjectView }) {
   return (
     <li>
-      <Card className="h-full transition-colors hover:border-faint">
+      {/*
+       * The whole card is the tap target, not just the slug text. It used to
+       * be a text-sized link inside a card that already had hover styling —
+       * on a phone that reads as "the card does nothing". `after:inset-0`
+       * stretches the ONE link over the card (nothing else in here is
+       * interactive, so no nested-control trap) and keeps a single
+       * accessible name for screen readers.
+       */}
+      <Card className="relative h-full transition-colors hover:border-faint focus-within:border-faint">
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2.5 tracking-title">
-          <Link href={`/p/${project.slug}`} className="underline-offset-4 hover:underline">
+          <Link
+            href={`/p/${project.slug}`}
+            className="underline-offset-4 after:absolute after:inset-0 hover:underline"
+          >
             {project.slug}
           </Link>
           {project.repo?.paused ? (
