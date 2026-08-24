@@ -8,6 +8,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { deriveSessionTitle } from "./derive-title";
+import { capPhatDaiCong } from "./ports";
 import { docUsageTaiKhoan } from "./quota-read";
 import { xetHanMuc } from "./quota-gate";
 import { laIdPhien } from "./session-id";
@@ -49,6 +50,31 @@ function laFixture(): boolean {
 /** Id phiên demo của fixture — trang live có cái để stream mà không cần máy thật. */
 export const PHIEN_DEMO = "de300000-0000-4000-8000-000000000001";
 
+/** Dải cổng các phiên KHÁC đang giữ — kể cả khi compose của chúng chưa lên. */
+async function daiCongDangGiu(): Promise<number[]> {
+  const thuMuc = path.join(root(), "sessions");
+  let ids: string[] = [];
+  try {
+    ids = await fs.readdir(thuMuc);
+  } catch {
+    return [];
+  }
+  const ra: number[] = [];
+  await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const raw = JSON.parse(
+          await fs.readFile(path.join(thuMuc, id, "session.json"), "utf8"),
+        ) as Record<string, unknown>;
+        if (typeof raw.port_base === "number") ra.push(raw.port_base);
+      } catch {
+        // session.json thiếu/hỏng — không giữ chỗ nào.
+      }
+    }),
+  );
+  return ra;
+}
+
 const SLUG_RE = /^[a-z0-9-]+$/;
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
@@ -88,6 +114,14 @@ export async function moPhien(input: {
     return { ok: false, message: `Không mở phiên mới: ${phanh.lyDo}` };
   }
 
+  // ── Dải cổng riêng cho phiên (V3.T14) ─────────────────────────────────
+  // Repo dùng docker compose ghim cổng (`${POSTGRES_PORT:-5432}`), nên hai
+  // phiên cùng repo — hoặc một phiên và stack của chính chủ máy — sẽ đụng nhau
+  // nếu không cấp dải riêng. Cấp một lần lúc mở; resume dùng lại số đã ghi.
+  const cong = input.worktree
+    ? await capPhatDaiCong({ daDung: await daiCongDangGiu() })
+    : null;
+
   const id = randomUUID();
   const sdir = path.join(root(), "sessions", id);
   try {
@@ -104,6 +138,8 @@ export async function moPhien(input: {
       mode,
       system_prompt: input.systemPrompt ?? "",
       max_turns: 120,
+      /** Dải 10 cổng của phiên; `null` = phiên chat, không cần. */
+      port_base: cong,
       created_at: new Date().toISOString(),
     };
     // tmp + rename: runner đọc file này — không ai được thấy nửa file.

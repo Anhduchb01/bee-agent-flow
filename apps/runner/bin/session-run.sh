@@ -151,19 +151,29 @@ if [[ "$CO_WORKTREE" == "yes" ]]; then
   # updating a key once reaches every new session. Each copied path is
   # also added to the worktree's private git exclude: the agent can READ
   # the keys but can never commit them, even when .gitignore misses them.
+  # Dải cổng riêng của phiên (V3.T14) — web cấp lúc mở, ghi trong session.json.
+  PORT_BASE=$(jq -r '.port_base // empty' "$SDIR/session.json")
+  ghi_cong "$WT" "$PORT_BASE"
+
   ENVD="$BEE_ROOT/env.d/$SLUG"
   if [[ -d "$ENVD" ]]; then
     EXCL="$(git -C "$WT" rev-parse --git-path info/exclude)"
     mkdir -p "$(dirname "$EXCL")"
+    # chep_env_d thay ${BEE_PORT_n} bằng cổng thật của phiên này.
+    chep_env_d "$ENVD" "$WT" "$PORT_BASE"
     SO_ENV=0
     while IFS= read -r f; do
       rel="${f#./}"
-      mkdir -p "$WT/$(dirname "$rel")"
-      cp "$ENVD/$rel" "$WT/$rel"
       grep -qxF "/$rel" "$EXCL" 2>/dev/null || echo "/$rel" >> "$EXCL"
       SO_ENV=$((SO_ENV + 1))
     done < <(cd "$ENVD" && find . -type f)
     (( SO_ENV > 0 )) && lifecycle "$SDIR" "Đã chép $SO_ENV file env từ env.d/$SLUG (git exclude, không thể commit)."
+  fi
+  # .bee/ luôn bị loại khỏi git: ports.env là của phiên, không phải của repo.
+  if [[ -n "$PORT_BASE" ]]; then
+    EXCL="$(git -C "$WT" rev-parse --git-path info/exclude)"
+    grep -qxF "/.bee/ports.env" "$EXCL" 2>/dev/null || echo "/.bee/ports.env" >> "$EXCL"
+    lifecycle "$SDIR" "Dải cổng của phiên: $PORT_BASE–$(( PORT_BASE + 9 )) (xem .bee/ports.env)."
   fi
 fi
 

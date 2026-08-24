@@ -378,7 +378,7 @@ kẹt gì **và vì sao** — câu tiếng người, không phải mã lỗi (PR
 
 ### Phase 5 · Nợ nhỏ (làm khi đụng tự nhiên)
 
-- **T14 · `.env` per-phiên + cấp dải cổng** (M) — quét dải 10 cổng trống liên
+- **T14 · `.env` per-phiên + cấp dải cổng** ✅ XONG 24/08 — quét dải 10 cổng trống liên
   tiếp từ 54000 lúc mở phiên, ghi vào `session.json` (resume dùng lại đúng dải),
   sinh `.env` trong worktree qua đường `env.d` đã có. Không dùng công thức tĩnh
   `54000+num`: hai repo có thể trùng `num`, và cổng có thể đã bị chiếm.

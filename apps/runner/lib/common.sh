@@ -55,3 +55,48 @@ dung_worktree() {
     git --git-dir="$bare" worktree add --quiet -b "$branch" "$wt" "$def"
   fi
 }
+
+# ghi_cong <worktree> <base|rỗng> — đưa dải cổng của phiên vào worktree.
+#
+# compose của repo ghim cổng bằng `${POSTGRES_PORT:-5432}`, nên hai phiên cùng
+# repo sẽ đụng nhau nếu không có dải riêng. bee cấp dải; repo tự chọn ánh xạ
+# cổng nào vào việc gì (bee KHÔNG biết tên biến của từng repo, và không nên biết).
+ghi_cong() {
+  local wt="$1" base="$2"
+  [[ -n "$base" ]] || return 0
+  mkdir -p "$wt/.bee"
+  {
+    echo "# Sinh bởi bee — dải cổng riêng của phiên này. Đừng commit."
+    echo "BEE_PORT_BASE=$base"
+    local i
+    for i in $(seq 0 9); do echo "BEE_PORT_$i=$(( base + i ))"; done
+  } > "$wt/.bee/ports.env"
+}
+
+# chep_env_d <env.d/slug> <worktree> <base|rỗng>
+#
+# Chép file env vào worktree, thay `${BEE_PORT_n}` bằng cổng thật. CHỈ thay
+# đúng họ biến đó: `envsubst` không giới hạn sẽ nuốt luôn `$VAR` trong secret
+# của repo và làm hỏng chính thứ nó đang mang.
+chep_env_d() {
+  local envd="$1" wt="$2" base="$3"
+  [[ -d "$envd" ]] || return 0
+  local ds=""
+  if [[ -n "$base" ]]; then
+    ds='${BEE_PORT_BASE}'
+    local i
+    for i in $(seq 0 9); do ds="$ds \${BEE_PORT_$i}"; done
+    export BEE_PORT_BASE="$base"
+    for i in $(seq 0 9); do export "BEE_PORT_$i=$(( base + i ))"; done
+  fi
+  local f rel
+  while IFS= read -r f; do
+    rel="${f#./}"
+    mkdir -p "$wt/$(dirname "$rel")"
+    if [[ -n "$ds" ]] && command -v envsubst >/dev/null; then
+      envsubst "$ds" < "$envd/$rel" > "$wt/$rel"
+    else
+      cp "$envd/$rel" "$wt/$rel"
+    fi
+  done < <(cd "$envd" && find . -type f)
+}

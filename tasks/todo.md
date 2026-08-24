@@ -109,9 +109,12 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       hình C (`bee-orch` đang trong group docker!) · `gh` đăng nhập đúng
       `Anhduchb01` bằng PAT hẹp · rootless docker · deploy · tailscale serve.
       Nghiệm thu: `docker run -v /home/ducba:/h alpine ls /h` → Permission denied.
-- [ ] 🤖 **T14** `.env` per-phiên + cấp dải 10 cổng trống (M) — chặn mọi repo
-      dùng compose; ecvision đã tham số hoá `${POSTGRES_PORT:-5432}` nên chỉ
-      cần file `.env`.
+- [x] 🤖 **T14** ~~`.env` per-phiên + dải cổng~~ **XONG 24/08** — `capPhatDaiCong()`
+      quét THẬT bằng bind (4 test), tránh cả dải phiên khác **đã giữ chỗ dù chưa
+      listen**; `port_base` vào session.json nên resume dùng lại đúng dải.
+      Runner sinh `.bee/ports.env` + thay `${BEE_PORT_n}` trong env.d **chỉ đúng
+      họ biến đó** — envsubst không giới hạn sẽ nuốt `$VAR` trong secret của
+      repo. rig-11: 7/7. bee không cần biết tên biến của từng repo.
 - [ ] 🤖 **T15** Cấp lát dịch vụ cho phiên (M) — database + **role riêng**,
       vhost, bucket; gc thu hồi.
 
