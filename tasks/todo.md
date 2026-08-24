@@ -59,9 +59,10 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       gọi `POST /api/tick` (D2b: timer là đồng hồ, chính sách ở TS). Token
       `BEE_TICK_TOKEN` trong web.env do install.sh sinh, so sánh timing-safe,
       thiếu token thì route đóng hẳn (503). Hai nửa quota/harvest độc lập.
-- [ ] 🤖 **T5** Phanh trước khi cạn (M) — `QUOTA_BRAKE_PCT` (mặc định 85): trên
-      ngưỡng không mở phiên mới, lý do đọc được ("5h window 91%, reset 14:20");
-      phiên đang chạy không bị giết.
+- [x] 🤖 **T5** ~~Phanh trước khi cạn~~ **XONG 24/08** — `xetHanMuc()` thuần (8
+      test bảng) + chốt ở `moPhien` (chỗ DUY NHẤT mọi phiên mới đi qua, kể cả
+      hàng đợi đêm sau này). Số cũ >3h: fail-open nhưng nói rõ đang bay mù; cũ
+      MÀ đã quá ngưỡng thì vẫn phanh. `Continue` không bị chặn.
 - [ ] 🤖 **T6** Trần chi một phiên (S) — reaper đọc `usage.json`, vượt trần →
       dừng + `needs_human` + lý do.
 - [ ] ✅ **Checkpoint 2** — ép quota trên ngưỡng: chặn đúng, lý do đọc được trên

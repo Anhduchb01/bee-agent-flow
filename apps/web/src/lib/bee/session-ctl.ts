@@ -8,6 +8,8 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { deriveSessionTitle } from "./derive-title";
+import { docUsageTaiKhoan } from "./quota-read";
+import { xetHanMuc } from "./quota-gate";
 import { laIdPhien } from "./session-id";
 import {
   CAC_MODE_PHIEN,
@@ -73,6 +75,18 @@ export async function moPhien(input: {
   if (!CAC_MODE_PHIEN.includes(mode)) return { ok: false, message: "Invalid session mode." };
 
   if (laFixture()) return { ok: true, id: PHIEN_DEMO };
+
+  // ── Phanh hạn mức (FR-3.3) ────────────────────────────────────────────
+  // MỘT chỗ duy nhất, và cố ý đặt ở đây chứ không ở action: hàng đợi đêm
+  // (V3.T8) cũng đi qua moPhien, nên đặt ở tầng action là để hở đúng cái
+  // đường mà không ai ngồi canh. `Continue` phiên cũ KHÔNG đi qua đây —
+  // PRD nói "không mở phiên MỚI", nối lại một hội thoại đang dở thì không.
+  const phanh = xetHanMuc(await docUsageTaiKhoan(root()), {
+    nguong: Number(process.env.QUOTA_BRAKE_PCT ?? 85),
+  });
+  if (!phanh.moDuoc) {
+    return { ok: false, message: `Không mở phiên mới: ${phanh.lyDo}` };
+  }
 
   const id = randomUUID();
   const sdir = path.join(root(), "sessions", id);

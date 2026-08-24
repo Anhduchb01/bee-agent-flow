@@ -262,7 +262,7 @@ trong `machine-ctl.ts` qua endpoint tick (D2b), không viết bản thứ hai.
 **Verification** · [ ] chờ 2 tick trên máy thật · [ ] test đường lỗi
 **Dependencies:** D2 · **Files:** unit + 1 route + 1 lib · **Scope:** S
 
-#### T5 · Phanh trước khi cạn (FR-3.3)
+#### T5 · Phanh trước khi cạn (FR-3.3) — ✅ XONG 24/08
 **Mô tả:** Ngưỡng `QUOTA_BRAKE_PCT` (mặc định 85) trong `web.env`. Vượt ngưỡng:
 **không mở phiên mới** — cả từ hàng đợi lẫn từ nút New session; nút bị chặn nói
 rõ lý do và lúc reset. Phiên đang chạy không bị giết.
