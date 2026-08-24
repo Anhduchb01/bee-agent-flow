@@ -55,8 +55,10 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 
 ## P2 · Hạn mức tươi + phanh (FR-3.3 P0 · FR-3.4 P1)
 
-- [ ] 🤖 **T4** `bee-usage.timer` tự refresh `claude-usage.json` (S) — gọi hỏng
-      thì ghi lý do, **không** ghi đè số cũ bằng rỗng.
+- [x] 🤖 **T4** ~~Hạn mức tự làm mới~~ **XONG 24/08** — `bee-tick.timer` (30 phút)
+      gọi `POST /api/tick` (D2b: timer là đồng hồ, chính sách ở TS). Token
+      `BEE_TICK_TOKEN` trong web.env do install.sh sinh, so sánh timing-safe,
+      thiếu token thì route đóng hẳn (503). Hai nửa quota/harvest độc lập.
 - [ ] 🤖 **T5** Phanh trước khi cạn (M) — `QUOTA_BRAKE_PCT` (mặc định 85): trên
       ngưỡng không mở phiên mới, lý do đọc được ("5h window 91%, reset 14:20");
       phiên đang chạy không bị giết.

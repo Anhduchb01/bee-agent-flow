@@ -45,7 +45,7 @@ for f in "$NGUON"/units/*.service "$NGUON"/units/*.timer; do
   sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g" "$f" > "$UDIR/$(basename "$f")"
 done
 systemctl --user daemon-reload
-systemctl --user enable --now bee-reaper.timer bee-heartbeat.timer bee-gc.timer
+systemctl --user enable --now bee-reaper.timer bee-heartbeat.timer bee-gc.timer bee-tick.timer
 
 echo "== 3b · Web service =="
 # BEE_WEB overrides where the web app lives (default: sibling of runner).
@@ -76,6 +76,13 @@ CLAUDE_SOURCE=live
 #AUTH_URL=https://your-domain.example/api/auth
 EOF
   fi
+  # Token cho bee-tick: sinh MỘT LẦN, không bao giờ ghi đè — đổi nó là làm
+  # chết timer đang chạy. Không có nó thì /api/tick tự đóng (503).
+  if ! grep -q '^BEE_TICK_TOKEN=' "$BEE_ROOT/web.env" 2>/dev/null; then
+    echo "BEE_TICK_TOKEN=$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | head -c 32)" >> "$BEE_ROOT/web.env"
+    echo "  · đã sinh BEE_TICK_TOKEN trong web.env"
+  fi
+
   sed "s|@BEE_ROOT@|$BEE_ROOT|g; s|@NODE@|$NODE_BIN|g; s|@WEBSERVER@|$WEB_SERVER|g" \
     "$NGUON/units/bee-web.service" > "$UDIR/bee-web.service"
   systemctl --user daemon-reload

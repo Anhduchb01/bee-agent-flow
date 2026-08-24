@@ -1,0 +1,14 @@
+# Nhịp nền: gọi POST /api/tick của web. Timer là cái ĐỒNG HỒ, chính sách nằm
+# trong TS (spec V3 D2) — làm mới hạn mức, và từ V3.T8 là cả hàng đợi.
+[Unit]
+Description=bee tick — làm mới hạn mức (và nhặt việc, từ V3)
+After=bee-web.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-@BEE_ROOT@/web.env
+# --fail: HTTP 4xx/5xx là lỗi thật, không phải "đã gọi xong". --max-time: tick
+# treo là tick sau dồn lên; thà bỏ một nhịp còn hơn chồng nhịp.
+ExecStart=/bin/sh -c 'curl -fsS --max-time 120 -X POST \
+  -H "Authorization: Bearer $BEE_TICK_TOKEN" \
+  "http://127.0.0.1:${PORT:-3210}/api/tick" >/dev/null'

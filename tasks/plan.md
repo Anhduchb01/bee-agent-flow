@@ -251,7 +251,7 @@ hồi bao nhiêu) + nút gọi `bee-gc.service` (oneshot, chờ xong như nút d
 
 ### Phase 2 · Hạn mức tươi + phanh (FR-3.3 P0, FR-3.4 P1)
 
-#### T4 · Hạn mức tự làm mới
+#### T4 · Hạn mức tự làm mới — ✅ XONG 24/08
 **Mô tả:** `bee-usage.timer` (30 phút) gọi refresh usage — dùng đúng đường đã có
 trong `machine-ctl.ts` qua endpoint tick (D2b), không viết bản thứ hai.
 

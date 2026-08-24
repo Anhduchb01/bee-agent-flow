@@ -1,0 +1,12 @@
+# 30 phút: đủ tươi để phanh hạn mức tin được (FR-3.3), đủ thưa để không quấy
+# endpoint usage. Persistent=true — máy tắt qua đêm thì bật lên chạy bù ngay.
+[Unit]
+Description=bee tick — mỗi 30 phút
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
