@@ -1,4 +1,4 @@
-import type { BeeArtifact, BeeSession } from "@/lib/bee/types";
+import type { BeeArtifact, BeeSession, HangDoi } from "@/lib/bee/types";
 
 import type { NhomPhien } from "../api/load";
 
@@ -55,6 +55,16 @@ export interface NodeNhomRepo {
 }
 
 /** 🎬 demo video node: attached to the PR its session made. */
+/** Node cho việc CHƯA xảy ra — vẽ mờ, nhãn nói rõ nó là dự định. */
+export interface NodeChoChay {
+  id: string;
+  type: "cho-chay";
+  position: { x: number; y: number };
+  parentId?: string;
+  extent?: "parent";
+  data: { title: string; moTa: string; href: string };
+}
+
 export interface NodeDemo {
   id: string;
   type: "demo";
@@ -68,7 +78,7 @@ export interface NodeDemo {
   };
 }
 
-export type NodeCanvas = NodePhien | NodeArtifact | NodeNhomRepo | NodeDemo;
+export type NodeCanvas = NodePhien | NodeArtifact | NodeNhomRepo | NodeDemo | NodeChoChay;
 
 export interface EdgeCanvas {
   id: string;
@@ -95,6 +105,8 @@ export function dungDoThi(
   xemTruoc: Record<string, string | null> = {},
   /** Demo videos per session (name + authed url) — grows a 🎬 node each. */
   videos: Record<string, { name: string; url: string }[]> = {},
+  /** Hàng đợi Autopilot — issue đã xếp mà CHƯA chạy mọc node mờ (V3.D5). */
+  hangDoi: HangDoi = { items: [], paused: false },
 ): { nodes: NodeCanvas[]; edges: EdgeCanvas[] } {
   const nodes: NodeCanvas[] = [];
   const edges: EdgeCanvas[] = [];
@@ -106,6 +118,27 @@ export function dungDoThi(
     let y = CAO_HEADER;
     let coArtifact = false;
     let coDemo = false;
+
+    // Việc đã xếp hàng mà chưa chạy: canvas cho thấy cả TƯƠNG LAI, không chỉ
+    // quá khứ. Cố ý là node riêng (`cho-chay`) chứ không giả dạng node phiên —
+    // vẽ một dự định trông như việc đã xảy ra là nói dối bằng đồ hoạ. Việc đã
+    // chạy thì thôi, node phiên thật thay chỗ.
+    for (const v of hangDoi.items) {
+      if (v.repo !== g.repo || v.status !== "waiting") continue;
+      con.push({
+        id: `queued-${v.repo}#${v.issue}`,
+        type: "cho-chay",
+        position: { x: X_PHIEN, y },
+        parentId: idNhom,
+        extent: "parent",
+        data: {
+          title: `#${v.issue}`,
+          moTa: "chờ tự chạy",
+          href: `/projects?p=${v.slug}&view=kanban`,
+        },
+      });
+      y += CAO_PHIEN;
+    }
 
     for (const p of g.phien) {
       con.push({

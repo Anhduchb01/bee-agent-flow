@@ -2,17 +2,19 @@ import { CanvasView, dungDoThi, loadCanvas, loadRepos } from "@/features/session
 import { PageHeader } from "@/features/shell";
 import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
+import { docHangDoi } from "@/lib/bee/queue-fs";
 
 export default async function CanvasPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [{ nhom, artifacts, xemTruoc, videos }, repos, skills] = await Promise.all([
+  const [{ nhom, artifacts, xemTruoc, videos }, repos, skills, hangDoi] = await Promise.all([
     loadCanvas(),
     loadRepos(),
     getBee().listCommands(),
+    docHangDoi(process.env.BEE_SRV ?? "/srv/bee"),
   ]);
-  const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc, videos);
+  const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc, videos, hangDoi);
 
   return (
     <div className="flex h-dvh flex-col">

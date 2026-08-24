@@ -336,7 +336,7 @@ nút `+`/`−`. Đầu lane luôn nói điều kiện mở phiên + quota còn l
 · [ ] e2e: kéo 2 issue vào lane → đúng thứ tự → chuyển lane khi tick chạy
 **Dependencies:** T7 · **Files:** `features/board/*` (4–5 file) · **Scope:** M
 
-#### T9b · Node "chờ tự chạy" trên canvas (D5)
+#### T9b · Node "chờ tự chạy" trên canvas (D5) — ✅ XONG 24/08
 **Mô tả:** Issue đã xếp mà chưa chạy hiện chưa có node nào (`build-graph.ts` chỉ
 dựng node từ phiên + artifact). Thêm node mờ, nhãn rõ là chưa thật, nối vào
 repo-group; khi phiên chạy thì node phiên thật thay chỗ.

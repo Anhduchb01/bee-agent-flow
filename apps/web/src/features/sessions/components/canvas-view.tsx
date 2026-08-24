@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -203,7 +204,27 @@ function RepoGroupNode({ data }: NodeProps<FlowNhomRepo>) {
   );
 }
 
+/**
+ * Việc đã xếp hàng mà chưa chạy. Vẽ MỜ và có nhãn "chờ tự chạy": một dự định
+ * trông giống việc đã xảy ra là nói dối bằng đồ hoạ (D5). Viền đứt để nhìn
+ * lướt cũng phân biệt được với node phiên thật.
+ */
+function ChoChayNode({ data }: { data: { title: string; moTa: string; href: string } }) {
+  return (
+    <Link
+      href={data.href}
+      className="flex w-56 flex-col gap-1 rounded-card border border-dashed border-border bg-card/50 p-3 opacity-70 hover:opacity-100"
+    >
+      <Handle type="target" position={Position.Left} className="!bg-border" />
+      <span className="font-mono text-xs text-muted-foreground">{data.title}</span>
+      <span className="text-xs text-muted-foreground">⏳ {data.moTa}</span>
+      <Handle type="source" position={Position.Right} className="!bg-border" />
+    </Link>
+  );
+}
+
 const nodeTypes: NodeTypes = {
+  "cho-chay": ChoChayNode,
   phien: PhienNode,
   artifact: ArtifactNode,
   "repo-group": RepoGroupNode,

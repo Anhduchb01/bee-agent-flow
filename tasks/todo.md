@@ -86,8 +86,10 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       kèm lý do — chúng là hệ quả của sự thật); `+`/`↑↓` cỡ 36px cho điện thoại;
       lý do phanh hiện ngay trên thẻ. Ý định KHÔNG che sự thật: issue vừa xếp
       hàng vừa có phiên chạy thì lane là *In session*.
-- [ ] 🤖 **T9b** Node "chờ tự chạy" trên canvas (S) — issue đã xếp mà chưa chạy
-      hiện chưa có node nào; node mờ, nhãn rõ là dự định chứ không phải đã xảy ra.
+- [x] 🤖 **T9b** ~~Node "chờ tự chạy" trên canvas~~ **XONG 24/08** — node riêng
+      `cho-chay`, viền đứt + mờ + nhãn ⏳, nằm trong group repo. Cố ý KHÔNG giả
+      dạng node phiên: vẽ một dự định trông như việc đã xảy ra là nói dối bằng
+      đồ hoạ. Chạy rồi thì node phiên thật thay chỗ.
 - [ ] ✅ **Checkpoint 3 — nghiệm thu V3**: tối xếp 2 việc → **sáng có 2 PR chờ
       duyệt**, 0 lần hỏi tay, hạn mức không cháy giữa đêm.
 
