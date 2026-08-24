@@ -4,8 +4,9 @@
 > (giữ nguyên văn ở nhánh `feat/bee-m3-and-web-spec`, commit `5b51dab`).
 > Bản 3.1 (22/08) ghi nhận hai quyết định đã chạy thật: bỏ cửa phỏng vấn,
 > thay bằng **mode per-phiên** (19/08); Tailscale thay Cloudflare Access (20/08).
-> Bản 3.2 (24/08) thêm ba thứ ô chat đã có: **model theo phiên**, **đính kèm
-> file**, và **ngữ cảnh nhìn thấy được** (vòng % + đường may compact).
+> Bản 3.2 (24/08) thêm bốn thứ đã có: **model theo phiên**, **đính kèm file**,
+> **ngữ cảnh nhìn thấy được** (vòng % + đường may compact), và **bảng dự án**
+> nối issue với phiên.
 > Khi ba thứ mâu thuẫn: **PRD thắng về *muốn gì*, spec thắng về *làm thế nào*,
 > code thắng về *hôm nay đang là gì*.**
 
@@ -156,6 +157,7 @@ dậy đọc bản tin.
 | FR-1.8 | Nối lại phiên đã xong để hỏi | `--resume` đúng phiên, trả lời trong vài giây | P1 |
 | FR-1.9 | Chọn model cho từng phiên *(thêm 24/08)* | Việc nhẹ giao model nhanh, việc khó giao model mạnh — chọn lúc tạo, đổi giữa chat, cùng hội thoại. Không chọn = để máy tự quyết | P1 |
 | FR-1.10 | Đính kèm ảnh/file từ điện thoại *(thêm 23/08)* | Chụp màn hình bug → đính vào phiên → agent đọc được file, không phải mô tả bằng lời | P1 |
+| FR-1.11 | Bảng dự án: issue ↔ phiên *(thêm 24/08)* | Một màn trả lời "còn việc gì, ai đang làm": mọi issue của repo đã đăng ký, mỗi issue nói rõ phiên nào đang làm và PR nào đã ra. Lọc theo dự án, xem dạng bảng hoặc kanban, cả hai nằm trong URL | P1 |
 
 ### Epic 2: Agent tự làm việc GitHub bằng skill
 

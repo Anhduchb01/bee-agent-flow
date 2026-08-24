@@ -323,6 +323,40 @@ skill, mang danh bot.
   tự chế auto-compact thứ hai: CLI đã làm việc đó (probe 23/08 xác nhận
   `/compact` gửi qua stream-json được CLI xử lý, không phải model).
 
+### 4.7 Bảng dự án `/projects` *(thêm 24/08)*
+
+Màn quản lý dự án: **mọi issue của mọi repo đã đăng ký, kèm phiên đã làm nó**.
+
+- **Nguồn:** GitHub giữ issue (`gh issue list -R <repo> --state all --limit
+  100`, `lib/bee/issues.ts` — cùng kỷ luật với `artifact-detail`: allowlist
+  regex, repo phải nằm trong `repos.d`, hỏng thì trả *dữ liệu* kèm lý do chứ
+  không ném, cache 60s/repo để refresh trang không đẻ một `gh` mỗi lần). bee
+  giữ thứ GitHub không thể biết: **issue nào thuộc phiên nào** — suy từ dòng
+  `bee_artifact` trong `run.jsonl`. Đây là lý do tồn tại của màn này.
+- **Bốn lane = vòng đời bee**, không phải todo board chung chung
+  (`features/board/lib/lanes.ts`, thuần, test bằng fixture):
+
+  | Lane | Khi nào |
+  |---|---|
+  | Backlog | chưa phiên nào nhặt — *hoặc* phiên đã chạy xong mà không đẻ ra PR nào |
+  | In session | có phiên `running`/`starting` |
+  | In review | có PR mở, không còn phiên chạy — bóng ở sân người |
+  | Done | issue đã closed trên GitHub |
+
+- **Trạng thái nằm trong URL**: `?p=<slug>` lọc dự án, `?view=kanban` đổi
+  view. Không state client, không store — mỗi tổ hợp là một URL chia sẻ
+  được, và đó cũng chính là link mà **hàng dự án trong sidebar** trỏ tới
+  (trước 24/08 mọi dự án đều trỏ `/sessions` không lọc, nên danh sách chỉ
+  để trang trí).
+- **Điện thoại là hạng nhất**: "table" không phải `<table>` — một khối xếp
+  dọc, từ `sm` trở lên mới thành lưới cột (bảng thật buộc cuộn ngang trên
+  390px). Kanban cuộn ngang có snap, mỗi cột ~một bề ngang màn hình.
+- **Trang cũ `/projects` (mô hình status.json) bị thay tại chỗ.** Hộp thoại
+  "Add project" của nó không còn đường vào từ UI — đăng ký repo ở `/setup`.
+  `e2e/them-du-an.spec.ts` treo `describe.skip` kèm lý do; xoá hẳn feature
+  `project` cũ (`/p/[slug]`, `/t/[slug]`, `loadProjects`) là quyết định
+  riêng, chưa làm trong lượt này.
+
 ### 4.5 Auth — FR-6.5
 
 GitHub OAuth (allowlist login) trong app + **Tailscale ở rìa** (đổi từ

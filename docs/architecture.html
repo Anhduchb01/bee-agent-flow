@@ -901,6 +901,18 @@
   </div>
 
   <p class="col">
+    <strong>Bảng dự án đứng đúng chỗ đó</strong> <em>(V2.8, 24/08)</em>:
+    <code>/projects</code> hỏi GitHub danh sách issue (<code>gh issue list</code>,
+    cache 60s, chỉ repo trong <code>repos.d</code>) rồi ghép với thứ chỉ bee
+    biết — <em>issue nào thuộc phiên nào</em>, suy từ dòng
+    <code>bee_artifact</code> trong <code>run.jsonl</code>. Không có bản sao
+    issue nào nằm lại trên đĩa: mất bảng thì không mất gì, dựng lại từ hai
+    nguồn trên. Bốn lane (Backlog · In session · In review · Done) là vòng
+    đời bee chứ không phải todo board, và trạng thái lọc/view nằm trong URL
+    nên hàng dự án ở sidebar link thẳng vào bảng đã lọc.
+  </p>
+
+  <p class="col">
     <strong>Khi mất điện giữa lúc agent chạy:</strong> khoá mất, sự thật còn
     nguyên, bản ghi còn tới dòng cuối đã flush. Tick reaper đầu tiên sau khi bật
     máy thấy <code>meta.json</code> nói <code>running</code> mà systemd nói
@@ -1067,6 +1079,9 @@ $XDG_RUNTIME_DIR/bee/&lt;id&gt;.in   FIFO — đường vào một phiên</code>
         <tr><td><b>V2.7</b></td><td>Ô chat chín: chip chọn-prefix · Enter=xuống dòng trên điện thoại · đính kèm file vào worktree · panel actions · model theo phiên · đường may compact</td>
             <td><span class="chip ok">đủ</span></td>
             <td><span class="chip part">chưa — code + 386 test, chờ chạy trên máy thật</span></td></tr>
+        <tr><td><b>V2.8</b></td><td>Bảng dự án <code>/projects</code>: issue của repo đã đăng ký × phiên đã làm nó · lọc theo dự án · table/kanban · sửa loạt lỗi không-bấm-được trên điện thoại</td>
+            <td><span class="chip ok">đủ</span></td>
+            <td><span class="chip part">chưa — 412 unit + 39 e2e, chờ chạy trên máy thật</span></td></tr>
         <tr><td><b>V3</b></td><td>Vận hành bền (trần run.jsonl, dọn sau merge) · hàng đợi/đi ngủ · ngân sách hạn mức</td>
             <td><span class="chip no">chưa</span></td><td>—</td></tr>
       </tbody>
