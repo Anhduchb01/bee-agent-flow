@@ -139,7 +139,7 @@ if [[ "$CO_WORKTREE" == "yes" ]]; then
 
   if [[ ! -d "$WT" ]]; then
     lifecycle "$SDIR" "Đang dựng worktree trên nhánh $BRANCH…"
-    git --git-dir="$BARE" worktree add --quiet -B "$BRANCH" "$WT" "$DEF" 2>>"$SDIR/stderr.log" \
+    dung_worktree "$BARE" "$WT" "$BRANCH" "$DEF" 2>>"$SDIR/stderr.log" \
       || { lifecycle "$SDIR" "Dựng worktree thất bại — xem stderr.log."; die "worktree fail"; }
     git -C "$WT" config user.name  "bee-agent"
     git -C "$WT" config user.email "bee-agent@localhost"

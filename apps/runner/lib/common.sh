@@ -33,3 +33,25 @@ lifecycle() {
   jq -cn --arg m "$msg" --arg t "$(now_iso)" \
     '{type:"bee_lifecycle", msg:$m, ts:$t}' >> "$d/run.jsonl"
 }
+
+# Dựng worktree cho một phiên. Tách khỏi session-run.sh để rig gọi được ĐÚNG
+# đoạn code chạy thật, không phải một bản chép gần giống.
+#   dung_worktree <bare> <worktree> <branch> <nhánh-mặc-định>
+dung_worktree() {
+  local bare="$1" wt="$2" branch="$3" def="$4"
+
+  # Worktree bị xoá thô (crash, gc, rm -rf) vẫn còn ĐĂNG KÝ trong bare repo,
+  # và git từ chối dựng lại với "already used by worktree". prune dọn đăng ký
+  # chết; nó không đụng gì tới worktree còn sống.
+  git --git-dir="$bare" worktree prune
+
+  if git --git-dir="$bare" show-ref --verify --quiet "refs/heads/$branch"; then
+    # Nhánh ĐÃ CÓ (mở lại phiên cũ sau khi worktree bị dọn): checkout đúng chỗ
+    # nó đang đứng. TUYỆT ĐỐI không dùng -B ở đây — `-B` là force reset về
+    # $def, tức thổi bay mọi commit chưa push. Rig-06 §2 giữ chỗ này.
+    # Nhánh đang bị worktree khác giữ thì git tự từ chối, và đó là đúng.
+    git --git-dir="$bare" worktree add --quiet "$wt" "$branch"
+  else
+    git --git-dir="$bare" worktree add --quiet -b "$branch" "$wt" "$def"
+  fi
+}

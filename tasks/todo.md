@@ -28,10 +28,13 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 
 ## P1 · Vận hành bền — thu hồi 3.0GB đang chiếm
 
-- [ ] 🤖 **T0** ⚠ Sửa `git worktree add -B` (S) — cờ `-B` **force reset nhánh về
-      main**: xoá worktree rồi resume là bay commit chưa push (đã chứng minh bằng
-      rig git 24/08). Chặn T1. AC: phiên mới như cũ · resume giữ nguyên commit ·
-      nhánh đang bị worktree khác giữ thì từ chối tử tế.
+- [x] 🤖 **T0** ~~Sửa `git worktree add -B`~~ **XONG 24/08** — tách
+      `dung_worktree()` vào `lib/common.sh` (rig gọi đúng code chạy thật), nhánh
+      đã có thì checkout thay vì `-B`, thêm `worktree prune` cho ca bị `rm -rf`.
+      `rig-06-worktree.sh` đỏ 4/5 trước khi sửa, xanh 5/5 sau. **Phát hiện kèm
+      cho T1:** bare clone chỉ fetch nhánh mặc định nên KHÔNG có ref
+      `origin/bee/*` — muốn biết "đã push hết chưa" phải `git ls-remote`, không
+      so được bằng ref cục bộ.
 - [ ] 🤖 **T1** `gc.sh` + `bee-gc.timer` (M) — AC: thu hồi ≥2.9GB trên máy thật ·
       không đụng phiên `running`/`needs_human` · branch chưa merged được giữ ·
       chạy lại là no-op. Rig trước khi bật timer.

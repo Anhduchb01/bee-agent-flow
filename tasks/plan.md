@@ -158,7 +158,7 @@ Phase 5 · Nợ nhỏ  T12 trần run.jsonl · T13 việc tay ◄─────
 
 ### Phase 1 · Vận hành bền (làm trước — thu hồi 3GB ngay hôm nay)
 
-#### T0 · Sửa `-B`: dựng lại worktree không được reset nhánh ⚠
+#### T0 · Sửa `-B`: dựng lại worktree không được reset nhánh ⚠ — ✅ XONG 24/08
 **Mô tả:** `git worktree add -B` force-reset nhánh về main. Đổi thành: nhánh
 chưa tồn tại → tạo từ `$DEF`; đã tồn tại → checkout đúng chỗ nó đang đứng.
 
@@ -172,7 +172,12 @@ chưa tồn tại → tạo từ `$DEF`; đã tồn tại → checkout đúng ch
 - [ ] Trên máy thật: resume một phiên `stopped` còn worktree → không đổi gì
 
 **Dependencies:** không — **chặn T1** · **Files:** `apps/runner/bin/session-run.sh`,
-`apps/runner/rig/rig-06-worktree.sh` · **Scope:** S
+`apps/runner/lib/common.sh`, `apps/runner/rig/rig-06-worktree.sh` · **Scope:** S
+
+> **Xong 24/08** (`rig-06` đỏ 4/5 → xanh 5/5). Kèm một dữ kiện cho T1: bare
+> clone chỉ fetch nhánh mặc định, nên **không có ref `origin/bee/*` cục bộ** —
+> luật "chỉ xoá worktree khi đã push hết" phải hỏi `git ls-remote`, không so
+> được bằng ref trên máy.
 
 #### T1 · `gc.sh` + `bee-gc.timer` — dọn worktree của phiên đã xong
 **Mô tả:** Timer quét `sessions/*/meta.json`, áp chính sách D3, xoá worktree
