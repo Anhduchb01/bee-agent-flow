@@ -48,6 +48,12 @@ export type SuKien =
     }
   | { loai: "replay"; boQua: number }
   /**
+   * `bee_truncated` — log ĐÃ BỊ CẮT vĩnh viễn để giữ trần đĩa (spec §11).
+   * Khác hẳn `replay` (chỉ là người xem vào muộn): dữ liệu này không còn nữa,
+   * và người đọc phải biết trước khi kết luận agent đã làm gì.
+   */
+  | { loai: "da-cat"; boQua: number }
+  /**
    * system/compact_boundary — the CLI compacted the conversation (auto near
    * the window limit, or a sent /compact). Without a visible seam the ring
    * dropping from 90% to 20% reads as a bug, not a rescue.
@@ -158,6 +164,8 @@ export function phanTichDong(dong: string): SuKien[] | null {
         : [];
     case "bee_replayed":
       return [{ loai: "replay", boQua: typeof raw.skipped === "number" ? raw.skipped : 0 }];
+    case "bee_truncated":
+      return [{ loai: "da-cat", boQua: typeof raw.skipped === "number" ? raw.skipped : 0 }];
     case "system": {
       // Whitelist: only compact_boundary becomes UI; init, api_retry,
       // thinking_tokens… stay silent (see the file header's principle).

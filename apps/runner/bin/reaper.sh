@@ -20,6 +20,10 @@ for meta in "$BEE_ROOT"/sessions/*/meta.json; do
   sdir=$(dirname "$meta")
   id=$(basename "$sdir")
 
+  # Trần byte cho run.jsonl (spec §11) — cắt ngay trong lúc phiên còn chạy,
+  # vì đợi tới lúc kết thúc thì đĩa đã đầy rồi.
+  "$(dirname "$(readlink -f "$0")")/cat-log.sh" "$id" 2>/dev/null || true
+
   # ── Trần chi cho MỘT phiên (FR-3.4) ────────────────────────────────────
   # Phanh hạn mức (T5) chỉ chặn MỞ phiên; nó không cứu được phiên đang chạy
   # đốt tiền cả tiếng lúc 2 giờ sáng. `total_cost_usd` trong dòng `result`

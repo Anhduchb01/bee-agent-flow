@@ -117,8 +117,11 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 
 ## P5 · Nợ nhỏ
 
-- [ ] 🤖 **T12** Trần `run.jsonl` theo byte (nợ spec §11, S) — cắt thì ghi
-      `bee_truncated` để UI nói thật.
+- [x] 🤖 **T12** ~~Trần `run.jsonl` theo byte~~ **XONG 24/08** — `cat-log.sh` cắt
+      theo DÒNG (nửa dòng JSON làm hỏng parser), giữ phần MỚI NHẤT, chèn
+      `bee_truncated` ở đầu file; reaper gọi mỗi tick. UI render "✂ N dòng đầu
+      đã bị cắt — phần đó không còn nữa", **khác** `replay` (chỉ là vào muộn).
+      rig-10: 7/7. Mặc định `RUN_MAX_KB=20480`.
 - [ ] 🧑 **T13a** `sudo rm -rf ~/.local/opt/bee` — junk root-owned **vẫn còn**.
 - [ ] 🧑 **T13b** PAT "All repositories" → "Only select repositories" (vệ sinh A+ §2).
 - [ ] 🧑 **T13c** PAT hiện **không đọc được** `Anhduchb01/lifebook-assessment`

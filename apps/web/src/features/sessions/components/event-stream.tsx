@@ -235,6 +235,13 @@ function MotMuc({
           {m.luot !== null ? ` · ${m.luot} turns` : ""}
         </p>
       );
+    case "da-cat":
+      // Dữ liệu đã mất thật, không phải "xem sau sẽ có" — nói thẳng.
+      return (
+        <p className="rounded-control border border-dashed border-border px-3 py-1.5 font-mono text-xs text-muted-foreground">
+          ✂ {m.boQua} dòng đầu phiên đã bị cắt để giữ trần đĩa — phần đó không còn nữa.
+        </p>
+      );
     case "compact":
       // The seam matters: right after it the context ring drops sharply —
       // without this line that drop reads as a bug, not a rescue.

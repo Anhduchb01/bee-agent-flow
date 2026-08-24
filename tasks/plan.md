@@ -393,7 +393,7 @@ kẹt gì **và vì sao** — câu tiếng người, không phải mã lỗi (PR
   nhầm `DROP DATABASE` giết luôn phiên khác — đúng loại hỏng mà chạy-đêm khuếch
   đại. *Chỉ cần khi đã tách user + rootless.* Xem [docker-cho-bee §3](../docs/docker-cho-bee.md).
 
-- **T12 · Trần `run.jsonl` theo byte** (nợ spec §11, S) — cắt vòng khi vượt
+- **T12 · Trần `run.jsonl` theo byte** ✅ XONG 24/08 (nợ spec §11, S) — cắt vòng khi vượt
   `RUN_MAX_MB`, ghi `bee_truncated` để UI nói thật là đã cắt.
 - **T13 · Việc tay** (🧑): `sudo rm -rf ~/.local/opt/bee` (junk root-owned **vẫn
   còn**) · PAT "All repositories" → "Only select" · PAT hiện **không đọc được**

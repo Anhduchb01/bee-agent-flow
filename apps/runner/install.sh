@@ -67,6 +67,9 @@ QUOTA_BRAKE_PCT=85
 # Trần chi cho MỘT phiên (FR-3.4): reaper dừng phiên vượt trần và gắn
 # needs_human. 0 = tắt. Đơn vị USD, đọc từ total_cost_usd cộng dồn.
 SESSION_MAX_USD=0
+# Trần byte cho run.jsonl (spec §11): reaper cắt phần CŨ, giữ phần mới, và ghi
+# một dòng bee_truncated để UI nói thật là bản này đã bị cắt. 0 = tắt.
+RUN_MAX_KB=20480
 BEE_SOURCE=disk
 BEE_SRV=$BEE_ROOT
 # Claude panel: live = real service status + real (possibly empty) usage.

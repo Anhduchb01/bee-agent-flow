@@ -199,3 +199,17 @@ describe("system/compact_boundary — the CLI compacted the conversation", () =>
     expect(phanTichDong('{"type":"system","subtype":"thinking_tokens"}')).toEqual([]);
   });
 });
+
+describe("bee_truncated — log bị cắt là chuyện KHÁC replay", () => {
+  it("thành sự kiện riêng, mang số dòng đã mất", () => {
+    expect(phanTichDong('{"type":"bee_truncated","skipped":1200,"ts":"t"}')).toEqual([
+      { loai: "da-cat", boQua: 1200 },
+    ]);
+  });
+
+  it("không bị nhầm thành replay — một cái là mất dữ liệu, một cái chỉ là vào muộn", () => {
+    expect(phanTichDong('{"type":"bee_replayed","skipped":5}')).toEqual([
+      { loai: "replay", boQua: 5 },
+    ]);
+  });
+});
