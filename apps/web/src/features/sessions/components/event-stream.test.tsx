@@ -169,3 +169,24 @@ describe("approval card (V2.5b)", () => {
     expect(screen.queryByRole("button", { name: "Allow" })).not.toBeInTheDocument();
   });
 });
+
+describe("compact seam — the visible reason the ring just dropped", () => {
+  it("renders the compacted line with trigger and pre-compact size", () => {
+    const suKien: SuKien[] = [
+      { loai: "agent-noi", text: "still here" },
+      { loai: "compact", trigger: "auto", preTokens: 165_000 },
+    ];
+    render(<EventStream suKien={suKien} dangGo="" />);
+    const log = screen.getByRole("log", { name: "Session events" });
+    expect(log).toHaveTextContent("Conversation compacted (auto) · was 165k tokens");
+  });
+
+  it("manual /compact says so; no pre_tokens → no size shown", () => {
+    render(
+      <EventStream suKien={[{ loai: "compact", trigger: "manual", preTokens: null }]} dangGo="" />,
+    );
+    const log = screen.getByRole("log", { name: "Session events" });
+    expect(log).toHaveTextContent("Conversation compacted (/compact)");
+    expect(log).not.toHaveTextContent("tokens");
+  });
+});

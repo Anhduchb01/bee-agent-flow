@@ -47,6 +47,12 @@ export type SuKien =
       cuaSoToken?: number | null;
     }
   | { loai: "replay"; boQua: number }
+  /**
+   * system/compact_boundary — the CLI compacted the conversation (auto near
+   * the window limit, or a sent /compact). Without a visible seam the ring
+   * dropping from 90% to 20% reads as a bug, not a rescue.
+   */
+  | { loai: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
   /** Manual mode (V2.5b): the agent asks permission for one tool call. */
   | { loai: "xin-quyen"; requestId: string; ten: string; thamSo: string }
   /** The owner's recorded answer (bee_approval) — pairs by requestId. */
@@ -152,6 +158,19 @@ export function phanTichDong(dong: string): SuKien[] | null {
         : [];
     case "bee_replayed":
       return [{ loai: "replay", boQua: typeof raw.skipped === "number" ? raw.skipped : 0 }];
+    case "system": {
+      // Whitelist: only compact_boundary becomes UI; init, api_retry,
+      // thinking_tokens… stay silent (see the file header's principle).
+      if (raw.subtype !== "compact_boundary") return [];
+      const md = laObject(raw.compact_metadata) ? raw.compact_metadata : {};
+      return [
+        {
+          loai: "compact",
+          trigger: md.trigger === "manual" ? "manual" : "auto",
+          preTokens: typeof md.pre_tokens === "number" ? md.pre_tokens : null,
+        },
+      ];
+    }
     case "control_request": {
       // Manual mode: --permission-prompt-tool stdio routes permission
       // prompts onto the stream (rig-05). Only can_use_tool becomes UI.

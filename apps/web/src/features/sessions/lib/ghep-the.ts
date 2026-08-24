@@ -16,6 +16,7 @@ export type Muc =
   | { loai: "nghi"; text: string }
   | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null; title: string | null }
   | { loai: "ket-qua"; loi: boolean; luot: number | null }
+  | { loai: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
   /** Manual-mode approval card; traLoi được ghép từ bee_approval theo requestId. */
   | { loai: "xin-quyen"; requestId: string; ten: string; thamSo: string; traLoi: "allow" | "deny" | null }
   | {
@@ -117,6 +118,9 @@ export function ghepThe(suKien: SuKien[]): Muc[] {
       }
       case "ket-qua":
         muc.push({ loai: "ket-qua", loi: sk.loi, luot: sk.luot ?? null });
+        break;
+      case "compact":
+        muc.push({ loai: "compact", trigger: sk.trigger, preTokens: sk.preTokens });
         break;
       // delta/nghi-delta gom ở hook, replay hiện thành dải báo — không thành mục
       case "delta":

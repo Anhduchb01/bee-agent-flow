@@ -168,3 +168,34 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
     ]);
   });
 });
+
+describe("system/compact_boundary — the CLI compacted the conversation", () => {
+  it("becomes a compact event carrying trigger and pre_tokens", () => {
+    const dong = JSON.stringify({
+      type: "system",
+      subtype: "compact_boundary",
+      compact_metadata: { trigger: "auto", pre_tokens: 165_000 },
+    });
+    expect(phanTichDong(dong)).toEqual([
+      { loai: "compact", trigger: "auto", preTokens: 165_000 },
+    ]);
+  });
+
+  it("manual trigger survives; missing metadata degrades, not crashes", () => {
+    const dong = JSON.stringify({ type: "system", subtype: "compact_boundary" });
+    expect(phanTichDong(dong)).toEqual([{ loai: "compact", trigger: "auto", preTokens: null }]);
+    const manual = JSON.stringify({
+      type: "system",
+      subtype: "compact_boundary",
+      compact_metadata: { trigger: "manual", pre_tokens: 90_000 },
+    });
+    expect(phanTichDong(manual)).toEqual([
+      { loai: "compact", trigger: "manual", preTokens: 90_000 },
+    ]);
+  });
+
+  it("other system subtypes stay silent (whitelist principle)", () => {
+    expect(phanTichDong('{"type":"system","subtype":"init"}')).toEqual([]);
+    expect(phanTichDong('{"type":"system","subtype":"thinking_tokens"}')).toEqual([]);
+  });
+});

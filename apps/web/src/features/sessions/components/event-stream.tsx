@@ -235,6 +235,15 @@ function MotMuc({
           {m.luot !== null ? ` · ${m.luot} turns` : ""}
         </p>
       );
+    case "compact":
+      // The seam matters: right after it the context ring drops sharply —
+      // without this line that drop reads as a bug, not a rescue.
+      return (
+        <p className="border-t border-dashed border-border pt-2 font-mono text-xs text-muted-foreground">
+          ⇅ Conversation compacted ({m.trigger === "manual" ? "/compact" : "auto"})
+          {m.preTokens !== null ? ` · was ${Math.round(m.preTokens / 1000)}k tokens` : ""}
+        </p>
+      );
   }
 }
 
