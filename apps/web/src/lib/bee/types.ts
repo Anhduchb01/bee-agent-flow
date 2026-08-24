@@ -281,6 +281,33 @@ export interface BeeDoctor {
   checks: BeeDoctorCheck[];
 }
 
+/* ── Hàng đợi Autopilot (V3, FR-5.1) ───────────────────────────────────────
+ * Hình dạng của `queue.json`. Ở lib/bee vì đây là hình dạng ĐĨA — feature
+ * board đọc từ đây, không phải ngược lại (hạ tầng không phụ thuộc màn hình).
+ */
+
+export type TrangThaiViec = "waiting" | "running" | "done" | "failed";
+
+export interface ViecTrongHang {
+  slug: string;
+  repo: string;
+  issue: number;
+  mode: BeeSessionMode;
+  model: BeeSessionModel;
+  status: TrangThaiViec;
+  /** Phiên đã mở cho việc này — link sang live view, và là bằng chứng đã chạy. */
+  sessionId: string | null;
+  /** Vì sao failed — bản tin sáng cần câu này, không phải mã lỗi. */
+  reason: string | null;
+  added_at: string;
+}
+
+export interface HangDoi {
+  items: ViecTrongHang[];
+  /** ⏸ — hàng đợi vẫn nguyên, chỉ ngừng nhặt việc mới. */
+  paused: boolean;
+}
+
 /** Toàn bộ đường ra vào `/srv/bee/`. Không module nào khác được chạm đĩa. */
 export interface BeeSource {
   /** Repo đã đăng ký — nguồn DUY NHẤT của dropdown chọn repo. */

@@ -294,7 +294,7 @@ rõ lý do và lúc reset. Phiên đang chạy không bị giết.
 
 ### Phase 3 · Hàng đợi + đi ngủ (FR-5.1 P0, FR-5.2 P1) — **cần D1 xong**
 
-#### T7 · Kho hàng đợi trên đĩa
+#### T7 · Kho hàng đợi trên đĩa — ✅ XONG 24/08
 **Mô tả:** `$BEE_ROOT/queue.json`: danh sách việc (repo slug, issue number hoặc
 prompt tự do, mode, model, thứ tự, trạng thái `waiting|running|done|failed`).
 Lib thuần: thêm/bỏ/đổi thứ tự/lấy việc kế tiếp. Ghi nguyên tử (tmp + rename).

@@ -72,8 +72,10 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 
 ## P3 · Hàng đợi + đi ngủ (FR-5.1 P0 · FR-5.2 P1) — **cần D1**
 
-- [ ] 🤖 **T7** `queue.json` + lib thuần xếp/bỏ/đổi thứ tự (M) — máy tắt không
-      mất; ghi nguyên tử; test bảng.
+- [x] 🤖 **T7** ~~`queue.json` + lib thuần~~ **XONG 24/08** — thêm/bỏ/đổi thứ tự/
+      việc-kế-tiếp (9 test bảng) + lớp đĩa ghi nguyên tử (6 test). Khoá là
+      (repo, issue) nên cùng số ở hai repo là hai việc. `status` lạ về
+      `waiting` — dữ liệu ngoài luồng không được lái vòng lặp tick.
 - [ ] 🤖 **T8** Tick tự mở phiên (M) — refresh quota → PAUSE? → phanh? → còn
       slot? → mở việc kế tiếp. Phiên hỏng thì việc `failed` kèm lý do, tick vẫn
       chạy tiếp.
