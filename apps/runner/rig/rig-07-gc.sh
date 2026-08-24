@@ -51,6 +51,7 @@ ID_MOI=aaaaaaaa-0000-4000-8000-000000000004    # 4 · vừa dừng
 ID_CHUA=aaaaaaaa-0000-4000-8000-000000000005   # 5 · còn commit chưa push
 ID_MERGE=aaaaaaaa-0000-4000-8000-000000000006  # 6 · đã merge vào main
 ID_MU=aaaaaaaa-0000-4000-8000-000000000007     # 7 · origin không đọc được
+ID_BAN=aaaaaaaa-0000-4000-8000-000000000008    # 8 · đã push NHƯNG worktree còn bẩn
 
 phien "$ID_CHAY"  1 running "" false
 phien "$ID_XONG"  2 done    "$XUA" false
@@ -59,6 +60,7 @@ phien "$ID_MOI"   4 stopped "$NAY" false
 phien "$ID_CHUA"  5 done    "$XUA" false
 phien "$ID_MERGE" 6 done    "$XUA" false
 phien "$ID_MU"    7 done    "$XUA" false
+phien "$ID_BAN"   8 done    "$XUA" false
 
 commit_trong "$BEE_ROOT/work/$ID_XONG"
 git -C "$BEE_ROOT/work/$ID_XONG" push -q "$ORIGIN" "bee/myapp-2:bee/myapp-2"   # đã push
@@ -66,6 +68,14 @@ commit_trong "$BEE_ROOT/work/$ID_CHUA"                                        # 
 commit_trong "$BEE_ROOT/work/$ID_MERGE"
 git -C "$BEE_ROOT/work/$ID_MERGE" push -q "$ORIGIN" "HEAD:main"               # vào main
 git --git-dir="$BARE" fetch -q origin "+refs/heads/main:refs/heads/main"
+
+# Ca 8: nhánh đã push HẾT, nhưng agent còn để lại sửa đổi chưa commit trong
+# worktree (phiên bị kill giữa chừng). "Đã push" nói về NHÁNH, không nói gì về
+# thư mục làm việc — xoá lúc này là mất việc thật.
+git -C "$BEE_ROOT/work/$ID_BAN" push -q "$ORIGIN" "bee/myapp-8:bee/myapp-8"
+echo "đang sửa dở" > "$BEE_ROOT/work/$ID_BAN/dang-lam.txt"
+echo "node_modules/" > "$BEE_ROOT/work/$ID_BAN/.gitignore"
+mkdir -p "$BEE_ROOT/work/$ID_BAN/node_modules" && echo x > "$BEE_ROOT/work/$ID_BAN/node_modules/rac"
 
 # Ca 7: bare riêng, origin trỏ vào chỗ không tồn tại → ls-remote hỏng.
 BARE_MU="$BEE_ROOT/repos/mu.git"
@@ -97,6 +107,12 @@ if con "$ID_MU" && [[ "$(ly_do "$ID_MU")" == *"không hỏi được origin"* ]]
   esac
 else
   kq no "origin không đọc được: lẽ ra phải giữ (hiện: $(ly_do "$ID_MU"))"
+fi
+
+if con "$ID_BAN" && [[ "$(ly_do "$ID_BAN")" == *"chưa commit"* ]]; then
+  kq ok "đã push nhưng worktree còn bẩn: giữ ($(ly_do "$ID_BAN"))"
+else
+  kq no "MẤT VIỆC: xoá worktree còn sửa đổi chưa commit (lý do: $(ly_do "$ID_BAN"))"
 fi
 
 # Evidence + run.jsonl của phiên ĐÃ THU HỒI phải còn — xem lại được sau khi dọn

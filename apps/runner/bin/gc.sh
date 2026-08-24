@@ -109,6 +109,15 @@ for wt in "$BEE_ROOT"/work/*/; do
     rm -f "$loi_ls"
   fi
 
+  # "Đã push" nói về NHÁNH. Thư mục làm việc là chuyện khác: phiên bị kill giữa
+  # chừng có thể để lại sửa đổi chưa commit, và xoá lúc đó là mất việc thật —
+  # đúng thứ luật này tồn tại để tránh. `status --porcelain` bỏ qua file đã
+  # gitignore, nên node_modules không chặn gc (đó mới là phần nặng cần dọn).
+  if [[ -n "$an_toan" ]] && [[ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]]; then
+    an_toan=""
+    ly_do="còn thay đổi chưa commit trong worktree"
+  fi
+
   if [[ -z "$an_toan" ]]; then
     ghi "$id" kept "$ly_do"
     continue
