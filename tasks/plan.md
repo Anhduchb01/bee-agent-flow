@@ -275,7 +275,7 @@ rõ lý do và lúc reset. Phiên đang chạy không bị giết.
 **Verification** · [ ] unit test hàm quyết định (thuần, bảng ngưỡng) · [ ] e2e với fixture trên ngưỡng
 **Dependencies:** T4 · **Files:** `lib/bee/quota-gate.ts`(+test), `session-ctl.ts`, UI 1 file · **Scope:** M
 
-#### T6 · Trần chi cho một phiên (FR-3.4)
+#### T6 · Trần chi cho một phiên (FR-3.4) — ✅ XONG 24/08
 **Mô tả:** `SESSION_MAX_USD`/`SESSION_MAX_TURNS`: reaper (đã quét mỗi 30s) đọc
 `usage.json` phiên đang chạy; vượt trần → dừng phiên, `needs_human`, lý do rõ.
 

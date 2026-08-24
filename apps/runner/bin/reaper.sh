@@ -20,6 +20,26 @@ for meta in "$BEE_ROOT"/sessions/*/meta.json; do
   sdir=$(dirname "$meta")
   id=$(basename "$sdir")
 
+  # ── Trần chi cho MỘT phiên (FR-3.4) ────────────────────────────────────
+  # Phanh hạn mức (T5) chỉ chặn MỞ phiên; nó không cứu được phiên đang chạy
+  # đốt tiền cả tiếng lúc 2 giờ sáng. `total_cost_usd` trong dòng `result`
+  # CỘNG DỒN theo phiên (đo trên máy: 1.02 → 3.50 → … → 5.60), nên dòng cuối
+  # là tổng đang đốt. Không cấu hình trần = không phanh ai: mặc định an toàn.
+  tran="${SESSION_MAX_USD:-0}"
+  if [[ "$tran" != "0" ]] && [[ -f "$sdir/run.jsonl" ]]; then
+    da_dot=$(jq -r 'select(.type=="result") | .total_cost_usd // empty' "$sdir/run.jsonl" 2>/dev/null | tail -1)
+    if [[ -n "$da_dot" ]] && awk -v a="$da_dot" -v b="$tran" 'BEGIN{exit !(a>b)}'; then
+      # Ghi sổ TRƯỚC khi dừng: trap của phiên sẽ ghi status=stopped ngay sau,
+      # và meta_merge trộn nên hai bên không xoá nhau. Ngược thứ tự thì người
+      # dùng thấy "đã dừng" mà không bao giờ biết vì sao.
+      lifecycle "$sdir" "Phiên đã đốt \$$da_dot, vượt trần \$$tran USD — dừng và cần người xem."
+      meta_merge "$sdir" "$(jq -cn --arg r "vượt trần chi \$$tran USD"         '{needs_human:true, reason:$r}')"
+      systemctl --user stop "bee-session@$id" 2>/dev/null || true
+      don=$((don + 1))
+      continue
+    fi
+  fi
+
   # Transitional states are ALIVE: during `systemctl stop` the unit reads
   # "deactivating" while the trap is still closing the books — reaping at
   # that moment steals a clean stop and mislabels it failed/attempt+1.

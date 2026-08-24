@@ -62,6 +62,11 @@ if [[ -f "$WEB_SERVER" && -n "$NODE_BIN" ]]; then
 #   systemctl --user restart bee-web
 PORT=3210
 HOSTNAME=127.0.0.1
+# Phanh hạn mức (FR-3.3): trên ngưỡng % thì không mở phiên MỚI. 0 = tắt.
+QUOTA_BRAKE_PCT=85
+# Trần chi cho MỘT phiên (FR-3.4): reaper dừng phiên vượt trần và gắn
+# needs_human. 0 = tắt. Đơn vị USD, đọc từ total_cost_usd cộng dồn.
+SESSION_MAX_USD=0
 BEE_SOURCE=disk
 BEE_SRV=$BEE_ROOT
 # Claude panel: live = real service status + real (possibly empty) usage.

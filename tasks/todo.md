@@ -63,8 +63,10 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       test bảng) + chốt ở `moPhien` (chỗ DUY NHẤT mọi phiên mới đi qua, kể cả
       hàng đợi đêm sau này). Số cũ >3h: fail-open nhưng nói rõ đang bay mù; cũ
       MÀ đã quá ngưỡng thì vẫn phanh. `Continue` không bị chặn.
-- [ ] 🤖 **T6** Trần chi một phiên (S) — reaper đọc `usage.json`, vượt trần →
-      dừng + `needs_human` + lý do.
+- [x] 🤖 **T6** ~~Trần chi một phiên~~ **XONG 24/08** — reaper đọc dòng `result`
+      cuối trong run.jsonl (`total_cost_usd` CỘNG DỒN — đo trên máy: 1.02→5.60),
+      vượt `SESSION_MAX_USD` thì ghi lifecycle + `needs_human` **rồi mới** dừng
+      unit. Mặc định 0 = tắt. rig-09: 8/8.
 - [ ] ✅ **Checkpoint 2** — ép quota trên ngưỡng: chặn đúng, lý do đọc được trên
       điện thoại; dưới ngưỡng không phiền.
 

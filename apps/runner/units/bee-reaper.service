@@ -5,6 +5,9 @@ Description=bee reaper — don xac phien + heartbeat
 
 [Service]
 Environment=BEE_ROOT=@BEE_ROOT@
+# web.env là MỘT file cấu hình cho cả máy (spec §7): reaper đọc
+# SESSION_MAX_USD từ đây, không sinh ra file cấu hình thứ hai.
+EnvironmentFile=-@BEE_ROOT@/web.env
 Type=oneshot
 ExecStart=@PREFIX@/bin/reaper.sh
 TimeoutStartSec=60
