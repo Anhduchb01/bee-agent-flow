@@ -474,7 +474,14 @@ cd apps/runner
 bash -n bin/*.sh lib/*.sh          # sàn
 ./bin/doctor.sh                    # kiểm checklist A+
 systemctl --user status 'bee-*'    # nhìn cả họ unit
+
+apps/runner/bin/deploy.sh          # MỘT lệnh: cổng → build → cài runner → restart web → doctor
 ```
+
+Deploy chi tiết (cờ, cách quay lui, hỏng thì nhìn đâu): [docs/deploy.md](../deploy.md).
+**Bẫy đã đóng bằng script:** `session-run.sh` chạy từ bản ĐÃ CÀI ở
+`$PREFIX/bin` chứ không phải từ repo — sửa runner mà chỉ restart web thì
+thay đổi không bao giờ tới phiên.
 
 ---
 
