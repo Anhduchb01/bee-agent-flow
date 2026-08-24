@@ -76,6 +76,19 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       câu tiếng người; rỗng-vì-không-xếp-việc ≠ rỗng-vì-lỗi.
 - [ ] 🤖 **T11** `/brief` + dòng nhắc trên Overview (S).
 
+## P4b · Nền cho docker (làm cùng lúc tách user)
+
+- [ ] 🧑 **M1** Tách bee sang user riêng theo [`docs/tach-user.md`](../docs/tach-user.md)
+      — tạo user (không sudo/không docker group) · vá `hidepid` · dọn rác mô
+      hình C (`bee-orch` đang trong group docker!) · `gh` đăng nhập đúng
+      `Anhduchb01` bằng PAT hẹp · rootless docker · deploy · tailscale serve.
+      Nghiệm thu: `docker run -v /home/ducba:/h alpine ls /h` → Permission denied.
+- [ ] 🤖 **T14** `.env` per-phiên + cấp dải 10 cổng trống (M) — chặn mọi repo
+      dùng compose; ecvision đã tham số hoá `${POSTGRES_PORT:-5432}` nên chỉ
+      cần file `.env`.
+- [ ] 🤖 **T15** Cấp lát dịch vụ cho phiên (M) — database + **role riêng**,
+      vhost, bucket; gc thu hồi.
+
 ## P5 · Nợ nhỏ
 
 - [ ] 🤖 **T12** Trần `run.jsonl` theo byte (nợ spec §11, S) — cắt thì ghi

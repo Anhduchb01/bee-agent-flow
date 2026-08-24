@@ -76,6 +76,9 @@ việc mới, chuyển sang mô hình C (hạ tầng hai UID vẫn nằm ở nh�
 > cạnh (máy tự mở phiên ban đêm). `doctor` vẫn báo đỏ mục `may-sach` và **không
 > được tắt** — đỏ ở đây đang nói sự thật.
 > Mô hình C là gì, quay về bằng cách nào: [docs/mo-hinh-c.md](mo-hinh-c.md).
+> **Hướng gỡ đã chọn (chưa làm):** tách bee sang user Linux riêng + Docker
+> rootless — [docs/tach-user.md](tach-user.md), [docs/docker-cho-bee.md](docker-cho-bee.md).
+> Làm xong thì cò súng #4 tháo ngòi và quyết định (a) hết hiệu lực.
 
 ---
 
@@ -369,5 +372,7 @@ thật sẵn cho phần web.
 - [docs/specs/session-first.md](specs/session-first.md) — spec V1 của mô hình này
 - [docs/specs/v1-live.md](specs/v1-live.md) — spec mô hình cũ *(đóng băng, còn giá trị ở §3)*
 - [docs/mo-hinh-c.md](mo-hinh-c.md) — mô hình C là gì, giữ ở đâu, quay về thế nào *(thêm 24/08)*
+- [docs/tach-user.md](tach-user.md) — tách bee sang user riêng, tháo ngòi cò súng #4 *(thêm 24/08)*
+- [docs/docker-cho-bee.md](docker-cho-bee.md) — vì sao rootless, chia dịch vụ cho n phiên *(thêm 24/08)*
 - [docs/architecture.html](architecture.html) — tài liệu kiến trúc **hiện hành** của mô hình session-first *(từ f3e2d61; bản đồ hai UID cũ nằm ở nhánh fallback)*
 - [AGENTS.md](../AGENTS.md) — quy ước code

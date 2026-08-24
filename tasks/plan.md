@@ -61,6 +61,13 @@ về thế nào, và những cách siết rẻ hơn nếu đổi ý). `doctor` g
 
 Phase 3 vì thế **mở khoá**, nhưng rủi ro của nó nay là rủi ro đã ký tên.
 
+**Hướng gỡ đã chọn (24/08, chưa làm):** tách bee sang **user Linux riêng** thay
+vì VM — rẻ hơn nhiều, yếu hơn VM một bậc, và đủ để `/home/ducba` mode 700 chặn
+được đường tới khoá SSH. Docker chạy **rootless** (cho bee vào group `docker`
+là xoá sạch thành quả — group đó tương đương root). Quy trình:
+[tach-user.md](../docs/tach-user.md) · [docker-cho-bee.md](../docs/docker-cho-bee.md).
+Làm xong thì `doctor` mục `may-sach` xanh **thành thật** và cò súng #4 tháo ngòi.
+
 ### D2 · Ai sở hữu vòng lặp hàng đợi
 
 | | Cách | Đánh đổi |
@@ -190,6 +197,9 @@ merged. Ghi `$BEE_ROOT/gc.json` (`ts`, `removed`, `freed_bytes`, `kept` kèm lý
 - [ ] Branch `bee/*` còn commit **chưa push** được giữ, lý do nằm trong `gc.json`
 - [ ] `sessions/<id>/evidence/` và `sessions/<id>/run.jsonl` **không** bị đụng
 - [ ] Chạy lại lần hai là no-op (idempotent), không lỗi
+- [ ] Dọn cả phần docker của phiên: `docker compose -p bee-<slug>-<num> down -v`
+      + drop database/role/vhost/bucket ([docker-cho-bee §6](../docs/docker-cho-bee.md))
+      — máy đang có 6.9GB volume / 17 cái, mồ côi tích lại là do đây
 
 **Verification**
 - [ ] `bash -n apps/runner/bin/gc.sh`
@@ -357,6 +367,21 @@ kẹt gì **và vì sao** — câu tiếng người, không phải mã lỗi (PR
 ---
 
 ### Phase 5 · Nợ nhỏ (làm khi đụng tự nhiên)
+
+- **T14 · `.env` per-phiên + cấp dải cổng** (M) — quét dải 10 cổng trống liên
+  tiếp từ 54000 lúc mở phiên, ghi vào `session.json` (resume dùng lại đúng dải),
+  sinh `.env` trong worktree qua đường `env.d` đã có. Không dùng công thức tĩnh
+  `54000+num`: hai repo có thể trùng `num`, và cổng có thể đã bị chiếm.
+  AC: hai phiên cùng repo chạy `docker compose up` song song không đụng cổng ·
+  cổng không đụng stack của con người · resume giữ nguyên dải.
+  *Chặn: mọi repo dùng compose (ecvision).* Files: `session-ctl.ts`,
+  `session-run.sh`, 1 lib thuần + test. Xem [docker-cho-bee §4](../docs/docker-cho-bee.md).
+
+- **T15 · Cấp "lát dịch vụ" cho phiên** (M) — script idempotent tạo database +
+  **role riêng chỉ có quyền trên database đó**, vhost RabbitMQ, bucket MinIO khi
+  mở phiên; gc thu hồi. Role riêng làm ngay từ đầu: không có nó thì một phiên gõ
+  nhầm `DROP DATABASE` giết luôn phiên khác — đúng loại hỏng mà chạy-đêm khuếch
+  đại. *Chỉ cần khi đã tách user + rootless.* Xem [docker-cho-bee §3](../docs/docker-cho-bee.md).
 
 - **T12 · Trần `run.jsonl` theo byte** (nợ spec §11, S) — cắt vòng khi vượt
   `RUN_MAX_MB`, ghi `bee_truncated` để UI nói thật là đã cắt.
