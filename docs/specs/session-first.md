@@ -149,6 +149,15 @@ apps/runner/
   key nhưng **không thể commit** chúng, kể cả khi .gitignore của repo sót.
   Lưu ý tin cậy: key đặt ở đây là key agent full-tool dùng được — chỉ đặt
   thứ đáng trao. Rig-03 §6 chứng minh offline bằng bare local + claude giả.
+- **Model theo phiên (V2.7, 24/08)**: `session.json.model` → cờ `--model`.
+  ALLOWLIST bắt buộc (§9): chỉ các alias CLI 2.1.161 nhận —
+  `opus` · `opus[1m]` · `sonnet` · `sonnet[1m]` · `haiku`; `default` (hoặc
+  giá trị lạ/thiếu) = **không truyền cờ nào**, để máy tự quyết. Chỉ alias,
+  không nhận model id đầy đủ: alias luôn trỏ bản mới nhất, id thì mục ruỗng.
+  **Bẫy đã tránh:** pattern trong `case` PHẢI có nháy — `opus[1m]` không
+  nháy là một lớp ký tự glob và sẽ khớp nhầm `opus1`/`opusm`. Đổi model giữa
+  chừng = web ghi `session.json` rồi restart unit; nhánh `--resume` nối đúng
+  hội thoại dưới model mới (cùng đường với đổi mode).
 - `trap` dọn: FIFO, cập nhật `meta.json`, **giữ** worktree (dọn worktree là
   việc của stop/reaper theo chính sách, không phải của trap — phiên fail còn
   cần xem xác).
@@ -270,14 +279,49 @@ skill, mang danh bot.
 - Session list là **màn hình gốc mới** của app: nhóm theo repo, mỗi phiên một
   dòng — trạng thái, branch, PR (nếu có), tuổi, usage. `needs-human` nổi đỏ
   lên đầu.
-- **Action chips** *(20/08)*: phiên repo có hàng nút cuộn ngang ngay trên ô
-  nhập — `Issue · Build · Review · PR · Demo · Preview`, đúng thứ tự flow.
-  **Mỗi chip = một global command**: bấm là GỬI `"/name"` qua đúng đường
-  `expandCommandText` như tự gõ (điện thoại khỏi với phím "/"); chip chỉ
+- **Action chips** *(20/08; đổi hành vi 23/08)*: phiên repo có hàng nút cuộn
+  ngang ngay trên ô nhập — `Issue · Build · Review · PR · Demo · Preview`,
+  đúng thứ tự flow. Bấm chip **CHỌN lệnh làm prefix** của tin nhắn (`/issue `)
+  chứ **không gửi ngay** — gõ thêm ngữ cảnh rồi bấm gửi thì cả câu
+  `/issue <chữ>` mới đi, qua đúng đường `expandCommandText` như tự gõ
+  (`$ARGUMENTS`). Bấm lại chip đang chọn = bỏ chọn; bấm chip khác = đổi lệnh,
+  giữ nguyên phần chữ đã gõ (`aria-pressed` cho chip đang chọn). *Lý do đổi:
+  bản 20/08 gửi ngay nên không có cách nào kèm ngữ cảnh cho lệnh.* Chip chỉ
   render khi command tồn tại trong `~/.claude/commands` (nguồn:
   `apps/runner/commands/`, install.sh copy). Palette "/" không còn alias
-  cứng — chỉ liệt kê command thật trên máy. Phiên chat không repo: không
-  chip, không palette.
+  cứng — chỉ liệt kê command thật trên máy, và **chỉ hiện khi còn đang gõ
+  token lệnh** (có dấu cách đầu tiên là đóng, không che chat). Phiên chat
+  không repo: không chip, không palette.
+- **Enter trên điện thoại là XUỐNG DÒNG** *(23/08)*: `(pointer: coarse)` →
+  Enter chèn dòng mới, chỉ nút ↑ gửi; desktop giữ Enter-để-gửi (Shift+Enter
+  xuống dòng). Bàn phím ảo iOS không có Shift+Enter tiện tay, nên gửi-nhầm
+  giữa câu là lỗi thật của người dùng thật.
+- **Nút `+` — đính kèm** *(23/08)*: menu mở lên, mục "Upload from computer"
+  → server action lưu file vào worktree tại `.bee/uploads/<ts>-<tên>` rồi
+  chèn `[attached: <path>]` vào ô nhập để agent `Read`. Tên file sanitize +
+  prefix timestamp (không thoát ra khỏi thư mục uploads được), trần 20MB,
+  `serverActions.bodySizeLimit: 25mb` cho phần overhead multipart. Phiên
+  chat không có nút này — không worktree thì không có chỗ để file. Use-case
+  gốc: **chụp ảnh bug bằng điện thoại, đính thẳng cho agent**.
+- **Nút `⧉/` — panel actions** *(23/08)*: một palette "Filter actions…" kiểu
+  VSCode, gõ là lọc xuyên ba nhóm: **Commands** (command trên máy +
+  `/compact`, bấm = chèn prefix) · **Session** (Compact conversation — gửi
+  `/compact` ngay; Stop session) · **Mode** (4 mode, ✓ ở mode hiện tại) ·
+  **Model** (xem dưới). Phiên chat vẫn có panel (Model + Stop) nhưng không
+  có Commands/Mode — không tool thì không có gì để xin phép.
+- **Model theo phiên** *(V2.7, 24/08)*: nhóm Model trong panel như "Select a
+  model" của VSCode — `Default · Opus (1M context) · Opus · Sonnet ·
+  Sonnet (1M context) · Haiku`, dòng đang dùng có ✓, đổi là restart-resume
+  (§3.1). Model đã chọn hiện cạnh ô nhập khi khác `Default` để nó không
+  thành cài đặt ẩn. Mỗi dòng có `aria-label="Model: <tên>"` vì "Sonnet" là
+  tiền tố của "Sonnet (1M context)" — text đơn thuần là nhập nhằng.
+- **Ngữ cảnh: vòng % + đường may compact** *(23/08)*: `system/compact_boundary`
+  (kèm `compact_metadata.trigger`/`pre_tokens`) render thành một dòng
+  `⇅ Conversation compacted (auto) · was 165k tokens`. **Không có đường may
+  này thì vòng context tụt từ 90% xuống 20% bị đọc là bug.** Vòng ≥ 90% hiện
+  cảnh báo "almost full — auto-compact soon, or send /compact". Web **không**
+  tự chế auto-compact thứ hai: CLI đã làm việc đó (probe 23/08 xác nhận
+  `/compact` gửi qua stream-json được CLI xử lý, không phải model).
 
 ### 4.5 Auth — FR-6.5
 
@@ -407,7 +451,7 @@ systemctl --user status 'bee-*'    # nhìn cả họ unit
 | Thuần | Vitest | `parse-events` với stream-json thật + dòng rác · tail giữ nửa dòng |
 | Component | Vitest + TL | live view: chạy / xong / mất kết nối / needs-human · session list |
 | Route | Vitest + MSW | SSE nối lại `Last-Event-ID` · từ chối không session · từ chối traversal |
-| E2E | Playwright | phỏng vấn → ok làm đi → chữ chạy → gõ chen → dừng (run.jsonl giả ghi dần) |
+| E2E | Playwright | mở phiên → chữ chạy → gõ chen → dừng (run.jsonl giả ghi dần) · chip chọn prefix rồi gửi · panel actions đổi mode/model |
 | Rig bash | thủ công trên máy thật | bảng dưới |
 
 **Rig bắt buộc — toàn bộ là loại hỏng-im-lặng:**
@@ -415,8 +459,9 @@ systemctl --user status 'bee-*'    # nhìn cả họ unit
 1. `kill -9` tiến trình claude giữa chừng → reaper đóng sổ trong một tick,
    UI báo đã dừng, không spinner.
 2. Đóng FIFO khi thấy `result` → claude thoát sạch, `meta.json` = `done`.
-3. Gõ chen lúc agent đang giữa một tool call → CLI xếp hàng hay bỏ? (§11)
-4. Phỏng vấn → `--resume` với tool → phiên nhớ đủ ngữ cảnh phỏng vấn.
+3. Gõ chen lúc agent đang giữa một tool call → CLI xếp hàng (đã gỡ, S0.1).
+4. Đổi mode/model giữa chừng → restart + `--resume` nối đúng hội thoại cũ,
+   không mất lượt nào (đường resume: S0.2; đổi mode: rig-05).
 5. `say` với id chứa `../` → bị từ chối ở route (một phía là đủ — không còn
    ranh giới thứ hai, nhưng phía đó phải có test).
 6. Reboot máy giữa phiên → reaper dọn, session list nói thật, mở lại resume được.
@@ -441,7 +486,8 @@ protection để "tiện" · render markdown từ đầu ra agent ở V1 · `if 
 ## 10. Nghiệm thu V1
 
 - [ ] Mở phiên từ điện thoại ngoài mạng nhà → sự kiện đầu < 5s
-- [ ] Phỏng vấn không tool → "ok làm đi" → cùng phiên có tool, sửa code thật
+- [ ] Phiên repo có đủ tool từ câu đầu → sửa code thật (mode Auto)
+- [ ] Đổi mode và đổi model giữa chat → cùng hội thoại, không mất lượt
 - [ ] Agent tự tạo issue + draft PR bằng skill, thấy link trong dòng sự kiện
 - [ ] Push thẳng `main` bị GitHub từ chối (thử tay một lần để chứng minh)
 - [ ] Gõ chen → agent tiếp thu; Dừng → < 5s, không FIFO mồ côi
@@ -465,3 +511,5 @@ protection để "tiện" · render markdown từ đầu ra agent ở V1 · `if 
 | Trần `--max-turns` phiên tương tác | 80 là trần phiên tự hành; gõ chen làm phiên dài hơn hẳn. Chốt số + báo khi còn 10 lượt |
 | Số phiên song song tối đa | `bee.slice`-tương-đương cho user units; đề xuất trần 3, đọc từ config |
 | `run.jsonl` phình lúc đang chạy | Trần theo byte lúc ghi (phiên 3 tiếng không được ăn hết đĩa) |
+| Auto-compact có thật sự nổ trong `-p` không? | Docs 2.1.161 nói CÓ (không có ngoại lệ cho stream-json) và binary có đủ `autoCompactEnabled`/`CLAUDE_CODE_AUTO_COMPACT_WINDOW`, nhưng ta **chưa quan sát được lần nào**. Đường may `compact_boundary` (§4.4) là dụng cụ đo: chạy thật một thời gian mà vòng lên cao vẫn không thấy `⇅` → nổ thật là không có, lúc đó set `CLAUDE_CODE_AUTO_COMPACT_WINDOW` trong session-run.sh. **Không** tự chế auto-compact phía web trước khi có bằng chứng — compact hai lần là đốt token |
+| Model ngoài danh sách alias (vd Fable) | `--model` nhận cả model id đầy đủ, nhưng id mục ruỗng theo thời gian nên allowlist V2.7 chỉ có alias. Muốn Fable thì thêm một dòng ánh xạ tên → id; CLI báo lỗi model sai một cách lịch sự (đã probe), nên rủi ro thấp |

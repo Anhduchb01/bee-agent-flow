@@ -581,9 +581,6 @@
       <path class="ln-a" d="M282 340 C 246 340 236 260 222 220" marker-end="url(#a3)"></path>
       <text class="tsm" x="226" y="296">gh — PAT hẹp</text>
 
-      <path class="ln-d" d="M282 380 C 240 400 236 430 222 430"></path>
-      <path class="ln" d="M222 430 L222 430"></path>
-
       <path class="ln-o" d="M392 450 L392 418" marker-end="url(#a2)"></path>
       <text class="tsm" x="400" y="440">is-active?</text>
 
@@ -703,6 +700,21 @@
     </p>
   </div>
 
+  <div class="note warn">
+    <p class="note-h">Ngữ cảnh phải nhìn thấy được — kể cả lúc nó tụt đột ngột</p>
+    <p>
+      Vòng % context đọc từ <code>usage</code> của <code>result</code> chia
+      cho <code>contextWindow</code>, kèm số thô (<code>105k/1M</code>) vì
+      "10%" một mình bị đọc là bug khi cửa sổ là 1M. Khi CLI nén hội thoại nó
+      phát <code>system/compact_boundary</code> — bee render thành một đường
+      may <code>⇅ Conversation compacted</code>: <strong>không có đường may
+      đó, vòng tụt từ 90% xuống 20% trông y như một cái bug.</strong> Ô chat
+      gửi được <code>/compact</code> (probe 23/08: CLI tự xử lý, không phải
+      model). Web KHÔNG tự chế auto-compact thứ hai — CLI đã làm việc đó, và
+      đường may này chính là dụng cụ để biết nó có thật sự nổ hay không.
+    </p>
+  </div>
+
   <div class="table-wrap col">
     <table>
       <thead><tr><th>Ba thứ phải sống sót</th><th>Sống sót nhờ</th></tr></thead>
@@ -737,13 +749,28 @@
             <td>Làm hết không hỏi — mặc định, hàng rào nằm ở A+ chứ không ở hộp thoại</td></tr>
         <tr><td><b>Plan</b></td><td><code>--permission-mode plan</code></td>
             <td>Chỉ đọc + trình kế hoạch — khảo sát an toàn rồi đổi sang Auto</td></tr>
-        <tr><td><b>Edits</b></td><td><code>acceptEdits</code> + prompt-tool stdio</td>
+        <tr><td><b>Edits</b></td><td><code>--permission-mode acceptEdits</code> + prompt-tool stdio</td>
             <td>Sửa file tự do; tool khác hỏi qua thẻ trong chat</td></tr>
-        <tr><td><b>Manual</b> ✋</td><td><code>default</code> + prompt-tool stdio</td>
+        <tr><td><b>Manual</b> ✋</td><td><code>--permission-mode default</code> + prompt-tool stdio</td>
             <td>Mọi tool hỏi trước — thẻ ⏸ Allow/Deny, bấm được từ điện thoại</td></tr>
       </tbody>
     </table>
   </div>
+
+  <p class="col">
+    <strong>Mode là quyền, model là bộ não — hai trục rời nhau</strong>
+    <em>(V2.7, 24/08)</em>. Nhóm <strong>Model</strong> trong panel actions
+    (nút <code>⧉/</code> góc trái ô chat) chọn theo phiên:
+    <code>Default</code> — không truyền cờ, để máy tự quyết — hoặc
+    <code>opus</code> · <code>opus[1m]</code> · <code>sonnet</code> ·
+    <code>sonnet[1m]</code> · <code>haiku</code>, đúng danh sách alias CLI
+    2.1.161 nhận. Đổi model đi cùng một đường với đổi mode: ghi
+    <code>session.json</code> → restart unit → <code>--resume</code> nối lại
+    hội thoại cũ dưới model mới. Allowlist ở cả hai đầu (web và
+    <code>session-run.sh</code>), và pattern bash phải có nháy —
+    <code>opus[1m]</code> không nháy là một lớp ký tự glob, khớp nhầm
+    <code>opus1</code>.
+  </p>
 
   <div class="note ok">
     <p class="note-h">Đã chứng minh bằng rig-05 (20/08)</p>
@@ -967,12 +994,14 @@
 
 <pre><code>~bee/ (user bee, loginctl enable-linger)
 ├── .claude/skills/            bee-create-issue · bee-push-pr · bee-update-pr
+│                              bee-demo · bee-preview · record-screen
 └── .config/systemd/user/      unit files — cài bởi install.sh
 
 /opt/bee/                      cài bởi apps/runner/install.sh, idempotent
 ├── bin/session-run.sh         ← ExecStart của bee-session@
 ├── bin/reaper.sh              ← bee-reaper.timer
-├── bin/doctor.sh              ← checklist A+, ghi doctor.json
+├── bin/heartbeat.sh           ← bee-heartbeat.timer
+├── bin/doctor.sh              ← bee-doctor.service, ghi doctor.json
 └── lib/                       port từ reconciler cũ: common, github, state
 
 /srv/bee/                      user bee sở hữu toàn bộ
@@ -992,6 +1021,7 @@ $XDG_RUNTIME_DIR/bee/&lt;id&gt;.in   FIFO — đường vào một phiên</code>
         <tr><td><code>bee-session@.service</code></td><td>template</td><td>timeout dài, một instance một id</td><td>Một phiên — khoá + liệt kê + tách log, cả ba miễn phí</td></tr>
         <tr><td><code>bee-reaper.timer</code></td><td>timer 30s</td><td>oneshot, luôn nhanh</td><td>Dọn xác — hậu duệ trực tiếp của rule 01</td></tr>
         <tr><td><code>bee-heartbeat.timer</code></td><td>timer</td><td>—</td><td>Bắt chế độ hỏng nguy hiểm nhất: chết im lặng</td></tr>
+        <tr><td><code>bee-doctor.service</code></td><td>oneshot</td><td>start theo yêu cầu, block tới khi xong</td><td>Checklist A+ → <code>doctor.json</code> — nút "Run doctor" trên web đọc được kết quả tươi ngay, không polling</td></tr>
         <tr><td><code>bee-web.service</code></td><td>daemon</td><td>cùng user bee</td><td>Mặt điều khiển — không giữ trạng thái nào trong RAM</td></tr>
       </tbody>
     </table>
@@ -1034,6 +1064,9 @@ $XDG_RUNTIME_DIR/bee/&lt;id&gt;.in   FIFO — đường vào một phiên</code>
         <tr><td><b>Flow thật</b></td><td>lifebook: 1 câu lệnh → issue #11 → 4 cổng xanh → PR #12 + snapshot → video demo</td>
             <td>—</td>
             <td><span class="chip ok">xong 21/08 — 55 lượt, 0 lần hỏi tay</span></td></tr>
+        <tr><td><b>V2.7</b></td><td>Ô chat chín: chip chọn-prefix · Enter=xuống dòng trên điện thoại · đính kèm file vào worktree · panel actions · model theo phiên · đường may compact</td>
+            <td><span class="chip ok">đủ</span></td>
+            <td><span class="chip part">chưa — code + 386 test, chờ chạy trên máy thật</span></td></tr>
         <tr><td><b>V3</b></td><td>Vận hành bền (trần run.jsonl, dọn sau merge) · hàng đợi/đi ngủ · ngân sách hạn mức</td>
             <td><span class="chip no">chưa</span></td><td>—</td></tr>
       </tbody>

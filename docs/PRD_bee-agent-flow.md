@@ -1,17 +1,21 @@
 # bee-agent-flow — Product Requirements Document (PRD)
 
-> Bản 3.0, sinh ra từ lượt review + tranh luận ngày 17/08/2026, thay thế bản 2.0
+> Bản 3.0 sinh ra từ lượt review + tranh luận ngày 17/08/2026, thay thế bản 2.0
 > (giữ nguyên văn ở nhánh `feat/bee-m3-and-web-spec`, commit `5b51dab`).
+> Bản 3.1 (22/08) ghi nhận hai quyết định đã chạy thật: bỏ cửa phỏng vấn,
+> thay bằng **mode per-phiên** (19/08); Tailscale thay Cloudflare Access (20/08).
+> Bản 3.2 (24/08) thêm ba thứ ô chat đã có: **model theo phiên**, **đính kèm
+> file**, và **ngữ cảnh nhìn thấy được** (vòng % + đường may compact).
 > Khi ba thứ mâu thuẫn: **PRD thắng về *muốn gì*, spec thắng về *làm thế nào*,
 > code thắng về *hôm nay đang là gì*.**
 
 | | |
 | --- | --- |
-| **Trạng thái** | Đang hiệu lực — chốt 17/08/2026, S0 (rig hai ẩn số) đã nghiệm thu |
-| **Phiên bản** | 3.0 — session-first, mô hình một UID ("A+") |
+| **Trạng thái** | Đang hiệu lực — V1 + V2 đã nghiệm thu trên máy thật |
+| **Phiên bản** | 3.2 — session-first, mô hình một UID ("A+"), mode + model per-phiên |
 | **Người tạo (Product Owner)** | Đức |
 | **Team tham gia** | Một người |
-| **Ngày cập nhật cuối** | 17/08/2026 |
+| **Ngày cập nhật cuối** | 24/08/2026 |
 
 ---
 
@@ -116,13 +120,17 @@ Một persona duy nhất: **chủ dự án**. Không PM, không Techlead, không
 ### 2.3 Luồng chính
 
 ```
-Mở app → chọn repo → New session
-  → phiên mở ở CHẾ ĐỘ PHỎNG VẤN (chưa có tool) — nói ý tưởng, agent hỏi lại
-  → "ok làm đi"                          ← CỬA CHẶN DUY NHẤT = chuyển chế độ
-  → cùng phiên đó chuyển sang CHẾ ĐỘ LÀM (đủ tool), chữ chạy < 5 giây
+Mở app → chọn repo → New session (chọn mode, mặc định Auto)
+  → phiên là chat có ĐỦ TOOL TỪ TIN NHẮN ĐẦU — nói ý tưởng, agent hỏi lại
+    nếu chưa rõ, "ok làm đi" chỉ là một câu trong hội thoại
+  → muốn khảo sát trước thì mở ở mode Plan, đổi sang Auto ngay giữa chat
   → agent: sửa code trong worktree, commit, tự push, tự mở PR (skill)
   → xong: link PR trong dòng sự kiện → xem → merge (V2)
 ```
+
+> **Đã đổi 19/08:** bản 3.0 đặt một "cửa chặn" phỏng vấn (không tool) → "ok
+> làm đi" (đủ tool). Cửa đó đã bỏ — thứ thay thế là **mode per-phiên**
+> (FR-1.6): quyền của agent do mode quyết, không do một màn chuyển chế độ.
 
 **Luồng phụ — đi ngủ (V3):** chọn n việc → đặt ngân sách → app lần lượt mở
 phiên cho từng việc, tự dọn phiên chết, tự phanh trước khi cạn hạn mức → sáng
@@ -143,9 +151,11 @@ dậy đọc bản tin.
 | FR-1.3 | Xem live | Chữ chạy < 5s (tính từ sự kiện vòng đời đầu tiên, không phải token model). Đóng trình duyệt 10 phút, mở lại: phiên vẫn chạy, xem tiếp từ chỗ đang tới | **P0** |
 | FR-1.4 | Gõ chen giữa chừng | Câu của mình vào dòng sự kiện ngay, agent tiếp thu | **P0** |
 | FR-1.5 | Dừng | Dừng < 5s, worktree dọn được, không rác | **P0** |
-| FR-1.6 | Phỏng vấn → "ok làm đi" | Phiên mở không tool; đồng ý trong hội thoại → cùng phiên đó có tool. Không màn hình thứ hai, không nhãn tay | **P0** |
+| FR-1.6 | Mode per-phiên *(thay "phỏng vấn → ok làm đi", 19/08)* | 4 mode như menu Claude Code trong VSCode: **Auto** (mặc định, `--dangerously-skip-permissions` — hàng rào nằm ở A+ §4.2, không ở hộp thoại) · **Plan** (chỉ đọc) · **Edits** (sửa file tự do, tool khác hỏi) · **Manual** (mọi tool hỏi, thẻ Allow/Deny bấm được từ điện thoại). Chọn lúc tạo, **đổi ngay giữa chat** — cùng phiên, cùng hội thoại (`--resume`) | **P0** |
 | FR-1.7 | Bền qua mọi restart | `systemctl restart bee-web` / đóng trình duyệt / mất mạng: phiên không hề hấn | **P0** |
 | FR-1.8 | Nối lại phiên đã xong để hỏi | `--resume` đúng phiên, trả lời trong vài giây | P1 |
+| FR-1.9 | Chọn model cho từng phiên *(thêm 24/08)* | Việc nhẹ giao model nhanh, việc khó giao model mạnh — chọn lúc tạo, đổi giữa chat, cùng hội thoại. Không chọn = để máy tự quyết | P1 |
+| FR-1.10 | Đính kèm ảnh/file từ điện thoại *(thêm 23/08)* | Chụp màn hình bug → đính vào phiên → agent đọc được file, không phải mô tả bằng lời | P1 |
 
 ### Epic 2: Agent tự làm việc GitHub bằng skill
 
@@ -199,6 +209,10 @@ bấm) · FR-4.3 tóm tắt "đã đổi gì" · FR-4.4 diff thì link sang GitH
 - Sự kiện đầu tiên của phiên < 5 giây. Trạng thái chờ nói rõ đang chờ *cái gì*.
   **Không spinner vô tận** — nói dối về độ trễ tệ hơn độ trễ.
 - Dữ liệu cũ hiển thị **là** cũ. Rỗng-vì-hết-việc ≠ rỗng-vì-lỗi.
+- **Ngữ cảnh không được là hộp đen** *(thêm 24/08)*: thấy cửa sổ còn bao nhiêu
+  (vòng % kèm số thô — "10%" một mình là vô nghĩa khi cửa sổ 1M), và khi hội
+  thoại bị nén thì **thấy chỗ nó bị nén**. Vòng tụt đột ngột mà không nói lý
+  do là một cách nói dối về trạng thái.
 - Đầu ra agent render **plain text** ở V1 — nội dung untrusted, muốn markdown
   đẹp thì V2 kèm sanitizer có test.
 - **Thiết kế: Geist (Vercel), dark là mặc định** *(đổi 17/08 — theo Claude
@@ -209,6 +223,10 @@ bấm) · FR-4.3 tóm tắt "đã đổi gì" · FR-4.4 diff thì link sang GitH
   [session-first §4.4](specs/session-first.md).
 
 ### 4.2 Bảo mật — checklist vệ sinh A+ (điều kiện tiên quyết, `doctor` kiểm)
+
+Mode mặc định của phiên là Auto — agent chạy `--dangerously-skip-permissions`
+(FR-1.6). Điều đó chấp nhận được *chỉ khi* checklist dưới đây đúng toàn bộ;
+muốn hàng rào per-tool thì chọn mode Plan/Edits/Manual cho phiên đó.
 
 1. **Máy chuyên dụng đúng nghĩa:** không SSH key sang máy khác, không password
    manager, không secret nào ngoài PAT + login Claude. `.env` production không
@@ -289,7 +307,10 @@ tên người · `usage`/`stop_reason` mỗi lần chạy.
 
 ## 7. Khoảng cách với repo hiện tại
 
-> Đối chiếu tại `5b51dab` (17/08/2026). Nhánh `feat/bee-m3-and-web-spec` giữ
+> **Ảnh chụp lịch sử** — đối chiếu tại `5b51dab` (17/08/2026), giữ nguyên làm
+> bằng chứng cho quyết định 3.0. Hiện trạng sống xem bảng "Đã dựng tới đâu"
+> trong [architecture.html](architecture.html): mục §7.3 dưới đây đã xây xong
+> gần hết (V1+V2 nghiệm thu 20–21/08). Nhánh `feat/bee-m3-and-web-spec` giữ
 > nguyên toàn bộ mô hình cũ làm fallback.
 
 ### 7.1 Giữ — dùng lại gần như nguyên
@@ -299,7 +320,7 @@ tên người · `usage`/`stop_reason` mỗi lần chạy.
 | Mẫu chạy claude stream-json + `usage`/`stop_reason` | `apps/reconciler/bin/agent-exec.sh` · `lib/` |
 | Vòng đời worktree, logic dọn xác (rule 01), heartbeat | `apps/reconciler/` — port sang runner mới |
 | Web: 15 feature slice, SSE/live design, evidence viewer, chặn traversal | `apps/web/` |
-| Tạo task bằng phỏng vấn (UI) | `create-task-dialog.tsx` — đổi hậu trường sang phiên hai chế độ |
+| Tạo task bằng phỏng vấn (UI) | `create-task-dialog.tsx` — *(hậu trường "phiên hai chế độ" đã bỏ 19/08, thay bằng mode per-phiên — FR-1.6)* |
 | Thiết kế đường ra/đường vào (run.jsonl + FIFO) của spec v1-live | `docs/specs/v1-live.md` §3 — chuyển nguyên vào spec mới |
 
 ### 7.2 Không dùng trong mô hình mới (đóng băng, xoá ở V4)
@@ -328,7 +349,7 @@ thật sẵn cho phần web.
 |---|---|
 | **A+** | Mô hình một UID có vệ sinh: ranh giới = vỏ máy + hàng rào GitHub-side |
 | **Phiên (session)** | Đối tượng gốc: một lần Claude Code chạy trong một worktree, sống như systemd unit |
-| **Chuyển chế độ** | "Ok làm đi" — từ phỏng vấn (không tool) sang làm (đủ tool), cùng một phiên |
+| **Mode per-phiên** | Mức quyền của một phiên: Auto / Plan / Edits / Manual — chọn lúc tạo, đổi giữa chat (FR-1.6). Thay khái niệm "chuyển chế độ phỏng vấn → làm" của bản 3.0, bỏ 19/08 |
 | **Reaper** | Kẻ dọn xác phiên — hậu duệ trực tiếp của rule 01 |
 | **Cò súng** | Điều kiện §0.2 buộc chuyển sang mô hình C |
 
@@ -336,5 +357,5 @@ thật sẵn cho phần web.
 
 - [docs/specs/session-first.md](specs/session-first.md) — spec V1 của mô hình này
 - [docs/specs/v1-live.md](specs/v1-live.md) — spec mô hình cũ *(đóng băng, còn giá trị ở §3)*
-- [docs/architecture.html](architecture.html) — bản đồ mô hình hai UID *(tham chiếu fallback)*
+- [docs/architecture.html](architecture.html) — tài liệu kiến trúc **hiện hành** của mô hình session-first *(từ f3e2d61; bản đồ hai UID cũ nằm ở nhánh fallback)*
 - [AGENTS.md](../AGENTS.md) — quy ước code
