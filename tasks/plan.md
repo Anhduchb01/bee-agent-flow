@@ -307,7 +307,7 @@ Lib thuần: thêm/bỏ/đổi thứ tự/lấy việc kế tiếp. Ghi nguyên 
 **Verification** · [ ] `pnpm vitest run queue` · [ ] kill -9 giữa lúc ghi → file vẫn hợp lệ
 **Dependencies:** không (làm song song Phase 2 được) · **Files:** `lib/bee/queue-fs.ts`(+test), `features/board/lib/queue.ts`(+test) · **Scope:** M
 
-#### T8 · Tick: tự mở phiên khi tới lượt
+#### T8 · Tick: tự mở phiên khi tới lượt — ✅ XONG 24/08
 **Mô tả:** `bee-queue.timer` → `/api/queue/tick` (D2b). Mỗi tick: refresh hạn
 mức → kiểm PAUSE → kiểm phanh (T5) → còn slot (`MAX_PARALLEL`, mặc định 1) →
 mở phiên cho việc kế tiếp → cập nhật `queue.json`.

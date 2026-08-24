@@ -76,9 +76,11 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       việc-kế-tiếp (9 test bảng) + lớp đĩa ghi nguyên tử (6 test). Khoá là
       (repo, issue) nên cùng số ở hai repo là hai việc. `status` lạ về
       `waiting` — dữ liệu ngoài luồng không được lái vòng lặp tick.
-- [ ] 🤖 **T8** Tick tự mở phiên (M) — refresh quota → PAUSE? → phanh? → còn
-      slot? → mở việc kế tiếp. Phiên hỏng thì việc `failed` kèm lý do, tick vẫn
-      chạy tiếp.
+- [x] 🤖 **T8** ~~Tick tự mở phiên~~ **XONG 24/08** — `chayMotNhip()` nhận mọi
+      tác dụng phụ qua tham số nên vòng chạy-đêm test được trên bàn giấy (7
+      test). Mỗi nhịp mở **nhiều nhất một** phiên. Bốn lý do từ chối tách bạch:
+      PAUSE máy · ⏸ hàng đợi · hết slot · phanh hạn mức. Phanh chặn thì việc về
+      lại `waiting` kèm lý do, không mất và không kẹt `running`.
 - [ ] 🤖 **T9** Lane **Autopilot** trên `/projects` (M) — kéo thả Backlog↔Autopilot
       (desktop), `+`/`↑↓` (điện thoại); thả vào lane khác bị từ chối kèm lý do;
       đầu lane nói điều kiện mở phiên + quota còn lại.

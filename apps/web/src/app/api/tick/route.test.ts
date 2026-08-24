@@ -8,6 +8,14 @@ vi.mock("@/lib/bee/machine-ctl", () => ({
   fetchClaudeAccountUsage: vi.fn(async () => ({ ok: true })),
   harvestClaudeUsage: vi.fn(async () => ({ ok: true })),
 }));
+// Hàng đợi có test riêng (queue-run.test); ở đây chỉ cần biết tick CÓ gọi nó
+// và trả lý do ra ngoài, không nuốt.
+vi.mock("@/lib/bee/queue-fs", () => ({
+  docHangDoi: vi.fn(async () => ({ items: [], paused: false })),
+  ghiHangDoi: vi.fn(async () => {}),
+}));
+vi.mock("@/lib/bee/session-ctl", () => ({ moPhien: vi.fn() }));
+vi.mock("@/lib/bee", () => ({ getBee: () => ({ listSessions: async () => [] }) }));
 
 const TOKEN = "a".repeat(32);
 
@@ -69,5 +77,37 @@ describe("POST /api/tick — the timer's only way in", () => {
     await expect(res.json()).resolves.toMatchObject({
       quota: { ok: false, message: expect.stringContaining("401") },
     });
+  });
+});
+
+describe("POST /api/tick — nhịp hàng đợi", () => {
+  beforeEach(() => {
+    process.env.BEE_TICK_TOKEN = TOKEN;
+  });
+  afterEach(() => {
+    delete process.env.BEE_TICK_TOKEN;
+  });
+
+  it("hàng rỗng: trả lý do đọc được, không đụng gì thêm", async () => {
+    const res = await goi(TOKEN);
+    await expect(res.json()).resolves.toMatchObject({
+      queue: { daMo: null, lyDo: expect.stringMatching(/trống/) },
+    });
+  });
+
+  it("refresh hạn mức chạy TRƯỚC hàng đợi — phanh phải đọc số vừa lấy", async () => {
+    const { docHangDoi } = await import("@/lib/bee/queue-fs");
+    const thuTu: string[] = [];
+    vi.mocked(fetchClaudeAccountUsage).mockImplementationOnce(async () => {
+      thuTu.push("quota");
+      return { ok: true };
+    });
+    vi.mocked(docHangDoi).mockImplementationOnce(async () => {
+      thuTu.push("queue");
+      return { items: [], paused: false };
+    });
+
+    await goi(TOKEN);
+    expect(thuTu).toEqual(["quota", "queue"]);
   });
 });
