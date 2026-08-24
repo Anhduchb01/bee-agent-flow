@@ -136,11 +136,12 @@ describe("locTheoDuAn / nhomTheoLane", () => {
     expect(locTheoDuAn(muc, "khong-co")).toEqual([]);
   });
 
-  it("groups into the four lanes with empty ones kept", () => {
+  it("groups into the five lanes with empty ones kept", () => {
     const nhom = nhomTheoLane(muc);
     expect(nhom.working.map((m) => m.issue.number)).toEqual([41]);
     expect(nhom.done.map((m) => m.issue.number)).toEqual([40]);
     expect(nhom.review).toEqual([]);
-    expect(Object.keys(nhom)).toEqual(["backlog", "working", "review", "done"]);
+    // Autopilot chen vào giữa backlog và working (D4) — thứ tự này LÀ vòng đời.
+    expect(Object.keys(nhom)).toEqual(["backlog", "autopilot", "working", "review", "done"]);
   });
 });

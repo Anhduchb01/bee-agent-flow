@@ -1,10 +1,20 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { BeeIssue } from "@/lib/bee/issues";
 
 import { ghepBang } from "../lib/lanes";
 import { BoardKanban } from "./board-kanban";
+
+// Kanban gọi server action (xếp/bỏ hàng đợi) — jsdom không nạp được chuỗi
+// next-auth phía sau nó, và bài của file này là bố cục lane chứ không phải
+// hành vi hàng đợi (đã có autopilot-controls.test).
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("../api/queue-actions", () => ({
+  themVaoHangDoiAction: vi.fn(async () => ({ ok: true, message: "" })),
+  boKhoiHangDoiAction: vi.fn(async () => ({ ok: true, message: "" })),
+  doiThuTuAction: vi.fn(async () => ({ ok: true, message: "" })),
+}));
 import { BoardTable } from "./board-table";
 import { BoardToolbar, duongDanBang } from "./board-toolbar";
 
@@ -87,11 +97,12 @@ describe("BoardKanban — four lanes in lifecycle order", () => {
     const lanes = screen.getAllByRole("region");
     expect(lanes.map((l) => l.getAttribute("aria-label"))).toEqual([
       "Backlog",
+      "Autopilot",
       "In session",
       "In review",
       "Done",
     ]);
-    expect(within(lanes[1]!).getByText("Add CSV export to the report screen")).toBeInTheDocument();
+    expect(within(lanes[2]!).getByText("Add CSV export to the report screen")).toBeInTheDocument();
     expect(within(lanes[0]!).getByText("Nothing here")).toBeInTheDocument();
   });
 });

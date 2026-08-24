@@ -81,9 +81,11 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       test). Mỗi nhịp mở **nhiều nhất một** phiên. Bốn lý do từ chối tách bạch:
       PAUSE máy · ⏸ hàng đợi · hết slot · phanh hạn mức. Phanh chặn thì việc về
       lại `waiting` kèm lý do, không mất và không kẹt `running`.
-- [ ] 🤖 **T9** Lane **Autopilot** trên `/projects` (M) — kéo thả Backlog↔Autopilot
-      (desktop), `+`/`↑↓` (điện thoại); thả vào lane khác bị từ chối kèm lý do;
-      đầu lane nói điều kiện mở phiên + quota còn lại.
+- [x] 🤖 **T9** ~~Lane **Autopilot**~~ **XONG 24/08** — lane thứ năm giữa Backlog
+      và In session; kéo thả chỉ Backlog↔Autopilot (thả vào lane khác bị từ chối
+      kèm lý do — chúng là hệ quả của sự thật); `+`/`↑↓` cỡ 36px cho điện thoại;
+      lý do phanh hiện ngay trên thẻ. Ý định KHÔNG che sự thật: issue vừa xếp
+      hàng vừa có phiên chạy thì lane là *In session*.
 - [ ] 🤖 **T9b** Node "chờ tự chạy" trên canvas (S) — issue đã xếp mà chưa chạy
       hiện chưa có node nào; node mờ, nhãn rõ là dự định chứ không phải đã xảy ra.
 - [ ] ✅ **Checkpoint 3 — nghiệm thu V3**: tối xếp 2 việc → **sáng có 2 PR chờ

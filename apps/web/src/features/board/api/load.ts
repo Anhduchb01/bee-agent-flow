@@ -2,13 +2,16 @@ import "server-only";
 
 import { getBee } from "@/lib/bee";
 import { fetchRepoIssues, type BeeIssue } from "@/lib/bee/issues";
-import type { BeeArtifact } from "@/lib/bee/types";
+import { docHangDoi } from "@/lib/bee/queue-fs";
+import type { BeeArtifact, HangDoi } from "@/lib/bee/types";
 
 import { ghepBang, type MucBang } from "../lib/lanes";
 
 export interface DuLieuBang {
   muc: MucBang[];
   repos: { slug: string; repo: string }[];
+  /** Hàng đợi Autopilot — lane thứ năm đọc từ đây (D4). */
+  hangDoi: HangDoi;
   /** Repos whose issue list could not be read — shown, never swallowed. */
   loi: { repo: string; message: string }[];
 }
@@ -23,7 +26,11 @@ export interface DuLieuBang {
  */
 export async function loadBoard(): Promise<DuLieuBang> {
   const bee = getBee();
-  const [repos, phien] = await Promise.all([bee.listRepos(), bee.listSessions()]);
+  const [repos, phien, hangDoi] = await Promise.all([
+    bee.listRepos(),
+    bee.listSessions(),
+    docHangDoi(process.env.BEE_SRV ?? "/srv/bee"),
+  ]);
 
   const [ketQuaIssues, capArtifact] = await Promise.all([
     Promise.all(
@@ -46,5 +53,10 @@ export async function loadBoard(): Promise<DuLieuBang> {
 
   const artifactsTheoPhien: Record<string, BeeArtifact[]> = Object.fromEntries(capArtifact);
 
-  return { muc: ghepBang(repos, issuesTheoRepo, phien, artifactsTheoPhien), repos, loi };
+  return {
+    muc: ghepBang(repos, issuesTheoRepo, phien, artifactsTheoPhien, hangDoi),
+    repos,
+    hangDoi,
+    loi,
+  };
 }

@@ -1,5 +1,5 @@
 import type { BeeIssue } from "@/lib/bee/issues";
-import type { BeeArtifact, BeeSession } from "@/lib/bee/types";
+import type { BeeArtifact, BeeSession, HangDoi, ViecTrongHang } from "@/lib/bee/types";
 
 /**
  * Pure board logic: which session is working on which issue, and which lane
@@ -8,11 +8,12 @@ import type { BeeArtifact, BeeSession } from "@/lib/bee/types";
  */
 
 /** The four lanes ARE the bee lifecycle, not a generic todo board. */
-export const CAC_LANE = ["backlog", "working", "review", "done"] as const;
+export const CAC_LANE = ["backlog", "autopilot", "working", "review", "done"] as const;
 export type Lane = (typeof CAC_LANE)[number];
 
 export const NHAN_LANE: Record<Lane, string> = {
   backlog: "Backlog",
+  autopilot: "Autopilot",
   working: "In session",
   review: "In review",
   done: "Done",
@@ -20,6 +21,7 @@ export const NHAN_LANE: Record<Lane, string> = {
 
 export const MOTA_LANE: Record<Lane, string> = {
   backlog: "No session has picked it up",
+  autopilot: "Queued — bee opens these in order",
   working: "A session is running on it",
   review: "PR open, waiting for you",
   done: "Closed on GitHub",
@@ -43,6 +45,8 @@ export interface MucBang {
   phien: PhienCuaIssue[];
   /** PRs opened by those sessions — the "in review" signal. */
   pr: BeeArtifact[];
+  /** Mục trong hàng đợi Autopilot, `null` = chưa xếp hàng. */
+  hangDoi: ViecTrongHang | null;
   lane: Lane;
 }
 
@@ -71,11 +75,36 @@ export function xepLane(
   issue: BeeIssue,
   phien: PhienCuaIssue[],
   pr: BeeArtifact[],
+  daXepHang = false,
 ): Lane {
   if (issue.state === "CLOSED") return "done";
   if (phien.some((p) => p.status === "running" || p.status === "starting")) return "working";
   if (pr.length > 0) return "review";
+  // Xếp hàng là một TRẠNG THÁI (D4), nhưng đứng SAU mọi sự thật: một issue
+  // vừa nằm trong hàng vừa có phiên đang chạy thì nó đang chạy, không phải
+  // đang chờ. Ý định không được che sự thật.
+  if (daXepHang) return "autopilot";
   return "backlog";
+}
+
+/**
+ * Thả thẻ vào lane nào là hợp lệ (D4). Chỉ `Backlog ↔ Autopilot` — ba lane còn
+ * lại là HỆ QUẢ của sự thật: thả thẻ vào "In session" không làm phiên chạy,
+ * thả vào "Done" không đóng issue trên GitHub. Cho kéo vào đó là dạy người
+ * dùng một lời nói dối, nên thả sai bị từ chối kèm lý do.
+ */
+export function laThaHopLe(tu: Lane, den: Lane): { ok: boolean; lyDo: string } {
+  if (tu === den) return { ok: true, lyDo: "" };
+  const duoc = new Set<Lane>(["backlog", "autopilot"]);
+  if (duoc.has(tu) && duoc.has(den)) return { ok: true, lyDo: "" };
+  const vi: Record<Lane, string> = {
+    backlog: "",
+    autopilot: "",
+    working: "một phiên đang chạy hay không là sự thật, không kéo vào được",
+    review: "lane này do PR quyết định, không do kéo thả",
+    done: "issue đóng trên GitHub mới sang Done",
+  };
+  return { ok: false, lyDo: vi[den] !== "" ? vi[den] : vi[tu] };
 }
 
 /**
@@ -88,6 +117,7 @@ export function ghepBang(
   issuesTheoRepo: Record<string, BeeIssue[]>,
   phien: BeeSession[],
   artifactsTheoPhien: Record<string, BeeArtifact[]>,
+  hangDoi: HangDoi = { items: [], paused: false },
 ): MucBang[] {
   const ra: MucBang[] = [];
 
@@ -107,13 +137,17 @@ export function ghepBang(
         (artifactsTheoPhien[p.id] ?? []).filter((a) => a.kind === "pr"),
       );
       const dsPhien = lienQuan.map(laPhien);
+      const trongHang = hangDoi.items.find(
+        (v) => v.repo === repo && v.issue === issue.number,
+      );
       ra.push({
         issue,
         slug,
         repo,
         phien: dsPhien,
         pr,
-        lane: xepLane(issue, dsPhien, pr),
+        hangDoi: trongHang ?? null,
+        lane: xepLane(issue, dsPhien, pr, trongHang?.status === "waiting"),
       });
     }
   }
@@ -127,7 +161,7 @@ export function locTheoDuAn(muc: MucBang[], slug: string | null): MucBang[] {
 }
 
 export function nhomTheoLane(muc: MucBang[]): Record<Lane, MucBang[]> {
-  const ra = { backlog: [], working: [], review: [], done: [] } as Record<Lane, MucBang[]>;
+  const ra = { backlog: [], autopilot: [], working: [], review: [], done: [] } as Record<Lane, MucBang[]>;
   for (const m of muc) ra[m.lane].push(m);
   return ra;
 }

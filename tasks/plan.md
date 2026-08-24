@@ -320,7 +320,7 @@ mở phiên cho việc kế tiếp → cập nhật `queue.json`.
 **Verification** · [ ] test route với fixture · [ ] nghiệm thu thật: xếp 2 việc, để qua đêm
 **Dependencies:** T5, T7 · **Files:** route + unit + `queue-run.ts` · **Scope:** M
 
-#### T9 · Lane `Autopilot` trên bảng dự án (D4)
+#### T9 · Lane `Autopilot` trên bảng dự án (D4) — ✅ XONG 24/08
 **Mô tả:** Lane thứ năm giữa Backlog và In session, membership từ `queue.json`,
 thứ tự dọc = thứ tự chạy. Kéo thả `Backlog ↔ Autopilot` bằng HTML5 DnD gốc;
 điện thoại dùng `+` và `↑↓`. Bảng (table view) hiện `Autopilot · <vị trí>` và
