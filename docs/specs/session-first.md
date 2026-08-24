@@ -351,7 +351,22 @@ Màn quản lý dự án: **mọi issue của mọi repo đã đăng ký, kèm p
 - **Điện thoại là hạng nhất**: "table" không phải `<table>` — một khối xếp
   dọc, từ `sm` trở lên mới thành lưới cột (bảng thật buộc cuộn ngang trên
   390px). Kanban cuộn ngang có snap, mỗi cột ~một bề ngang màn hình.
-- **Trang cũ `/projects` (mô hình status.json) bị thay tại chỗ.** Hộp thoại
+- **Tạo project ngay tại chỗ** *(24/08)*: nút "New project" trên bảng và nút
+  `+` cạnh nhóm Projects ở sidebar mở **cùng một cửa sổ** — nhập `owner/name`
+  → `registerRepoAction` (đúng action mà `/setup` gọi, không có bản thứ hai)
+  → bước hai hỏi luôn **env.d của slug vừa suy ra**, vì repo chưa có secret
+  là repo mà phiên đầu tiên chết ở `pnpm dev`. Trước đó cả hai chỗ đều là
+  link sang `/setup`, tức là mất chỗ đang đứng để làm một việc mười giây.
+  - *Ranh giới đã phải tôn trọng:* dialog sống trong `features/setup` (cạnh
+    action nó gọi), nhưng sidebar là `"use client"` và **không được import
+    barrel của setup** — barrel đó kéo theo `api/load.ts` (`server-only`) và
+    build đổ. Lời giải: `layout.tsx` (server component) dựng sẵn phần tử rồi
+    truyền xuống `AppSidebar` qua prop `nutTaoDuAn`; style của nút `+` vẫn ở
+    trong shell (`SidebarNewProjectTrigger`). Luật `no-restricted-imports`
+    của repo không cho lách bằng import sâu, và nó đúng.
+- **Trang cũ `/projects` (mô hình status.json) đã XOÁ HẲN (24/08)** — cùng
+  `features/task`, `/p/[slug]`, `/t/[slug]/[num]` và tầng lib mồ côi theo
+  (`listRuns`/`readRun`/`listEvidence`, `runs-fs.ts`). Bản cũ được thay tại chỗ: Hộp thoại
   "Add project" của nó không còn đường vào từ UI — đăng ký repo ở `/setup`.
   `e2e/them-du-an.spec.ts` treo `describe.skip` kèm lý do; xoá hẳn feature
   `project` cũ (`/p/[slug]`, `/t/[slug]`, `loadProjects`) là quyết định

@@ -6,7 +6,9 @@ import {
   locTheoDuAn,
   type ChoXem,
 } from "@/features/board";
+import { NewProjectDialog } from "@/features/setup";
 import { PageHeader } from "@/features/shell";
+import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { getActor } from "@/lib/auth";
 
@@ -44,7 +46,9 @@ export default async function DuAnPage({
             {dangMo} open · {hienThi.length} issues
           </span>
         }
-      />
+      >
+        <NewProjectDialog trigger={<Button size="sm">New project</Button>} />
+      </PageHeader>
 
       <div className="flex flex-col gap-4 p-4 sm:p-6">
         <BoardToolbar repos={repos} duAn={duAn} view={choXem} />
@@ -61,7 +65,7 @@ export default async function DuAnPage({
               <EmptyTitle>No issues here</EmptyTitle>
               <EmptyDescription>
                 {repos.length === 0
-                  ? "No repo is registered yet — add one on Setup."
+                  ? "No repo is registered yet — add the first one above."
                   : duAn === null
                     ? "Ask a session to open one: say what you want, then tap Issue."
                     : `${duAn} has no issues yet.`}

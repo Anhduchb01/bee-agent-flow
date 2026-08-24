@@ -73,7 +73,21 @@ function MotFile({ slug, file }: { slug: string; file: EnvFile }) {
  * env.d/<slug>/ and session-run overlays it onto every new worktree —
  * readable by the agent, git-excluded so it can never be committed.
  */
-export function EnvEditor({ slug, files }: { slug: string; files: EnvFile[] }) {
+export function EnvEditor({
+  slug,
+  files,
+  moSan = false,
+}: {
+  slug: string;
+  files: EnvFile[];
+  /**
+   * Open on mount. Collapsed is right on /setup (a list of repos, env is a
+   * detail); open is right in the new-project dialog, where asking for env
+   * IS the step — a collapsed <details> there renders the field hidden, and
+   * an invisible prompt prompts nobody.
+   */
+  moSan?: boolean;
+}) {
   const router = useRouter();
   const [duongDan, setDuongDan] = useState("");
   const [noiDung, setNoiDung] = useState("");
@@ -96,7 +110,7 @@ export function EnvEditor({ slug, files }: { slug: string; files: EnvFile[] }) {
   }
 
   return (
-    <details className="mt-1">
+    <details className="mt-1" open={moSan}>
       <summary className="cursor-pointer font-mono text-xs text-muted-foreground hover:text-body">
         Env files ({files.length}) — copied into every worktree, never committable
       </summary>

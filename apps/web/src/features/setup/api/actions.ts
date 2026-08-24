@@ -82,7 +82,11 @@ export async function saveClaudeTokenAction(token: string): Promise<KetQua> {
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
-export async function registerRepoAction(repo: string): Promise<KetQua> {
+/**
+ * Returns the derived slug on success: the new-project dialog needs it to
+ * offer the env step right away (env.d is keyed by slug, not by repo).
+ */
+export async function registerRepoAction(repo: string): Promise<KetQua & { slug?: string }> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await registerRepo(repo);
@@ -90,7 +94,8 @@ export async function registerRepoAction(repo: string): Promise<KetQua> {
   // The combobox on /sessions and /canvas reads the same source.
   revalidatePath("/sessions");
   revalidatePath("/canvas");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  revalidatePath("/projects");
+  return ket.ok ? { ok: true, message: "", slug: ket.slug } : { ok: false, message: ket.message };
 }
 
 export async function unregisterRepoAction(slug: string): Promise<KetQua> {

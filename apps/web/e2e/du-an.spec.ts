@@ -40,3 +40,38 @@ test("ấn dự án ở sidebar là mở đúng bảng đã lọc", async ({ pag
   await expect(page).toHaveURL(/\/projects\?p=myapp/);
   await expect(page.getByText("Add CSV export to the report screen")).toBeVisible();
 });
+
+test.describe("tạo project ngay tại chỗ (24/08)", () => {
+  test.beforeEach(async ({ page }) => {
+    await dangNhap(page, "pm-linh");
+    await page.goto("/projects");
+  });
+
+  test("nút New project mở cửa sổ, không nhảy sang /setup", async ({ page }) => {
+    await page.locator("header").getByRole("button", { name: "New project" }).click();
+
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page).toHaveURL(/\/projects/);
+    await expect(page.getByLabel("org/repo")).toBeVisible();
+  });
+
+  test("thêm xong thì hỏi env luôn, và env đó là env.d của chính slug đó", async ({ page }) => {
+    await page.locator("header").getByRole("button", { name: "New project" }).click();
+    await page.getByLabel("org/repo").fill("org/khach-hang");
+    await page.getByRole("dialog").getByRole("button", { name: "Add project" }).click();
+
+    // Bước hai gọi đúng slug suy ra được — env.d đánh khoá theo slug.
+    await expect(page.getByText("khach-hang is registered")).toBeVisible();
+    await expect(page.getByLabel("New env file path for khach-hang")).toBeVisible();
+  });
+
+  test("nút + ở sidebar mở đúng cửa sổ đó", async ({ page }) => {
+    await page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("button", { name: "New project" })
+      .click();
+
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByLabel("org/repo")).toBeVisible();
+  });
+});

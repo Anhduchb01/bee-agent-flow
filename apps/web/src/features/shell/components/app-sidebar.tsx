@@ -31,6 +31,26 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+/**
+ * The "+" button next to Projects — exported so the server layout can wrap
+ * it in setup's dialog while its styling stays here with the rest of the
+ * sidebar. after:-inset-3 lifts the tap target from 36px to 44px (Apple's
+ * floor) without moving the 20px icon; md:after:hidden in the base class
+ * keeps the mouse behaviour unchanged.
+ */
+export function SidebarNewProjectTrigger(props: React.ComponentProps<"button">) {
+  return (
+    <SidebarGroupAction
+      title="New project"
+      aria-label="New project"
+      className="after:-inset-3"
+      {...props}
+    >
+      <PlusIcon />
+    </SidebarGroupAction>
+  );
+}
+
 export interface DuAnTrongSidebar {
   slug: string;
   dangChay: number;
@@ -59,12 +79,15 @@ export function AppSidebar({
   duAn,
   sucKhoe,
   dangXuat,
+  nutTaoDuAn,
 }: {
   displayName: string;
   login: string;
   duAn: DuAnTrongSidebar[];
   sucKhoe: SucKhoeTomTat;
   dangXuat: () => Promise<void>;
+  /** The "+" — composed by the server layout, see below. */
+  nutTaoDuAn?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -173,20 +196,12 @@ export function AppSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          {/* Registering a repo lives on /setup now — the legacy /projects
-              add-flow writes to the old model and misled a real user. */}
-          {/* after:-inset-3 lifts the tap target from 36px to 44px (Apple's
-              floor) without moving the 20px icon; md:after:hidden in the
-              base class keeps the mouse behaviour unchanged. */}
-          <SidebarGroupAction
-            title="Register repo"
-            aria-label="Register repo"
-            className="after:-inset-3"
-            onClick={dongTrenDienThoai}
-            render={<Link href="/setup" />}
-          >
-            <PlusIcon />
-          </SidebarGroupAction>
+          {/* The + comes in as a NODE from the server layout, not as an
+              import: it opens setup's dialog, and setup's barrel carries
+              server-only loaders that a "use client" file may not pull in
+              (the cross-feature lint rule forbids reaching past a barrel,
+              so composition upstairs is the only honest way). */}
+          {nutTaoDuAn}
           <SidebarGroupContent>
             <SidebarMenu>
               {duAn.map((d) => (

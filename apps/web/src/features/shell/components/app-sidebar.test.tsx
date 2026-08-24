@@ -5,11 +5,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
-import { AppSidebar } from "./app-sidebar";
+import { AppSidebar, SidebarNewProjectTrigger } from "./app-sidebar";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
+/*
+ * The + is setup's dialog, composed by the server layout and handed down as
+ * a node. This test stands in for that layout with a plain button: what the
+ * sidebar owes is "render what you were given, in the right slot". The
+ * dialog's own behaviour is new-project-dialog.test, and the two halves
+ * meeting for real is e2e/du-an.spec — jsdom cannot import setup's barrel
+ * anyway (it carries server-only loaders).
+ */
 
 // jsdom has no matchMedia; the sidebar's mobile hook needs a stub. `dienThoai`
 // flips it so the same component can be rendered at phone width.
@@ -33,6 +42,7 @@ function renderSidebar(duAn: { slug: string; dangChay: number; tone: "ok" | "age
             be opened without it, so the test needs one too. */}
         <SidebarTrigger />
         <AppSidebar
+          nutTaoDuAn={<SidebarNewProjectTrigger />}
           displayName="Đức"
           login="Anhduchb01"
           duAn={duAn}
@@ -67,9 +77,12 @@ describe("AppSidebar — Projects section speaks the session model", () => {
     expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute("href", "/projects");
   });
 
-  it("the + action registers a repo — it goes to /setup, not the legacy projects page", () => {
+  it("the + is a button in the Projects group, not a link away to /setup", () => {
     renderSidebar([]);
-    expect(screen.getByRole("link", { name: "Register repo" })).toHaveAttribute("href", "/setup");
+    const nut = screen.getByRole("button", { name: "New project" });
+    // A link is what it used to be, and what cost the owner their place.
+    expect(nut).not.toHaveAttribute("href");
+    expect(screen.getByRole("navigation", { name: "Main navigation" })).toContainElement(nut);
   });
 });
 
@@ -104,7 +117,7 @@ describe("on a phone the sidebar is a sheet — it must get out of the way", () 
    */
   it("the + has a thumb-sized tap target, not just a 20px icon", () => {
     renderSidebar([]);
-    const them = screen.getByRole("link", { name: "Register repo" });
+    const them = screen.getByRole("button", { name: "New project" });
     expect(them).toHaveClass("after:-inset-3");
     expect(them).not.toHaveClass("after:-inset-2");
   });

@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { deriveHealth } from "@/features/health";
-import { AppSidebar, type DuAnTrongSidebar } from "@/features/shell";
+import { NewProjectDialog } from "@/features/setup";
+import {
+  AppSidebar,
+  SidebarNewProjectTrigger,
+  type DuAnTrongSidebar,
+} from "@/features/shell";
 import { auth, signOut } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
 
@@ -66,6 +71,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar
+          /* Composed here, in a SERVER component: the dialog lives in the
+             setup feature next to the action it calls, and the sidebar
+             (a client component) must not import that barrel — it carries
+             server-only loaders. */
+          nutTaoDuAn={<NewProjectDialog trigger={<SidebarNewProjectTrigger />} />}
           displayName={session.displayName}
           login={session.login}
           duAn={duAn}
