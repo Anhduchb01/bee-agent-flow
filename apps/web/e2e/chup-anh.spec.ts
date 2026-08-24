@@ -27,7 +27,7 @@ type Man = { ten: string; url: string; mo?: (p: Page) => Promise<void> };
 const MAN_THEO_CANH: Man[] = [
   { ten: "01-tong-quan", url: "/" },
   { ten: "03-du-an", url: "/projects" },
-  { ten: "04-du-an-bang", url: "/p/myapp" },
+  { ten: "04-du-an-kanban", url: "/projects?view=kanban" },
 ];
 
 /**
@@ -36,8 +36,7 @@ const MAN_THEO_CANH: Man[] = [
  * tấm ảnh — hai mươi tấm giống hệt nhau làm người duyệt bỏ qua cả bộ.
  */
 const MAN_MOT_LAN: Man[] = [
-  { ten: "06-trang-task", url: "/t/myapp/49" },
-  { ten: "07-task-co-pr", url: "/t/myapp/40" },
+  { ten: "06-du-an-loc", url: "/projects?p=myapp" },
 ];
 
 const CANH = [

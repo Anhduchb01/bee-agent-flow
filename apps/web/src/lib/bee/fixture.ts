@@ -5,14 +5,12 @@ import path from "node:path";
 import { isSceneId, recentRunsJson, sceneJson, type SceneId } from "@/lib/fixtures/bee";
 import { chuaChayLanNao, currentScene } from "@/lib/fixtures/scene";
 
-import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
+import { readEvidenceFileIn } from "./evidence-fs";
 import { parseRecentLine, parseStatus } from "./parse";
 import type {
   BeeArtifact,
   BeeClaudeRateLimit,
   BeeRecentRun,
-  BeeRun,
-  BeeRunDetail,
   BeeSession,
   BeeSource,
   StatusRead,
@@ -25,20 +23,6 @@ function sceneId(want: string): SceneId {
 }
 
 /** Một lần chạy mẫu. Số liệu khớp với dòng tương ứng trong `recentRunsJson()`. */
-function runMau(): BeeRun {
-  return {
-    dir: "myapp-40-20260813T091200Z",
-    id: "myapp-40",
-    repo: "myapp",
-    number: 40,
-    rule: "07-build",
-    result: "ok",
-    at: "2026-08-13T09:12:00Z",
-    turns: 9,
-    duration_s: 264,
-    session_id: "4f5427ca-3b78-4c80-936e-33a6420fb316",
-  };
-}
 
 export function createFixtureBeeSource(): BeeSource {
   return {
@@ -90,56 +74,6 @@ export function createFixtureBeeSource(): BeeSource {
       };
     },
 
-    /*
-     * Fixture dựng đúng MỘT lần chạy, cho task #40 của myapp — task duy nhất
-     * trong seed có cả PR lẫn bằng chứng, nên nó là chỗ màn hình chi tiết được
-     * xem đầy đủ nhất.
-     *
-     * Cảnh chưa chạy lần nào thì không có gì, giống mọi nguồn khác — một danh
-     * sách lần chạy có nội dung trên một máy vừa cài là cảnh tự mâu thuẫn.
-     */
-    async listRuns(slug, num): Promise<BeeRun[]> {
-      if (chuaChayLanNao(await currentScene())) return [];
-      if (slug !== "myapp" || num !== 40) return [];
-      return [runMau()];
-    },
-
-    async readRun(slug, num, dir): Promise<BeeRunDetail | null> {
-      const ds = await this.listRuns(slug, num);
-      if (!ds.some((r) => r.dir === dir)) return null;
-      return {
-        ...runMau(),
-        output: [
-          "**Done**",
-          "- Tách `legal-document.tsx` để hai trang dùng chung phần khung",
-          "- Thêm test cho cả hai đường",
-          "",
-          "**Tests** — `scripts/ci.sh` xanh, 24 test.",
-          "",
-          "**Unsure** — chưa rõ có cần trang tiếng Anh không, tôi đoán là chưa.",
-        ].join("\n"),
-        steps: [
-          { kind: "noi", text: "Đọc issue và tìm chỗ đặt trang." },
-          { kind: "tool", text: "Grep" },
-          { kind: "tool", text: "Read" },
-          { kind: "noi", text: "Hai trang dùng chung phần khung, nên tôi tách một component." },
-          { kind: "tool", text: "Write" },
-          { kind: "tool", text: "Bash" },
-          { kind: "noi", text: "Suite xanh. Dừng ở đây." },
-        ],
-        usage: {
-          tokens_in: 12_400,
-          tokens_out: 8_900,
-          tokens_cache_read: 980_000,
-          tokens_cache_write: 31_000,
-          cost_usd: 0.42,
-          stop_reason: "end_turn",
-          api_error_status: null,
-        },
-      };
-    },
-
-    listEvidence: (slug, num) => listEvidenceIn(EVIDENCE_ROOT, slug, num),
     readEvidenceFile: (segments) => readEvidenceFileIn(EVIDENCE_ROOT, segments),
 
     /*

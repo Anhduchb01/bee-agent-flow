@@ -82,25 +82,6 @@ describe("getBee — fixture", () => {
 });
 
 describe("getBee — bằng chứng", () => {
-  it("liệt kê được các lần chạy trên đĩa fixture", async () => {
-    const runs = await getBee().listEvidence("myapp", 45);
-
-    expect(runs).toHaveLength(1);
-    expect(runs[0].sha).toBe("9f3c1ab");
-    expect(runs[0].files.map((f) => f.rel)).toContain("loc-don-theo-trang-thai.gif");
-    expect(runs[0].files.map((f) => f.rel)).toContain(
-      "shots/loc-don-theo-trang-thai-1.png",
-    );
-    // GIF là image/gif, và thẻ đúng để phát nó là <img>. Chỉ mp4/webm mới ra
-    // kind "video" — trình duyệt cần <video> cho hai loại đó.
-    expect(runs[0].files.find((f) => f.rel.endsWith(".gif"))?.kind).toBe("image");
-    expect(runs[0].files.find((f) => f.rel.endsWith("results.json"))?.kind).toBe("json");
-  });
-
-  it("trả mảng rỗng cho task chưa có bằng chứng, không ném lỗi", async () => {
-    expect(await getBee().listEvidence("myapp", 999)).toEqual([]);
-  });
-
   it("đọc được file thật kèm đúng content-type", async () => {
     const file = await getBee().readEvidenceFile([
       "myapp",

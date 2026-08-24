@@ -4,8 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { readClaudeAuthFrom, readClaudeUsageFrom, readCommandsFrom, readDoctorFrom } from "./doctor-fs";
-import { listEvidenceIn, readEvidenceFileIn } from "./evidence-fs";
-import { listRunsIn, readRunIn } from "./runs-fs";
+import { readEvidenceFileIn } from "./evidence-fs";
 import {
   docArtifactsTrong,
   docCauCuoiTrong,
@@ -84,10 +83,7 @@ export function createDiskBeeSource(): BeeSource {
       }
     },
 
-    listRuns: (slug, num) => listRunsIn(path.join(root(), "runs"), slug, num),
-    readRun: (slug, num, dir) => readRunIn(path.join(root(), "runs"), slug, num, dir),
 
-    listEvidence: (slug, num) => listEvidenceIn(path.join(root(), "evidence"), slug, num),
     // "session/<id>/<file>" serves the NEW model's per-session evidence dir;
     // anything else falls through to the legacy evidence/ tree. Both paths
     // go through resolveEvidencePath — no segment escapes its root.

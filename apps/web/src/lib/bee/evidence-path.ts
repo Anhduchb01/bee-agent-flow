@@ -48,10 +48,3 @@ export function contentTypeFor(name: string): string {
   return CONTENT_TYPES[path.extname(name).toLowerCase()] ?? "application/octet-stream";
 }
 
-export function evidenceKind(name: string): "video" | "image" | "json" | "other" {
-  const type = contentTypeFor(name);
-  if (type.startsWith("video/")) return "video";
-  if (type.startsWith("image/")) return "image";
-  if (type === "application/json") return "json";
-  return "other";
-}

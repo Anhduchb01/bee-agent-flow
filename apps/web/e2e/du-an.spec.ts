@@ -40,25 +40,3 @@ test("ấn dự án ở sidebar là mở đúng bảng đã lọc", async ({ pag
   await expect(page).toHaveURL(/\/projects\?p=myapp/);
   await expect(page.getByText("Add CSV export to the report screen")).toBeVisible();
 });
-
-test.describe("chi tiết dự án", () => {
-  test.beforeEach(async ({ page }) => {
-    await dangNhap(page, "pm-linh");
-    await page.goto("/p/myapp");
-  });
-
-  test("bảng liệt kê task đang mở", async ({ page }) => {
-    const bang = page.getByRole("list", { name: "Project tasks" });
-    await expect(bang).toBeVisible();
-    await expect(bang).toContainText("Filter orders by status");
-  });
-
-  test("ấn vào task mở được trang chi tiết", async ({ page }) => {
-    await page.getByRole("link", { name: "Filter orders by status" }).click();
-
-    await expect(page).toHaveURL(/\/t\/myapp\/40/);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "Filter orders by status",
-    );
-  });
-});
