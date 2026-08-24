@@ -35,7 +35,13 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       cho T1:** bare clone chỉ fetch nhánh mặc định nên KHÔNG có ref
       `origin/bee/*` — muốn biết "đã push hết chưa" phải `git ls-remote`, không
       so được bằng ref cục bộ.
-- [ ] 🤖 **T1** `gc.sh` + `bee-gc.timer` (M) — AC: thu hồi ≥2.9GB trên máy thật ·
+- [x] 🤖 **T1** ~~`gc.sh` + `bee-gc.timer`~~ **XONG 24/08 (code), CHƯA thu hồi
+      được byte nào trên máy thật** — luật bảo thủ đang chặn đúng: 5/6 worktree
+      giữ vì `ls-remote` trả *"Repository not found"* (gh đang active sai tài
+      khoản `ducba01`), 1 cái vì mới dừng <24h. Sửa `gh auth switch --user
+      Anhduchb01` là gc thu hồi được ngay. rig-07: 11/11.
+      *(Dọn docker để T15 — hiện chưa phiên nào đẻ ra compose project.)*
+- [ ] 🤖 ~~**T1** `gc.sh` + `bee-gc.timer` (M)~~ — AC: thu hồi ≥2.9GB trên máy thật ·
       không đụng phiên `running`/`needs_human` · branch chưa merged được giữ ·
       chạy lại là no-op. Rig trước khi bật timer.
 - [ ] 🤖 **T2** doctor thấy đĩa (S) — dung lượng `work/`+`sessions/`, worktree mồ

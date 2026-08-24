@@ -45,7 +45,7 @@ for f in "$NGUON"/units/*.service "$NGUON"/units/*.timer; do
   sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g" "$f" > "$UDIR/$(basename "$f")"
 done
 systemctl --user daemon-reload
-systemctl --user enable --now bee-reaper.timer bee-heartbeat.timer
+systemctl --user enable --now bee-reaper.timer bee-heartbeat.timer bee-gc.timer
 
 echo "== 3b · Web service =="
 # BEE_WEB overrides where the web app lives (default: sibling of runner).

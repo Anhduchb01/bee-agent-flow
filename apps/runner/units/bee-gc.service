@@ -1,0 +1,9 @@
+# Oneshot: `systemctl --user start bee-gc` chạy xong mới trả về, nên nút "Dọn
+# ngay" trên web đọc được gc.json tươi ngay sau đó — cùng kiểu với bee-doctor.
+[Unit]
+Description=bee gc — thu hồi worktree của phiên đã kết thúc
+
+[Service]
+Type=oneshot
+Environment=BEE_ROOT=@BEE_ROOT@
+ExecStart=@PREFIX@/bin/gc.sh

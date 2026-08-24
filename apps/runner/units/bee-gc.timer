@@ -1,0 +1,13 @@
+# Mỗi giờ, không phải mỗi phút: gc đọc `ls-remote` cho từng nhánh nên nó chạm
+# mạng, và một worktree thừa vài chục phút không hại gì. Persistent=true để máy
+# tắt qua đêm thì lần bật kế tiếp vẫn dọn.
+[Unit]
+Description=bee gc — mỗi giờ
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

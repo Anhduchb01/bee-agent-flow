@@ -186,7 +186,7 @@ chưa tồn tại → tạo từ `$DEF`; đã tồn tại → checkout đúng ch
 > luật "chỉ xoá worktree khi đã push hết" phải hỏi `git ls-remote`, không so
 > được bằng ref trên máy.
 
-#### T1 · `gc.sh` + `bee-gc.timer` — dọn worktree của phiên đã xong
+#### T1 · `gc.sh` + `bee-gc.timer` — dọn worktree của phiên đã xong — ✅ CODE XONG 24/08
 **Mô tả:** Timer quét `sessions/*/meta.json`, áp chính sách D3, xoá worktree
 (`git worktree remove --force` rồi `rm -rf` phần còn lại) và branch `bee/*` đã
 merged. Ghi `$BEE_ROOT/gc.json` (`ts`, `removed`, `freed_bytes`, `kept` kèm lý do).
@@ -205,6 +205,16 @@ merged. Ghi `$BEE_ROOT/gc.json` (`ts`, `removed`, `freed_bytes`, `kept` kèm lý
 - [ ] `bash -n apps/runner/bin/gc.sh`
 - [ ] Rig: tạo 1 phiên giả `running` + 1 `stopped` cũ → chạy gc → chỉ cái sau biến mất
 - [ ] `du -sh $BEE_ROOT/work` trước/sau, dán số vào commit
+
+> **Xong 24/08, nhưng AC "thu hồi ≥2.9GB" CHƯA đạt — và đó là hành vi đúng.**
+> Trên máy thật gc giữ cả 6: 5 cái vì `ls-remote` trả *"Repository not found"*
+> (gh active sai tài khoản), 1 cái vì mới dừng <24h. Luật "không chứng minh
+> được code đã rời máy thì không xoá" đang làm đúng việc. Chạy
+> `gh auth switch --user Anhduchb01` rồi chạy lại gc là thu hồi được.
+> Hai điều rig-07 dạy thêm: (1) timer nền phải có `GIT_TERMINAL_PROMPT=0` +
+> `timeout`, không thì git hỏi mật khẩu là gc treo vĩnh viễn; (2) gc phải chép
+> lại **lỗi git thật** vào `gc.json` — bản đầu đoán "mất mạng?" trong khi sự
+> thật là mất quyền, hai thứ dẫn tới hai cách sửa khác hẳn nhau.
 
 **Dependencies:** T0 · **Files:** `apps/runner/bin/gc.sh`,
 `apps/runner/units/bee-gc.{service,timer}`, `apps/runner/install.sh` · **Scope:** M
