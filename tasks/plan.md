@@ -219,7 +219,7 @@ merged. Ghi `$BEE_ROOT/gc.json` (`ts`, `removed`, `freed_bytes`, `kept` kèm lý
 **Dependencies:** T0 · **Files:** `apps/runner/bin/gc.sh`,
 `apps/runner/units/bee-gc.{service,timer}`, `apps/runner/install.sh` · **Scope:** M
 
-#### T2 · doctor thấy được đĩa
+#### T2 · doctor thấy được đĩa — ✅ XONG 24/08
 **Mô tả:** Thêm check `dia-phien`: tổng `work/` + `sessions/`, số worktree mồ côi
 (có thư mục mà không có phiên), tuổi `gc.json`. Đỏ khi vượt ngưỡng (`GC_WARN_GB`,
 mặc định 20) hoặc gc không chạy > 48h.

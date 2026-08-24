@@ -87,6 +87,34 @@ else
   ghi "reaper" false "bee-reaper.timer không active — xác phiên sẽ không ai dọn"
 fi
 
+# ── 4b · Đĩa của phiên + gc còn sống không ─────────────────────────────────
+# gc chạy trong timer nền: nó chết thì KHÔNG có job đỏ nào để nhìn, chỉ có đĩa
+# lặng lẽ đầy lên. Tuổi của gc.json là cơ chế bắt duy nhất — cùng bài với
+# heartbeat.json của reaper (bất biến #3: mỗi kiểu hỏng đúng một cơ chế bắt).
+GC_WARN_GB="${GC_WARN_GB:-20}"
+work_b=$(du -sb "$BEE_ROOT/work" 2>/dev/null | cut -f1 || echo 0)
+sess_b=$(du -sb "$BEE_ROOT/sessions" 2>/dev/null | cut -f1 || echo 0)
+tong=$(( ${work_b:-0} + ${sess_b:-0} ))
+mo_coi=0
+for wt in "$BEE_ROOT"/work/*/; do
+  [[ -d "$wt" ]] || continue
+  [[ -f "$BEE_ROOT/sessions/$(basename "${wt%/}")/meta.json" ]] || mo_coi=$(( mo_coi + 1 ))
+done
+doc_duoc=$(numfmt --to=iec "$tong" 2>/dev/null || echo "${tong}B")
+
+if [[ ! -f "$BEE_ROOT/gc.json" ]]; then
+  ghi "dia-phien" false "$doc_duoc trên đĩa · gc chưa chạy lần nào — bật: systemctl --user enable --now bee-gc.timer"
+else
+  tuoi_h=$(( ( $(date +%s) - $(stat -c %Y "$BEE_ROOT/gc.json") ) / 3600 ))
+  if (( tuoi_h > 48 )); then
+    ghi "dia-phien" false "gc im lặng ${tuoi_h}h (>48h) — timer chết? $doc_duoc đang chiếm"
+  elif (( tong > GC_WARN_GB * 1073741824 )); then
+    ghi "dia-phien" false "$doc_duoc vượt ngưỡng ${GC_WARN_GB}GB — lý do giữ nằm trong gc.json"
+  else
+    ghi "dia-phien" true "$doc_duoc (work+sessions) · $mo_coi worktree mồ côi · gc chạy ${tuoi_h}h trước"
+  fi
+fi
+
 # ── 5 · Đĩa + PAUSE (thông tin, không phải lỗi) ────────────────────────────
 if [[ -d "$BEE_ROOT" && -w "$BEE_ROOT" ]]; then
   ghi "dia" true "$BEE_ROOT ghi được"

@@ -44,8 +44,10 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 - [ ] 🤖 ~~**T1** `gc.sh` + `bee-gc.timer` (M)~~ — AC: thu hồi ≥2.9GB trên máy thật ·
       không đụng phiên `running`/`needs_human` · branch chưa merged được giữ ·
       chạy lại là no-op. Rig trước khi bật timer.
-- [ ] 🤖 **T2** doctor thấy đĩa (S) — dung lượng `work/`+`sessions/`, worktree mồ
-      côi, tuổi `gc.json`; gc chết im lặng → đỏ.
+- [x] 🤖 **T2** ~~doctor thấy đĩa~~ **XONG 24/08** — check `dia-phien`: dung lượng
+      work+sessions · worktree mồ côi · tuổi `gc.json` (>48h = gc chết im lặng →
+      đỏ) · vượt `GC_WARN_GB` → đỏ. rig-08: 6/6. Máy thật: *796M · 0 mồ côi ·
+      gc chạy 0h trước*.
 - [ ] 🤖 **T3** `/setup`: dòng dung lượng + nút "Dọn ngay" (S).
 - [ ] ✅ **Checkpoint 1** — chạy 3 ngày, đĩa không phình, doctor xanh (trừ D1).
 
