@@ -68,6 +68,15 @@ việc mới, chuyển sang mô hình C (hạ tầng hai UID vẫn nằm ở nh�
 4. Máy bắt đầu chứa **secret khác** (deploy key, API key production, SSH key).
 5. Làm code cho khách / có nghĩa vụ bảo mật.
 
+> **Cò súng #4 ĐÃ NỔ — 24/08/2026.** `doctor` thấy `~/.ssh/id_*` (3 khoá) và
+> `~/.kube` trên máy. Chủ dự án chọn **(a) chấp nhận có ý thức**, chưa chuyển
+> sang C và chưa tách máy. Hệ quả phải nói thẳng: mô hình đe doạ giờ **rộng hơn
+> §0.1 đã định giá** — agent bị chiếm không chỉ đọc code private mà còn cầm
+> được SSH key sang máy khác. Và nó **đắt hơn kể từ V3**, vì V3 bỏ người ngồi
+> cạnh (máy tự mở phiên ban đêm). `doctor` vẫn báo đỏ mục `may-sach` và **không
+> được tắt** — đỏ ở đây đang nói sự thật.
+> Mô hình C là gì, quay về bằng cách nào: [docs/mo-hinh-c.md](mo-hinh-c.md).
+
 ---
 
 ## 1. Tổng quan
@@ -359,5 +368,6 @@ thật sẵn cho phần web.
 
 - [docs/specs/session-first.md](specs/session-first.md) — spec V1 của mô hình này
 - [docs/specs/v1-live.md](specs/v1-live.md) — spec mô hình cũ *(đóng băng, còn giá trị ở §3)*
+- [docs/mo-hinh-c.md](mo-hinh-c.md) — mô hình C là gì, giữ ở đâu, quay về thế nào *(thêm 24/08)*
 - [docs/architecture.html](architecture.html) — tài liệu kiến trúc **hiện hành** của mô hình session-first *(từ f3e2d61; bản đồ hai UID cũ nằm ở nhánh fallback)*
 - [AGENTS.md](../AGENTS.md) — quy ước code

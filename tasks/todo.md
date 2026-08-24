@@ -2,10 +2,99 @@
 
 Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖 = tôi làm được
 
-**Mốc đang làm:** V1 Sessions Live — [`docs/specs/session-first.md`](../docs/specs/session-first.md)
-**Thứ tự:** gỡ ẩn số (S0) → runner ∥ web (S1 ∥ S2) → nối (S3) → máy thật (S4) → internet (S5)
+**Mốc đang làm:** V3 — vận hành bền + tự chạy đêm (PRD Epic 5 + FR-3.3/3.4)
+**Thứ tự:** quyết định (D1/D2) → dọn đĩa (P1) → hạn mức + phanh (P2) →
+hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 
 ---
+
+## D · Quyết định — chặn code, không code được thay
+
+- [x] 🧑 **D1** ~~Cò súng #4 đã nổ~~ **CHỐT 24/08: (a) chấp nhận có ý thức.**
+      Ghi vào PRD §0.2 + [`docs/mo-hinh-c.md`](../docs/mo-hinh-c.md) (mô hình C
+      là gì, quay về thế nào). Phase 3 mở khoá. `doctor` giữ mục đỏ `may-sach`.
+      Cách siết rẻ nhất nếu đổi ý: tách bee sang VM/LXC riêng.
+- [x] 🧑 **D2** ~~Cách chạy hàng đợi~~ **CHỐT 24/08**: timer gọi
+      `/api/queue/tick` của web — một bản duy nhất của "mở phiên".
+- [x] 🧑 **D3** ~~Chính sách dọn~~ **CHỐT 24/08**: xoá worktree khi *đã kết thúc
+      ∧ không needs_human ∧ quá 24h ∧ nhánh đã merged hoặc đã push hết*.
+      Evidence + run.jsonl không bị đụng (nằm ở `sessions/<id>/`).
+- [x] 🧑 **D4** ~~Hàng đợi là lane hay khối riêng~~ **CHỐT 24/08**: lane thứ năm
+      **Autopilot** (không dùng tên "Auto" — trùng mode quyền). Kéo thả chỉ
+      Backlog ↔ Autopilot; ba lane kia là hệ quả của sự thật nên không cho thả.
+      HTML5 DnD gốc trên desktop, `+`/`↑↓` trên điện thoại.
+- [x] 🧑 **D5** ~~Hàng đợi sống thế nào~~ **CHỐT 24/08**: luôn sống (nút ⏸) ·
+      chỉ nhận issue · xong vẫn ở lại · issue chờ chạy hiện node mờ trên canvas.
+
+## P1 · Vận hành bền — thu hồi 3.0GB đang chiếm
+
+- [ ] 🤖 **T0** ⚠ Sửa `git worktree add -B` (S) — cờ `-B` **force reset nhánh về
+      main**: xoá worktree rồi resume là bay commit chưa push (đã chứng minh bằng
+      rig git 24/08). Chặn T1. AC: phiên mới như cũ · resume giữ nguyên commit ·
+      nhánh đang bị worktree khác giữ thì từ chối tử tế.
+- [ ] 🤖 **T1** `gc.sh` + `bee-gc.timer` (M) — AC: thu hồi ≥2.9GB trên máy thật ·
+      không đụng phiên `running`/`needs_human` · branch chưa merged được giữ ·
+      chạy lại là no-op. Rig trước khi bật timer.
+- [ ] 🤖 **T2** doctor thấy đĩa (S) — dung lượng `work/`+`sessions/`, worktree mồ
+      côi, tuổi `gc.json`; gc chết im lặng → đỏ.
+- [ ] 🤖 **T3** `/setup`: dòng dung lượng + nút "Dọn ngay" (S).
+- [ ] ✅ **Checkpoint 1** — chạy 3 ngày, đĩa không phình, doctor xanh (trừ D1).
+
+## P2 · Hạn mức tươi + phanh (FR-3.3 P0 · FR-3.4 P1)
+
+- [ ] 🤖 **T4** `bee-usage.timer` tự refresh `claude-usage.json` (S) — gọi hỏng
+      thì ghi lý do, **không** ghi đè số cũ bằng rỗng.
+- [ ] 🤖 **T5** Phanh trước khi cạn (M) — `QUOTA_BRAKE_PCT` (mặc định 85): trên
+      ngưỡng không mở phiên mới, lý do đọc được ("5h window 91%, reset 14:20");
+      phiên đang chạy không bị giết.
+- [ ] 🤖 **T6** Trần chi một phiên (S) — reaper đọc `usage.json`, vượt trần →
+      dừng + `needs_human` + lý do.
+- [ ] ✅ **Checkpoint 2** — ép quota trên ngưỡng: chặn đúng, lý do đọc được trên
+      điện thoại; dưới ngưỡng không phiền.
+
+## P3 · Hàng đợi + đi ngủ (FR-5.1 P0 · FR-5.2 P1) — **cần D1**
+
+- [ ] 🤖 **T7** `queue.json` + lib thuần xếp/bỏ/đổi thứ tự (M) — máy tắt không
+      mất; ghi nguyên tử; test bảng.
+- [ ] 🤖 **T8** Tick tự mở phiên (M) — refresh quota → PAUSE? → phanh? → còn
+      slot? → mở việc kế tiếp. Phiên hỏng thì việc `failed` kèm lý do, tick vẫn
+      chạy tiếp.
+- [ ] 🤖 **T9** Lane **Autopilot** trên `/projects` (M) — kéo thả Backlog↔Autopilot
+      (desktop), `+`/`↑↓` (điện thoại); thả vào lane khác bị từ chối kèm lý do;
+      đầu lane nói điều kiện mở phiên + quota còn lại.
+- [ ] 🤖 **T9b** Node "chờ tự chạy" trên canvas (S) — issue đã xếp mà chưa chạy
+      hiện chưa có node nào; node mờ, nhãn rõ là dự định chứ không phải đã xảy ra.
+- [ ] ✅ **Checkpoint 3 — nghiệm thu V3**: tối xếp 2 việc → **sáng có 2 PR chờ
+      duyệt**, 0 lần hỏi tay, hạn mức không cháy giữa đêm.
+
+## P4 · Bản tin sáng (FR-5.3 P1)
+
+- [ ] 🤖 **T10** Tổng hợp đêm qua (M) — chạy gì / xong gì / kẹt gì **và vì sao**,
+      câu tiếng người; rỗng-vì-không-xếp-việc ≠ rỗng-vì-lỗi.
+- [ ] 🤖 **T11** `/brief` + dòng nhắc trên Overview (S).
+
+## P5 · Nợ nhỏ
+
+- [ ] 🤖 **T12** Trần `run.jsonl` theo byte (nợ spec §11, S) — cắt thì ghi
+      `bee_truncated` để UI nói thật.
+- [ ] 🧑 **T13a** `sudo rm -rf ~/.local/opt/bee` — junk root-owned **vẫn còn**.
+- [ ] 🧑 **T13b** PAT "All repositories" → "Only select repositories" (vệ sinh A+ §2).
+- [ ] 🧑 **T13c** PAT hiện **không đọc được** `Anhduchb01/lifebook-assessment`
+      (`gh` trả *Could not resolve to a Repository*) — kiểm tên repo/quyền:
+      bảng dự án đang im lặng bỏ qua repo không đọc được.
+
+## Treo — có lý do, không phải quên
+
+- [ ] **FR-5.4 mở khoá dần theo repo** — mode per-phiên + PAUSE + phanh đã phủ
+      phần lớn. Treo tới khi chạy đêm thật rồi mới biết còn thiếu gì.
+- [ ] **Auto-compact trong `-p`** (spec §11) — chưa quan sát được lần nào; đường
+      may `⇅` đã có để đo. Phiên đêm dài là lúc nó lộ ra.
+- [ ] **V4** — xoá nhánh fallback hai UID, đồng bộ `AGENTS.md`/`README.md`.
+- [ ] Canvas nâng cao: lưu vị trí node, terminal node xterm+PTY (canvas.md §4).
+
+---
+
+# Lưu trữ — nhật ký V1 (S0–S5), đóng 20/08
 
 ## S0 · Gỡ hai ẩn số ← làm trước mọi thứ
 
