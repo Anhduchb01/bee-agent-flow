@@ -76,6 +76,30 @@ export function createFixtureBeeSource(): BeeSource {
 
     readEvidenceFile: (segments) => readEvidenceFileIn(EVIDENCE_ROOT, segments),
 
+    async readGc() {
+      if (chuaChayLanNao(await currentScene())) return null;  // máy vừa cài: gc chưa chạy
+      return {
+        ts: "2026-08-24T15:00:00Z",
+        removed: 2,
+        freed_bytes: 1_932_735_283,
+        age_hours: 24,
+        items: [
+          {
+            id: "de300000-0000-4000-8000-000000000002",
+            action: "removed" as const,
+            reason: "đã push hết lên origin/bee/myapp-40",
+            bytes: 943_718_400,
+          },
+          {
+            id: "de300000-0000-4000-8000-000000000001",
+            action: "kept" as const,
+            reason: "phiên đang running",
+            bytes: 0,
+          },
+        ],
+      };
+    },
+
     /*
      * Ba phiên mẫu phủ ba trạng thái màn danh sách phải vẽ khác nhau: đang
      * chạy (mở được live), đã xong, và chết cần người. Phiên đang chạy dùng

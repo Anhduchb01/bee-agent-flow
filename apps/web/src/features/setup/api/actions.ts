@@ -15,6 +15,7 @@ import {
   startClaudeSetup,
   submitClaudeCode,
   unregisterRepo,
+  runGc,
 } from "@/lib/bee/machine-ctl";
 
 export interface KetQua {
@@ -36,6 +37,15 @@ export async function runDoctorAction(): Promise<KetQua> {
   if (!actor) return KHONG_QUYEN;
 
   const ket = await runDoctor();
+  revalidatePath("/setup");
+  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+/** "Dọn ngay" — gc oneshot, xong mới trả về nên UI đọc được kết quả tươi. */
+export async function runGcAction(): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await runGc();
   revalidatePath("/setup");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }

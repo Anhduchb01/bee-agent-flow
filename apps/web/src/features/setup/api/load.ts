@@ -9,6 +9,11 @@ export function loadDoctor(): Promise<BeeDoctor | null> {
   return getBee().readDoctor();
 }
 
+/** Kết quả lần gc gần nhất — dòng dung lượng + lý do giữ trên /setup. */
+export function loadGc() {
+  return getBee().readGc();
+}
+
 /** Live Claude sign-in status — direct read, no doctor run needed. */
 export function loadClaudeAuth(): Promise<BeeClaudeAuth> {
   return getBee().readClaudeAuth();

@@ -1,11 +1,13 @@
 import { loadRepos, NewSessionForm } from "@/features/sessions";
 import {
   ClaudeSetup,
+  DiskPanel,
   DoctorChecklist,
   LingerButton,
   loadClaudeAuth,
   loadEnvFiles,
   loadDoctor,
+  loadGc,
   PatForm,
   PauseToggle,
   RepoRegistry,
@@ -58,10 +60,11 @@ export default async function SetupPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [doctor, repos, claudeAuth] = await Promise.all([
+  const [doctor, repos, claudeAuth, gc] = await Promise.all([
     loadDoctor(),
     loadRepos(),
     loadClaudeAuth(),
+    loadGc(),
   ]);
   const envFiles = await loadEnvFiles(repos.map((r) => r.slug));
 
@@ -135,6 +138,9 @@ bash apps/runner/install.sh`}</Cmd>
 
         <Step num={4} title="Verify — the machine checks itself">
           <DoctorChecklist doctor={doctor} />
+          {/* Đĩa nằm cạnh doctor vì cùng một câu hỏi: máy có đang khoẻ không.
+              doctor báo ĐỎ khi gc chết; panel này nói vì sao đĩa còn đầy. */}
+          <DiskPanel gc={gc} />
         </Step>
 
         <Step num={5} title="Go live and test with a real session">

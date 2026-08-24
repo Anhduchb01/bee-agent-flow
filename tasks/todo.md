@@ -48,7 +48,9 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       work+sessions · worktree mồ côi · tuổi `gc.json` (>48h = gc chết im lặng →
       đỏ) · vượt `GC_WARN_GB` → đỏ. rig-08: 6/6. Máy thật: *796M · 0 mồ côi ·
       gc chạy 0h trước*.
-- [ ] 🤖 **T3** `/setup`: dòng dung lượng + nút "Dọn ngay" (S).
+- [x] 🤖 **T3** ~~`/setup`: dung lượng + nút "Dọn ngay"~~ **XONG 24/08** — panel
+      đọc `gc.json`, hiện đã thu hồi bao nhiêu và **lý do GIỮ từng worktree**
+      (phần đáng giá hơn con số), nút gọi `bee-gc.service` oneshot. 10 test mới.
 - [ ] ✅ **Checkpoint 1** — chạy 3 ngày, đĩa không phình, doctor xanh (trừ D1).
 
 ## P2 · Hạn mức tươi + phanh (FR-3.3 P0 · FR-3.4 P1)

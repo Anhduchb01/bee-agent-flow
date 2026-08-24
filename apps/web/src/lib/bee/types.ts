@@ -267,6 +267,11 @@ export interface BeeClaudeAccountUsage {
   fetched_at: string;
 }
 
+/** Re-exported so BeeSource stays the single description of the disk surface.
+    `import type` only — gc-fs is server-only, and a type import is erased. */
+import type { BeeGc } from "./gc-fs";
+export type { BeeGc, BeeGcItem } from "./gc-fs";
+
 /** Shape of `doctor.json` — the machine's self-check for the setup screen. */
 export interface BeeDoctor {
   checked_at: string;
@@ -303,6 +308,8 @@ export interface BeeSource {
   sessionRunPath(id: string): string | null;
   /** Latest doctor.json self-check; `null` = doctor has never run on this machine. */
   readDoctor(): Promise<BeeDoctor | null>;
+  /** Latest gc.json; `null` = gc has never run. Kept reasons matter more than bytes. */
+  readGc(): Promise<BeeGc | null>;
   /** Live Claude sign-in status — works even before doctor has ever run. */
   readClaudeAuth(): Promise<BeeClaudeAuth>;
   /** Account-wide usage windows from the last refresh; `null` = never fetched. */

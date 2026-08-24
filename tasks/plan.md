@@ -231,7 +231,7 @@ mặc định 20) hoặc gc không chạy > 48h.
 **Verification** · [ ] `./bin/doctor.sh` trên máy thật · [ ] test parser web xanh
 **Dependencies:** T1 · **Files:** `bin/doctor.sh`, `lib/bee/doctor-fs.ts`(+test) · **Scope:** S
 
-#### T3 · UI: dung lượng + nút "Dọn ngay"
+#### T3 · UI: dung lượng + nút "Dọn ngay" — ✅ XONG 24/08
 **Mô tả:** Trên `/setup`: dòng dung lượng (work/sessions, lần gc gần nhất, thu
 hồi bao nhiêu) + nút gọi `bee-gc.service` (oneshot, chờ xong như nút doctor).
 

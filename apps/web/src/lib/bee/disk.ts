@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { readClaudeAuthFrom, readClaudeUsageFrom, readCommandsFrom, readDoctorFrom } from "./doctor-fs";
+import { docGcTrong } from "./gc-fs";
 import { readEvidenceFileIn } from "./evidence-fs";
 import {
   docArtifactsTrong,
@@ -97,6 +98,8 @@ export function createDiskBeeSource(): BeeSource {
         : readEvidenceFileIn(path.join(root(), "evidence"), segments),
 
     readDoctor: () => readDoctorFrom(root()),
+
+    readGc: () => docGcTrong(root()),
     readClaudeAuth: () => readClaudeAuthFrom(root()),
     readClaudeUsage: () => readClaudeUsageFrom(root()),
     listCommands: () =>

@@ -34,6 +34,20 @@ function root(): string {
  * systemd reports as a start error; that is still a SUCCESSFUL run for us
  * (the red results are in doctor.json), so only a missing unit is an error.
  */
+/**
+ * Chạy gc theo yêu cầu (nút "Dọn ngay"). Cùng khuôn với runDoctor: unit là
+ * oneshot nên `start` chờ chạy xong, và web đọc được gc.json tươi ngay sau đó.
+ */
+export async function runGc(): Promise<KetQua> {
+  if (isFixture()) return { ok: true };
+  try {
+    await run("systemctl", ["--user", "start", "bee-gc.service"]);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: `Could not run gc: ${(e as Error).message}` };
+  }
+}
+
 export async function runDoctor(): Promise<KetQua> {
   if (isFixture()) return { ok: true };
   try {
