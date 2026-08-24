@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { BeeSession } from "@/lib/bee/types";
 
@@ -11,7 +11,13 @@ vi.mock("../api/actions", () => ({
   guiVaoPhien: vi.fn(async () => ({ ok: true, message: "" })),
   dungPhienAction: vi.fn(async () => ({ ok: true, message: "" })),
   doiModeAction: vi.fn(async () => ({ ok: true, message: "" })),
+  doiModelAction: vi.fn(async () => ({ ok: true, message: "" })),
   tiepTucAction: vi.fn(async () => ({ ok: true, message: "" })),
+  uploadFileAction: vi.fn(async () => ({
+    ok: true,
+    message: "",
+    relPath: ".bee/uploads/1-anh.png",
+  })),
   batDauPhien: vi.fn(),
 }));
 vi.mock("../hooks/use-session-stream", () => ({
@@ -228,31 +234,97 @@ describe("slash palette (global ~/.claude/commands)", () => {
   });
 });
 
+describe("Enter — phones get a newline, keyboards send", () => {
+  function mockPointer(coarse: boolean) {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((q: string) => ({ matches: coarse && q === "(pointer: coarse)" })),
+    );
+  }
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("fine pointer (desktop): Enter sends", async () => {
+    const user = userEvent.setup();
+    mockPointer(false);
+    mockStream({});
+    const { guiVaoPhien } = await import("../api/actions");
+    vi.mocked(guiVaoPhien).mockClear();
+    render(<LiveView phien={PHIEN} />);
+    await user.type(screen.getByLabelText("Message to the agent"), "hello{Enter}");
+    expect(vi.mocked(guiVaoPhien)).toHaveBeenCalledWith(PHIEN.id, "hello");
+  });
+
+  it("coarse pointer (phone): Enter is a plain newline — only the ↑ button sends", async () => {
+    const user = userEvent.setup();
+    mockPointer(true);
+    mockStream({});
+    const { guiVaoPhien } = await import("../api/actions");
+    vi.mocked(guiVaoPhien).mockClear();
+    render(<LiveView phien={PHIEN} />);
+    const o = screen.getByLabelText("Message to the agent");
+    await user.type(o, "dòng một{Enter}dòng hai");
+    expect(vi.mocked(guiVaoPhien)).not.toHaveBeenCalled();
+    expect(o).toHaveValue("dòng một\ndòng hai");
+
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    expect(vi.mocked(guiVaoPhien)).toHaveBeenCalledWith(PHIEN.id, "dòng một\ndòng hai");
+  });
+});
+
 describe("action chips — the phone-first flow buttons", () => {
   const FLOW_COMMANDS = ["issue", "build", "review", "pr", "demo", "preview"].map((n) => ({
     name: n,
     moTa: n,
   }));
 
-  it("repo session shows the flow chips in order; tapping one SENDS the command", async () => {
+  it("tapping a chip PICKS the command as prefix — nothing is sent until the send button", async () => {
     const user = userEvent.setup();
     mockStream({});
     const { guiVaoPhien } = await import("../api/actions");
+    vi.mocked(guiVaoPhien).mockClear();
     render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
 
     const chips = screen.getByRole("toolbar", { name: "Session actions" });
     expect(chips).toHaveTextContent("Issue");
     expect(chips).toHaveTextContent("Preview");
 
-    await user.click(screen.getByRole("button", { name: "Run /issue" }));
-    expect(vi.mocked(guiVaoPhien)).toHaveBeenCalledWith(PHIEN.id, "/issue");
+    const o = screen.getByLabelText("Message to the agent");
+    await user.click(screen.getByRole("button", { name: "Use /issue" }));
+    expect(o).toHaveValue("/issue ");
+    expect(vi.mocked(guiVaoPhien)).not.toHaveBeenCalled();
+
+    await user.type(o, "làm màn đăng nhập");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    expect(vi.mocked(guiVaoPhien)).toHaveBeenCalledWith(PHIEN.id, "/issue làm màn đăng nhập");
+  });
+
+  it("tapping the picked chip again unpicks it; tapping another swaps the prefix, body kept", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+
+    const o = screen.getByLabelText("Message to the agent");
+    await user.type(o, "màn đăng nhập");
+    await user.click(screen.getByRole("button", { name: "Use /issue" }));
+    expect(o).toHaveValue("/issue màn đăng nhập");
+    expect(screen.getByRole("button", { name: "Use /issue" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Use /build" }));
+    expect(o).toHaveValue("/build màn đăng nhập");
+
+    await user.click(screen.getByRole("button", { name: "Use /build" }));
+    expect(o).toHaveValue("màn đăng nhập");
   });
 
   it("only chips whose command exists on the machine appear", () => {
     mockStream({});
     render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "b" }]} />);
-    expect(screen.getByRole("button", { name: "Run /build" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Run /issue" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Use /build" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Use /issue" })).not.toBeInTheDocument();
   });
 
   it("chat sessions (no tools) get no chips", () => {
@@ -262,7 +334,7 @@ describe("action chips — the phone-first flow buttons", () => {
   });
 
   it("V2.4: the flow's NEXT step glows — no issue → Issue; issue → Build; PR → Preview", () => {
-    const chip = (ten: string) => screen.getByRole("button", { name: `Run /${ten}` });
+    const chip = (ten: string) => screen.getByRole("button", { name: `Use /${ten}` });
 
     mockStream({});
     const { unmount } = render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
@@ -288,5 +360,166 @@ describe("action chips — the phone-first flow buttons", () => {
     render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
     expect(chip("preview")).toHaveAttribute("data-suggested");
     expect(chip("issue")).not.toHaveAttribute("data-suggested");
+  });
+});
+
+describe("context — VSCode-style compaction affordances", () => {
+  it("palette lists the built-in /compact even though no command file exists", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "b" }]} />);
+    await user.type(screen.getByLabelText("Message to the agent"), "/com");
+    expect(screen.getByRole("listbox", { name: "Commands" })).toHaveTextContent("/compact");
+  });
+
+  it("ring at ≥90% shows the almost-full hint", () => {
+    mockStream({
+      suKien: [
+        { loai: "ket-qua", loi: false, luot: 3, nguCanh: 93, dungToken: 186_000, cuaSoToken: 200_000 },
+      ],
+    });
+    render(<LiveView phien={PHIEN} />);
+    expect(screen.getByText(/almost full/)).toBeInTheDocument();
+  });
+
+  it("below the threshold there is no hint", () => {
+    mockStream({ suKien: [{ loai: "ket-qua", loi: false, luot: 3, nguCanh: 42 }] });
+    render(<LiveView phien={PHIEN} />);
+    expect(screen.queryByText(/almost full/)).not.toBeInTheDocument();
+  });
+});
+
+describe("bottom-left input buttons — '+' attach and the actions panel (VSCode-style)", () => {
+  it("'+' opens the attach menu; picking a file uploads and drops the path into the draft", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    const { uploadFileAction } = await import("../api/actions");
+    render(<LiveView phien={PHIEN} />);
+
+    await user.click(screen.getByRole("button", { name: "Attach" }));
+    await user.click(screen.getByRole("menuitem", { name: /upload from computer/i }));
+    const file = new File(["x"], "anh.png", { type: "image/png" });
+    await user.upload(screen.getByLabelText("File to upload"), file);
+
+    expect(vi.mocked(uploadFileAction)).toHaveBeenCalledWith(PHIEN.id, expect.any(FormData));
+    expect(screen.getByLabelText("Message to the agent")).toHaveValue(
+      "[attached: .bee/uploads/1-anh.png] ",
+    );
+  });
+
+  it("the actions panel filters across commands, session actions and modes", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "Implement tasks" }]} />);
+
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    const panel = screen.getByRole("menu", { name: "Session actions menu" });
+    expect(panel).toHaveTextContent("/build");
+    expect(panel).toHaveTextContent("Compact conversation");
+    expect(panel).toHaveTextContent("Manual");
+
+    await user.type(screen.getByLabelText("Filter actions"), "compact");
+    expect(panel).not.toHaveTextContent("/build");
+    expect(panel).toHaveTextContent("Compact conversation");
+  });
+
+  it("panel: a command inserts as prefix; Compact sends /compact right away", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    const { guiVaoPhien } = await import("../api/actions");
+    vi.mocked(guiVaoPhien).mockClear();
+    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "Implement tasks" }]} />);
+
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    await user.click(screen.getByRole("menuitem", { name: /\/build/ }));
+    expect(screen.getByLabelText("Message to the agent")).toHaveValue("/build ");
+    expect(vi.mocked(guiVaoPhien)).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    await user.click(screen.getByRole("menuitem", { name: /compact conversation/i }));
+    expect(vi.mocked(guiVaoPhien)).toHaveBeenCalledWith(PHIEN.id, "/compact");
+  });
+
+  it("chat sessions: no attach button, but the panel stays — a model is not a tool", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    render(<LiveView phien={{ ...PHIEN, worktree: false }} commands={[{ name: "build", moTa: "b" }]} />);
+    expect(screen.queryByRole("button", { name: "Attach" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    const panel = screen.getByRole("menu", { name: "Session actions menu" });
+    expect(panel).toHaveTextContent("Haiku");
+    // No tools in a chat session → neither commands nor permission modes.
+    expect(panel).not.toHaveTextContent("/build");
+    expect(panel).not.toHaveTextContent("Manual");
+  });
+});
+
+describe("model picker (V2.7) — the panel's Model group, like VSCode's 'Select a model'", () => {
+  it("lists the models with the current one checked; picking calls the action", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    const { doiModelAction } = await import("../api/actions");
+    vi.mocked(doiModelAction).mockClear();
+    render(<LiveView phien={PHIEN} />);
+
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    const panel = screen.getByRole("menu", { name: "Session actions menu" });
+    expect(panel).toHaveTextContent("Opus (1M context)");
+    expect(panel).toHaveTextContent("Haiku");
+    // Untouched session = "default": that row is the checked one.
+    expect(screen.getByRole("menuitemradio", { name: "Model: Default" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    await user.click(screen.getByRole("menuitemradio", { name: "Model: Opus (1M context)" }));
+    expect(vi.mocked(doiModelAction)).toHaveBeenCalledWith(PHIEN.id, "opus[1m]");
+    // Chosen model shows by the input so it is never a hidden setting.
+    expect(screen.getByText("Opus (1M context)")).toBeInTheDocument();
+  });
+
+  it("a failed switch rolls the choice back and surfaces the reason", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    const { doiModelAction } = await import("../api/actions");
+    vi.mocked(doiModelAction).mockResolvedValueOnce({ ok: false, message: "Model saved but restart failed: boom" });
+    render(<LiveView phien={PHIEN} />);
+
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Model: Haiku" }));
+    expect(await screen.findByText(/restart failed: boom/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    expect(screen.getByRole("menuitemradio", { name: "Model: Default" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
+  it("the session's saved model is what the panel shows as checked", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    render(<LiveView phien={{ ...PHIEN, model: "sonnet" }} />);
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    expect(screen.getByRole("menuitemradio", { name: "Model: Sonnet" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByRole("menuitemradio", { name: "Model: Sonnet (1M context)" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  });
+
+  it("filter reaches the models too", async () => {
+    const user = userEvent.setup();
+    mockStream({});
+    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "Implement" }]} />);
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    await user.type(screen.getByLabelText("Filter actions"), "haiku");
+    const panel = screen.getByRole("menu", { name: "Session actions menu" });
+    expect(panel).toHaveTextContent("Haiku");
+    expect(panel).not.toHaveTextContent("/build");
   });
 });

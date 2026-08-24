@@ -16,6 +16,17 @@ const nextConfig: NextConfig = {
    * Thiếu dòng này thì bản standalone thiếu file và chỉ đổ lúc khởi động.
    */
   outputFileTracingRoot: new URL("../..", import.meta.url).pathname,
+
+  experimental: {
+    serverActions: {
+      /**
+       * Chat attachments ("+" menu) go through a server action as multipart
+       * FormData. The app-side cap is 20MB (session-ctl.saveUploadToSession);
+       * the extra room is for multipart boundary/header overhead.
+       */
+      bodySizeLimit: "25mb",
+    },
+  },
 };
 
 export default nextConfig;

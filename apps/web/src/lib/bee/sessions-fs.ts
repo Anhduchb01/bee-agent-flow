@@ -4,11 +4,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { laIdPhien } from "./session-id";
+import { CAC_MODEL_PHIEN } from "./types";
 import type {
   BeeArtifact,
   BeeEvidenceTepTin,
   BeeRepoDangKy,
   BeeSession,
+  BeeSessionModel,
   PhaCuaPhien,
   TrangThaiPhien,
 } from "./types";
@@ -65,6 +67,11 @@ export async function docPhienTrong(root: string, id: string): Promise<BeeSessio
     worktree: s.worktree !== false,
     // Phiên cũ không có mode = auto (hành vi V1). Giá trị lạ cũng về auto.
     mode: s.mode === "plan" || s.mode === "edits" || s.mode === "manual" ? s.mode : "auto",
+    // Same rule for model: anything unknown (or absent) means "the machine's
+    // own default", which is also what sending no --model flag does.
+    model: CAC_MODEL_PHIEN.includes(s.model as BeeSessionModel)
+      ? (s.model as BeeSessionModel)
+      : "default",
     status,
     created_at: typeof s.created_at === "string" ? s.created_at : null,
     started_at: typeof meta.started_at === "string" ? meta.started_at : null,

@@ -9,7 +9,12 @@ import { promisify } from "node:util";
 
 import { deriveSessionTitle } from "./derive-title";
 import { laIdPhien } from "./session-id";
-import { CAC_MODE_PHIEN, type BeeSessionMode } from "./types";
+import {
+  CAC_MODE_PHIEN,
+  CAC_MODEL_PHIEN,
+  type BeeSessionMode,
+  type BeeSessionModel,
+} from "./types";
 
 /**
  * Điều khiển phiên: mở / nói vào / dừng / chuyển chế độ. Trong mô hình A+
@@ -203,6 +208,42 @@ export async function doiModePhien(id: string, mode: BeeSessionMode): Promise<Ke
   }
 }
 
+/**
+ * Model switch mid-session (V2.7) — same shape as doiModePhien: the value
+ * goes into session.json, then the unit restarts and the --resume branch in
+ * session-run.sh reattaches the SAME conversation under the new model.
+ * Unlike mode, chat sessions may switch too — a model is not a tool.
+ */
+export async function doiModelPhien(id: string, model: BeeSessionModel): Promise<KetQua> {
+  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
+  if (!CAC_MODEL_PHIEN.includes(model)) return { ok: false, message: "Invalid model." };
+  if (laFixture()) return { ok: true };
+
+  const file = path.join(root(), "sessions", id, "session.json");
+  try {
+    const raw = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, unknown>;
+    raw.model = model;
+    const tmp = `${file}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(raw, null, 2));
+    await fs.rename(tmp, file);
+  } catch (e) {
+    return { ok: false, message: `Could not change model: ${(e as Error).message}` };
+  }
+
+  const unit = `bee-session@${id}.service`;
+  try {
+    await run("systemctl", ["--user", "is-active", unit]);
+  } catch {
+    return { ok: true }; // not running — the model applies on the next start
+  }
+  try {
+    await run("systemctl", ["--user", "restart", unit]);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: `Model saved but restart failed: ${(e as Error).message}` };
+  }
+}
+
 const REQUEST_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 
 /**
@@ -295,5 +336,47 @@ export async function dungPhien(id: string): Promise<KetQua> {
   } catch (e) {
     return { ok: false, message: `Could not stop session: ${(e as Error).message}` };
   }
+}
+
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+
+/**
+ * Chat attachment ("+" menu): save a file the user picked into the session
+ * worktree under `.bee/uploads/`, and return the worktree-relative path the
+ * message will carry — the agent opens it with the Read tool. Phone-first
+ * flow: a bug screenshot from the camera roll reaches the agent's disk.
+ */
+export async function saveUploadToSession(
+  id: string,
+  name: string,
+  data: Uint8Array,
+): Promise<{ ok: true; relPath: string } | { ok: false; message: string }> {
+  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
+  if (data.byteLength === 0) return { ok: false, message: "Empty file." };
+  if (data.byteLength > MAX_UPLOAD_BYTES) {
+    return { ok: false, message: "File too large (max 20MB)." };
+  }
+  // The timestamp prefix makes the stored name unique AND traversal-proof:
+  // whatever survives of the original name can never start with "." or "/".
+  // slice(-80) keeps the tail so the extension survives long names.
+  const safe = name.replace(/[^A-Za-z0-9._-]/g, "_").slice(-80) || "file";
+  const file = `${Date.now()}-${safe}`;
+  const relPath = `.bee/uploads/${file}`;
+  if (laFixture()) return { ok: true, relPath };
+
+  const wt = path.join(root(), "work", id);
+  try {
+    await fs.access(wt);
+  } catch {
+    return { ok: false, message: "This session has no worktree to attach files to." };
+  }
+  try {
+    const dir = path.join(wt, ".bee", "uploads");
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, file), data);
+  } catch {
+    return { ok: false, message: "Could not save the file." };
+  }
+  return { ok: true, relPath };
 }
 

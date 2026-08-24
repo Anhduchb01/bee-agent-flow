@@ -9,14 +9,21 @@ import path from "node:path";
 import { fetchArtifactDetail, type KetQuaArtifact } from "@/lib/bee/artifact-detail";
 import { expandCommandText } from "@/lib/bee/doctor-fs";
 import {
+  doiModelPhien,
   doiModePhien,
   dungPhien,
   moPhien,
   noiVaoPhien,
+  saveUploadToSession,
   tiepTucPhien,
   traLoiQuyen,
 } from "@/lib/bee/session-ctl";
-import type { BeeEvidenceTepTin, BeeSession, BeeSessionMode } from "@/lib/bee/types";
+import type {
+  BeeEvidenceTepTin,
+  BeeSession,
+  BeeSessionMode,
+  BeeSessionModel,
+} from "@/lib/bee/types";
 
 export type KetQuaMoPhien =
   | { ok: true; id: string; phien: BeeSession | null }
@@ -91,6 +98,25 @@ export async function guiVaoPhien(id: string, text: string): Promise<KetQua> {
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
+/**
+ * "+" menu upload: the file lands in the worktree's `.bee/uploads/`; the
+ * client appends the returned path to the draft so the agent Reads it.
+ * Size cap and name sanitizing live in saveUploadToSession.
+ */
+export async function uploadFileAction(
+  id: string,
+  formData: FormData,
+): Promise<KetQua & { relPath?: string }> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, message: "No file in the request." };
+  const ket = await saveUploadToSession(id, file.name, new Uint8Array(await file.arrayBuffer()));
+  return ket.ok
+    ? { ok: true, message: "", relPath: ket.relPath }
+    : { ok: false, message: ket.message };
+}
+
 export async function dungPhienAction(id: string): Promise<KetQua> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
@@ -129,6 +155,18 @@ export async function doiModeAction(id: string, mode: BeeSessionMode): Promise<K
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await doiModePhien(id, mode);
+  revalidatePath("/sessions");
+  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+/**
+ * Model switch mid-session (V2.7) — allowlist + restart-resume live in
+ * doiModelPhien; here only the auth guard and cache revalidation.
+ */
+export async function doiModelAction(id: string, model: BeeSessionModel): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await doiModelPhien(id, model);
   revalidatePath("/sessions");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }

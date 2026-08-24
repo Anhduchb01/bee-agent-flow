@@ -13,18 +13,25 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusDot } from "@/components/status-dot";
-import type { BeeSession, BeeSessionMode } from "@/lib/bee/types";
+import type { BeeSession, BeeSessionMode, BeeSessionModel } from "@/lib/bee/types";
 
 import {
   doiModeAction,
+  doiModelAction,
   dungPhienAction,
   guiVaoPhien,
   tiepTucAction,
   traLoiQuyenAction,
+  uploadFileAction,
 } from "../api/actions";
 import { useSessionStream } from "../hooks/use-session-stream";
 import { EventStream } from "./event-stream";
+import { ActionsPanel, MODEL_OPTIONS, PlusMenu } from "./input-actions";
 import { MODE_OPTIONS } from "./new-session-form";
+
+/** Touch screens get Enter-as-newline; only keyboard-first devices send on Enter. */
+const isCoarsePointer = () =>
+  typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
 
 /** VSCode's chat font stack — the panel should read like the editor's chat. */
 const VSCODE_FONT =
@@ -55,10 +62,11 @@ const VSCODE_SKIN = {
 
 /**
  * The task flow as tap-first chips: idea → issue → build → review → PR
- * (evidence-first) → demo/preview. Each chip IS a global command — tapping
- * sends "/name" through the same server-side expansion as typing it, so
- * phone users never have to reach for the "/" key. A chip only renders
- * when its command actually exists on the machine (~/.claude/commands).
+ * (evidence-first) → demo/preview. Tapping a chip PICKS its command as the
+ * message prefix — nothing is sent until the user hits send, so they can
+ * add context after the command without reaching for the "/" key
+ * (changed 23/08: chips used to send "/name" immediately). A chip only
+ * renders when its command actually exists on the machine (~/.claude/commands).
  */
 const CHIP_FLOW = [
   { lenh: "issue", nhan: "Issue" },
@@ -67,6 +75,16 @@ const CHIP_FLOW = [
   { lenh: "pr", nhan: "PR" },
   { lenh: "demo", nhan: "Demo" },
   { lenh: "preview", nhan: "Preview" },
+];
+
+/**
+ * Built-ins the CLI itself understands over stream-json input (proven by
+ * probe 23/08: "/compact" is answered by the CLI, not the model). They have
+ * no command file on the machine, so the palette adds them by hand; the
+ * server-side expander passes unknown names through untouched.
+ */
+const BUILTIN_COMMANDS = [
+  { name: "compact", moTa: "Compact the conversation — frees context, keeps the gist" },
 ];
 
 const MODE_ICONS: Record<BeeSessionMode, typeof ZapIcon> = {
@@ -230,6 +248,7 @@ export function LiveView({
   // Optimistic — the prop only refreshes on a server re-render.
   const [mode, setMode] = useState<BeeSessionMode>(phien.mode ?? "auto");
   const [dangDoiMode, batDauDoiMode] = useTransition();
+  const [model, setModel] = useState<BeeSessionModel>(phien.model ?? "default");
 
   function doiMode(moi: BeeSessionMode) {
     if (dangDoiMode || moi === mode) return;
@@ -239,6 +258,20 @@ export function LiveView({
       const ket = await doiModeAction(phien.id, moi);
       if (!ket.ok) {
         setMode(truoc);
+        setLoi(ket.message);
+      }
+    });
+  }
+
+  /** Model switch: optimistic like the mode one, and it restarts the unit too. */
+  function doiModel(moi: BeeSessionModel) {
+    if (dangDoiMode || moi === model) return;
+    batDauDoiMode(async () => {
+      const truoc = model;
+      setModel(moi);
+      const ket = await doiModelAction(phien.id, moi);
+      if (!ket.ok) {
+        setModel(truoc);
         setLoi(ket.message);
       }
     });
@@ -283,12 +316,46 @@ export function LiveView({
     });
   }
 
-  /** Chip tap = the command is SENT, not typed — that is the whole point. */
-  function guiLenh(lenh: string) {
+  // The command currently picked as the message prefix ("/issue hãy…" → "issue").
+  const pickedCommand = nhap.startsWith("/") ? (nhap.slice(1).split(/\s/)[0] ?? "") : null;
+
+  /** Put "/name " in front of the draft, replacing any current command prefix. */
+  function insertCommand(name: string) {
+    setNhap(`/${name} ${nhap.replace(/^\/\S+\s*/, "")}`);
+  }
+
+  /**
+   * Chip tap picks the command as the prefix — nothing is sent. Tapping the
+   * same chip unpicks it; tapping another swaps the prefix. The message body
+   * the user already typed survives either way.
+   */
+  function pickCommand(name: string) {
+    if (pickedCommand === name) setNhap(nhap.replace(/^\/\S+\s*/, ""));
+    else insertCommand(name);
+  }
+
+  /** Send a line straight to the session — palette actions like /compact. */
+  function sendDirect(text: string) {
     if (dangGui) return;
     batDauGui(async () => {
-      const ket = await guiVaoPhien(phien.id, `/${lenh}`);
+      const ket = await guiVaoPhien(phien.id, text);
       setLoi(ket.ok ? "" : ket.message);
+    });
+  }
+
+  /** "+" upload: the file lands in the worktree, its path lands in the draft. */
+  function handleUpload(f: File) {
+    batDauGui(async () => {
+      const fd = new FormData();
+      fd.append("file", f);
+      const ket = await uploadFileAction(phien.id, fd);
+      if (ket.ok && ket.relPath !== undefined) {
+        setLoi("");
+        const ghi = `[attached: ${ket.relPath}]`;
+        setNhap((v) => (v === "" ? `${ghi} ` : `${v}\n${ghi}`));
+      } else {
+        setLoi(ket.message);
+      }
     });
   }
 
@@ -296,17 +363,17 @@ export function LiveView({
 
   // "/..." opens the palette: the machine's global COMMANDS (expanded
   // server-side on send, REPL-style — picking one keeps "/name " in the
-  // box for arguments). Chat sessions have no tools — no palette there.
-  const tatCaLenh = commands.map((c) => ({
+  // box for arguments). It only shows while the COMMAND token is being
+  // typed — once a space lands the user is writing the message body and
+  // the palette would just cover the chat. No tools → no palette.
+  const tatCaLenh = [...commands, ...BUILTIN_COMMANDS].map((c) => ({
     ten: `/${c.name}`,
     moTa: c.moTa,
     chen: `/${c.name} `,
   }));
   const goiLenh =
-    phien.worktree && nhap.startsWith("/")
-      ? tatCaLenh
-          .filter((l) => l.ten.startsWith(nhap.trim().split(" ")[0] ?? ""))
-          .slice(0, 12)
+    phien.worktree && nhap.startsWith("/") && !nhap.includes(" ")
+      ? tatCaLenh.filter((l) => l.ten.startsWith(nhap)).slice(0, 12)
       : [];
 
   // Flow chips: only the ones whose command the machine actually has.
@@ -399,14 +466,16 @@ export function LiveView({
               <button
                 key={c.lenh}
                 type="button"
-                aria-label={`Run /${c.lenh}`}
+                aria-label={`Use /${c.lenh}`}
+                aria-pressed={c.lenh === pickedCommand}
                 data-suggested={c.lenh === goiY || undefined}
-                disabled={dangGui}
-                onClick={() => guiLenh(c.lenh)}
-                className={`shrink-0 rounded-full border px-3 py-1 text-xs hover:bg-accent disabled:opacity-40 ${
-                  c.lenh === goiY
-                    ? "border-[#C15F3C]/70 bg-[#C15F3C]/10 text-body"
-                    : "border-border bg-secondary text-body"
+                onClick={() => pickCommand(c.lenh)}
+                className={`shrink-0 rounded-full border px-3 py-1 text-xs hover:bg-accent ${
+                  c.lenh === pickedCommand
+                    ? "border-[#C15F3C] bg-[#C15F3C]/25 text-body"
+                    : c.lenh === goiY
+                      ? "border-[#C15F3C]/70 bg-[#C15F3C]/10 text-body"
+                      : "border-border bg-secondary text-body"
                 }`}
               >
                 {c.nhan}
@@ -454,15 +523,39 @@ export function LiveView({
               rows={2}
               className="min-h-0 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                // On phones Enter is a plain newline — only the ↑ button sends.
+                if (e.key === "Enter" && !e.shiftKey && !isCoarsePointer()) {
                   e.preventDefault();
                   gui();
                 }
               }}
             />
             <div className="mt-1.5 flex items-center gap-2">
+              {/* Attach needs a worktree to put the file in; the actions
+                  panel does not — a chat session still picks its model. */}
+              {phien.worktree && <PlusMenu disabled={dangGui} onUpload={handleUpload} />}
+              <ActionsPanel
+                commands={phien.worktree ? [...commands, ...BUILTIN_COMMANDS] : []}
+                mode={phien.worktree ? mode : null}
+                model={model}
+                onInsertCommand={insertCommand}
+                onCompact={() => sendDirect("/compact")}
+                onStop={() => void dungPhienAction(phien.id)}
+                onPickMode={doiMode}
+                onPickModel={doiModel}
+              />
+              {model !== "default" && (
+                <span className="hidden font-mono text-xs text-muted-foreground sm:inline">
+                  {MODEL_OPTIONS.find((m) => m.value === model)?.label}
+                </span>
+              )}
               {nguCanh !== null && (
                 <VongNguCanh phanTram={nguCanh} dung={nguCanhDung} cua={nguCanhCua} />
+              )}
+              {nguCanh !== null && nguCanh >= 90 && (
+                <span className="text-xs text-destructive">
+                  almost full — auto-compact soon, or send /compact
+                </span>
               )}
               <span className="flex-1" />
               {phien.worktree && (

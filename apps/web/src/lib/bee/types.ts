@@ -227,6 +227,23 @@ export interface BeeEvidenceTepTin {
 export const CAC_MODE_PHIEN = ["auto", "plan", "edits", "manual"] as const;
 export type BeeSessionMode = (typeof CAC_MODE_PHIEN)[number];
 
+/**
+ * Model per session (V2.7) — the aliases `claude --model` accepts, verified
+ * against the CLI bundle (2.1.161). `default` means "send no --model flag":
+ * the machine's own default answers, exactly like VSCode's "Default".
+ * Full model ids (claude-fable-5…) are NOT in this list on purpose — an
+ * alias always resolves to the latest, an id rots.
+ */
+export const CAC_MODEL_PHIEN = [
+  "default",
+  "opus",
+  "opus[1m]",
+  "sonnet",
+  "sonnet[1m]",
+  "haiku",
+] as const;
+export type BeeSessionModel = (typeof CAC_MODEL_PHIEN)[number];
+
 export interface BeeSession {
   id: string;
   slug: string;
@@ -242,6 +259,8 @@ export interface BeeSession {
    * edits = sửa file tự do, bash bị từ chối. Manual chờ hook-reply (V2.5b).
    */
   mode?: BeeSessionMode;
+  /** Model alias (V2.7); absent or "default" = the machine's own default. */
+  model?: BeeSessionModel;
   status: TrangThaiPhien;
   created_at: string | null;
   started_at: string | null;

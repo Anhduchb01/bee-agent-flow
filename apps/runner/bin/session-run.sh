@@ -200,6 +200,17 @@ else
     *)      ARGS+=(--dangerously-skip-permissions --max-turns "$MAX_TURNS");;
   esac
 fi
+# Model per session (V2.7) — đổi giữa chừng = web ghi session.json rồi restart
+# unit, nhánh --resume ở trên nối đúng hội thoại dưới model mới. ALLOWLIST bắt
+# buộc (spec §9); chú ý pattern PHẢI có nháy: không nháy thì `opus[1m]` là một
+# lớp ký tự của glob và sẽ khớp nhầm "opus1"/"opusm". "default" = KHÔNG truyền
+# cờ nào — để máy tự quyết, đúng như "Default" trong menu VSCode.
+MODEL=$(jq -r '.model // "default"' "$SDIR/session.json")
+case "$MODEL" in
+  opus|sonnet|haiku|"opus[1m]"|"sonnet[1m]") ARGS+=(--model "$MODEL");;
+  *) ;;
+esac
+
 [[ -n "$SYS_PROMPT" ]] && ARGS+=(--append-system-prompt "$SYS_PROMPT")
 
 exec 3<>"$FIFO"
