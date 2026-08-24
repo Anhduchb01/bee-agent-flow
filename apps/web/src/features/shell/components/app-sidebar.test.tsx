@@ -45,7 +45,7 @@ function renderSidebar(duAn: { slug: string; dangChay: number; tone: "ok" | "age
 }
 
 describe("AppSidebar — Projects section speaks the session model", () => {
-  it("lists registered repos linking to /sessions, with running badges", () => {
+  it("lists registered repos linking to the board FILTERED to that project", () => {
     renderSidebar([
       { slug: "lifebook-assessment", dangChay: 2, tone: "agent" },
       { slug: "blog", dangChay: 0, tone: "ok" },
@@ -54,8 +54,17 @@ describe("AppSidebar — Projects section speaks the session model", () => {
     const nav = screen.getByRole("navigation", { name: "Main navigation" });
     const repo = screen.getByRole("link", { name: /lifebook-assessment/ });
     expect(nav).toContainElement(repo);
-    expect(repo).toHaveAttribute("href", "/sessions");
+    expect(repo).toHaveAttribute("href", "/projects?p=lifebook-assessment");
+    expect(screen.getByRole("link", { name: /blog/ })).toHaveAttribute(
+      "href",
+      "/projects?p=blog",
+    );
     expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("has a Projects entry of its own — the board with no filter", () => {
+    renderSidebar([]);
+    expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute("href", "/projects");
   });
 
   it("the + action registers a repo — it goes to /setup, not the legacy projects page", () => {

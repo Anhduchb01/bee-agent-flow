@@ -2,6 +2,7 @@
 
 import {
   CircleGaugeIcon,
+  KanbanIcon,
   LogOutIcon,
   PlusIcon,
   TerminalIcon,
@@ -135,6 +136,17 @@ export function AppSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  isActive={pathname.startsWith("/projects")}
+                  tooltip="Projects"
+                  onClick={dongTrenDienThoai}
+                  render={<Link href="/projects" />}
+                >
+                  <KanbanIcon />
+                  <span>Projects</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
                   isActive={pathname.startsWith("/canvas")}
                   tooltip="Canvas"
                   onClick={dongTrenDienThoai}
@@ -182,7 +194,10 @@ export function AppSidebar({
                   <SidebarMenuButton
                     tooltip={d.slug}
                     onClick={dongTrenDienThoai}
-                    render={<Link href="/sessions" />}
+                    // Tapping a project opens the board FILTERED to it —
+                    // it used to send every project to the same unfiltered
+                    // /sessions page, which made the list decorative.
+                    render={<Link href={`/projects?p=${d.slug}`} />}
                   >
                     <StatusDot tone={d.tone} />
                     <span>{d.slug}</span>

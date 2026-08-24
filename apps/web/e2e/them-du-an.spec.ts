@@ -2,7 +2,16 @@ import { expect, test } from "@playwright/test";
 
 import { dangNhap } from "./helpers";
 
-test.describe("thêm dự án", () => {
+/*
+ * ĐÃ TREO 24/08: /projects giờ là bảng issue (spec session-first §4.7), nên
+ * hộp thoại "Add project" của mô hình cũ không còn đường nào bấm tới từ UI.
+ * Luồng đăng ký repo thật nằm ở /setup và đã có setup.spec phủ.
+ *
+ * Để `describe.skip` thay vì xoá: quyết định xoá hẳn feature `project` cũ
+ * (add-project-dialog · /p/[slug] · /t/[slug] · loadProjects theo status.json)
+ * là việc của chủ dự án, không phải của lượt sửa này.
+ */
+test.describe.skip("thêm dự án (mô hình cũ — không còn đường vào)", () => {
   test.beforeEach(async ({ page }) => {
     await dangNhap(page, "pm-linh");
     await page.goto("/projects");
