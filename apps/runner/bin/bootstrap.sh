@@ -168,10 +168,35 @@ else
   fi
   export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"
   systemctl --user enable --now docker >/dev/null 2>&1 || true
-  if docker info >/dev/null 2>&1; then
-    ok "docker $(docker version -f '{{.Server.Version}}' 2>/dev/null) · rootless · $DOCKER_HOST"
-  else
+  if ! docker info >/dev/null 2>&1; then
     loi "docker chưa lên: journalctl --user -u docker -n 30 --no-pager"
+    exit 1
+  fi
+  ok "docker $(docker version -f '{{.Server.Version}}' 2>/dev/null) · rootless · $DOCKER_HOST"
+
+  # CHẠY THẬT MỘT CONTAINER. `docker info` xanh không có nghĩa là chạy được:
+  # 25/08 daemon lên đẹp mà mọi `docker run` đều chết ở "unable to apply
+  # cgroup configuration … Interactive authentication required" — containerd
+  # do dockerd sinh ra KHÔNG thừa kế DBUS_SESSION_BUS_ADDRESS, nên runc đi
+  # hỏi systemd HỆ THỐNG xin tạo scope, và polkit từ chối. Hỏng kiểu này mà
+  # không thử thì tới lúc phiên đầu tiên cần postgres mới lòi ra.
+  LOI_RUN="$(docker run --rm alpine true 2>&1)" || {
+    if grep -q 'Interactive authentication required' <<<"$LOI_RUN"; then
+      mkdir -p "$HOME/.config/docker"
+      printf '{\n  "exec-opts": ["native.cgroupdriver=cgroupfs"]\n}\n' \
+        > "$HOME/.config/docker/daemon.json"
+      systemctl --user restart docker
+      sleep 4
+      LOI_RUN="$(docker run --rm alpine true 2>&1)" \
+        && ok "chuyển cgroup driver sang cgroupfs (xem docs/docker-cho-bee.md §6)"
+    fi
+  }
+  if docker run --rm alpine true >/dev/null 2>&1; then
+    ok "container chạy thật được"
+  else
+    loi "daemon sống nhưng không chạy nổi container:"
+    echo "$LOI_RUN" | tail -3 >&2
+    exit 1
   fi
 fi
 

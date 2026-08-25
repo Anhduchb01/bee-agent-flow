@@ -123,6 +123,12 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       Runner sinh `.bee/ports.env` + thay `${BEE_PORT_n}` trong env.d **chỉ đúng
       họ biến đó** — envsubst không giới hạn sẽ nuốt `$VAR` trong secret của
       repo. rig-11: 7/7. bee không cần biết tên biến của từng repo.
+- [ ] 🤖 **T17** Lấy lại cgroup driver `systemd` cho rootless docker (S) —
+      hôm nay đang chạy `cgroupfs` nên `docker info` báo `Cgroup Driver: none`
+      và `--memory`/`--cpus` không ai thi hành. Gốc: `containerd` không thừa
+      kế `DBUS_SESSION_BUS_ADDRESS` từ `dockerd` nên `runc` đi hỏi systemd hệ
+      thống. Xem [docker-cho-bee.md §5b](../docs/docker-cho-bee.md). Chỉ cần
+      làm khi T15 muốn đặt trần tài nguyên cho từng phiên.
 - [ ] 🤖 **T15** Cấp lát dịch vụ cho phiên (M) — database + **role riêng**,
       vhost, bucket; gc thu hồi.
 

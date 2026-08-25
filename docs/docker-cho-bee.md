@@ -184,6 +184,44 @@ chết khi bee đăng xuất, và phiên đêm chết theo.
 
 ---
 
+## 5b. Cái bẫy cgroup driver (gặp thật 25/08)
+
+Rootless docker lên đẹp, `docker info` xanh, và **mọi** `docker run` chết:
+
+```
+unable to apply cgroup configuration: unable to start unit
+"docker-….scope" (properties [… {Name:Slice Value:"user.slice"} …]):
+Interactive authentication required.
+```
+
+Đọc ngược cái lỗi: `runc` muốn tạo một *scope* cho container, nó hỏi **systemd
+của hệ thống**, và polkit từ chối một tiến trình không phải root — đúng như
+polkit phải làm. Nhưng ở chế độ rootless nó phải hỏi **systemd của user** mới
+đúng. Nó hỏi nhầm chỗ vì thiếu `DBUS_SESSION_BUS_ADDRESS`:
+
+```bash
+sudo cat /proc/$(pgrep -u <uid-bee> -x dockerd)/environ    | tr '\0' '\n' | grep DBUS   # CÓ
+sudo cat /proc/$(pgrep -u <uid-bee> -x containerd)/environ | tr '\0' '\n' | grep DBUS   # KHÔNG
+```
+
+`containerd` do `dockerd` sinh ra với một danh sách biến môi trường rút gọn,
+và `runc` là con của `containerd`. Biến rơi mất đúng một tầng.
+
+**Cách đi vòng đang dùng** — `~/.config/docker/daemon.json`:
+
+```json
+{ "exec-opts": ["native.cgroupdriver=cgroupfs"] }
+```
+
+`bootstrap.sh` tự làm việc này, nhưng **chỉ khi thử chạy container thật và
+thấy đúng lỗi đó** — không đoán trước, vì máy khác có thể không dính.
+
+**Giá phải trả, nói thẳng:** `docker info` sau đó báo `Cgroup Driver: none`.
+Container chạy bình thường, nhưng `--memory` / `--cpus` không còn ai thi hành.
+Với bee hôm nay chấp nhận được (lát dịch vụ cho phiên là postgres/redis cỡ
+nhỏ), nhưng T15 mà muốn đặt trần tài nguyên cho từng phiên thì phải quay lại
+chỗ này.
+
 ## 6. Dọn: việc của gc, không phải của trí nhớ
 
 Khi gc (V3.T1) thu hồi một worktree, phải dọn cả phần docker của phiên đó —
