@@ -10,6 +10,7 @@ import {
   caiSlayer,
   chupSlot,
   doiSlot,
+  nhanTaiKhoanCap,
   xongThemSlot,
 } from "@/lib/bee/slayer-ctl";
 import {
@@ -206,6 +207,15 @@ export async function caiSlayerAction(token: string): Promise<KetQua> {
   const ket = await caiSlayer(token);
   await refresh();
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+}
+
+/** `tok setup` — nhận tài khoản admin cấp; trả nguyên lời của nó. */
+export async function nhanTaiKhoanCapAction(): Promise<KetQua> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const ket = await nhanTaiKhoanCap();
+  await refresh();
+  return ket.ok ? { ok: true, message: ket.noi ?? "" } : { ok: false, message: ket.message };
 }
 
 /** Gỡ token ghim trong claude.env để lựa chọn tài khoản có hiệu lực. */

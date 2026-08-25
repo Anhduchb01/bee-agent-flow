@@ -14,6 +14,7 @@ import {
   caiSlayerAction,
   chupSlotAction,
   doiSlotAction,
+  nhanTaiKhoanCapAction,
   xongThemSlotAction,
 } from "../api/actions";
 
@@ -95,15 +96,72 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
   const [tenMoi, setTenMoi] = useState("");
   const [url, setUrl] = useState("");
   const [code, setCode] = useState("");
+  const [tin, setTin] = useState("");
 
   function chay(viec: () => Promise<{ ok: boolean; message: string }>) {
     if (dang) return;
     batDau(async () => {
       const ket = await viec();
       setLoi(ket.ok ? "" : ket.message);
+      setTin(ket.ok ? ket.message : "");
       router.refresh();
     });
   }
+
+  /**
+   * Ô token + nút nhận tài khoản admin cấp. Hiện ở CẢ HAI trạng thái: cài
+   * rồi mà giấu đi thì không còn đường dán token mới, mà đó đúng là việc
+   * người dùng cần khi admin vừa cấp lại — hỏi 25/08.
+   */
+  const khoiToken = (
+    <div className="flex flex-col gap-2">
+      <form
+        className="flex flex-wrap gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (tokenSlayer.trim() === "") return;
+          chay(async () => {
+            const ket = await caiSlayerAction(tokenSlayer);
+            if (ket.ok) setTokenSlayer("");
+            return ket;
+          });
+        }}
+      >
+        <Input
+          value={tokenSlayer}
+          onChange={(e) => setTokenSlayer(e.target.value)}
+          placeholder="Dán TOKEN_SLAYER_TOKEN"
+          aria-label="Token token-slayer"
+          autoComplete="off"
+          className="min-w-48 flex-1 font-mono"
+        />
+        <Button type="submit" disabled={dang || tokenSlayer.trim() === ""}>
+          {dang ? "Đang cài…" : trangThai.daCai ? "Cài lại / đổi token" : "Cài"}
+        </Button>
+        {trangThai.daCai && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={dang}
+            onClick={() => chay(nhanTaiKhoanCapAction)}
+          >
+            Nhận tài khoản admin cấp
+          </Button>
+        )}
+      </form>
+      <p className="text-xs text-muted-foreground">
+        Token đi qua biến môi trường, không qua dòng lệnh — argv thì ai trên máy cũng đọc được.
+        Trình cài đặt lấy từ <span className="font-mono">token-slayer.ownego.com</span>, ghim cứng
+        trong mã. Token này là vé vào dịch vụ slayer, <strong>không phải</strong> đăng nhập Claude:
+        nó chỉ lấy về những tài khoản admin đã cấp cho bạn.
+      </p>
+      {tin !== "" && (
+        <pre className="overflow-x-auto rounded-control border border-border bg-muted/40 p-2.5 font-mono text-2xs leading-relaxed text-body">
+          {tin}
+        </pre>
+      )}
+    </div>
+  );
 
   if (!trangThai.daCai) {
     return (
@@ -112,35 +170,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
           Chưa cài <span className="font-mono">token-slayer</span> — cài rồi thì bee giữ được nhiều
           tài khoản Claude và đổi qua lại ngay ở đây.
         </p>
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (tokenSlayer.trim() === "") return;
-            chay(async () => {
-              const ket = await caiSlayerAction(tokenSlayer);
-              if (ket.ok) setTokenSlayer("");
-              return ket;
-            });
-          }}
-        >
-          <Input
-            value={tokenSlayer}
-            onChange={(e) => setTokenSlayer(e.target.value)}
-            placeholder="Dán TOKEN_SLAYER_TOKEN"
-            aria-label="Token token-slayer"
-            autoComplete="off"
-            className="flex-1 font-mono"
-          />
-          <Button type="submit" disabled={dang || tokenSlayer.trim() === ""}>
-            {dang ? "Đang cài…" : "Cài"}
-          </Button>
-        </form>
-        <p className="text-xs text-muted-foreground">
-          Token đi qua biến môi trường, không qua dòng lệnh — argv thì ai trên máy cũng đọc được.
-          Trình cài đặt lấy từ <span className="font-mono">token-slayer.ownego.com</span>, ghim cứng
-          trong mã.
-        </p>
+        {khoiToken}
         {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
       </div>
     );
@@ -276,6 +306,13 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
           </div>
         )}
       </div>
+
+      <details className="rounded-control border border-border p-3">
+        <summary className="cursor-pointer text-xs text-muted-foreground">
+          Token slayer · tài khoản công ty
+        </summary>
+        <div className="mt-3">{khoiToken}</div>
+      </details>
 
       {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
       {!trangThai.coLoginMay && (

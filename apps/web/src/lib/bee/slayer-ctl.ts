@@ -293,6 +293,29 @@ export async function caiSlayer(token: string): Promise<KetQua> {
   }
 }
 
+/**
+ * `tok setup` — nhận tài khoản admin đã cấp cho token của bạn.
+ *
+ * Trả về NGUYÊN LỜI của nó, kể cả khi không có gì để nhận: câu
+ * *"you are a member but this machine has no credential — ask an admin to
+ * Reissue"* chính là câu trả lời cho "sao tôi chưa đăng nhập được", và giấu
+ * nó sau một chữ "xong" là lấy mất thứ duy nhất hữu ích.
+ */
+export async function nhanTaiKhoanCap(): Promise<KetQua & { noi?: string }> {
+  if (isFixture()) {
+    return { ok: true, noi: "Nothing to do. (No provisioned accounts to add or remove.)" };
+  }
+  try {
+    const ra = await run(TOK, ["setup"], { timeout: 180_000, maxBuffer: 4 << 20 });
+    const noi = `${ra.stdout}${ra.stderr ?? ""}`.trim().split("\n").slice(-4).join("\n");
+    return { ok: true, noi: noi === "" ? "tok setup: xong, không nói gì thêm." : noi };
+  } catch (e) {
+    const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
+    if (loi.code === "ENOENT") return { ok: false, message: "Máy chưa cài token-slayer." };
+    return { ok: false, message: (loi.stderr || loi.stdout || loi.message).trim().slice(-300) };
+  }
+}
+
 /** Gỡ token ghim trong claude.env để lựa chọn tài khoản ở đây có hiệu lực. */
 export async function boTokenGhim(): Promise<KetQua> {
   if (isFixture()) return { ok: true };

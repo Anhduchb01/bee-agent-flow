@@ -7,6 +7,7 @@ import type { TrangThaiSlayer } from "@/lib/bee/slayer-ctl";
 import { ClaudeAccounts } from "./claude-accounts";
 import {
   batDauThemSlotAction,
+  nhanTaiKhoanCapAction,
   boTokenGhimAction,
   caiSlayerAction,
   chupSlotAction,
@@ -20,6 +21,10 @@ vi.mock("../api/actions", () => ({
   batDauThemSlotAction: vi.fn(async () => ({ ok: true, url: "https://claude.com/cai/oauth/x" })),
   xongThemSlotAction: vi.fn(async () => ({ ok: true, message: "" })),
   caiSlayerAction: vi.fn(async () => ({ ok: true, message: "" })),
+  nhanTaiKhoanCapAction: vi.fn(async () => ({
+    ok: true,
+    message: "Account 4fe8bd8d: you are a member but this machine has no credential — ask an admin to Reissue.",
+  })),
   boTokenGhimAction: vi.fn(async () => ({ ok: true, message: "" })),
 }));
 
@@ -139,6 +144,23 @@ describe("ClaudeAccounts", () => {
     expect(screen.getByText(/không phải một phiên đăng nhập/)).toBeInTheDocument();
     // Đường còn lại phải mở, nếu không thì panel thành ngõ cụt.
     expect(screen.getByRole("button", { name: /Đăng nhập tài khoản khác/ })).toBeInTheDocument();
+  });
+
+  it("cài rồi vẫn còn đường dán token mới — giấu đi là bịt lối lúc admin cấp lại", async () => {
+    const user = userEvent.setup();
+    render(<ClaudeAccounts trangThai={HAI_SLOT} />);
+    await user.type(screen.getByLabelText("Token token-slayer"), "b".repeat(47));
+    await user.click(screen.getByRole("button", { name: /Cài lại \/ đổi token/ }));
+    expect(caiSlayerAction).toHaveBeenCalledWith("b".repeat(47));
+  });
+
+  it("nhận tài khoản admin cấp → in NGUYÊN lời của tok, kể cả khi nó nói 'chưa có gì'", async () => {
+    const user = userEvent.setup();
+    render(<ClaudeAccounts trangThai={HAI_SLOT} />);
+    await user.click(screen.getByRole("button", { name: "Nhận tài khoản admin cấp" }));
+    expect(nhanTaiKhoanCapAction).toHaveBeenCalled();
+    // Câu "ask an admin to Reissue" chính là câu trả lời hữu ích duy nhất.
+    expect(await screen.findByText(/ask an admin to Reissue/)).toBeInTheDocument();
   });
 
   it("pool rỗng nói rõ là rỗng, không để trống cho người dùng tự đoán", () => {
