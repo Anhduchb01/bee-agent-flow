@@ -4,6 +4,10 @@
 Description=bee reaper — don xac phien + heartbeat
 
 [Service]
+# systemd user services get a bare PATH (no ~/.nvm, no ~/.local/bin) —
+# render the real one here or `claude`/`node` resolve to whatever apt left
+# in /usr/local/bin, if anything at all.
+Environment=PATH=@BINPATH@
 Environment=BEE_ROOT=@BEE_ROOT@
 # web.env là MỘT file cấu hình cho cả máy (spec §7): reaper đọc
 # SESSION_MAX_USD từ đây, không sinh ra file cấu hình thứ hai.

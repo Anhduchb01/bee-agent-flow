@@ -5,6 +5,10 @@ Description=bee tick — làm mới hạn mức (và nhặt việc, từ V3)
 After=bee-web.service
 
 [Service]
+# systemd user services get a bare PATH (no ~/.nvm, no ~/.local/bin) —
+# render the real one here or `claude`/`node` resolve to whatever apt left
+# in /usr/local/bin, if anything at all.
+Environment=PATH=@BINPATH@
 Type=oneshot
 EnvironmentFile=-@BEE_ROOT@/web.env
 # --fail: HTTP 4xx/5xx là lỗi thật, không phải "đã gọi xong". --max-time: tick

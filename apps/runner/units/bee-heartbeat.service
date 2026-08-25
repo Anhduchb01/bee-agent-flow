@@ -2,6 +2,10 @@
 Description=bee heartbeat check — bat cai chet im lang cua reaper
 
 [Service]
+# systemd user services get a bare PATH (no ~/.nvm, no ~/.local/bin) —
+# render the real one here or `claude`/`node` resolve to whatever apt left
+# in /usr/local/bin, if anything at all.
+Environment=PATH=@BINPATH@
 Environment=BEE_ROOT=@BEE_ROOT@
 Type=oneshot
 ExecStart=@PREFIX@/bin/heartbeat.sh

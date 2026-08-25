@@ -5,6 +5,10 @@
 Description=bee doctor — A+ hygiene checklist to doctor.json
 
 [Service]
+# systemd user services get a bare PATH (no ~/.nvm, no ~/.local/bin) —
+# render the real one here or `claude`/`node` resolve to whatever apt left
+# in /usr/local/bin, if anything at all.
+Environment=PATH=@BINPATH@
 Environment=BEE_ROOT=@BEE_ROOT@
 Type=oneshot
 ExecStart=@PREFIX@/bin/doctor.sh

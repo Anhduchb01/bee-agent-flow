@@ -181,6 +181,24 @@ function killSetupFlow(): void {
 
 export type KetQuaLink = { ok: true; url: string } | { ok: false; message: string };
 
+/**
+ * The last line the flow actually drew, for a failure message that names
+ * the fault. ANSI and the ink UI's redraw padding go first; a token can
+ * only appear after a code is submitted, but mask it anyway — this string
+ * goes to a screen.
+ */
+function manHinhCuoi(out: string): string | null {
+  const dong = out
+    .replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "")
+    .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)?/g, "")
+    .replace(/sk-ant-oat01-[A-Za-z0-9_-]+/g, "sk-ant-oat01-…")
+    .split(/[\r\n]+/)
+    .map((d) => d.trim())
+    .filter((d) => d !== "" && !/^\.+$/.test(d));
+  const cuoi = dong.at(-1);
+  return cuoi === undefined ? null : cuoi.slice(0, 160);
+}
+
 /** Start the login flow and return the URL for the user to open. */
 export async function startClaudeSetup(): Promise<KetQuaLink> {
   if (isFixture()) return { ok: true, url: "https://claude.ai/oauth/authorize?demo=1" };
@@ -210,8 +228,16 @@ export async function startClaudeSetup(): Promise<KetQuaLink> {
     await new Promise((r) => setTimeout(r, 250));
   }
   const loi = flow.done ? "The flow exited before printing a URL." : "Timed out waiting for the URL.";
+  const thay = manHinhCuoi(flow.out);
   killSetupFlow();
-  return { ok: false, message: `Could not get a login link — ${loi} Is claude installed on the machine?` };
+  // "Is claude installed?" sent us hunting for a missing binary on 25/08
+  // when claude was installed twice and the unit's PATH picked the stale
+  // copy, which sat on its splash screen. Show what the screen actually
+  // said — that names the real fault in one glance.
+  return {
+    ok: false,
+    message: `Could not get a login link — ${loi}${thay === null ? "" : ` Last thing the flow printed: “${thay}”`}`,
+  };
 }
 
 /** Feed the pasted confirmation code in; on success the token lands in claude.env. */

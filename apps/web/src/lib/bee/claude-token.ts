@@ -10,13 +10,29 @@ export function validateClaudeToken(token: string): boolean {
 const ANSI_RE = /\x1b\[[0-9;?]*[A-Za-z]/g;
 
 /**
- * The login URL from setup-token's terminal output. Anchored to
- * claude.ai/oauth so a docs link in the same output can never be handed
- * to the user as "click here to sign in".
+ * Both hosts the flow has used: claude.ai/oauth (≤2.1.16x) and
+ * claude.com/cai/oauth (2.1.245, seen 25/08). Still anchored on host AND
+ * path, so a docs link in the same output can never be handed to the user
+ * as "click here to sign in".
+ */
+const OAUTH_RE = /https:\/\/claude\.(?:ai|com)\/(?:cai\/)?oauth\/[^\s"'\x07\x1b]+/;
+
+/**
+ * The login URL from setup-token's terminal output.
+ *
+ * The ink UI emits it twice: once inside an OSC-8 hyperlink (clean and
+ * whole) and once as visible text the redraw chops into pieces. The clean
+ * copy comes first, and the piece that follows is glued straight onto it
+ * with no whitespace between — so a greedy "up to the next space" match
+ * returns two URLs welded together, which opens nothing. Cut at the second
+ * `https://`.
  */
 export function extractOauthUrl(output: string): string | null {
   const sach = output.replace(ANSI_RE, "");
-  return /https:\/\/claude\.ai\/oauth\/[^\s"']+/.exec(sach)?.[0] ?? null;
+  const url = OAUTH_RE.exec(sach)?.[0];
+  if (url === undefined) return null;
+  const keo = url.indexOf("https://", "https://".length);
+  return keo === -1 ? url : url.slice(0, keo);
 }
 
 /** The token the flow prints once the pasted code is accepted. */

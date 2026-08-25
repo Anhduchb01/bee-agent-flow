@@ -33,6 +33,19 @@ MOI_CAI=1
 mkdir -p "$BEE_ROOT"/{repos,repos.d,env.d,work,sessions}
 [[ $MOI_CAI -eq 1 ]] && touch "$BEE_ROOT/PAUSE"
 
+# PATH cho unit: systemd --user KHÔNG đọc ~/.profile, nên `claude` và `node`
+# của nvm vô hình với mọi unit. Hậu quả gặp thật 25/08: web bắt được bản
+# claude cũ root cài ở /usr/local/bin (v2.1.161) rồi treo ở màn hình chào —
+# nút "Đăng nhập Claude" báo "không lấy được link" mà máy vẫn có claude.
+# Dựng PATH từ chính chỗ node/claude ĐANG chạy lúc cài, đặt lên đầu.
+BINPATH="$(dirname "$(command -v node || echo /usr/bin/node)")"
+CLAUDE_BIN="$(command -v claude || true)"
+if [[ -n "$CLAUDE_BIN" && "$(dirname "$CLAUDE_BIN")" != "$BINPATH" ]]; then
+  BINPATH="$BINPATH:$(dirname "$CLAUDE_BIN")"
+fi
+BINPATH="$BINPATH:$HOME/.local/bin:$HOME/bin:/usr/local/bin:/usr/bin:/bin"
+echo "  · PATH cho unit: $BINPATH"
+
 echo "== 3 · User units =="
 # Units are templates: @PREFIX@/@BEE_ROOT@ are rendered here so BEE_PREFIX
 # and BEE_ROOT overrides actually reach systemd — a hardcoded /opt/bee in
@@ -42,7 +55,7 @@ mkdir -p "$UDIR"
 for f in "$NGUON"/units/*.service "$NGUON"/units/*.timer; do
   # bee-web needs the web build resolved first — handled in step 3b.
   [[ "$(basename "$f")" == "bee-web.service" ]] && continue
-  sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g" "$f" > "$UDIR/$(basename "$f")"
+  sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g; s|@BINPATH@|$BINPATH|g" "$f" > "$UDIR/$(basename "$f")"
 done
 systemctl --user daemon-reload
 systemctl --user enable --now bee-reaper.timer bee-heartbeat.timer bee-gc.timer bee-tick.timer
@@ -91,7 +104,7 @@ EOF
     echo "  · đã sinh BEE_TICK_TOKEN trong web.env"
   fi
 
-  sed "s|@BEE_ROOT@|$BEE_ROOT|g; s|@NODE@|$NODE_BIN|g; s|@WEBSERVER@|$WEB_SERVER|g" \
+  sed "s|@BEE_ROOT@|$BEE_ROOT|g; s|@NODE@|$NODE_BIN|g; s|@WEBSERVER@|$WEB_SERVER|g; s|@BINPATH@|$BINPATH|g" \
     "$NGUON/units/bee-web.service" > "$UDIR/bee-web.service"
   systemctl --user daemon-reload
   systemctl --user enable --now bee-web.service

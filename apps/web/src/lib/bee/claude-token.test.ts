@@ -33,10 +33,34 @@ describe("extractOauthUrl — from setup-token's terminal output", () => {
     );
   });
 
+  it("2.1.245 moved the link to claude.com/cai/oauth — still a login link", () => {
+    const out =
+      "This will guide you through long-lived auth token setup\n" +
+      "\x1b[36mhttps://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=Y6JM\x1b[0m\n";
+    expect(extractOauthUrl(out)).toBe(
+      "https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=Y6JM",
+    );
+  });
+
+  it("OSC-8 link + the redraw's chopped copy glued on → only the whole one", () => {
+    // Shape copied off the machine 25/08: the hyperlink payload holds the
+    // full URL, then the visible fragment starts with no space between.
+    const day =
+      "\x1b]8;id=10gbsbl;" +
+      "https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=Y6JM" +
+      "https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88" +
+      "\x1b]8;;";
+    expect(extractOauthUrl(day)).toBe(
+      "https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=Y6JM",
+    );
+  });
+
   it("no URL yet → null (still booting)", () => {
     expect(extractOauthUrl("Loading…")).toBeNull();
     // Other links must not be mistaken for the login link.
     expect(extractOauthUrl("see https://docs.anthropic.com/claude for help")).toBeNull();
+    // Right host, wrong path — an account page is not a login link.
+    expect(extractOauthUrl("https://claude.com/settings/usage")).toBeNull();
   });
 });
 
