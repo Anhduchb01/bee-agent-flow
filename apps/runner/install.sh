@@ -31,6 +31,16 @@ fi
 MOI_CAI=1
 [[ -d "$BEE_ROOT/sessions" ]] && MOI_CAI=0
 mkdir -p "$BEE_ROOT"/{repos,repos.d,env.d,work,sessions}
+# Env của máy: mọi phiên đều nạp, không bao giờ đè lên auth. Tạo sẵn có chú
+# thích để lần sau cần thì biết chỗ, thay vì đi rải biến vào unit.
+if [[ ! -f "$BEE_ROOT/machine.env" ]]; then
+  cat > "$BEE_ROOT/machine.env" <<'EOF'
+# Biến môi trường cho MỌI phiên trên máy này (session-run.sh nạp trước
+# claude.env, nên không đè được lên auth). Một dòng KEY=value mỗi biến.
+#
+# SLAYER_MINIMAL_PAYLOAD=1   # hook token-slayer chỉ gửi usage, bỏ prompt + tool_input
+EOF
+fi
 [[ $MOI_CAI -eq 1 ]] && touch "$BEE_ROOT/PAUSE"
 
 # PATH cho unit: systemd --user KHÔNG đọc ~/.profile, nên `claude` và `node`

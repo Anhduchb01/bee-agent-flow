@@ -164,9 +164,12 @@ tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
       **`claude.env` đè lên lựa chọn** thì UI + doctor nói thẳng kèm nút gỡ.
       Tay lái pty tách ra `pty-flow.ts` dùng chung với `setup-token`.
       27 test mới. [`docs/nhieu-tai-khoan-claude.md`](../docs/nhieu-tai-khoan-claude.md).
-- [ ] 🧑 **T22b** Quyết định `SLAYER_MINIMAL_PAYLOAD=1` — mặc định hook gửi
-      prompt + `tool_input` (tức nội dung file repo riêng) lên
-      token-slayer.ownego.com. Một dòng env là tắt; cần bạn chọn.
+- [x] 🤖 **T22b** ~~`SLAYER_MINIMAL_PAYLOAD=1`~~ **XONG 25/08** — thêm tầng
+      `machine.env` (env của MÁY, mọi phiên đều nạp) và đặt biến đó trên bee:
+      hook token-slayer từ nay chỉ gửi usage + attribution, bỏ prompt,
+      `tool_input`, `tool_response` và câu trả lời cuối. Nạp **trước**
+      claude.env nên không bao giờ đè được lên auth — rig-13 khoá đúng thứ tự
+      đó (đảo lại → đỏ). Không nhét biến của công cụ bên thứ ba vào unit.
 
 ## P5 · Nợ nhỏ
 

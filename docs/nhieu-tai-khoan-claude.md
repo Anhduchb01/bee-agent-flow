@@ -66,3 +66,7 @@ UserPromptSubmit, PreToolUse…). Mặc định chúng gửi **prompt text và
 nội dung file trong repo riêng. Đặt `SLAYER_MINIMAL_PAYLOAD=1` thì chỉ còn
 usage + attribution. Đây là công cụ của công ty bạn nên đó là lựa chọn của
 bạn, nhưng nó phải là **lựa chọn**, không phải thứ tình cờ.
+
+**Đã bật trên máy này (25/08)**, đặt ở `$BEE_ROOT/machine.env` — tầng env của
+máy mà mọi phiên đều nạp. Nạp **trước** `claude.env` nên một dòng ở đây không
+bao giờ thay được token của cả máy; rig-13 khoá đúng thứ tự đó.

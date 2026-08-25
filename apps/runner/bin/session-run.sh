@@ -14,6 +14,16 @@
 set -euo pipefail
 source "$(dirname "$(readlink -f "$0")")/../lib/common.sh"
 
+# Env của MÁY: thứ chủ máy muốn mọi phiên đều có, không dính đến auth —
+# ví dụ SLAYER_MINIMAL_PAYLOAD=1 để hook của token-slayer thôi gửi nội dung
+# file đi. Nạp trước claude.env để không bao giờ đè được lên auth.
+if [[ -f "$BEE_ROOT/machine.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$BEE_ROOT/machine.env"
+  set +a
+fi
+
 # Token from `claude setup-token`, pasted on the web (/setup). Exported so
 # claude runs on the subscription without an interactive login on this
 # machine. If an interactive login also exists, the env token wins.
