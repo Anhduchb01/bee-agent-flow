@@ -6,6 +6,11 @@
 > apps/runner/bin/deploy.sh
 > ```
 
+> Đó là cho máy **đang chạy rồi**. Máy trắng (chưa có node, chưa có docker)
+> thì chạy [`bootstrap.sh`](../apps/runner/bin/bootstrap.sh) một lần trước —
+> nó cài công cụ rồi gọi chính `deploy.sh` này. Xem
+> [tach-user.md bước 5](tach-user.md).
+
 ## 1. Nó làm gì, theo thứ tự
 
 | # | Bước | Vì sao |

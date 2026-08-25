@@ -109,6 +109,14 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       hình C (`bee-orch` đang trong group docker!) · `gh` đăng nhập đúng
       `Anhduchb01` bằng PAT hẹp · rootless docker · deploy · tailscale serve.
       Nghiệm thu: `docker run -v /home/ducba:/h alpine ls /h` → Permission denied.
+- [x] 🤖 **T16** ~~`bootstrap.sh` — máy trắng thành máy chạy bằng MỘT lệnh~~
+      **XONG 25/08** — gộp node/pnpm · claude cli · docker rootless · `pnpm
+      install` + `deploy.sh` đầu tiên. Chặn sớm và chặn có chỉ dẫn: ở group
+      docker → thoát (ranh giới A+ vô nghĩa), thiếu gói → in nguyên lệnh apt,
+      mất session bus → nhắc `enable-linger`. Tự ghi bus + `DOCKER_HOST` vào
+      `~/.bashrc` vì `sudo -iu bee` không cho session bus, mà thiếu nó thì mọi
+      `systemctl --user` phía sau chết. rig-12: 11/11. Token vẫn KHÔNG nhận ở
+      CLI — dán ở `/setup` (argv và bash_history là chỗ token đi lạc).
 - [x] 🤖 **T14** ~~`.env` per-phiên + dải cổng~~ **XONG 24/08** — `capPhatDaiCong()`
       quét THẬT bằng bind (4 test), tránh cả dải phiên khác **đã giữ chỗ dù chưa
       listen**; `port_base` vào session.json nên resume dùng lại đúng dải.

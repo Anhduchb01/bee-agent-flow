@@ -171,10 +171,15 @@ cho khách — thì dừng nhận việc và quay về mô hình hai UID ở nh�
 **Chạy hệ thống phiên trên máy của bạn** — một lệnh ở máy, phần còn lại trên web:
 
 ```bash
-git clone <repo> && cd bee-agent-flow
-cd apps/web && pnpm install && pnpm build && cd ../..
-bash apps/runner/install.sh          # BEE_PREFIX/BEE_ROOT override được
+sudo apt-get install -y git curl jq gettext-base gh uidmap dbus-user-session
+git clone <repo> ~/bee-agent-flow
+~/bee-agent-flow/apps/runner/bin/bootstrap.sh   # node · claude cli · docker rootless · deploy
 ```
+
+Ba script, ba việc: **`bootstrap.sh`** máy trắng → chạy được ·
+**`deploy.sh`** code mới → lên máy đang chạy · **`install.sh`** chép runner +
+unit (deploy tự gọi). Máy đã có node/docker rồi thì `install.sh` một mình vẫn
+đủ. Đặt bee ở user riêng: [docs/tach-user.md](docs/tach-user.md).
 
 `install.sh` idempotent (cài lại không đè trạng thái live), tự dựng:
 runner + user units + `bee-web.service` + `web.env` + toàn bộ skill/command

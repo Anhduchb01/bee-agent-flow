@@ -92,74 +92,95 @@ sudo systemctl daemon-reload
 > #   sudo usermod --add-subuids 1500000-1565535 --add-subgids 1500000-1565535 bee
 > ```
 >
-> Lỡ tạo bằng uid cũ rồi mà chưa cài gì thì xoá đi làm lại vẫn rẻ; sau khi đã
-> cài thì phải `chown -R` cả `~/.local/srv/bee`.
+> Lỡ tạo bằng uid cũ rồi thì đổi tại chỗ, đừng xoá — `userdel` sẽ báo *"user
+> bee is currently used by process …"* vì `enable-linger` đã dựng sẵn một
+> `systemd --user` cho nó:
+>
+> ```bash
+> sudo loginctl disable-linger bee
+> sudo loginctl terminate-user bee        # hạ systemd --user đang giữ tài khoản
+> sudo usermod  -u 1500 bee
+> sudo groupmod -g 1500 bee
+> sudo chown -R 1500:1500 /home/bee
+> sudo loginctl enable-linger bee
+> ```
+>
+> (Dải subuid không đổi theo uid — `grep '^bee:' /etc/subuid` vẫn dùng được.)
+> Làm lúc home còn trống là gần như miễn phí; sau khi đã cài thì `chown -R`
+> phải quét cả `~/.local/srv/bee`.
 
 > Xoá ba user đó **không** làm mất đường lùi: mô hình C nằm ở nhánh
 > `feat/bee-m3-and-web-spec` + `apps/reconciler/`, dựng lại bằng `install.sh`
 > của nó — xem [mo-hinh-c.md §6](mo-hinh-c.md).
 
-### Bước 3 🤖 — công cụ cho user bee
+### Bước 3 🧑 — gói hệ thống (lần duy nhất cần root)
+
+Bảy gói, một lệnh. Đây là **toàn bộ** phần root còn lại của việc cài:
 
 ```bash
-sudo -iu bee        # từ đây trở đi là user bee
-
-# node + pnpm (nvm per-user, không đụng hệ thống)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-. ~/.nvm/nvm.sh && nvm install --lts && corepack enable
-
-# claude
-npm i -g @anthropic-ai/claude-code
-claude setup-token          # dán token vào /setup của web, hoặc claude.env
+sudo apt-get update && sudo apt-get install -y \
+  git curl jq gettext-base gh uidmap dbus-user-session
 ```
 
-### Bước 4 🧑 — GitHub bằng ĐÚNG danh tính
+`gettext-base` cho `envsubst` (runner thay biến cổng trong `env.d`), `uidmap`
++ `dbus-user-session` cho Docker rootless. Quên cái nào thì `bootstrap.sh`
+dừng ngay và in lại đúng dòng trên — không có kiểu hỏng ở tận đâu đó phía sau.
 
-Đây cũng là chỗ sửa mục đỏ `pat` hôm nay: máy đang active tài khoản `ducba01`
-với token OAuth `gho_` (scope `repo`, `workflow`), trong khi repo thuộc
-`Anhduchb01`.
+### Bước 4 🤖 — lấy code về
 
 ```bash
-gh auth login --with-token < <(echo "github_pat_...")   # PAT HẸP của Anhduchb01
-gh auth status          # phải: Anhduchb01, token github_pat_
-gh repo view Anhduchb01/ecvision --json name   # phải đọc được
+sudo -iu bee
+git clone https://github.com/Anhduchb01/bee-agent-flow.git ~/bee-agent-flow
+#   Username: Anhduchb01
+#   Password: <dán PAT hẹp>     ← ở prompt, KHÔNG nhét vào URL:
+#                                  URL sẽ nằm trong ~/.bash_history và trong
+#                                  .git/config của mọi worktree sau này.
 ```
 
-PAT hẹp = chỉ các repo làm việc, đúng ba quyền contents · pull-requests ·
-issues (PRD §4.2 mục 2).
+HTTPS chứ không phải SSH: bee **cố ý** không có khoá SSH nào — đó là toàn bộ
+mục đích của việc tách user. (PAT này lát nữa dán lại một lần ở `/setup`, chỗ
+đó mới là nơi `gh` và `git credential` nhớ nó.)
 
-### Bước 5 🤖 — Docker rootless
-
-Xem [docker-cho-bee.md §5](docker-cho-bee.md). Tóm tắt:
+### Bước 5 🤖 — bootstrap: một lệnh, máy trắng thành máy chạy
 
 ```bash
-dockerd-rootless-setuptool.sh install     # tự in đoạn AppArmor cần sudo — chạy đúng cái nó in
-export DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock   # thêm vào ~/.bashrc
-systemctl --user enable --now docker
-docker run --rm -v /home/ducba:/h alpine ls /h    # PHẢI: Permission denied
+~/bee-agent-flow/apps/runner/bin/bootstrap.sh
 ```
 
-### Bước 6 🤖 — cài bee
+Nó làm, theo thứ tự, và **chạy lại vô hại**:
 
-```bash
-# HTTPS, KHÔNG phải SSH: bee cố ý không có khoá SSH nào (đó là toàn bộ mục
-# đích của việc tách user). gh đã đăng nhập ở bước 4 nên nó cấp credential.
-gh repo clone Anhduchb01/bee-agent-flow ~/bee-agent-flow
-cd ~/bee-agent-flow
-```
+| | |
+|---|---|
+| 0 | chặn nếu đang ở group `docker`/`sudo`/`adm`, nối `systemd --user`, ghi 4 dòng môi trường vào `~/.bashrc` |
+| 1 | soát bảy gói ở bước 3 |
+| 2 | nvm + node LTS + pnpm (per-user, không đụng hệ thống) |
+| 3 | `npm i -g @anthropic-ai/claude-code` |
+| 4 | Docker rootless (`get.docker.com/rootless` → `~/bin`, không cần root) |
+| 5 | `pnpm install` rồi `deploy.sh` với `BEE_PREFIX=~/.local/bee BEE_ROOT=~/.local/srv/bee` |
 
-**Lần chạy đầu PHẢI đặt hai biến này.** `deploy.sh` dò `BEE_PREFIX`/`BEE_ROOT`
-từ unit đang chạy, mà user mới chưa có unit nào → nó rơi về mặc định
-`/opt/bee` + `/srv/bee`, hai chỗ cần `sudo` mà `bee` không có:
+> **Vì sao bước 0 phải ghi `~/.bashrc`:** `sudo -iu bee` cho shell nhưng không
+> cho session bus, nên mọi `systemctl --user` phía sau chết với *"Failed to
+> connect to bus"* — trong khi bus vẫn nằm đó ở `/run/user/<uid>`, chỉ thiếu
+> biến trỏ tới. Bootstrap tự đặt cho lần này và ghi lại cho các lần sau.
 
-```bash
-BEE_PREFIX=~/.local/bee BEE_ROOT=~/.local/srv/bee apps/runner/bin/deploy.sh
-```
+Cờ: `--no-docker` (bỏ bước 4) · `--khong-deploy` (chỉ cài công cụ) · `--fast`
+(bỏ cổng lint/test khi deploy).
 
-Từ lần thứ hai trở đi `deploy.sh` tự đọc lại được từ unit, gõ trần là đủ.
+Từ đây trở đi việc **đưa code mới lên máy** là `deploy.sh`, không phải
+bootstrap — xem [deploy.md](deploy.md).
 
-Rồi mở `/setup` trên web để: dán token Claude · dán PAT · đăng ký repo · chạy
-doctor · gỡ PAUSE.
+### Bước 6 🧑 — phần còn lại làm trên web
+
+Mở `127.0.0.1:3210` → `/setup`:
+
+- **Token Claude** — chạy `claude setup-token` ở máy bất kỳ rồi dán vào.
+- **PAT GitHub** — dán; trang chạy `gh auth login --with-token` qua stdin
+  (không qua argv) rồi nối `git credential` vào đó. PAT hẹp = chỉ các repo làm
+  việc, đúng ba quyền contents · pull-requests · issues (PRD §4.2 mục 2).
+- Đăng ký repo · chạy doctor · **gỡ PAUSE**.
+
+Chỗ này cũng sửa luôn mục đỏ `pat` hôm nay: máy đang active `ducba01` với
+token OAuth `gho_`, trong khi repo thuộc `Anhduchb01`.
 
 ### Bước 7 🧑 — Tailscale trỏ sang web mới
 
