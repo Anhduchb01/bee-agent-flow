@@ -3,8 +3,13 @@
 Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖 = tôi làm được
 
 **Mốc đang làm:** V3 — vận hành bền + tự chạy đêm (PRD Epic 5 + FR-3.3/3.4)
-**Thứ tự:** quyết định (D1/D2) → dọn đĩa (P1) → hạn mức + phanh (P2) →
-hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
+**Trạng thái 25/08:** *code V3 xong hết* (T0–T16 đóng, M1 đóng). Việc còn lại
+**không phải code**: máy mới chưa có token/repo nên chưa chạy được một đêm thật
+— tức cả ba Checkpoint đều đang chờ **M2** chứ không chờ tôi.
+
+**Cổng đo hôm nay** (chạy lại 25/08 16:25): lint sạch · typecheck xanh ·
+**484 test / 67 file** xanh · **11 rig** xanh (rig-12: 14/14) ·
+tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
 
 ---
 
@@ -14,6 +19,10 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       Ghi vào PRD §0.2 + [`docs/mo-hinh-c.md`](../docs/mo-hinh-c.md) (mô hình C
       là gì, quay về thế nào). Phase 3 mở khoá. `doctor` giữ mục đỏ `may-sach`.
       Cách siết rẻ nhất nếu đổi ý: tách bee sang VM/LXC riêng.
+      **CẬP NHẬT 25/08 — cò súng đã GỠ, không còn phải "chấp nhận":** M1 xong,
+      bee là uid 1500 riêng, `docker run -v /home/ducba:/h alpine ls /h` →
+      *Permission denied*, `may-sach` trên máy bee **xanh**. Quyết định (a)
+      hết hiệu lực; PRD §0.2 cần sửa theo (xem **T20**).
 - [x] 🧑 **D2** ~~Cách chạy hàng đợi~~ **CHỐT 24/08**: timer gọi
       `/api/queue/tick` của web — một bản duy nhất của "mở phiên".
 - [x] 🧑 **D3** ~~Chính sách dọn~~ **CHỐT 24/08**: xoá worktree khi *đã kết thúc
@@ -41,9 +50,12 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       khoản `ducba01`), 1 cái vì mới dừng <24h. Sửa `gh auth switch --user
       Anhduchb01` là gc thu hồi được ngay. rig-07: 11/11.
       *(Dọn docker để T15 — hiện chưa phiên nào đẻ ra compose project.)*
-- [ ] 🤖 ~~**T1** `gc.sh` + `bee-gc.timer` (M)~~ — AC: thu hồi ≥2.9GB trên máy thật ·
-      không đụng phiên `running`/`needs_human` · branch chưa merged được giữ ·
-      chạy lại là no-op. Rig trước khi bật timer.
+- [ ] 🤖 **T1b** *AC "thu hồi ≥2.9GB" của T1 đã HẾT NGHĨA* — 3.0GB đó nằm ở
+      `~ducba/.local/srv/bee`, mà máy giờ chạy bằng user `bee` với thư mục
+      **rỗng**. AC mới: sau khi có phiên thật, `bee-gc` thu hồi worktree đúng
+      luật D3 và `gc.json` ghi lý do giữ từng cái. Đo cùng **Checkpoint 1**.
+      Số cũ để tham chiếu: rig-07 11/11, gc trên bee hiện `removed: 0` (đúng —
+      chưa có gì để dọn).
 - [x] 🤖 **T2** ~~doctor thấy đĩa~~ **XONG 24/08** — check `dia-phien`: dung lượng
       work+sessions · worktree mồ côi · tuổi `gc.json` (>48h = gc chết im lặng →
       đỏ) · vượt `GC_WARN_GB` → đỏ. rig-08: 6/6. Máy thật: *796M · 0 mồ côi ·
@@ -51,7 +63,8 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 - [x] 🤖 **T3** ~~`/setup`: dung lượng + nút "Dọn ngay"~~ **XONG 24/08** — panel
       đọc `gc.json`, hiện đã thu hồi bao nhiêu và **lý do GIỮ từng worktree**
       (phần đáng giá hơn con số), nút gọi `bee-gc.service` oneshot. 10 test mới.
-- [ ] ✅ **Checkpoint 1** — chạy 3 ngày, đĩa không phình, doctor xanh (trừ D1).
+- [ ] ✅ **Checkpoint 1** — chạy 3 ngày, đĩa không phình, **doctor xanh HẾT**
+      (không còn "trừ D1" nữa: `may-sach` đã xanh từ 25/08). Chờ **M2**.
 
 ## P2 · Hạn mức tươi + phanh (FR-3.3 P0 · FR-3.4 P1)
 
@@ -70,7 +83,7 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 - [ ] ✅ **Checkpoint 2** — ép quota trên ngưỡng: chặn đúng, lý do đọc được trên
       điện thoại; dưới ngưỡng không phiền.
 
-## P3 · Hàng đợi + đi ngủ (FR-5.1 P0 · FR-5.2 P1) — **cần D1**
+## P3 · Hàng đợi + đi ngủ (FR-5.1 P0 · FR-5.2 P1) — ~~cần D1~~ *D1 đã mở*
 
 - [x] 🤖 **T7** ~~`queue.json` + lib thuần~~ **XONG 24/08** — thêm/bỏ/đổi thứ tự/
       việc-kế-tiếp (9 test bảng) + lớp đĩa ghi nguyên tử (6 test). Khoá là
@@ -104,18 +117,26 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
 
 ## P4b · Nền cho docker (làm cùng lúc tách user)
 
-- [ ] 🧑 **M1** Tách bee sang user riêng theo [`docs/tach-user.md`](../docs/tach-user.md)
-      — tạo user (không sudo/không docker group) · vá `hidepid` · dọn rác mô
-      hình C (`bee-orch` đang trong group docker!) · `gh` đăng nhập đúng
-      `Anhduchb01` bằng PAT hẹp · rootless docker · deploy · tailscale serve.
-      Nghiệm thu: `docker run -v /home/ducba:/h alpine ls /h` → Permission denied.
+- [x] 🧑 **M1** ~~Tách bee sang user riêng~~ **XONG 25/08** — bee uid/gid 1500,
+      `passwd -l`, **không** ở group docker/sudo/adm, linger bật, rootless
+      docker chạy. **Nghiệm thu đã qua:** `docker run -v /home/ducba:/h alpine
+      ls /h` → *Permission denied*; `-v ~bee/.local/srv/bee` thì đọc được.
+      Stack cũ của ducba đã `stop`+`disable`, dữ liệu 961M giữ nguyên để quay
+      lui (**T21** xoá sau). `tailscale serve` không phải sửa: vẫn
+      `127.0.0.1:3210`, chỉ đổi ai giữ cổng. Đường đi thật (kể cả chỗ vấp):
+      [`docs/tach-user.md`](../docs/tach-user.md).
+- [ ] 🧑 **M2** **Việc duy nhất đang chặn cả ba Checkpoint** — mở
+      `https://ducba.tail7d9c45.ts.net` → `/setup`: ① dán token Claude
+      (`claude setup-token`) · ② dán **PAT fine-grained** (bee đang dùng token
+      `gho_` OAuth — doctor đỏ đúng chỗ này) · ③ đăng ký repo · ④ gỡ `PAUSE`.
+      doctor sẽ tự chuyển 3 mục đỏ (`pat` · `claude` · `repos`) sang xanh.
 - [x] 🤖 **T16** ~~`bootstrap.sh` — máy trắng thành máy chạy bằng MỘT lệnh~~
       **XONG 25/08** — gộp node/pnpm · claude cli · docker rootless · `pnpm
       install` + `deploy.sh` đầu tiên. Chặn sớm và chặn có chỉ dẫn: ở group
       docker → thoát (ranh giới A+ vô nghĩa), thiếu gói → in nguyên lệnh apt,
       mất session bus → nhắc `enable-linger`. Tự ghi bus + `DOCKER_HOST` vào
       `~/.bashrc` vì `sudo -iu bee` không cho session bus, mà thiếu nó thì mọi
-      `systemctl --user` phía sau chết. rig-12: 11/11. Token vẫn KHÔNG nhận ở
+      `systemctl --user` phía sau chết. rig-12: 14/14. Token vẫn KHÔNG nhận ở
       CLI — dán ở `/setup` (argv và bash_history là chỗ token đi lạc).
 - [x] 🤖 **T14** ~~`.env` per-phiên + dải cổng~~ **XONG 24/08** — `capPhatDaiCong()`
       quét THẬT bằng bind (4 test), tránh cả dải phiên khác **đã giữ chỗ dù chưa
@@ -133,6 +154,32 @@ hàng đợi (P3) → bản tin sáng (P4) → nợ nhỏ (P5)
       vhost, bucket; gc thu hồi.
 
 ## P5 · Nợ nhỏ
+
+- [ ] 🤖 **T18** *Test đang khởi động unit THẬT trên máy thật* (S, an toàn) —
+      bằng chứng: journal của bee 25/08 16:03:02 có ba
+      `bee-session@<uuid>.service` **failed**, uuid lấy thẳng từ fixture
+      (`cc000000-…0001` trong `session-brake.test.ts`). Nguyên nhân:
+      test đặt `BEE_SOURCE=disk` để đi nhánh đĩa, mà `session-ctl.ts` khi đó
+      gọi `systemctl --user start` thật; chú thích trong test *giả định*
+      "systemctl vắng mặt" — sai trên chính máy chạy bee, nơi
+      `bee-session@.service` là unit `static` nên `start` được. Lần này vô hại
+      (unit chết ngay vì thiếu session.json) nhưng đây là đường để một `pnpm
+      test` đụng vào phiên đang chạy. Sửa: một cửa duy nhất cho lệnh ngoài
+      (`BEE_CTL=none` → trả lỗi giả) thay vì trông chờ PATH.
+- [ ] 🤖 **T19** *Web chết 1005 lần mà không ai biết* (S) — lúc chuyển máy,
+      `bee-web` của bee crash-loop `EADDRINUSE 127.0.0.1:3210` vì web của ducba
+      còn giữ cổng; `NRestarts` leo tới **1005** trong im lặng, doctor vẫn xanh
+      vì doctor không hỏi "web có đang phục vụ không". Hai việc: doctor thêm
+      check *web sống* (HTTP tới chính nó) + `install.sh`/`deploy.sh` dừng sớm
+      nếu cổng đã có chủ, nói rõ chủ là ai. Kèm: `bee-doctor.service` hiện
+      `exit 1` khi có mục đỏ nên `systemctl` báo **failed** — đọc như hỏng hóc
+      trong khi nó chỉ đang báo cáo; tách mã thoát khỏi kết quả khám.
+- [ ] 🤖 **T20** PRD §0.2 + [`docs/mo-hinh-c.md`](../docs/mo-hinh-c.md) đang viết
+      "cò súng #4 đã nổ, chấp nhận có ý thức" — **hết đúng từ 25/08**. Sửa lại
+      cho khớp: ranh giới bây giờ là uid + shell máy, quyết định (a) rút.
+- [ ] 🧑 **T21** Xoá `~ducba/.local/srv/bee` (**961M**) + gỡ hẳn 5 unit của
+      ducba — **chỉ sau khi** bee chạy tốt vài ngày (đây là đường quay lui duy
+      nhất hiện có). Lịch sử phiên cũ không mang sang được nên xoá là xoá thật.
 
 - [x] 🤖 **T12** ~~Trần `run.jsonl` theo byte~~ **XONG 24/08** — `cat-log.sh` cắt
       theo DÒNG (nửa dòng JSON làm hỏng parser), giữ phần MỚI NHẤT, chèn

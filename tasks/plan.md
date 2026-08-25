@@ -1,4 +1,11 @@
-# Plan — V3, cập nhật 24/08/2026
+# Plan — V3, cập nhật 25/08/2026
+
+> **Đứng ở đâu (25/08):** code V3 đã xong toàn bộ (T0–T16), **M1 tách user đã
+> nghiệm thu**, máy chạy bằng user `bee` uid 1500. Cái còn thiếu duy nhất là
+> **M2** — dán token + đăng ký repo ở `/setup` — vì không có nó thì không có
+> phiên nào chạy, mà cả ba Checkpoint đều đo bằng phiên thật. Bốn cổng và 11
+> rig xanh lại lúc 16:25 hôm nay. Nợ mới phát hiện khi chuyển máy: T18–T21
+> ở [todo.md](todo.md).
 
 **Nguồn:** [PRD 3.2](../docs/PRD_bee-agent-flow.md) (Epic 5 + FR-3.3/3.4) ·
 [spec session-first](../docs/specs/session-first.md) ·
@@ -7,7 +14,7 @@ deploy: [docs/deploy.md](../docs/deploy.md)
 
 ---
 
-## 1. Đang có gì (đo thật trên máy, 24/08)
+## 1. Đang có gì (đo thật trên máy, 24/08 — xem ghi chú 25/08 ở §1b)
 
 **Đã đóng:** V1 (runner systemd một-UID, chat VSCode, canvas, /setup, Tailscale
 + OAuth) · V2 (duyệt trong app, modes, approvals, Continue) · V2.7 (ô chat: chip
@@ -37,6 +44,20 @@ sessions/   25 MB / 11 phiên     ← run.jsonl lớn nhất 1.5 MB
 `node_modules` ≈ +5GB. Trần `run.jsonl` (nợ spec §11) nhỏ hơn **100 lần** so
 với worktree — nên nó xuống cuối hàng, còn dọn worktree lên đầu.
 
+### 1b · Ba con số đó đã đổi chủ (25/08)
+
+Chuyển sang user `bee` nên **thư mục phục vụ là một thư mục mới, rỗng**:
+
+```
+~bee/.local/srv/bee     0 B  / 0 phiên   ← máy đang chạy đọc chỗ này
+~ducba/.local/srv/bee 961 MB / dữ liệu cũ ← đã ngắt, giữ làm đường quay lui (T21)
+```
+
+Nên **T1 không còn 2.9GB nào để thu hồi** — AC cũ hết nghĩa, thay bằng T1b:
+đo gc trên phiên thật, cùng lúc với Checkpoint 1. Cái mất khi đổi chủ: lịch sử
+hội thoại cũ (Claude đánh khoá theo đường dẫn worktree) — `/brief` bắt đầu từ
+trang trắng.
+
 ---
 
 ## 2. Quyết định kiến trúc phải chốt TRƯỚC khi code
@@ -60,6 +81,12 @@ về thế nào, và những cách siết rẻ hơn nếu đổi ý). `doctor` g
 `may-sach` — tắt nó là bước đầu của "A+ trôi thành A cẩu thả".
 
 Phase 3 vì thế **mở khoá**, nhưng rủi ro của nó nay là rủi ro đã ký tên.
+
+> **25/08 — chữ ký đó đã rút lại được.** M1 xong: bee là uid 1500 riêng, không
+> ở group docker/sudo/adm, `/home/ducba` mode 700, docker rootless. Nghiệm thu
+> `docker run -v /home/ducba:/h alpine ls /h` → *Permission denied*, và
+> `may-sach` trên máy bee **xanh thành thật** chứ không phải bị tắt đi. Đường
+> (a) không còn phải dùng. PRD §0.2 vẫn viết theo lối cũ → T20.
 
 **Hướng gỡ đã chọn (24/08, chưa làm):** tách bee sang **user Linux riêng** thay
 vì VM — rẻ hơn nhiều, yếu hơn VM một bậc, và đủ để `/home/ducba` mode 700 chặn
