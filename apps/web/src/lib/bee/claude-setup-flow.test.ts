@@ -14,12 +14,17 @@ const run = promisify(execFile);
  * that bit us on 25/08:
  *
  *  · it only accepts the code on CR (a real Enter), never on LF;
+ *  · a chunk over 56 bytes is a paste, and a paste keeps its trailing CR as
+ *    text — so the CR has to arrive in a chunk of its own;
  *  · it wraps its output at the pty width, so a narrow pty cuts the token.
  *
  * No real claude, no systemctl, no network: the stub is the whole machine.
  */
 
 const TOKEN = `sk-ant-oat01-${"Ab3_x-9Z".repeat(14)}`; // 125 chars — wider than 80
+
+/** A code the length the real ones come in at — long enough to be a paste. */
+const MA_THAT = "VikBPU6KBmIOvEbPdfsA4rVU9bhcRuz539o0bdOOnnxgtki6#-4zpz5xQwErTyUi";
 
 const STUB = `#!/usr/bin/env node
 // Raw mode, like ink: without it the pty's line discipline turns the CR we
@@ -34,13 +39,24 @@ ve("Browser didn't open? Use the url below to sign in");
 ve("https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=" + "s".repeat(60));
 process.stdout.write("Paste code here if prompted > ");
 let go = "";
+let cum = 0, luc = 0;
 process.stdin.on("data", (d) => {
-  go += d.toString();
+  // Paste detection the way the real thing does it: by BURST, not by chunk.
+  // A pty splits a big write into several reads, so "is this chunk large?"
+  // measures nothing. What counts is how much arrived back-to-back — and a
+  // CR riding at the end of a big burst is pasted text, not a keypress.
+  const gio = Date.now();
+  if (gio - luc > 150) cum = 0;
+  luc = gio;
+  let s = d.toString();
+  cum += s.length;
+  if (cum > 56) s = s.replace(/\\r/g, "");
+  go += s;
   const i = go.indexOf("\\r");           // CR only — LF is not Enter
   if (i === -1) return;
   const ma = go.slice(0, i);
   go = go.slice(i + 1);
-  if (ma === "MASAI") { ve("OAuth error: Request failed with status code 400"); ve("Press Enter to retry."); return; }
+  if (ma.startsWith("MASAI")) { ve("OAuth error: Request failed with status code 400"); ve("Press Enter to retry."); return; }
   ve("\\u2713 Long-lived authentication token created successfully!");
   ve("${TOKEN}");
   process.exit(0);
@@ -95,7 +111,7 @@ describe("claude setup-token, driven through a pty", () => {
     // Whole and single: an 80-column pty would have sliced this in two.
     expect(link.url).toMatch(/^https:\/\/claude\.com\/cai\/oauth\/authorize\?code=true&client_id=9d1c250a&state=s+$/);
 
-    const ket = await submitClaudeCode("YDoKJJk7p0#LymMTx");
+    const ket = await submitClaudeCode(MA_THAT);
     expect(ket.ok).toBe(true);
     const daLuu = await fs.readFile(path.join(thu, "claude.env"), "utf8");
     // The whole token, not the first 80 characters of it.
@@ -107,7 +123,7 @@ describe("claude setup-token, driven through a pty", () => {
     const { startClaudeSetup, submitClaudeCode } = await import("./machine-ctl");
 
     expect((await startClaudeSetup()).ok).toBe(true);
-    const ket = await submitClaudeCode("MASAI");
+    const ket = await submitClaudeCode(`MASAI${MA_THAT}`);
     expect(ket.ok).toBe(false);
     if (!ket.ok) expect(ket.message).toMatch(/OAuth error: Request failed with status code 400/);
   }, 30_000);

@@ -262,13 +262,23 @@ export async function submitClaudeCode(code: string): Promise<KetQua> {
     return { ok: false, message: "No login flow is waiting — get a new link first." };
   }
 
-  // CR, not LF: Enter on a real keyboard sends \r, and ink's input only
-  // submits on that. With \n the code landed in the box and sat there —
-  // the screen showed the pasted characters, and we called it a timeout
-  // (25/08). Nothing about the message hinted the code had arrived fine.
-  flow.p.stdin?.write(`${gon}\r`);
+  // Two separate writes, and the gap between them matters.
+  //
+  // CR, not LF: Enter on a real keyboard sends \r, and the input only
+  // submits on that. And the CR must arrive in its OWN chunk: a chunk over
+  // ~56 bytes is read as a paste, and a paste keeps its trailing CR as
+  // text instead of acting on it. Both failures look identical from here —
+  // the code sits in the box and nothing happens — which is why 25/08 cost
+  // two rounds: the short code we tested with stayed under the threshold
+  // and submitted fine, while the real one (70 chars) never did.
+  flow.p.stdin?.write(gon);
+  await new Promise((r) => setTimeout(r, 500));
+  flow.p.stdin?.write("\r");
   // setup-token verifies the code and prints the token — give it up to 30s.
   for (let i = 0; i < 120; i++) {
+    // One more Enter at the 5s mark: cheap, harmless on an empty prompt,
+    // and it covers a machine slow enough that the first CR raced the UI.
+    if (i === 20 && !flow.done) flow.p.stdin?.write("\r");
     const token = extractSetupToken(flow.out);
     if (token !== null) {
       killSetupFlow();
