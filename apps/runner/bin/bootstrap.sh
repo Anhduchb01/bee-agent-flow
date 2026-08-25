@@ -74,9 +74,10 @@ case ":$PATH:" in *":$HOME/bin:"*) ;; *) PATH="$HOME/bin:$PATH";; esac
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
 export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 EOF
-  ok "ghi 4 dòng môi trường vào ~/.bashrc"
+  ok "ghi khối môi trường vào ~/.bashrc"
 fi
 
 # ── 1 · Gói hệ thống (phần duy nhất cần root) ─────────────────────────────
@@ -107,22 +108,36 @@ if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
 fi
 # shellcheck disable=SC1091
 . "$NVM_DIR/nvm.sh"
-if ! command -v node >/dev/null || [[ "$(node -v | cut -d. -f1 | tr -d v)" -lt 20 ]]; then
+# HỎI NVM ĐÃ CÓ NODE CHƯA, ĐỪNG HỎI PATH. Máy có sẵn /usr/bin/node của apt
+# thì `command -v node` vẫn thấy node và ta đi tiếp — rồi chết ở tận bước
+# sau: /usr/lib/node_modules là của root, `corepack enable` EACCES, `npm i
+# -g` EACCES. (Gặp thật 25/08 trên chính máy này.)
+if ! nvm which default >/dev/null 2>&1; then
   nvm install --lts >/dev/null
   nvm alias default 'lts/*' >/dev/null
 fi
-nvm use default >/dev/null 2>&1 || true
-corepack enable >/dev/null 2>&1 || true
-ok "node $(node -v) · pnpm $(pnpm -v 2>/dev/null || echo 'sẽ do corepack nạp khi cần')"
+nvm use default >/dev/null
+if [[ "$(command -v node)" != "$NVM_DIR"/* ]]; then
+  loi "node vẫn đến từ $(command -v node) chứ không phải nvm — dừng ở đây"
+  echo "     Không có node của riêng mình thì bee không tự cập nhật được gì." >&2
+  exit 1
+fi
+corepack enable || { loi "corepack enable trượt — xem lỗi ngay trên"; exit 1; }
+command -v pnpm >/dev/null || { loi "corepack chạy rồi mà vẫn không có pnpm"; exit 1; }
+# corepack sẽ tải đúng bản pnpm repo ghim (packageManager). Không tắt cái
+# hỏi này thì nó ĐỨNG CHỜ Y/n giữa một script không ai ngồi trước màn hình.
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ok "node $(node -v) · pnpm shim ($(command -v pnpm))"
 
 # ── 3 · Claude CLI ────────────────────────────────────────────────────────
 buoc "3 · Claude CLI"
-if command -v claude >/dev/null; then
-  ok "claude $(claude --version 2>/dev/null | head -1)"
-else
+CLAUDE_BIN="$(command -v claude || true)"
+if [[ -z "$CLAUDE_BIN" || "$CLAUDE_BIN" != "$NVM_DIR"/* ]]; then
+  # Có sẵn /usr/bin/claude thì đó là bản của root — dùng chung được nhưng
+  # bee không bao giờ cập nhật nổi. Cài bản riêng vào node của nvm.
   npm i -g @anthropic-ai/claude-code >/dev/null
-  ok "claude $(claude --version 2>/dev/null | head -1)"
 fi
+ok "claude $(claude --version 2>/dev/null | head -1) — $(command -v claude)"
 echo "  · token: KHÔNG dán ở đây. Chạy 'claude setup-token' ở máy bất kỳ rồi"
 echo "    dán vào trang /setup — argv và bash_history là chỗ token đi lạc."
 

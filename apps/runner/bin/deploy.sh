@@ -69,6 +69,9 @@ fi
 # `pnpm build` tự chép .next/static + public vào standalone (bài học 19/08:
 # một bản build thiếu bước chép đã đẩy web lên mạng không CSS).
 buoc "2 · Build web"
+# pnpm ở đây là shim của corepack: lần đầu nó tải bản repo ghim, và nếu
+# còn cái hỏi Y/n thì deploy đứng im giữa chừng.
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 ( cd "$WEB" && pnpm build >/dev/null )
 SERVER="$WEB/.next/standalone/apps/web/server.js"
 [[ -f "$SERVER" ]] || { loi "không thấy $SERVER — build hỏng?"; exit 1; }

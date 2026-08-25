@@ -73,5 +73,19 @@ SO=$(grep -c 'bee-bootstrap' "$T/h4/.bashrc" 2>/dev/null || echo 0)
 [[ "$SO" == 1 ]] && kq ok "chạy hai lần, .bashrc vẫn một khối" || kq no ".bashrc có $SO khối bee-bootstrap"
 grep -q 'DBUS_SESSION_BUS_ADDRESS' "$T/h4/.bashrc" && kq ok ".bashrc mang theo bus cho lần sudo -iu sau" || kq no ".bashrc thiếu DBUS_SESSION_BUS_ADDRESS"
 
+printf '#!/bin/sh\nexit 0\n' > "$STUB/gh"; chmod +x "$STUB/gh"
+
+# 6 · node của HỆ THỐNG không được tính là node của bee
+# Máy này có sẵn /usr/bin/node (apt, của root): đi tiếp với nó thì chết ở
+# tận `corepack enable` với EACCES. Bootstrap phải dừng NGAY tại bước 2.
+mkdir -p "$T/h5/.nvm"
+cat > "$T/h5/.nvm/nvm.sh" <<'EOF'
+nvm() { return 0; }          # giả vờ nvm nào cũng xuôi
+EOF
+printf '#!/bin/sh\necho v22.0.0\n' > "$STUB/node"; chmod +x "$STUB/node"
+chay "$T/h5"
+[[ $MA == 1 ]] && kq ok "node ngoài nvm → thoát 1" || kq no "nhận node của hệ thống làm node của bee (mã $MA)"
+grep -q 'chứ không phải nvm' <<<"$RA" && kq ok "nói rõ node đang đến từ đâu" || kq no "không nói vì sao dừng: $RA"
+
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-12: TẤT CẢ XANH"; else echo "RIG-12: CÓ ĐỎ"; exit 1; fi
