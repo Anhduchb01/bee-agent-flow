@@ -98,12 +98,35 @@ sudo systemctl daemon-reload
 >
 > ```bash
 > sudo loginctl disable-linger bee
-> sudo loginctl terminate-user bee        # hạ systemd --user đang giữ tài khoản
-> sudo usermod  -u 1500 bee
-> sudo groupmod -g 1500 bee
-> sudo chown -R 1500:1500 /home/bee
+> sudo loginctl terminate-user bee     # hạ systemd --user đang giữ tài khoản
+> sudo usermod -u 1500 bee && sudo groupmod -g 1500 bee \
+>   && sudo chown -R 1500:1500 /home/bee
 > sudo loginctl enable-linger bee
 > ```
+>
+> **Nối bằng `&&`, đừng viết ba dòng rời.** `usermod` rất hay trượt, và nếu
+> `chown` vẫn chạy thì bạn được cái tệ nhất: home mang uid mới mà tài khoản
+> còn uid cũ → `sudo -iu bee` ra *"unable to change directory to /home/bee:
+> Permission denied"*.
+>
+> **`usermod` từ chối khi CÒN tiến trình mang uid đó** — và trên máy này chính
+> container là thủ phạm: `langfuse-worker` và `kong-gateway` chạy uid 1001
+> *bên trong*, mà uid trong container **là** uid trên host. Tức là đúng cái va
+> chạm ta đang đi tránh lại là thứ chặn không cho tránh nó. Hai đường:
+>
+> - dừng mấy container đó 15 giây rồi `usermod` — sạch nhất nếu dừng được;
+> - hoặc sửa thẳng một trường trong `/etc/passwd` (25/08 làm cách này):
+>
+> ```bash
+> sudo cp /etc/passwd /etc/passwd.bak-bee-uid
+> sudo sed -i 's|^bee:x:1001:1500:|bee:x:1500:1500:|' /etc/passwd
+> sudo pwck -qr /etc/passwd && id bee
+> ```
+>
+> Sửa thẳng an toàn ở ĐÚNG tình huống này vì không còn gì trỏ tới uid cũ:
+> `/etc/shadow` không chứa uid, `/etc/subuid` và file linger đánh theo TÊN, và
+> home đã `chown` sang 1500 rồi. Sau đó uid 1001 thành vô chủ — container vẫn
+> chạy như cũ, chỉ không còn mượn danh `bee` nữa, đúng thứ ta muốn.
 >
 > (Dải subuid không đổi theo uid — `grep '^bee:' /etc/subuid` vẫn dùng được.)
 > Làm lúc home còn trống là gần như miễn phí; sau khi đã cài thì `chown -R`
