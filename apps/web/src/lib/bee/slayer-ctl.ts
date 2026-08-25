@@ -87,6 +87,13 @@ const POOL_DEMO: BeePoolClaude = {
 export interface TrangThaiSlayer {
   /** `tok` có trên máy không. Chưa có thì UI hiện ô dán token để cài. */
   daCai: boolean;
+  /**
+   * Máy có login tương tác (`~/.claude/.credentials.json`) để mà CHỤP hay
+   * không. Không có thì `tok add <tên>` (không `--login`) chắc chắn trượt —
+   * bee thường rơi đúng vào ca này vì nó chạy bằng token dán ở /setup, mà
+   * token thì không phải một phiên đăng nhập để chụp lại.
+   */
+  coLoginMay: boolean;
   pool: BeePoolClaude | null;
   /** claude.env đang ghim một token, đè lên slot đang chọn. */
   tokenGhim: boolean;
@@ -106,21 +113,26 @@ async function coTokenGhim(): Promise<boolean> {
 /** Bảng tài khoản cho /setup. Không ném: hỏng chỗ nào thì nói chỗ đó. */
 export async function docTrangThaiSlayer(): Promise<TrangThaiSlayer> {
   if (isFixture()) {
-    return { daCai: true, pool: POOL_DEMO, tokenGhim: false, message: null };
+    return { daCai: true, pool: POOL_DEMO, tokenGhim: false, message: null, coLoginMay: true };
   }
   const ghim = await coTokenGhim();
+  const coLogin = await fs
+    .access(path.join(process.env.HOME ?? "", ".claude", ".credentials.json"))
+    .then(() => true)
+    .catch(() => false);
   let ra: { stdout: string };
   try {
     ra = await run(TOK, ["list", "--json"], { timeout: 30_000, maxBuffer: 4 << 20 });
   } catch (e) {
     const loi = e as NodeJS.ErrnoException & { stderr?: string };
     if (loi.code === "ENOENT") {
-      return { daCai: false, pool: null, tokenGhim: ghim, message: null };
+      return { daCai: false, pool: null, tokenGhim: ghim, message: null, coLoginMay: coLogin };
     }
     return {
       daCai: true,
       pool: null,
       tokenGhim: ghim,
+      coLoginMay: coLogin,
       message: (loi.stderr ?? loi.message).slice(0, 200),
     };
   }
@@ -129,6 +141,7 @@ export async function docTrangThaiSlayer(): Promise<TrangThaiSlayer> {
     daCai: true,
     pool,
     tokenGhim: ghim,
+    coLoginMay: coLogin,
     message: pool === null ? "`tok list --json` trả về thứ không đọc được." : null,
   };
 }

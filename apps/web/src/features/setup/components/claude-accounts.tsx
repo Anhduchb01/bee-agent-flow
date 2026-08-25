@@ -173,8 +173,8 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
 
       {slots.length === 0 ? (
         <p className="text-sm text-body">
-          Chưa có tài khoản nào trong pool. Thêm cái đang đăng nhập, hoặc đăng nhập một tài khoản
-          khác — cả hai đều ở dưới.
+          Chưa có tài khoản nào trong pool. Thêm bằng ô bên dưới — đặt tên rồi{" "}
+          <strong>Đăng nhập tài khoản khác</strong>.
         </p>
       ) : (
         <ul className="flex flex-col rounded-control border border-border bg-muted/20 px-3">
@@ -205,7 +205,16 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
             autoComplete="off"
             className="min-w-40 flex-1 font-mono"
           />
-          <Button type="submit" variant="outline" disabled={dang || tenMoi.trim() === ""}>
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={dang || tenMoi.trim() === "" || !trangThai.coLoginMay}
+            title={
+              trangThai.coLoginMay
+                ? undefined
+                : "Máy chưa có phiên đăng nhập nào để chụp — dùng nút bên cạnh"
+            }
+          >
             Lưu tài khoản đang đăng nhập
           </Button>
           <Button
@@ -269,6 +278,12 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
       </div>
 
       {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {!trangThai.coLoginMay && (
+        <p className="text-xs text-muted-foreground">
+          Máy này chạy bằng token dán ở bước trên, không phải một phiên đăng nhập — nên không có gì
+          để “lưu lại”. Thêm tài khoản bằng <strong>Đăng nhập tài khoản khác</strong>.
+        </p>
+      )}
       <p className="text-xs text-muted-foreground">
         Đổi tài khoản là đổi cho cả máy. Còn phiên đang chạy thì thao tác này bị từ chối — phiên đó
         sẽ trôi sang tài khoản mới lúc nó làm mới token, và đó là kiểu hỏng không ai lần ra được.

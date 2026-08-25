@@ -25,6 +25,7 @@ vi.mock("../api/actions", () => ({
 
 const HAI_SLOT: TrangThaiSlayer = {
   daCai: true,
+  coLoginMay: true,
   tokenGhim: false,
   message: null,
   pool: {
@@ -58,14 +59,14 @@ const HAI_SLOT: TrangThaiSlayer = {
 
 describe("ClaudeAccounts", () => {
   it("chưa cài → chỉ có ô dán token, không có bảng tài khoản rỗng gây hiểu nhầm", () => {
-    render(<ClaudeAccounts trangThai={{ daCai: false, pool: null, tokenGhim: false, message: null }} />);
+    render(<ClaudeAccounts trangThai={{ daCai: false, pool: null, tokenGhim: false, message: null, coLoginMay: false }} />);
     expect(screen.getByLabelText("Token token-slayer")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Dùng cái này" })).not.toBeInTheDocument();
   });
 
   it("dán token → gọi trình cài đặt", async () => {
     const user = userEvent.setup();
-    render(<ClaudeAccounts trangThai={{ daCai: false, pool: null, tokenGhim: false, message: null }} />);
+    render(<ClaudeAccounts trangThai={{ daCai: false, pool: null, tokenGhim: false, message: null, coLoginMay: false }} />);
     await user.type(screen.getByLabelText("Token token-slayer"), "a".repeat(47));
     await user.click(screen.getByRole("button", { name: "Cài" }));
     expect(caiSlayerAction).toHaveBeenCalledWith("a".repeat(47));
@@ -132,10 +133,18 @@ describe("ClaudeAccounts", () => {
     expect(screen.getByLabelText("Mã xác nhận")).toBeInTheDocument();
   });
 
+  it("máy không có login tương tác → nút CHỤP tắt, và nói vì sao", () => {
+    render(<ClaudeAccounts trangThai={{ ...HAI_SLOT, coLoginMay: false }} />);
+    expect(screen.getByRole("button", { name: /Lưu tài khoản đang đăng nhập/ })).toBeDisabled();
+    expect(screen.getByText(/không phải một phiên đăng nhập/)).toBeInTheDocument();
+    // Đường còn lại phải mở, nếu không thì panel thành ngõ cụt.
+    expect(screen.getByRole("button", { name: /Đăng nhập tài khoản khác/ })).toBeInTheDocument();
+  });
+
   it("pool rỗng nói rõ là rỗng, không để trống cho người dùng tự đoán", () => {
     render(
       <ClaudeAccounts
-        trangThai={{ daCai: true, pool: { dangBat: null, slots: [] }, tokenGhim: false, message: null }}
+        trangThai={{ daCai: true, pool: { dangBat: null, slots: [] }, tokenGhim: false, message: null, coLoginMay: true }}
       />,
     );
     expect(screen.getByText(/Chưa có tài khoản nào trong pool/)).toBeInTheDocument();
