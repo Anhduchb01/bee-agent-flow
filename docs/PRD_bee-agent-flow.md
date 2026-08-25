@@ -7,16 +7,18 @@
 > Bản 3.2 (24/08) thêm bốn thứ đã có: **model theo phiên**, **đính kèm file**,
 > **ngữ cảnh nhìn thấy được** (vòng % + đường may compact), và **bảng dự án**
 > nối issue với phiên.
+> Bản 3.3 (25/08) ghi lại một thay đổi về **ranh giới**: bee chạy dưới user
+> Linux riêng, nên cò súng #4 tháo ngòi và quyết định (a) của §0.2 rút.
 > Khi ba thứ mâu thuẫn: **PRD thắng về *muốn gì*, spec thắng về *làm thế nào*,
 > code thắng về *hôm nay đang là gì*.**
 
 | | |
 | --- | --- |
 | **Trạng thái** | Đang hiệu lực — V1 + V2 đã nghiệm thu trên máy thật |
-| **Phiên bản** | 3.2 — session-first, mô hình một UID ("A+"), mode + model per-phiên |
+| **Phiên bản** | 3.3 — session-first, mô hình một UID ("A+") trên user Linux riêng |
 | **Người tạo (Product Owner)** | Đức |
 | **Team tham gia** | Một người |
-| **Ngày cập nhật cuối** | 24/08/2026 |
+| **Ngày cập nhật cuối** | 25/08/2026 |
 
 ---
 
@@ -68,17 +70,31 @@ việc mới, chuyển sang mô hình C (hạ tầng hai UID vẫn nằm ở nh�
 4. Máy bắt đầu chứa **secret khác** (deploy key, API key production, SSH key).
 5. Làm code cho khách / có nghĩa vụ bảo mật.
 
-> **Cò súng #4 ĐÃ NỔ — 24/08/2026.** `doctor` thấy `~/.ssh/id_*` (3 khoá) và
-> `~/.kube` trên máy. Chủ dự án chọn **(a) chấp nhận có ý thức**, chưa chuyển
-> sang C và chưa tách máy. Hệ quả phải nói thẳng: mô hình đe doạ giờ **rộng hơn
-> §0.1 đã định giá** — agent bị chiếm không chỉ đọc code private mà còn cầm
-> được SSH key sang máy khác. Và nó **đắt hơn kể từ V3**, vì V3 bỏ người ngồi
-> cạnh (máy tự mở phiên ban đêm). `doctor` vẫn báo đỏ mục `may-sach` và **không
-> được tắt** — đỏ ở đây đang nói sự thật.
+> **Cò súng #4 — nổ 24/08, THÁO NGÒI 25/08/2026.** Lịch sử ngắn của nó đáng
+> giữ lại, vì nó cho thấy bảng này dùng để làm gì.
+>
+> *24/08 — nổ.* `doctor` thấy `~/.ssh/id_*` (3 khoá) và `~/.kube` trên máy.
+> Chủ dự án chọn **(a) chấp nhận có ý thức**: chưa chuyển C, chưa tách máy.
+> Mô hình đe doạ khi đó rộng hơn §0.1 đã định giá — agent bị chiếm không chỉ
+> đọc code private mà còn cầm được SSH key sang máy khác.
+>
+> *25/08 — tháo ngòi, không phải bằng cách tắt cảnh báo.* bee chuyển sang
+> **user Linux riêng** (uid/gid 1500, `passwd -l`, không thuộc group
+> docker/sudo/adm, docker rootless). `/home/ducba` là mode `700`, nên kernel —
+> không phải lời hứa — chặn: `docker run -v /home/ducba:/h alpine ls /h` trả
+> *Permission denied*. `may-sach` trên máy bee **xanh thành thật**.
+>
+> **Hệ quả:** cò súng #4 về lại "chưa", và **quyết định (a) rút** — không còn
+> gì phải "chấp nhận có ý thức" ngoài đúng cái giá §0.1 đã ký (agent bị chiếm
+> → code bee đang làm + PAT hẹp + token Claude; **không** phải khoá SSH đi
+> sang máy khác).
+>
+> **Cái vẫn KHÔNG được:** chung kernel, nên lỗ leo thang quyền cục bộ vẫn
+> xuyên qua — chỉ VM/LXC cắt được; và bee vẫn trong tailnet, vẫn nối được mọi
+> cổng `127.0.0.1` mà `ducba` đang mở. Muốn siết tiếp thì đó là hai nấc kế.
+> Đường đi thật (kể cả chỗ vấp): [docs/tach-user.md](tach-user.md) ·
+> [docs/docker-cho-bee.md](docker-cho-bee.md).
 > Mô hình C là gì, quay về bằng cách nào: [docs/mo-hinh-c.md](mo-hinh-c.md).
-> **Hướng gỡ đã chọn (chưa làm):** tách bee sang user Linux riêng + Docker
-> rootless — [docs/tach-user.md](tach-user.md), [docs/docker-cho-bee.md](docker-cho-bee.md).
-> Làm xong thì cò súng #4 tháo ngòi và quyết định (a) hết hiệu lực.
 
 ---
 
@@ -287,8 +303,9 @@ nền: bee-reaper.timer (dọn xác) · bee-heartbeat.timer · PAUSE
 ```
 
 **Ba thứ biến mất so với 2.0, và đó là chủ ý:** không cầu socket qua UID,
-không broker/spool, không sudoers. Chúng tồn tại chỉ để vượt ranh giới UID —
-ranh giới đã chuyển ra vỏ máy + GitHub.
+không broker/spool, không sudoers. Chúng tồn tại chỉ để vượt ranh giới **giữa
+hai UID của bee** — A+ chỉ có một UID nên không có gì để vượt; ranh giới nằm ở
+mép ngoài (uid `bee` so với phần còn lại của máy) + hàng rào GitHub.
 
 **Giữ nguyên, không đàm phán:** trạng thái trên đĩa · phiên là systemd unit ·
 worktree per phiên · reaper + heartbeat + PAUSE · mọi hành động của người mang
@@ -361,7 +378,7 @@ thật sẵn cho phần web.
 
 | | |
 |---|---|
-| **A+** | Mô hình một UID có vệ sinh: ranh giới = vỏ máy + hàng rào GitHub-side |
+| **A+** | Mô hình một UID có vệ sinh: ranh giới = uid `bee` + vỏ máy + hàng rào GitHub-side |
 | **Phiên (session)** | Đối tượng gốc: một lần Claude Code chạy trong một worktree, sống như systemd unit |
 | **Mode per-phiên** | Mức quyền của một phiên: Auto / Plan / Edits / Manual — chọn lúc tạo, đổi giữa chat (FR-1.6). Thay khái niệm "chuyển chế độ phỏng vấn → làm" của bản 3.0, bỏ 19/08 |
 | **Reaper** | Kẻ dọn xác phiên — hậu duệ trực tiếp của rule 01 |

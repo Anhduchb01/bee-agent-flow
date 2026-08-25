@@ -1,12 +1,13 @@
 # Mô hình C — đường lùi, và nó chính xác là cái gì
 
 > Tài liệu này tồn tại để **sáu tháng nữa còn hiểu được** mình đã bỏ cái gì và
-> lấy lại bằng cách nào. Hôm nay bee chạy **mô hình A+** (một UID, ranh giới là
-> vỏ máy + hàng rào GitHub). Mô hình C là bản hai UID đã nghiệm thu trên máy
-> thật rồi đóng băng.
+> lấy lại bằng cách nào. Hôm nay bee chạy **mô hình A+** (một UID `bee` riêng,
+> ranh giới là uid + vỏ máy + hàng rào GitHub). Mô hình C là bản hai UID đã
+> nghiệm thu trên máy thật rồi đóng băng.
 >
-> **Trạng thái 24/08/2026:** vẫn chạy A+. Cò súng #4 **đã nổ** (máy có SSH key
-> + `~/.kube`) và chủ dự án **chấp nhận có ý thức** — xem §5.
+> **Trạng thái 25/08/2026:** vẫn chạy A+, nhưng trên **user Linux riêng**.
+> Cò súng #4 nổ 24/08 rồi **tháo ngòi 25/08** — quyết định "chấp nhận có ý
+> thức" đã rút, xem §5.
 >
 > Mã nguồn: nhánh `feat/bee-m3-and-web-spec`, chốt tại `5b51dab`, và
 > `apps/reconciler/` vẫn còn nguyên trên nhánh hiện tại.
@@ -15,8 +16,10 @@
 
 ## 1. Một câu
 
-**A+:** một user `bee` chạy tất cả — web, agent, `gh`, token. Ranh giới là vỏ
-máy: *"máy này không chứa gì đáng lấy"*.
+**A+:** một user `bee` chạy tất cả — web, agent, `gh`, token. Ranh giới là
+**uid `bee` + vỏ máy**: mọi thứ bee với tới được đúng bằng cái giá §0.1 đã ký.
+(Tới 24/08 ranh giới chỉ là vỏ máy — *"máy này không chứa gì đáng lấy"* — và
+điều đó đã hết đúng khi máy có SSH key. Xem §5.)
 
 **C:** hai user Linux, và **kernel** giữ ranh giới thay cho lời hứa:
 
@@ -80,39 +83,67 @@ mất hẳn một họ lỗi hỏng-im-lặng (polkit, socket, spool).
 
 **Cái mất — và đây là giá thật:** nếu agent bị chiếm (chủ yếu qua supply chain
 npm), nó cầm luôn PAT và login Claude. PRD §0.1 định giá cái mất đó là *"code
-private bị đọc trộm"* — **với điều kiện máy chuyên dụng, trong vỏ máy không có
-gì khác**. Điều kiện đó hôm nay **không còn đúng** (§5).
+private bị đọc trộm"* — **với điều kiện thứ agent với tới được không có gì
+khác**. Từ 25/08 điều kiện đó được giữ bằng **uid riêng**, không phải bằng một
+lời hứa về vỏ máy (§5).
 
 ---
 
 ## 4. Khi nào phải quay về C — 5 cò súng (PRD §0.2)
 
-| # | Điều kiện | Trạng thái 24/08 |
+| # | Điều kiện | Trạng thái 25/08 |
 |---|---|---|
 | 1 | Repo nào đó chuyển **public** | chưa |
 | 2 | Có **người thứ hai** dùng thật | chưa |
 | 3 | Bật lại đọc comment PR từ người ngoài | chưa |
-| 4 | Máy bắt đầu chứa **secret khác** | **ĐÃ NỔ** — `~/.ssh/id_*` (3 khoá), `~/.kube` |
+| 4 | Máy bắt đầu chứa **secret khác** | **chưa** — nổ 24/08, tháo ngòi 25/08 (§5) |
 | 5 | Làm code cho khách / có nghĩa vụ bảo mật | chưa |
+
+Đọc cột này theo đúng nghĩa "**bee** với tới được cái gì", không phải "**máy**
+chứa cái gì": máy vẫn có 3 khoá SSH và `~/.kube` của `ducba`, nhưng chúng nằm
+sau mode `700` của một home khác.
 
 ---
 
-## 5. Quyết định 24/08/2026 — chấp nhận có ý thức (D1a)
+## 5. Cò súng #4: nổ 24/08 — tháo ngòi 25/08
 
-Cò súng #4 đã nổ. Chủ dự án chọn **(a) chấp nhận có ý thức**, không chuyển C,
-không tách máy — *tạm thời*. Ghi lại cho sòng phẳng:
+### 5a · Quyết định 24/08 (D1a), đã RÚT
 
-- **Mô hình đe doạ thật bây giờ rộng hơn PRD §0.1 đã định giá.** Agent bị chiếm
-  không chỉ đọc được code private mà còn cầm được **SSH key đi sang máy khác**
-  và `~/.kube`. Đây không phải "code cá nhân lộ thì thiệt ít" nữa.
-- **Việc này đắt hơn kể từ V3**, vì V3 bỏ người ngồi cạnh: máy tự mở phiên lúc
-  2 giờ sáng theo hàng đợi.
-- **Rẻ nhất để hạ rủi ro mà không cần C:** chuyển 3 SSH key + kube config sang
-  máy khác (hoặc chạy bee trong VM/LXC riêng). `deploy.sh` đã tham số hoá
-  `BEE_PREFIX`/`BEE_ROOT` nên đổi máy là một buổi tối, không phải một dự án.
-- **`doctor` vẫn báo đỏ mục `may-sach` và ĐỪNG tắt nó.** Đỏ ở đây là đúng: nó
-  đang nói sự thật. Tắt cảnh báo để màn hình xanh là bắt đầu con đường "A+ trôi
-  thành A cẩu thả" mà PRD §6.2 gọi tên.
+Cò súng #4 nổ vì `doctor` thấy `~/.ssh/id_*` (3 khoá) và `~/.kube`. Chủ dự án
+chọn **(a) chấp nhận có ý thức** — không chuyển C, không tách máy, *tạm thời*.
+Cái phải nói thẳng lúc đó: mô hình đe doạ rộng hơn PRD §0.1 đã định giá (agent
+bị chiếm cầm được **SSH key đi sang máy khác**), và **đắt hơn kể từ V3** vì V3
+bỏ người ngồi cạnh — máy tự mở phiên lúc 2 giờ sáng theo hàng đợi.
+
+Quyết định này **hết hiệu lực từ 25/08**. Giữ lại đoạn trên vì nó là lý do
+tồn tại của việc ở §5b, không phải vì nó còn đúng.
+
+### 5b · Đã tháo ngòi bằng gì (M1, 25/08)
+
+Không phải bằng cách tắt cảnh báo — bằng cách làm cho cảnh báo **hết đúng**:
+
+- `bee` là user Linux riêng, uid/gid **1500**, `passwd -l`, **không** thuộc
+  group `docker` / `sudo` / `adm`; linger bật; docker chạy **rootless**.
+- `/home/ducba` mode `700` → kernel chặn, không phải lời hứa.
+- Nghiệm thu đã chạy thật: `docker run -v /home/ducba:/h alpine ls /h` →
+  *Permission denied*; `-v ~bee/.local/srv/bee` thì đọc được.
+- `may-sach` trên máy bee **xanh thành thật**: bee thật sự không với tới được.
+
+Hệ quả: thiệt hại tối đa khi agent bị chiếm quay về đúng phạm vi §0.1 — code
+bee đang làm + PAT hẹp + token Claude. **Không** phải khoá SSH sang máy khác.
+
+Đường đi thật, kể cả chỗ vấp: [tach-user.md](tach-user.md) ·
+[docker-cho-bee.md](docker-cho-bee.md).
+
+### 5c · Cái tách user KHÔNG mua được
+
+Đừng đọc §5b rộng hơn nó thật:
+
+- **Chung kernel.** Lỗ leo thang quyền cục bộ vẫn xuyên qua — chỉ VM/LXC cắt.
+- **Chung tailnet.** bee vẫn nối được mọi cổng `127.0.0.1` mà `ducba` đang mở.
+- **Cho `bee` vào group `docker` là mất sạch** — group docker ≈ root. Đó là lý
+  do `bootstrap.sh` thoát ngay khi thấy mình ở trong group đó.
+- Bốn cò súng còn lại **không** liên quan gì tới việc này; chúng vẫn nguyên.
 
 Đổi ý lúc nào thì đọc §6.
 
@@ -131,10 +162,11 @@ không tách máy — *tạm thời*. Ghi lại cho sòng phẳng:
    không chung định dạng trạng thái — C dùng `status.json` + nhãn issue, A+ dùng
    `sessions/<id>/`).
 
-**Nếu chỉ muốn siết một phần mà không quay về C hẳn** (thứ tự rẻ → đắt): tách
-máy/VM · `pnpm` chặn lifecycle script của dependency · Tailscale ACL cấm máy bee
-chủ động gọi sang máy khác · bật branch protection thật trên `main` (cần GitHub
-Pro cho repo private).
+**Nếu chỉ muốn siết một phần mà không quay về C hẳn** (thứ tự rẻ → đắt):
+~~tách user Linux riêng~~ **đã làm 25/08 (§5b)** · `pnpm` chặn lifecycle script
+của dependency · Tailscale ACL cấm máy bee chủ động gọi sang máy khác · bật
+branch protection thật trên `main` (cần GitHub Pro cho repo private) · tách hẳn
+sang VM/LXC (nấc duy nhất cắt được chung-kernel ở §5c).
 
 ---
 

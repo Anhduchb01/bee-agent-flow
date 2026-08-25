@@ -381,7 +381,8 @@
   <p class="lead">
     Claude Code trên web: một máy Ubuntu chạy 24/7, một user, n phiên agent nhóm
     theo repo — xem live, gõ chen, dừng, từ điện thoại. Ranh giới an toàn không
-    nằm ở UID nữa: nó nằm ở vỏ máy và ở hàng rào phía GitHub. Tài liệu này mô tả
+    nằm ở UID nữa: nó nằm ở mép ngoài của uid <code>bee</code>, ở vỏ máy và ở
+    hàng rào phía GitHub. Tài liệu này mô tả
     hệ thống như một khối: bản đồ trước, rồi phóng to từng góc.
   </p>
   <div class="meta">
@@ -406,13 +407,18 @@
     <div class="inv-item">
       <span class="inv-n">1</span>
       <div>
-        <p><b>Ranh giới là vỏ máy cộng hàng rào phía GitHub — không phải UID.</b></p>
-        <p>Máy chuyên dụng không chứa gì đáng lấy: chỉ một fine-grained PAT phạm
-        vi hẹp và một login Claude, cả hai revoke được trong một buổi tối.
-        <code>main</code> có branch protection nên push thẳng bị GitHub từ chối
-        với <em>mọi</em> token. Quyết định này (gọi là <strong>A+</strong>) kèm
-        cái giá chấp nhận có ý thức — supply chain có thể đọc code private — và
-        <strong>5 cò súng</strong> buộc quay về mô hình hai UID, ghi ở PRD §0.2.</p>
+        <p><b>Ranh giới là uid <code>bee</code> cộng vỏ máy cộng hàng rào phía
+        GitHub — không phải hai UID của bee.</b></p>
+        <p>Từ 25/08/2026 bee là user Linux riêng (uid 1500, không sudo, không
+        group docker, docker rootless), nên thứ agent với tới được đúng bằng
+        thứ nó cần: một fine-grained PAT phạm vi hẹp và một login Claude, cả hai
+        revoke được trong một buổi tối. Home của con người ở mode <code>700</code>
+        — kernel chặn, không phải lời hứa. <code>main</code> có branch protection
+        nên push thẳng bị GitHub từ chối với <em>mọi</em> token. Quyết định này
+        (gọi là <strong>A+</strong>) kèm cái giá chấp nhận có ý thức — supply
+        chain có thể đọc code private — và <strong>5 cò súng</strong> buộc quay
+        về mô hình hai UID, ghi ở PRD §0.2. Cò súng #4 nổ 24/08 và đã tháo ngòi
+        25/08 bằng chính việc tách user này.</p>
       </div>
     </div>
     <div class="inv-item">
@@ -815,8 +821,8 @@
       <thead><tr><th>#</th><th>Vệ sinh</th><th>Nếu bỏ qua</th></tr></thead>
       <tbody>
         <tr><td class="num">1</td>
-            <td>Máy chuyên dụng: không SSH key đi nơi khác, không secret nào ngoài PAT + login Claude; <code>.env</code> production không nằm trên máy, không nằm trong repo</td>
-            <td>Máy bị chiếm = mọi thứ trên máy bị lấy — vỏ máy chỉ là ranh giới khi trong vỏ không có gì</td></tr>
+            <td>User <code>bee</code> chuyên dụng: trong home của nó không SSH key đi nơi khác, không secret nào ngoài PAT + login Claude; <code>.env</code> production không nằm trên máy, không nằm trong repo. <code>doctor</code> kiểm mục <code>may-sach</code> bằng chính home đó</td>
+            <td>Agent bị chiếm = mọi thứ <em>bee</em> đọc được bị lấy — uid chỉ là ranh giới khi bên trong nó không có gì thừa</td></tr>
         <tr><td class="num">2</td>
             <td>Fine-grained PAT: đúng danh sách repo, đúng 3 quyền contents · PR · issues</td>
             <td>Token full-account bị lấy = cả tài khoản GitHub đi theo</td></tr>
