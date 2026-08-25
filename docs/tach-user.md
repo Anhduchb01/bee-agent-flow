@@ -65,8 +65,35 @@ sudo groupadd -f proc && sudo mount -o remount,hidepid=2,gid=proc /proc
 getent group docker                    # bee-orch đang trong đó!
 sudo gpasswd -d bee-orch docker
 sudo rm -f /etc/sudoers.d/bee          # ranh giới cũ, không còn ai dùng
-sudo userdel -r bee-orch bee-agent bee-web   # chỉ khi chắc không cần fallback tại chỗ
+
+# userdel nhận ĐÚNG MỘT login mỗi lần — gộp ba tên là lỗi cú pháp.
+# -r xoá luôn home: xem trước có gì đáng giữ không (mô hình C để lịch sử
+# hội thoại Claude ở /home/bee-agent/.claude/).
+sudo du -sh /home/bee-orch /home/bee-agent /home/bee-web 2>/dev/null
+sudo userdel -r bee-orch
+sudo userdel -r bee-agent
+sudo userdel -r bee-web
+sudo groupdel bee 2>/dev/null || true  # group cũ, chỉ xoá được khi hết thành viên
+sudo rm -rf /srv/bee                   # dữ liệu mô hình C (~2GB). KHÁC ~/.local/srv/bee đang chạy
+
+# fstab vừa đổi nhưng systemd còn giữ bản cũ — chính nó sẽ nhắc dòng này.
+sudo systemctl daemon-reload
 ```
+
+> **⚠ Đừng để user mới tái dùng uid vừa giải phóng.** `adduser` sẽ cấp lại uid
+> của `bee-orch` (1001), mà uid trong container **là** uid trên host: máy này
+> đang có container chạy uid 1001 (`langfuse-*`). Hôm nay vô hại vì chúng không
+> bind-mount vào host, nhưng đó là cái bẫy để dành. Tạo user với uid riêng
+> trong lúc nó còn trống là gần như miễn phí:
+>
+> ```bash
+> sudo useradd -m -u 1500 -U -s /bin/bash bee && sudo passwd -l bee
+> grep '^bee:' /etc/subuid /etc/subgid   # trống thì:
+> #   sudo usermod --add-subuids 1500000-1565535 --add-subgids 1500000-1565535 bee
+> ```
+>
+> Lỡ tạo bằng uid cũ rồi mà chưa cài gì thì xoá đi làm lại vẫn rẻ; sau khi đã
+> cài thì phải `chown -R` cả `~/.local/srv/bee`.
 
 > Xoá ba user đó **không** làm mất đường lùi: mô hình C nằm ở nhánh
 > `feat/bee-m3-and-web-spec` + `apps/reconciler/`, dựng lại bằng `install.sh`
@@ -115,16 +142,21 @@ docker run --rm -v /home/ducba:/h alpine ls /h    # PHẢI: Permission denied
 ### Bước 6 🤖 — cài bee
 
 ```bash
-git clone git@github.com:Anhduchb01/bee-agent-flow.git ~/bee-agent-flow
-cd ~/bee-agent-flow && apps/runner/bin/deploy.sh
+# HTTPS, KHÔNG phải SSH: bee cố ý không có khoá SSH nào (đó là toàn bộ mục
+# đích của việc tách user). gh đã đăng nhập ở bước 4 nên nó cấp credential.
+gh repo clone Anhduchb01/bee-agent-flow ~/bee-agent-flow
+cd ~/bee-agent-flow
 ```
 
-`deploy.sh` tự dò `BEE_PREFIX`/`BEE_ROOT`; user mới chưa có unit nào nên nó
-dùng mặc định — đặt tay nếu muốn giống bố cục cũ:
+**Lần chạy đầu PHẢI đặt hai biến này.** `deploy.sh` dò `BEE_PREFIX`/`BEE_ROOT`
+từ unit đang chạy, mà user mới chưa có unit nào → nó rơi về mặc định
+`/opt/bee` + `/srv/bee`, hai chỗ cần `sudo` mà `bee` không có:
 
 ```bash
 BEE_PREFIX=~/.local/bee BEE_ROOT=~/.local/srv/bee apps/runner/bin/deploy.sh
 ```
+
+Từ lần thứ hai trở đi `deploy.sh` tự đọc lại được từ unit, gõ trần là đủ.
 
 Rồi mở `/setup` trên web để: dán token Claude · dán PAT · đăng ký repo · chạy
 doctor · gỡ PAUSE.
