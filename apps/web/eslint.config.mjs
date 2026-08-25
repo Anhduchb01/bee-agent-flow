@@ -26,6 +26,13 @@ const eslintConfig = defineConfig([
       ],
       // `any` bị cấm — thứ chưa biết kiểu thì dùng `unknown` rồi thu hẹp.
       "@typescript-eslint/no-explicit-any": "error",
+      // Tham số `_ten` là cách nói "chữ ký bắt buộc có, thân hàm không dùng"
+      // — đúng thứ fixture đầy rẫy. Cảnh báo cho chúng làm mọi lần deploy có
+      // sẵn ba dòng vàng, và cảnh báo nào cũng có sẵn thì chẳng ai đọc nữa.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
     },
   },
 

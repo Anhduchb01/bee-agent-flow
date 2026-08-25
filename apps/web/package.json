@@ -7,7 +7,7 @@
     "build": "next build && cp -r .next/static .next/standalone/apps/web/.next/ && cp -r public .next/standalone/apps/web/",
     "start": "next start --port 3187",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
