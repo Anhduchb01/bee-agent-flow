@@ -1,6 +1,12 @@
 # Oneshot on purpose: `systemctl --user start bee-doctor` blocks until the
 # checklist finishes, so the web's "Run doctor again" button reads a FRESH
 # doctor.json right after — no polling, no race.
+#
+# --exit-zero on purpose too: a red checklist item is doctor DOING ITS JOB,
+# not doctor breaking. Without the flag `systemctl status bee-doctor` reads
+# "failed" every time the machine has anything to report, which is the exact
+# noise that teaches you to stop looking at the screen. Here, failed means
+# the checklist could not run at all.
 [Unit]
 Description=bee doctor — A+ hygiene checklist to doctor.json
 
@@ -11,5 +17,5 @@ Description=bee doctor — A+ hygiene checklist to doctor.json
 Environment=PATH=@BINPATH@
 Environment=BEE_ROOT=@BEE_ROOT@
 Type=oneshot
-ExecStart=@PREFIX@/bin/doctor.sh
+ExecStart=@PREFIX@/bin/doctor.sh --exit-zero
 TimeoutStartSec=120

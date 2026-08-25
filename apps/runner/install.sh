@@ -10,6 +10,9 @@ set -euo pipefail
 NGUON=$(dirname "$(readlink -f "$0")")
 PREFIX="${BEE_PREFIX:-/opt/bee}"
 BEE_ROOT="${BEE_ROOT:-/srv/bee}"
+# port_owner: cài web lên một cổng người khác đang giữ thì unit crash-loop
+# trong im lặng (25/08, 1005 lần). Hỏi trước khi bật.
+source "$NGUON/lib/common.sh"
 
 echo "== 1 · Copy code vào $PREFIX =="
 if [[ -w "$(dirname "$PREFIX")" || -w "$PREFIX" ]]; then SUDO=""; else SUDO="sudo"; fi
@@ -117,6 +120,22 @@ EOF
   sed "s|@BEE_ROOT@|$BEE_ROOT|g; s|@NODE@|$NODE_BIN|g; s|@WEBSERVER@|$WEB_SERVER|g; s|@BINPATH@|$BINPATH|g" \
     "$NGUON/units/bee-web.service" > "$UDIR/bee-web.service"
   systemctl --user daemon-reload
+
+  # Cổng đã có chủ khác thì DỪNG ở đây, và nói chủ là ai. Bật đại lên chỉ
+  # đổi một lỗi đọc được ("cổng bận") lấy một lỗi không đọc được (unit
+  # restart mãi, còn cổng vẫn trả 200 vì người kia đang phục vụ).
+  WEB_PORT=$(sed -n 's/^PORT=//p' "$BEE_ROOT/web.env" 2>/dev/null | head -1)
+  WEB_PORT="${WEB_PORT:-3210}"
+  CHU_CONG=$(port_owner "$WEB_PORT")
+  if [[ "$CHU_CONG" == other* ]]; then
+    read -r _ P_PID P_USER <<<"$CHU_CONG"
+    echo >&2
+    echo "✗ Cổng $WEB_PORT đã có chủ: pid ${P_PID:-?}${P_USER:+ (user $P_USER)} — KHÔNG phải bee-web." >&2
+    echo "  Bật bee-web bây giờ thì nó chỉ crash-loop EADDRINUSE trong im lặng." >&2
+    echo "  Chọn một: dừng tiến trình kia, hoặc đổi PORT trong $BEE_ROOT/web.env." >&2
+    echo "  Xem ai đang giữ:  ss -ltnp \"sport = :$WEB_PORT\"" >&2
+    exit 1
+  fi
   systemctl --user enable --now bee-web.service
 else
   echo "  (bỏ qua: chưa có bản build web — chạy: cd apps/web && pnpm build &&"

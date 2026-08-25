@@ -28,13 +28,6 @@ function root(): string {
 }
 
 /**
- * Re-run the A+ hygiene checklist. The unit is oneshot, so `systemctl start`
- * blocks until doctor.sh finished writing doctor.json — the page can reload
- * fresh results immediately. doctor.sh exits 1 when checks fail, which
- * systemd reports as a start error; that is still a SUCCESSFUL run for us
- * (the red results are in doctor.json), so only a missing unit is an error.
- */
-/**
  * Chạy gc theo yêu cầu (nút "Dọn ngay"). Cùng khuôn với runDoctor: unit là
  * oneshot nên `start` chờ chạy xong, và web đọc được gc.json tươi ngay sau đó.
  */
@@ -48,6 +41,17 @@ export async function runGc(): Promise<KetQua> {
   }
 }
 
+/**
+ * Re-run the A+ hygiene checklist. The unit is oneshot, so `systemctl start`
+ * blocks until doctor.sh finished writing doctor.json — the page can reload
+ * fresh results immediately.
+ *
+ * The unit runs `doctor.sh --exit-zero`, so a red checklist is no longer a
+ * unit failure at all (V3.T19). The tolerance below stays as a belt: an
+ * OLDER unit file still on disk — the exact state of a machine between a
+ * code update and its next install.sh — would otherwise turn a perfectly
+ * good checklist run into a red banner on /setup.
+ */
 export async function runDoctor(): Promise<KetQua> {
   if (isFixture()) return { ok: true };
   try {
@@ -55,7 +59,8 @@ export async function runDoctor(): Promise<KetQua> {
     return { ok: true };
   } catch (e) {
     const msg = (e as Error).message;
-    // Exit 1 from doctor.sh = checks failed but doctor.json was written.
+    // Old unit file (pre --exit-zero): exit 1 means checks failed, and
+    // doctor.json was written all the same. Not a failure to report.
     if (/control process exited|code=exited|exit code 1/i.test(msg)) return { ok: true };
     return { ok: false, message: `Could not run doctor: ${msg}` };
   }

@@ -3,8 +3,26 @@
 #
 # Kiểm chứ đừng đoán: mỗi mục in ✓/✗ kèm chi tiết, và ghi doctor.json để
 # web hiện đỏ khi lệch. Exit 1 nếu có mục ✗ — cắm được vào CI của máy.
+#
+#   doctor.sh              # exit 1 khi có mục đỏ (CI, dòng lệnh)
+#   doctor.sh --exit-zero  # luôn exit 0; kết quả nằm trong doctor.json
+#
+# Vì sao tách được hai thứ đó: chạy XONG một lượt khám và KHÁM RA BỆNH là hai
+# chuyện khác nhau. `bee-doctor.service` gọi bản --exit-zero, nên `systemctl`
+# chỉ báo failed khi doctor thật sự không chạy được — chứ không phải mỗi lần
+# nó làm đúng việc của mình. Đọc "failed" như hỏng hóc trong khi nó đang báo
+# cáo là đúng cái kiểu nhiễu làm người ta thôi nhìn màn hình.
 set -uo pipefail
 source "$(dirname "$(readlink -f "$0")")/../lib/common.sh"
+
+EXIT_ZERO=0
+for a in "$@"; do
+  case "$a" in
+    --exit-zero) EXIT_ZERO=1;;
+    -h|--help)   sed -n '2,16p' "$0"; exit 0;;
+    *)           printf 'Tham số lạ: %s (xem --help)\n' "$a" >&2; exit 2;;
+  esac
+done
 
 CHECKS="[]"
 LOI=0
@@ -132,6 +150,45 @@ else
   fi
 fi
 
+# ── 4c · Web có ĐANG PHỤC VỤ không ────────────────────────────────────────
+# Lỗ hổng này bắt được 25/08: lúc chuyển máy, bee-web crash-loop EADDRINUSE
+# vì web của user cũ còn giữ cổng; NRestarts leo tới 1005 trong im lặng và
+# doctor vẫn xanh — vì doctor chưa bao giờ hỏi "web có sống không".
+#
+# Và "cổng có trả lời" KHÔNG đủ: hôm đó cổng trả lời 200 suốt, chỉ là trả lời
+# bởi web của người khác. Nên hỏi ba câu, theo thứ tự đắt dần: unit của TA có
+# active · cổng có đúng chủ · nó có đang bị đá ra liên tục.
+PORT=$(sed -n 's/^PORT=//p' "$BEE_ROOT/web.env" 2>/dev/null | head -1)
+PORT="${PORT:-3210}"
+if ! systemctl --user cat bee-web.service >/dev/null 2>&1; then
+  ghi "web" false "chưa có bee-web.service — cần một bản build web rồi chạy lại install.sh"
+else
+  STATE=$(systemctl --user is-active bee-web.service 2>/dev/null || true)
+  RESTARTS=$(systemctl --user show bee-web.service -p NRestarts --value 2>/dev/null || echo 0)
+  RESTARTS="${RESTARTS:-0}"
+  OWNER=$(port_owner "$PORT")
+  if [[ "$STATE" != "active" ]]; then
+    ghi "web" false "bee-web $STATE — không ai phục vụ (restart $RESTARTS lần); xem: journalctl --user -u bee-web -n 50"
+  elif [[ "$OWNER" == other* ]]; then
+    # Trường hợp 25/08 nguyên bản: unit ta tưởng là active, nhưng cổng thuộc
+    # về tiến trình khác — nên mọi thứ "thấy web chạy" đều đang thấy nhầm web.
+    read -r _ AI_PID AI_USER <<<"$OWNER"
+    ghi "web" false "cổng $PORT do tiến trình khác giữ (pid ${AI_PID:-?}${AI_USER:+, user $AI_USER}), KHÔNG phải bee-web — thứ bạn thấy trên cổng này là web của người khác"
+  elif (( RESTARTS > 5 )); then
+    ghi "web" false "web đã restart $RESTARTS lần — có gì đó đang đá nó ra; sửa xong thì đếm lại bằng: systemctl --user reset-failed bee-web"
+  elif ! command -v curl >/dev/null 2>&1; then
+    ghi "web" true "bee-web active · cổng $PORT đúng chủ · restart $RESTARTS lần (máy không có curl để gọi thử)"
+  else
+    # 307/302 = đá về /login: web sống và auth đang gác. Đó là khoẻ.
+    MA=$(curl -s -m 5 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/" 2>/dev/null || true)
+    if [[ "$MA" =~ ^(200|30[127])$ ]]; then
+      ghi "web" true "bee-web active · 127.0.0.1:$PORT trả $MA · restart $RESTARTS lần"
+    else
+      ghi "web" false "bee-web active nhưng 127.0.0.1:$PORT trả ${MA:-không gì} — unit lên nhưng chưa phục vụ được"
+    fi
+  fi
+fi
+
 # ── 5 · Đĩa + PAUSE (thông tin, không phải lỗi) ────────────────────────────
 if [[ -d "$BEE_ROOT" && -w "$BEE_ROOT" ]]; then
   ghi "dia" true "$BEE_ROOT ghi được"
@@ -150,4 +207,6 @@ jq -n --arg t "$(now_iso)" --argjson ok "$OK" --argjson c "$CHECKS" \
   --argjson p "$([[ -e "$BEE_ROOT/PAUSE" ]] && echo true || echo false)" \
   '{checked_at:$t, ok:$ok, paused:$p, checks:$c}' > "$BEE_ROOT/doctor.json"
 
+# Khám xong là exit 0; kết quả khám nằm trong doctor.json (xem chú thích đầu file).
+[[ $EXIT_ZERO -eq 1 ]] && exit 0
 exit "$LOI"

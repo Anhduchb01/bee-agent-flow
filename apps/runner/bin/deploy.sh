@@ -41,6 +41,11 @@ PREFIX="${BEE_PREFIX:-$(dirname "$(dirname "$(tu_unit bee-session@.service 'Exec
 BEE_ROOT="${BEE_ROOT:-$(tu_unit bee-web.service 'Environment=BEE_ROOT=')}"
 [[ -z "$BEE_ROOT" ]] && BEE_ROOT="/srv/bee"
 
+# Sau khi BEE_ROOT đã chốt, KHÔNG sớm hơn: common.sh cũng đặt mặc định cho
+# biến này, nên source nó ở đầu file sẽ làm chết nhánh "đọc từ chính unit
+# đang chạy" ở trên — đúng loại hỏng-im-lặng file này sinh ra để tránh.
+source "$RUNNER/lib/common.sh"   # port_owner
+
 MOC="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo '?')"
 BAN="$(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
 BAN_DO="$(git -C "$REPO" status --porcelain 2>/dev/null | wc -l)"
@@ -87,19 +92,40 @@ fi
 
 # ── 4 · Restart web + chờ nó thật sự trả lời ──────────────────────────────
 buoc "4 · Restart bee-web"
-systemctl --user restart bee-web.service
 PORT="$(sed -n 's/^PORT=//p' "$BEE_ROOT/web.env" 2>/dev/null | head -1)"
 PORT="${PORT:-3210}"
 
+# Hỏi chủ cổng TRƯỚC khi restart. Bài học 25/08: web của user cũ còn giữ 3210,
+# bee-web crash-loop EADDRINUSE 1005 lần — mà vòng chờ bên dưới vẫn báo ✓ vì
+# curl nhận được 307... từ web của người kia. "Cổng trả lời" không bao giờ là
+# bằng chứng "web CỦA TA đang chạy".
+CHU="$(port_owner "$PORT")"
+if [[ "$CHU" == other* ]]; then
+  read -r _ P_PID P_USER <<<"$CHU"
+  loi "Cổng $PORT do tiến trình khác giữ: pid ${P_PID:-?}${P_USER:+ (user $P_USER)} — không phải bee-web."
+  echo "     Restart bây giờ chỉ đổi lấy một crash-loop im lặng."
+  echo "     Dừng tiến trình kia, hoặc đổi PORT trong $BEE_ROOT/web.env."
+  echo "     Ai đang giữ:  ss -ltnp \"sport = :$PORT\""
+  exit 1
+fi
+
+systemctl --user restart bee-web.service
+
 for i in $(seq 1 30); do
   MA="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/" || true)"
+  CHU="$(port_owner "$PORT")"
   # 307 = đá về /login: web sống và auth đang gác. Đó là "khoẻ", không phải lỗi.
-  if [[ "$MA" == "200" || "$MA" == "307" || "$MA" == "302" ]]; then
-    echo "  ✓ trả lời $MA sau ${i}s trên 127.0.0.1:$PORT"
+  # Nhưng chỉ tính là khoẻ khi cổng ĐÚNG LÀ của bee-web (hoặc không hỏi được).
+  if [[ "$MA" == "200" || "$MA" == "307" || "$MA" == "302" ]] && [[ "$CHU" != other* ]]; then
+    echo "  ✓ trả lời $MA sau ${i}s trên 127.0.0.1:$PORT (chủ cổng: $CHU)"
     break
   fi
   if [[ $i -eq 30 ]]; then
-    loi "web không trả lời sau 30s (mã cuối: ${MA:-không có})"
+    if [[ "$CHU" == other* ]]; then
+      loi "cổng $PORT bị tiến trình khác chiếm trong lúc restart ($CHU) — bee-web đang crash-loop"
+    else
+      loi "web không trả lời sau 30s (mã cuối: ${MA:-không có})"
+    fi
     echo "     journalctl --user -u bee-web -n 50 --no-pager"
     exit 1
   fi

@@ -100,3 +100,33 @@ chep_env_d() {
     fi
   done < <(cd "$envd" && find . -type f)
 }
+
+# port_owner <port> [unit] — who is listening on <port>, in exactly one line.
+#
+#   free                 nobody is listening
+#   mine <pid>           <unit> (default bee-web.service) holds it
+#   other <pid> <user>   somebody else holds it, and we can see who
+#   other ? khac-user    somebody holds it but the kernel hides the pid from
+#                        us — which by itself proves it is NOT ours
+#   unknown              no `ss` on this machine, cannot answer
+#
+# Why this exists (25/08): bee-web crash-looped on EADDRINUSE 1005 times while
+# `curl 127.0.0.1:3210` answered 200 the whole time — the answer came from
+# ducba's web. "The port answers" is NOT "our web is up", and every check that
+# conflated the two stayed green through the outage.
+port_owner() {
+  local port="$1" unit="${2:-bee-web.service}" line pid mine
+  command -v ss >/dev/null 2>&1 || { echo "unknown"; return 0; }
+  line=$(ss -Hltnp "sport = :$port" 2>/dev/null | head -1)
+  [[ -n "$line" ]] || { echo "free"; return 0; }
+
+  pid=$(sed -n 's/.*[^a-z]pid=\([0-9]\+\).*/\1/p' <<<"$line")
+  mine=$(systemctl --user show "$unit" -p MainPID --value 2>/dev/null || echo 0)
+  if [[ -n "$pid" && -n "$mine" && "$mine" != "0" && "$pid" == "$mine" ]]; then
+    echo "mine $pid"
+  elif [[ -n "$pid" ]]; then
+    echo "other $pid $(ps -o user= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
+  else
+    echo "other ? khac-user"
+  fi
+}

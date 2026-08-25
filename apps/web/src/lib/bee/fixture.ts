@@ -165,6 +165,12 @@ export function createFixtureBeeSource(): BeeSource {
             { id: "may-sach", ok: true, detail: "không thấy SSH key / AWS / kube / GPG" },
             { id: "linger", ok: false, detail: "chưa bật — chạy: loginctl enable-linger bee" },
             { id: "reaper", ok: true, detail: "bee-reaper.timer đang chạy" },
+            {
+              id: "web",
+              ok: false,
+              detail:
+                "cổng 3210 do tiến trình khác giữ (pid 4127, user ducba), KHÔNG phải bee-web — thứ bạn thấy trên cổng này là web của người khác",
+            },
             { id: "dia", ok: true, detail: "/srv/bee ghi được" },
           ],
         };
@@ -181,6 +187,7 @@ export function createFixtureBeeSource(): BeeSource {
           { id: "may-sach", ok: true, detail: "không thấy SSH key / AWS / kube / GPG" },
           { id: "linger", ok: true, detail: "bật" },
           { id: "reaper", ok: true, detail: "bee-reaper.timer đang chạy" },
+          { id: "web", ok: true, detail: "bee-web active · 127.0.0.1:3210 trả 307 · restart 0 lần" },
           { id: "dia", ok: true, detail: "/srv/bee ghi được" },
         ],
       };
