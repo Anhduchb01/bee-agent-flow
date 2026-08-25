@@ -3,12 +3,13 @@
 Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖 = tôi làm được
 
 **Mốc đang làm:** V3 — vận hành bền + tự chạy đêm (PRD Epic 5 + FR-3.3/3.4)
-**Trạng thái 25/08:** *code V3 xong hết* (T0–T16 đóng, M1 đóng). Việc còn lại
-**không phải code**: máy mới chưa có token/repo nên chưa chạy được một đêm thật
-— tức cả ba Checkpoint đều đang chờ **M2** chứ không chờ tôi.
+**Trạng thái 25/08 (tối):** *code V3 xong hết*, và **ba món nợ nhỏ T18–T20 đã
+trả**. Việc còn lại **không phải code**: máy mới chưa có token/repo nên chưa
+chạy được một đêm thật — tức cả ba Checkpoint đều đang chờ **M2** chứ không
+chờ tôi.
 
-**Cổng đo hôm nay** (chạy lại 25/08 16:25): lint sạch · typecheck xanh ·
-**484 test / 67 file** xanh · **11 rig** xanh (rig-12: 14/14) ·
+**Cổng đo hôm nay** (chạy lại 25/08 23:50): lint sạch · typecheck xanh ·
+**524 test / 72 file** xanh · **13 rig** xanh (rig-14: 16/16) ·
 tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
 
 ---
@@ -22,7 +23,7 @@ tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
       **CẬP NHẬT 25/08 — cò súng đã GỠ, không còn phải "chấp nhận":** M1 xong,
       bee là uid 1500 riêng, `docker run -v /home/ducba:/h alpine ls /h` →
       *Permission denied*, `may-sach` trên máy bee **xanh**. Quyết định (a)
-      hết hiệu lực; PRD §0.2 cần sửa theo (xem **T20**).
+      hết hiệu lực; PRD §0.2 **đã sửa theo** (T20, xong 25/08).
 - [x] 🧑 **D2** ~~Cách chạy hàng đợi~~ **CHỐT 24/08**: timer gọi
       `/api/queue/tick` của web — một bản duy nhất của "mở phiên".
 - [x] 🧑 **D3** ~~Chính sách dọn~~ **CHỐT 24/08**: xoá worktree khi *đã kết thúc
@@ -173,28 +174,28 @@ tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
 
 ## P5 · Nợ nhỏ
 
-- [ ] 🤖 **T18** *Test đang khởi động unit THẬT trên máy thật* (S, an toàn) —
-      bằng chứng: journal của bee 25/08 16:03:02 có ba
-      `bee-session@<uuid>.service` **failed**, uuid lấy thẳng từ fixture
-      (`cc000000-…0001` trong `session-brake.test.ts`). Nguyên nhân:
-      test đặt `BEE_SOURCE=disk` để đi nhánh đĩa, mà `session-ctl.ts` khi đó
-      gọi `systemctl --user start` thật; chú thích trong test *giả định*
-      "systemctl vắng mặt" — sai trên chính máy chạy bee, nơi
-      `bee-session@.service` là unit `static` nên `start` được. Lần này vô hại
-      (unit chết ngay vì thiếu session.json) nhưng đây là đường để một `pnpm
-      test` đụng vào phiên đang chạy. Sửa: một cửa duy nhất cho lệnh ngoài
-      (`BEE_CTL=none` → trả lỗi giả) thay vì trông chờ PATH.
-- [ ] 🤖 **T19** *Web chết 1005 lần mà không ai biết* (S) — lúc chuyển máy,
-      `bee-web` của bee crash-loop `EADDRINUSE 127.0.0.1:3210` vì web của ducba
-      còn giữ cổng; `NRestarts` leo tới **1005** trong im lặng, doctor vẫn xanh
-      vì doctor không hỏi "web có đang phục vụ không". Hai việc: doctor thêm
-      check *web sống* (HTTP tới chính nó) + `install.sh`/`deploy.sh` dừng sớm
-      nếu cổng đã có chủ, nói rõ chủ là ai. Kèm: `bee-doctor.service` hiện
-      `exit 1` khi có mục đỏ nên `systemctl` báo **failed** — đọc như hỏng hóc
-      trong khi nó chỉ đang báo cáo; tách mã thoát khỏi kết quả khám.
-- [ ] 🤖 **T20** PRD §0.2 + [`docs/mo-hinh-c.md`](../docs/mo-hinh-c.md) đang viết
-      "cò súng #4 đã nổ, chấp nhận có ý thức" — **hết đúng từ 25/08**. Sửa lại
-      cho khớp: ranh giới bây giờ là uid + shell máy, quyết định (a) rút.
+- [x] 🤖 **T18** ~~Test đang khởi động unit THẬT trên máy thật~~ **XONG 25/08**
+      — `lib/bee/ctl.ts` là cửa duy nhất (`ctl`/`ctlSpawn`, tôn trọng
+      `BEE_CTL=none`); `vitest.setup.ts` đóng cửa cho CẢ bộ test nên bài nào
+      cần lệnh thật phải **mở tay**, và chỗ mở đọc được trong diff (hai bài
+      pty). Chặn tái phát bằng **luật**, không bằng lời hứa: eslint cấm
+      `node:child_process` ngoài chính ctl.ts — cùng lý do như luật barrel
+      của feature ngay trên nó. rig-03 thêm stub `ss` (sân giả không được
+      đọc cổng thật của máy đang chạy rig). 5 test mới.
+- [x] 🤖 **T19** ~~Web chết 1005 lần mà không ai biết~~ **XONG 25/08** —
+      `port_owner()` trong lib chung (free/mine/other), dùng ở ba chỗ: doctor
+      có mục `web` · `install.sh` dừng trước khi enable · `deploy.sh` hỏi chủ
+      cổng TRƯỚC restart. Điểm đắt nhất của bài này: **"cổng trả lời" không
+      phải bằng chứng "web CỦA TA chạy"** — hôm đó curl nhận 307 suốt, từ web
+      của người kia, nên vòng chờ của deploy vẫn báo ✓. Kèm `doctor.sh
+      --exit-zero` (unit dùng bản đó): chạy xong một lượt khám và khám ra bệnh
+      là hai chuyện khác nhau. rig-14: 16/16.
+- [x] 🤖 **T20** ~~PRD §0.2 + mo-hinh-c.md nói ngược sự thật~~ **XONG 25/08** —
+      sửa **ba** chỗ (thêm `architecture.html`, nó cũng viết "ranh giới là vỏ
+      máy — không phải UID"). Không xoá lịch sử: giữ nguyên đoạn 24/08 rồi nói
+      tiếp nó đã rút, vì đó là lý do tồn tại của M1. Ghi kèm cái tách user
+      **KHÔNG** mua được (chung kernel · chung tailnet · vào group docker là
+      mất sạch) để §5b không bị đọc rộng hơn nó thật. PRD lên bản 3.3.
 - [ ] 🧑 **T21** Xoá `~ducba/.local/srv/bee` (**961M**) + gỡ hẳn 5 unit của
       ducba — **chỉ sau khi** bee chạy tốt vài ngày (đây là đường quay lui duy
       nhất hiện có). Lịch sử phiên cũ không mang sang được nên xoá là xoá thật.
