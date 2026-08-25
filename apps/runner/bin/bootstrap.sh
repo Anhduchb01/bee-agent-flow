@@ -66,8 +66,13 @@ fi
 ok "systemd --user nối được"
 
 # Giữ hai biến đó cho các lần `sudo -iu bee` sau, không phải nhớ gõ tay.
-if ! grep -q 'bee-bootstrap' "$HOME/.bashrc" 2>/dev/null; then
-  cat >> "$HOME/.bashrc" <<'EOF'
+# GHI CẢ HAI FILE, và ~/.profile mới là file quan trọng: ~/.bashrc của Ubuntu
+# `return` ngay ở đầu khi shell không tương tác, nên `sudo -iu bee bash -lc
+# '... systemctl --user ...'` — đúng cách script và tài liệu điều khiển bee —
+# sẽ không bao giờ thấy khối này nếu chỉ ghi vào .bashrc.
+for HS in "$HOME/.profile" "$HOME/.bashrc"; do
+  grep -q 'bee-bootstrap' "$HS" 2>/dev/null && continue
+  cat >> "$HS" <<'EOF'
 
 # --- bee-bootstrap ---
 case ":$PATH:" in *":$HOME/bin:"*) ;; *) PATH="$HOME/bin:$PATH";; esac
@@ -77,8 +82,8 @@ export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 EOF
-  ok "ghi khối môi trường vào ~/.bashrc"
-fi
+  ok "ghi khối môi trường vào $HS"
+done
 
 # ── 1 · Gói hệ thống (phần duy nhất cần root) ─────────────────────────────
 buoc "1 · Gói hệ thống"

@@ -69,9 +69,13 @@ printf '#!/bin/sh\nexit 0\n' > "$STUB/jq"; chmod +x "$STUB/jq"
 mkdir -p "$T/h4"
 rm "$STUB/gh"                     # chết ở bước 1, SAU khi đã ghi .bashrc
 chay "$T/h4"; chay "$T/h4"
-SO=$(grep -c 'bee-bootstrap' "$T/h4/.bashrc" 2>/dev/null || echo 0)
-[[ "$SO" == 1 ]] && kq ok "chạy hai lần, .bashrc vẫn một khối" || kq no ".bashrc có $SO khối bee-bootstrap"
-grep -q 'DBUS_SESSION_BUS_ADDRESS' "$T/h4/.bashrc" && kq ok ".bashrc mang theo bus cho lần sudo -iu sau" || kq no ".bashrc thiếu DBUS_SESSION_BUS_ADDRESS"
+for HS in .bashrc .profile; do
+  SO=$(grep -c 'bee-bootstrap' "$T/h4/$HS" 2>/dev/null || echo 0)
+  [[ "$SO" == 1 ]] && kq ok "chạy hai lần, $HS vẫn một khối" || kq no "$HS có $SO khối bee-bootstrap"
+done
+# .profile là file mà `bash -lc` đọc — .bashrc của Ubuntu return sớm khi
+# shell không tương tác, mà mọi lệnh điều khiển bee đều chạy kiểu đó.
+grep -q 'DBUS_SESSION_BUS_ADDRESS' "$T/h4/.profile" && kq ok ".profile mang bus cho sudo -iu bee bash -lc" || kq no ".profile thiếu DBUS_SESSION_BUS_ADDRESS"
 
 printf '#!/bin/sh\nexit 0\n' > "$STUB/gh"; chmod +x "$STUB/gh"
 
