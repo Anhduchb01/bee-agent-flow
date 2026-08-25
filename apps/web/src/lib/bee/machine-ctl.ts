@@ -204,7 +204,11 @@ export async function startClaudeSetup(): Promise<KetQuaLink> {
   if (isFixture()) return { ok: true, url: "https://claude.ai/oauth/authorize?demo=1" };
 
   killSetupFlow();
-  const p = spawn("script", ["-qec", "claude setup-token", "/dev/null"], {
+  // `stty cols` before the flow: script's pty defaults to 80 columns, and ink
+  // hard-wraps at the pty width — the URL came back sliced in two, and the
+  // token (longer than 80) would have been saved as its first half with
+  // nothing to show it was cut. 400 columns is wider than either.
+  const p = spawn("script", ["-qec", "stty cols 400 rows 100; claude setup-token", "/dev/null"], {
     stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, TERM: "xterm-256color" },
   });
@@ -240,6 +244,12 @@ export async function startClaudeSetup(): Promise<KetQuaLink> {
   };
 }
 
+/** The flow's own words when it refuses a code, e.g. "OAuth error: …". */
+function loiOauth(out: string): string | null {
+  const sach = out.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "");
+  return /OAuth error:[^\r\n]{0,120}/.exec(sach)?.[0].trim() ?? null;
+}
+
 /** Feed the pasted confirmation code in; on success the token lands in claude.env. */
 export async function submitClaudeCode(code: string): Promise<KetQua> {
   const gon = code.trim();
@@ -252,7 +262,11 @@ export async function submitClaudeCode(code: string): Promise<KetQua> {
     return { ok: false, message: "No login flow is waiting — get a new link first." };
   }
 
-  flow.p.stdin?.write(`${gon}\n`);
+  // CR, not LF: Enter on a real keyboard sends \r, and ink's input only
+  // submits on that. With \n the code landed in the box and sat there —
+  // the screen showed the pasted characters, and we called it a timeout
+  // (25/08). Nothing about the message hinted the code had arrived fine.
+  flow.p.stdin?.write(`${gon}\r`);
   // setup-token verifies the code and prints the token — give it up to 30s.
   for (let i = 0; i < 120; i++) {
     const token = extractSetupToken(flow.out);
@@ -260,16 +274,26 @@ export async function submitClaudeCode(code: string): Promise<KetQua> {
       killSetupFlow();
       return saveClaudeToken(token);
     }
+    // A rejected code says so on screen and offers a retry — that is an
+    // answer, not something to keep waiting for.
+    const tuChoi = loiOauth(flow.out);
+    if (tuChoi !== null) {
+      killSetupFlow();
+      return { ok: false, message: `${tuChoi} — get a new link and try again.` };
+    }
     if (flow.done) break;
     await new Promise((r) => setTimeout(r, 250));
   }
   const daXong = flow.done;
+  const thay = manHinhCuoi(flow.out);
   killSetupFlow();
   return {
     ok: false,
-    message: daXong
-      ? "The code was rejected — get a new link and try again."
-      : "Timed out waiting for the token — get a new link and try again.",
+    message:
+      (daXong
+        ? "The code was rejected — get a new link and try again."
+        : "Timed out waiting for the token — get a new link and try again.") +
+      (thay === null ? "" : ` Last thing the flow printed: “${thay}”`),
   };
 }
 
