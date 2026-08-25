@@ -47,8 +47,13 @@ describe("moPhien — the brake sits at the door every new session goes through"
   it("under the threshold: the brake does not get in the way", async () => {
     await datHanMuc(20);
     const ket = await moPhien({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
-    // systemctl không có trong sandbox → lỗi start, nhưng KHÔNG phải lỗi phanh,
-    // và session.json đã được ghi trước lệnh start.
+    // Cửa lệnh ngoài đóng (BEE_CTL=none) → lỗi ở bước start, KHÔNG phải lỗi
+    // phanh, và session.json đã được ghi trước lệnh đó.
+    //
+    // Chú thích cũ ở đây viết "systemctl không có trong sandbox" — sai, và
+    // sai đúng chỗ đắt: trên chính máy bee, `bee-session@.service` là unit
+    // static nên start CHẠY THẬT. Ba unit chết trong journal ngày 25/08 mang
+    // đúng cái uuid dưới kia. Xem lib/bee/ctl.ts.
     if (!ket.ok) expect(ket.message).not.toMatch(/hạn mức/);
     expect((await fs.readdir(path.join(dir, "sessions"))).length).toBe(1);
   });
@@ -68,8 +73,15 @@ describe("moPhien — the brake sits at the door every new session goes through"
     await fs.writeFile(path.join(dir, "sessions", id, "session.json"), JSON.stringify({ id }));
 
     const ket = await tiepTucPhien(id);
-    // Lại là systemctl vắng mặt, không phải phanh.
-    if (!ket.ok) expect(ket.message).not.toMatch(/hạn mức/);
+    // Nó đi tới tận bước start rồi mới dừng ở CỬA LỆNH NGOÀI — nghĩa là phanh
+    // không chen vào, đúng điều bài này hỏi.
+    //
+    // Cái uuid ngay trên chính là uuid đã lọt ra journal của máy bee 25/08.
+    // Nếu ai đó mở lại cửa, dòng dưới đỏ TRƯỚC khi nó kịp start unit thật.
+    expect(ket.ok).toBe(false);
+    if (ket.ok) return;
+    expect(ket.message).toMatch(/BEE_CTL=none/);
+    expect(ket.message).not.toMatch(/hạn mức/);
   });
 
   it("no usage file at all → opens (flying blind beats being unusable)", async () => {

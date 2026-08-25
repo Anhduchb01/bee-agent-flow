@@ -1,9 +1,9 @@
 import "server-only";
 
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
+
+import { ctl } from "./ctl";
 
 import {
   cho,
@@ -23,8 +23,6 @@ import {
   type BeePoolClaude,
 } from "./slayer";
 import { extractOauthUrl } from "./claude-token";
-
-const run = promisify(execFile);
 
 export type KetQua = { ok: true } | { ok: false; message: string };
 export type KetQuaLink = { ok: true; url: string } | { ok: false; message: string };
@@ -122,7 +120,7 @@ export async function docTrangThaiSlayer(): Promise<TrangThaiSlayer> {
     .catch(() => false);
   let ra: { stdout: string };
   try {
-    ra = await run(TOK, ["list", "--json"], { timeout: 30_000, maxBuffer: 4 << 20 });
+    ra = await ctl(TOK, ["list", "--json"], { timeout: 30_000, maxBuffer: 4 << 20 });
   } catch (e) {
     const loi = e as NodeJS.ErrnoException & { stderr?: string };
     if (loi.code === "ENOENT") {
@@ -164,7 +162,7 @@ export async function doiSlot(target: string, phienDangChay: number): Promise<Ke
   }
   if (isFixture()) return { ok: true };
   try {
-    await run(TOK, ["switch", gon], { timeout: 60_000 });
+    await ctl(TOK, ["switch", gon], { timeout: 60_000 });
     return { ok: true };
   } catch (e) {
     const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
@@ -180,7 +178,7 @@ export async function chupSlot(name: string): Promise<KetQua> {
   }
   if (isFixture()) return { ok: true };
   try {
-    await run(TOK, ["add", gon], { timeout: 120_000 });
+    await ctl(TOK, ["add", gon], { timeout: 120_000 });
     return { ok: true };
   } catch (e) {
     const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
@@ -280,7 +278,7 @@ export async function caiSlayer(token: string): Promise<KetQua> {
   if (isFixture()) return { ok: true };
   try {
     // `set -o pipefail` để curl hỏng không bị `sh` nuốt thành thành công.
-    await run(
+    await ctl(
       "bash",
       ["-o", "pipefail", "-c", `curl -fsSL "${URL_CAI}" | sh`],
       { timeout: 300_000, env: { ...process.env, TOKEN_SLAYER_TOKEN: gon }, maxBuffer: 4 << 20 },
@@ -306,7 +304,7 @@ export async function nhanTaiKhoanCap(): Promise<KetQua & { noi?: string }> {
     return { ok: true, noi: "Nothing to do. (No provisioned accounts to add or remove.)" };
   }
   try {
-    const ra = await run(TOK, ["setup"], { timeout: 180_000, maxBuffer: 4 << 20 });
+    const ra = await ctl(TOK, ["setup"], { timeout: 180_000, maxBuffer: 4 << 20 });
     const noi = `${ra.stdout}${ra.stderr ?? ""}`.trim().split("\n").slice(-4).join("\n");
     return { ok: true, noi: noi === "" ? "tok setup: xong, không nói gì thêm." : noi };
   } catch (e) {

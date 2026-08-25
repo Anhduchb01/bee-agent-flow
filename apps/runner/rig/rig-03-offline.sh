@@ -37,6 +37,13 @@ echo "$state"
 [[ "$state" == "active" ]] && exit 0 || exit 3
 EOF
 chmod +x "$T/bin/systemctl"
+
+# Fake ss: sân giả không có cổng nào bị chiếm. Không có nó, cửa cổng của
+# install.sh (T19) đọc CỔNG THẬT của máy đang chạy rig — và rig đỏ hay xanh
+# lại phụ thuộc vào việc hôm nay ai đang nghe 3210. Rig phải nói về code,
+# không nói về cái máy tình cờ chạy nó. Ca "cổng có chủ" nằm ở rig-14.
+printf '#!/bin/sh\nexit 0\n' > "$T/bin/ss"
+chmod +x "$T/bin/ss"
 export PATH="$T/bin:$PATH"
 
 echo "== 1 · session-run.sh từ chối id bẩn =="

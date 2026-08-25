@@ -1,9 +1,9 @@
 import "server-only";
 
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
+
+import { ctl } from "./ctl";
 
 /**
  * Issue list of a registered repo — the board's raw material.
@@ -15,8 +15,6 @@ import { promisify } from "node:util";
  * GitHub is the truth for issues (architecture §"Ai giữ sự thật"); bee only
  * adds what GitHub cannot know — which session worked on which issue.
  */
-
-const run = promisify(execFile);
 
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
@@ -165,7 +163,7 @@ export async function fetchRepoIssues(
     return { issues: [], loi: `${repo} is not a registered repo on this machine.` };
   }
 
-  const runGh = opts?.runGh ?? ((args: string[]) => run("gh", args));
+  const runGh = opts?.runGh ?? ((args: string[]) => ctl("gh", args));
   try {
     const { stdout } = await runGh([
       "issue",

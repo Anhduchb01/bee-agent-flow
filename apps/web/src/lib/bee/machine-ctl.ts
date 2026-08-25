@@ -1,9 +1,9 @@
 import "server-only";
 
-import { execFile, spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
+
+import { ctl, ctlSpawn } from "./ctl";
 
 /**
  * Machine-level controls for the setup screen. Same discipline as
@@ -11,8 +11,6 @@ import { promisify } from "node:util";
  * reaches an argv except through an allowlist regex — and failures come
  * back as data, not exceptions.
  */
-
-const run = promisify(execFile);
 
 export type KetQua = { ok: true } | { ok: false; message: string };
 
@@ -34,7 +32,7 @@ function root(): string {
 export async function runGc(): Promise<KetQua> {
   if (isFixture()) return { ok: true };
   try {
-    await run("systemctl", ["--user", "start", "bee-gc.service"]);
+    await ctl("systemctl", ["--user", "start", "bee-gc.service"]);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: `Could not run gc: ${(e as Error).message}` };
@@ -55,7 +53,7 @@ export async function runGc(): Promise<KetQua> {
 export async function runDoctor(): Promise<KetQua> {
   if (isFixture()) return { ok: true };
   try {
-    await run("systemctl", ["--user", "start", "bee-doctor.service"]);
+    await ctl("systemctl", ["--user", "start", "bee-doctor.service"]);
     return { ok: true };
   } catch (e) {
     const msg = (e as Error).message;
@@ -70,7 +68,7 @@ export async function runDoctor(): Promise<KetQua> {
 export async function enableLinger(): Promise<KetQua> {
   if (isFixture()) return { ok: true };
   try {
-    await run("loginctl", ["enable-linger"]);
+    await ctl("loginctl", ["enable-linger"]);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: `Could not enable linger: ${(e as Error).message}` };
@@ -111,22 +109,33 @@ export async function ghAuthLogin(token: string): Promise<KetQua> {
   if (isFixture()) return { ok: true };
 
   const login = await new Promise<KetQua>((resolve) => {
-    const p = spawn("gh", ["auth", "login", "--hostname", "github.com", "--with-token"], {
-      stdio: ["pipe", "ignore", "pipe"],
-    });
+    let p;
+    try {
+      p = ctlSpawn("gh", ["auth", "login", "--hostname", "github.com", "--with-token"], {
+        stdio: ["pipe", "ignore", "pipe"],
+      });
+    } catch (e) {
+      resolve({ ok: false, message: `Could not run gh: ${(e as Error).message}` });
+      return;
+    }
+    if (p.stdin === null) {
+      resolve({ ok: false, message: "Could not run gh: no stdin to hand the token to." });
+      return;
+    }
     let stderr = "";
-    p.stderr.on("data", (d: Buffer) => (stderr += d.toString()));
+    p.stderr?.on("data", (d: Buffer) => (stderr += d.toString()));
     p.on("error", (e) => resolve({ ok: false, message: `Could not run gh: ${e.message}` }));
     p.on("close", (code) =>
       resolve(code === 0 ? { ok: true } : { ok: false, message: stderr.trim() || `gh exited ${code}` }),
     );
+    // STDIN, không phải argv: token trong argv là token lộ cho mọi `ps`.
     p.stdin.write(token.trim());
     p.stdin.end();
   });
   if (!login.ok) return login;
 
   try {
-    await run("gh", ["auth", "setup-git", "--hostname", "github.com"]);
+    await ctl("gh", ["auth", "setup-git", "--hostname", "github.com"]);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: `Signed in, but setup-git failed: ${(e as Error).message}` };
@@ -639,7 +648,7 @@ export async function listPreviews(opts?: { runCtl?: RunCtl }): Promise<BeePrevi
       },
     ];
   }
-  const runCtl = opts?.runCtl ?? ((cmd: string, args: string[]) => run(cmd, args));
+  const runCtl = opts?.runCtl ?? ((cmd: string, args: string[]) => ctl(cmd, args));
   let ids: string[];
   try {
     ids = await fs.readdir(path.join(root(), "sessions"));
@@ -677,7 +686,7 @@ export async function stopPreview(
     return { ok: false, message: "Invalid port." };
   }
   if (isFixture()) return { ok: true };
-  const runCtl = opts?.runCtl ?? ((cmd: string, args: string[]) => run(cmd, args));
+  const runCtl = opts?.runCtl ?? ((cmd: string, args: string[]) => ctl(cmd, args));
   try {
     await runCtl("systemctl", ["--user", "stop", `${unit}.service`]);
   } catch (e) {

@@ -1,12 +1,10 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-const run = promisify(execFile);
+import { ctl } from "./ctl";
 
 /**
  * `tok add <tên> --login` đi qua đúng tay lái với `claude setup-token`, nên
@@ -48,6 +46,7 @@ process.stdin.on("data", (d) => {
 let thu = "";
 let PATH_CU: string | undefined;
 let SRC_CU: string | undefined;
+let CTL_CU: string | undefined;
 
 beforeEach(async () => {
   thu = await fs.mkdtemp(path.join(os.tmpdir(), "bee-slot-"));
@@ -57,18 +56,26 @@ beforeEach(async () => {
   SRC_CU = process.env.BEE_SOURCE;
   process.env.PATH = `${path.join(thu, "bin")}:${process.env.PATH ?? ""}`;
   process.env.BEE_SOURCE = "disk";
+  // Mở CỬA LỆNH NGOÀI cho riêng bài này (T18): mặc định cả bộ test đóng
+  // (`BEE_CTL=none` trong vitest.setup.ts) để không bài nào lỡ tay start một
+  // unit thật. Ở đây mở là đúng — thứ chạy được là stub trong $PATH trên,
+  // và cái đang được kiểm chính là tay lái pty với một tiến trình thật.
+  CTL_CU = process.env.BEE_CTL;
+  delete process.env.BEE_CTL;
 });
 
 afterEach(async () => {
   process.env.PATH = PATH_CU;
   if (SRC_CU === undefined) delete process.env.BEE_SOURCE;
   else process.env.BEE_SOURCE = SRC_CU;
+  if (CTL_CU === undefined) delete process.env.BEE_CTL;
+  else process.env.BEE_CTL = CTL_CU;
   await fs.rm(thu, { recursive: true, force: true });
 });
 
 async function coScript(): Promise<boolean> {
   try {
-    await run("script", ["--version"]);
+    await ctl("script", ["--version"]);
     return true;
   } catch {
     return false;

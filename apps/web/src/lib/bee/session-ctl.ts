@@ -1,12 +1,11 @@
 import "server-only";
 
-import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import fsc from "node:fs";
 import path from "node:path";
-import { promisify } from "node:util";
 
+import { ctl } from "./ctl";
 import { deriveSessionTitle } from "./derive-title";
 import { capPhatDaiCong } from "./ports";
 import { docUsageTaiKhoan } from "./quota-read";
@@ -28,8 +27,6 @@ import {
  * regex trước (spec session-first §9); thất bại là dữ liệu trả về, không
  * phải exception ném lên UI.
  */
-
-const run = promisify(execFile);
 
 export type KetQuaPhien = { ok: true; id: string } | { ok: false; message: string };
 export type KetQua = { ok: true } | { ok: false; message: string };
@@ -147,7 +144,7 @@ export async function moPhien(input: {
     await fs.writeFile(tmp, JSON.stringify(session, null, 2));
     await fs.rename(tmp, path.join(sdir, "session.json"));
 
-    await run("systemctl", ["--user", "start", `bee-session@${id}.service`]);
+    await ctl("systemctl", ["--user", "start", `bee-session@${id}.service`]);
     return { ok: true, id };
   } catch (e) {
     return { ok: false, message: `Could not start session: ${(e as Error).message}` };
@@ -246,12 +243,12 @@ export async function doiModePhien(id: string, mode: BeeSessionMode): Promise<Ke
 
   const unit = `bee-session@${id}.service`;
   try {
-    await run("systemctl", ["--user", "is-active", unit]);
+    await ctl("systemctl", ["--user", "is-active", unit]);
   } catch {
     return { ok: true }; // not running — mode applies on the next start
   }
   try {
-    await run("systemctl", ["--user", "restart", unit]);
+    await ctl("systemctl", ["--user", "restart", unit]);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: `Mode saved but restart failed: ${(e as Error).message}` };
@@ -282,12 +279,12 @@ export async function doiModelPhien(id: string, model: BeeSessionModel): Promise
 
   const unit = `bee-session@${id}.service`;
   try {
-    await run("systemctl", ["--user", "is-active", unit]);
+    await ctl("systemctl", ["--user", "is-active", unit]);
   } catch {
     return { ok: true }; // not running — the model applies on the next start
   }
   try {
-    await run("systemctl", ["--user", "restart", unit]);
+    await ctl("systemctl", ["--user", "restart", unit]);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: `Model saved but restart failed: ${(e as Error).message}` };
@@ -370,7 +367,7 @@ export async function tiepTucPhien(id: string): Promise<KetQua> {
     return { ok: false, message: "No such session on this machine." };
   }
   try {
-    await run("systemctl", ["--user", "start", `bee-session@${id}.service`]);
+    await ctl("systemctl", ["--user", "start", `bee-session@${id}.service`]);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: `Could not continue session: ${(e as Error).message}` };
@@ -381,7 +378,7 @@ export async function dungPhien(id: string): Promise<KetQua> {
   if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
   if (laFixture()) return { ok: true };
   try {
-    await run("systemctl", ["--user", "stop", `bee-session@${id}.service`]);
+    await ctl("systemctl", ["--user", "stop", `bee-session@${id}.service`]);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: `Could not stop session: ${(e as Error).message}` };

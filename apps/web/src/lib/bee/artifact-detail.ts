@@ -1,9 +1,9 @@
 import "server-only";
 
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
+
+import { ctl } from "./ctl";
 
 /**
  * Issue/PR detail for the in-app viewer. Same discipline as machine-ctl:
@@ -12,8 +12,6 @@ import { promisify } from "node:util";
  * but `gh` only ever runs against repos the owner signed up — and
  * failures come back as data.
  */
-
-const run = promisify(execFile);
 
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
@@ -181,7 +179,7 @@ export async function fetchArtifactDetail(
   const cu = cache.get(khoa);
   if (cu !== undefined && now() - cu.luc < TTL_MS) return { ok: true, detail: cu.detail };
 
-  const runGh = opts?.runGh ?? ((args: string[]) => run("gh", args));
+  const runGh = opts?.runGh ?? ((args: string[]) => ctl("gh", args));
   const chung = "number,title,state,body,author,createdAt,url,labels,comments";
   const prFields = `${chung},isDraft,baseRefName,headRefName,headRefOid,additions,deletions,changedFiles`;
   const args =

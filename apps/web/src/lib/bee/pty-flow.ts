@@ -1,6 +1,6 @@
 import "server-only";
 
-import { spawn } from "node:child_process";
+import { ctlSpawn, type ChildProcess } from "./ctl";
 
 /**
  * Lái một lệnh đăng nhập tương tác từ web.
@@ -20,7 +20,7 @@ import { spawn } from "node:child_process";
  */
 
 export interface LuongPty {
-  p: ReturnType<typeof spawn>;
+  p: ChildProcess;
   out: string;
   done: boolean;
   timeout: NodeJS.Timeout;
@@ -31,7 +31,7 @@ const OSC_RE = /\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)?/g;
 
 /** Mở luồng. `song` = số phút giữ tiến trình trước khi tự dọn. */
 export function moLuong(lenh: string, song = 10): LuongPty {
-  const p = spawn("script", ["-qec", `stty cols 400 rows 100; ${lenh}`, "/dev/null"], {
+  const p = ctlSpawn("script", ["-qec", `stty cols 400 rows 100; ${lenh}`, "/dev/null"], {
     stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, TERM: "xterm-256color" },
   });

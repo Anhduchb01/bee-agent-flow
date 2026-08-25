@@ -39,7 +39,10 @@ case "$*" in
   *"is-active"*"bee-web"*) echo "$ACTIVE"; [ "$ACTIVE" = active ] && exit 0 || exit 3;;
   *NRestarts*)             echo "$NRES";;
   *MainPID*)               echo "$MPID";;
-  *) exit 1;;
+  # daemon-reload, enable, start… — một systemd khoẻ mạnh im lặng và thành
+  # công. Cho chúng đỏ ở đây thì install.sh chết vì set -e TRƯỚC khi tới cửa
+  # cổng, và bài test bên dưới sẽ xanh vì lý do hoàn toàn khác.
+  *) exit 0;;
 esac
 EOF
 chmod +x "$T/bin/systemctl"
@@ -156,6 +159,38 @@ bash "$DAY/../bin/doctor.sh" --exit-zero >/dev/null 2>&1 && MA=0 || MA=$?
 
 bash "$DAY/../bin/doctor.sh" --xxx >/dev/null 2>&1 && MA=0 || MA=$?
 [[ $MA -eq 2 ]] && kq ok "tham số lạ → exit 2, không im lặng bỏ qua" || kq no "tham số lạ trả $MA"
+
+# ── 4 · install.sh dừng trước cửa, thay vì bật vào một cổng có chủ ───────
+# Trước T19 nó cứ `enable --now` — rồi unit crash-loop im lặng, còn cổng vẫn
+# trả 200 vì người kia đang phục vụ. Một lỗi đọc được luôn hơn một lỗi không.
+IT="$T/install"; mkdir -p "$IT/home" "$IT/web/.next/standalone/apps/web" "$IT/srv"
+: > "$IT/web/.next/standalone/apps/web/server.js"
+echo "PORT=$CONG" > "$IT/srv/web.env"
+
+python3 -c "
+import socket,time
+s=socket.socket(); s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+s.bind(('127.0.0.1',$CONG)); s.listen(1); time.sleep(20)
+" &
+NGHE=$!
+for _ in $(seq 1 40); do ss -Hltn "sport = :$CONG" 2>/dev/null | grep -q . && break; sleep 0.1; done
+
+kichban inactive 0 999999
+RA=$(HOME="$IT/home" BEE_PREFIX="$IT/opt" BEE_ROOT="$IT/srv" BEE_WEB="$IT/web" \
+       bash "$DAY/../install.sh" 2>&1) && MA=0 || MA=$?
+[[ $MA -ne 0 ]] && kq ok "cổng có chủ → install.sh dừng (exit $MA), không bật đại" \
+  || kq no "install.sh vẫn enable bee-web lên một cổng đã có chủ"
+grep -q "Cổng $CONG" <<<"$RA" && kq ok "và nói ra cổng nào, ai giữ" \
+  || kq no "dừng nhưng không nói vì sao: $(tail -2 <<<"$RA")"
+
+kill "$NGHE" 2>/dev/null || true; wait "$NGHE" 2>/dev/null || true
+
+# Cổng trống thì KHÔNG được chặn — cửa này để bắt xung đột, không để cản đường.
+rm -rf "$IT/home/.config"
+HOME="$IT/home" BEE_PREFIX="$IT/opt" BEE_ROOT="$IT/srv" BEE_WEB="$IT/web" \
+  bash "$DAY/../install.sh" >/dev/null 2>&1 && MA=0 || MA=$?
+[[ $MA -eq 0 ]] && kq ok "cổng trống: install.sh chạy trọn, không chặn oan" \
+  || kq no "install.sh đỏ dù cổng trống (exit $MA)"
 
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-14: TẤT CẢ XANH"; else echo "RIG-14: CÓ ĐỎ"; exit 1; fi

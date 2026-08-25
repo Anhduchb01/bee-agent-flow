@@ -22,6 +22,23 @@ const eslintConfig = defineConfig([
                 "Import chéo feature phải qua barrel: @/features/<tên>. Trong cùng feature thì dùng đường dẫn tương đối.",
             },
           ],
+          // Cùng lý do như trên, cho một ranh giới khác: "mọi lệnh ngoài đi
+          // qua một cửa" chỉ là lời hứa cho tới khi có luật chặn. Nếu không
+          // có dòng này, lần sau ai đó cần chạy `gh` sẽ import execFile thẳng
+          // — và `BEE_CTL=none` lặng lẽ hết tác dụng đúng ở chỗ mới đó.
+          // Ngày 25/08 đã trả giá một lần: pnpm test start unit thật trên máy
+          // bee. Ngoại lệ duy nhất là chính lib/bee/ctl.ts, mở ở dưới.
+          paths: [
+            {
+              name: "node:child_process",
+              message:
+                "Lệnh ngoài phải đi qua @/lib/bee/ctl (ctl / ctlSpawn) — cửa đó tôn trọng BEE_CTL=none.",
+            },
+            {
+              name: "child_process",
+              message: "Dùng @/lib/bee/ctl (ctl / ctlSpawn).",
+            },
+          ],
         },
       ],
       // `any` bị cấm — thứ chưa biết kiểu thì dùng `unknown` rồi thu hẹp.
@@ -34,6 +51,12 @@ const eslintConfig = defineConfig([
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
       ],
     },
+  },
+
+  {
+    // Cửa thì phải mở được từ bên trong.
+    files: ["src/lib/bee/ctl.ts"],
+    rules: { "no-restricted-imports": "off" },
   },
 
   globalIgnores([
