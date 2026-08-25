@@ -153,6 +153,21 @@ tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
 - [ ] 🤖 **T15** Cấp lát dịch vụ cho phiên (M) — database + **role riêng**,
       vhost, bucket; gc thu hồi.
 
+## P4c · Nhiều tài khoản Claude (25/08)
+
+- [x] 🤖 **T22** ~~Pool tài khoản + đổi qua lại trên `/setup`~~ **XONG 25/08** —
+      panel đọc `tok list --json` (slot · email · trạng thái · thanh 5h/7d),
+      nút đổi từng hàng, thêm slot bằng cách chụp login hiện tại hoặc đăng
+      nhập tài khoản khác, và ô dán `TOKEN_SLAYER_TOKEN` để cài lần đầu.
+      Hai cái bẫy im lặng được ép thành luật: **đổi khi còn phiên chạy** bị
+      từ chối (phiên sẽ trôi sang tài khoản mới lúc làm mới token), và
+      **`claude.env` đè lên lựa chọn** thì UI + doctor nói thẳng kèm nút gỡ.
+      Tay lái pty tách ra `pty-flow.ts` dùng chung với `setup-token`.
+      27 test mới. [`docs/nhieu-tai-khoan-claude.md`](../docs/nhieu-tai-khoan-claude.md).
+- [ ] 🧑 **T22b** Quyết định `SLAYER_MINIMAL_PAYLOAD=1` — mặc định hook gửi
+      prompt + `tool_input` (tức nội dung file repo riêng) lên
+      token-slayer.ownego.com. Một dòng env là tắt; cần bạn chọn.
+
 ## P5 · Nợ nhỏ
 
 - [ ] 🤖 **T18** *Test đang khởi động unit THẬT trên máy thật* (S, an toàn) —

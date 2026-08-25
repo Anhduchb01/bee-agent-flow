@@ -74,6 +74,16 @@ export async function enableLinger(): Promise<KetQua> {
 
 export { validatePat } from "./pat";
 import {
+  cho,
+  dongLuong,
+  guiMa,
+  loiOauth,
+  manHinhCuoi,
+  moLuong,
+  nhacEnter,
+  type LuongPty,
+} from "./pty-flow";
+import {
   extractOauthUrl,
   extractSetupToken,
   validateClaudeToken,
@@ -160,77 +170,25 @@ export async function saveClaudeToken(token: string): Promise<KetQua> {
  * machine, and a second concurrent login would just steal the first one's
  * stdin. A fresh start kills the previous attempt.
  */
-interface SetupTokenFlow {
-  p: ReturnType<typeof spawn>;
-  out: string;
-  done: boolean;
-  timeout: NodeJS.Timeout;
-}
-let setupFlow: SetupTokenFlow | null = null;
+let setupFlow: LuongPty | null = null;
 
 function killSetupFlow(): void {
-  if (setupFlow === null) return;
-  clearTimeout(setupFlow.timeout);
-  try {
-    setupFlow.p.kill("SIGKILL");
-  } catch {
-    // Already gone.
-  }
+  dongLuong(setupFlow);
   setupFlow = null;
 }
 
 export type KetQuaLink = { ok: true; url: string } | { ok: false; message: string };
-
-/**
- * The last line the flow actually drew, for a failure message that names
- * the fault. ANSI and the ink UI's redraw padding go first; a token can
- * only appear after a code is submitted, but mask it anyway — this string
- * goes to a screen.
- */
-function manHinhCuoi(out: string): string | null {
-  const dong = out
-    .replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "")
-    .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)?/g, "")
-    .replace(/sk-ant-oat01-[A-Za-z0-9_-]+/g, "sk-ant-oat01-…")
-    .split(/[\r\n]+/)
-    .map((d) => d.trim())
-    .filter((d) => d !== "" && !/^\.+$/.test(d));
-  const cuoi = dong.at(-1);
-  return cuoi === undefined ? null : cuoi.slice(0, 160);
-}
 
 /** Start the login flow and return the URL for the user to open. */
 export async function startClaudeSetup(): Promise<KetQuaLink> {
   if (isFixture()) return { ok: true, url: "https://claude.ai/oauth/authorize?demo=1" };
 
   killSetupFlow();
-  // `stty cols` before the flow: script's pty defaults to 80 columns, and ink
-  // hard-wraps at the pty width — the URL came back sliced in two, and the
-  // token (longer than 80) would have been saved as its first half with
-  // nothing to show it was cut. 400 columns is wider than either.
-  const p = spawn("script", ["-qec", "stty cols 400 rows 100; claude setup-token", "/dev/null"], {
-    stdio: ["pipe", "pipe", "pipe"],
-    env: { ...process.env, TERM: "xterm-256color" },
-  });
-  const flow: SetupTokenFlow = {
-    p,
-    out: "",
-    done: false,
-    // An abandoned flow must not hang around holding a half-done login.
-    timeout: setTimeout(killSetupFlow, 10 * 60 * 1000),
-  };
+  const flow = moLuong("claude setup-token");
   setupFlow = flow;
-  p.stdout?.on("data", (d: Buffer) => (flow.out += d.toString()));
-  p.stderr?.on("data", (d: Buffer) => (flow.out += d.toString()));
-  p.on("close", () => (flow.done = true));
 
-  // The URL appears as soon as the ink UI draws — poll for up to 15s.
-  for (let i = 0; i < 60; i++) {
-    const url = extractOauthUrl(flow.out);
-    if (url !== null) return { ok: true, url };
-    if (flow.done) break;
-    await new Promise((r) => setTimeout(r, 250));
-  }
+  const url = await cho(flow, extractOauthUrl);
+  if (url !== null) return { ok: true, url };
   const loi = flow.done ? "The flow exited before printing a URL." : "Timed out waiting for the URL.";
   const thay = manHinhCuoi(flow.out);
   killSetupFlow();
@@ -242,12 +200,6 @@ export async function startClaudeSetup(): Promise<KetQuaLink> {
     ok: false,
     message: `Could not get a login link — ${loi}${thay === null ? "" : ` Last thing the flow printed: “${thay}”`}`,
   };
-}
-
-/** The flow's own words when it refuses a code, e.g. "OAuth error: …". */
-function loiOauth(out: string): string | null {
-  const sach = out.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "");
-  return /OAuth error:[^\r\n]{0,120}/.exec(sach)?.[0].trim() ?? null;
 }
 
 /** Feed the pasted confirmation code in; on success the token lands in claude.env. */
@@ -262,23 +214,10 @@ export async function submitClaudeCode(code: string): Promise<KetQua> {
     return { ok: false, message: "No login flow is waiting — get a new link first." };
   }
 
-  // Two separate writes, and the gap between them matters.
-  //
-  // CR, not LF: Enter on a real keyboard sends \r, and the input only
-  // submits on that. And the CR must arrive in its OWN chunk: a chunk over
-  // ~56 bytes is read as a paste, and a paste keeps its trailing CR as
-  // text instead of acting on it. Both failures look identical from here —
-  // the code sits in the box and nothing happens — which is why 25/08 cost
-  // two rounds: the short code we tested with stayed under the threshold
-  // and submitted fine, while the real one (70 chars) never did.
-  flow.p.stdin?.write(gon);
-  await new Promise((r) => setTimeout(r, 500));
-  flow.p.stdin?.write("\r");
+  await guiMa(flow, gon);
   // setup-token verifies the code and prints the token — give it up to 30s.
   for (let i = 0; i < 120; i++) {
-    // One more Enter at the 5s mark: cheap, harmless on an empty prompt,
-    // and it covers a machine slow enough that the first CR raced the UI.
-    if (i === 20 && !flow.done) flow.p.stdin?.write("\r");
+    if (i === 20) nhacEnter(flow);
     const token = extractSetupToken(flow.out);
     if (token !== null) {
       killSetupFlow();

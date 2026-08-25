@@ -1,10 +1,12 @@
 import { loadRepos, NewSessionForm } from "@/features/sessions";
 import {
+  ClaudeAccounts,
   ClaudeSetup,
   DiskPanel,
   DoctorChecklist,
   LingerButton,
   loadClaudeAuth,
+  loadSlayer,
   loadEnvFiles,
   loadDoctor,
   loadGc,
@@ -60,10 +62,11 @@ export default async function SetupPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [doctor, repos, claudeAuth, gc] = await Promise.all([
+  const [doctor, repos, claudeAuth, slayer, gc] = await Promise.all([
     loadDoctor(),
     loadRepos(),
     loadClaudeAuth(),
+    loadSlayer(),
     loadGc(),
   ]);
   const envFiles = await loadEnvFiles(repos.map((r) => r.slug));
@@ -119,6 +122,10 @@ bash apps/runner/install.sh`}</Cmd>
           </Card>
           <Card>
             <ClaudeSetup auth={claudeAuth} />
+          </Card>
+          <Card>
+            <h3 className="text-sm font-medium text-foreground">Tài khoản Claude trên máy</h3>
+            <ClaudeAccounts trangThai={slayer} />
           </Card>
           <Card>
             <PatForm done={check("pat")} />

@@ -1,0 +1,133 @@
+import { execFile } from "node:child_process";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+const run = promisify(execFile);
+
+/**
+ * `tok add <tên> --login` đi qua đúng tay lái với `claude setup-token`, nên
+ * nó thừa hưởng cùng những cái bẫy: Enter là CR, và CR phải đến trong cụm
+ * riêng. Test này chạy thật qua pty với một `tok` giả — không mạng, không
+ * đụng máy, và cố ý đặt mã dài quá ngưỡng "dán".
+ */
+
+const MA_THAT = "VikBPU6KBmIOvEbPdfsA4rVU9bhcRuz539o0bdOOnnxgtki6#-4zpz5xQwErTyUi";
+
+const STUB = `#!/usr/bin/env node
+if (process.stdin.isTTY) process.stdin.setRawMode(true);
+const [, , lenh, ten, co] = process.argv;
+if (lenh !== "add" || co !== "--login") { console.log("stub: " + process.argv.slice(2).join(" ")); process.exit(0); }
+const cot = process.stdout.columns ?? 80;
+const ve = (s) => { for (let i = 0; i < s.length; i += cot) process.stdout.write(s.slice(i, i + cot) + "\\r\\n"); };
+ve("Open this URL to authorize:");
+ve("https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=" + "s".repeat(60));
+process.stdout.write("Paste the code: ");
+let go = "", cum = 0, luc = 0;
+process.stdin.on("data", (d) => {
+  const gio = Date.now();
+  if (gio - luc > 150) cum = 0;
+  luc = gio;
+  let s = d.toString();
+  cum += s.length;
+  if (cum > 56) s = s.replace(/\\r/g, "");   // dán: CR là chữ, không phải phím
+  go += s;
+  const i = go.indexOf("\\r");
+  if (i === -1) return;
+  const ma = go.slice(0, i);
+  go = go.slice(i + 1);
+  if (ma.startsWith("MASAI")) { ve("OAuth error: Request failed with status code 400"); return; }
+  ve("Added slot " + ten);
+  process.exit(0);
+});
+`;
+
+let thu = "";
+let PATH_CU: string | undefined;
+let SRC_CU: string | undefined;
+
+beforeEach(async () => {
+  thu = await fs.mkdtemp(path.join(os.tmpdir(), "bee-slot-"));
+  await fs.mkdir(path.join(thu, "bin"));
+  await fs.writeFile(path.join(thu, "bin", "tok"), STUB, { mode: 0o755 });
+  PATH_CU = process.env.PATH;
+  SRC_CU = process.env.BEE_SOURCE;
+  process.env.PATH = `${path.join(thu, "bin")}:${process.env.PATH ?? ""}`;
+  process.env.BEE_SOURCE = "disk";
+});
+
+afterEach(async () => {
+  process.env.PATH = PATH_CU;
+  if (SRC_CU === undefined) delete process.env.BEE_SOURCE;
+  else process.env.BEE_SOURCE = SRC_CU;
+  await fs.rm(thu, { recursive: true, force: true });
+});
+
+async function coScript(): Promise<boolean> {
+  try {
+    await run("script", ["--version"]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+describe("thêm tài khoản Claude qua tok add --login", () => {
+  it("trả link duyệt nguyên vẹn, rồi mã dài vẫn gửi đi được", async () => {
+    if (!(await coScript())) return;
+    const { batDauThemSlot, xongThemSlot } = await import("./slayer-ctl");
+
+    const link = await batDauThemSlot("personal");
+    expect(link.ok).toBe(true);
+    if (!link.ok) return;
+    expect(link.url).toMatch(/^https:\/\/claude\.com\/cai\/oauth\/authorize\?code=true&client_id=9d1c250a&state=s+$/);
+
+    expect(await xongThemSlot(MA_THAT)).toEqual({ ok: true });
+  }, 30_000);
+
+  it("mã bị từ chối → chính lời của tok, không phải 'hết giờ'", async () => {
+    if (!(await coScript())) return;
+    const { batDauThemSlot, xongThemSlot } = await import("./slayer-ctl");
+
+    expect((await batDauThemSlot("personal")).ok).toBe(true);
+    const ket = await xongThemSlot(`MASAI${MA_THAT}`);
+    expect(ket.ok).toBe(false);
+    if (!ket.ok) expect(ket.message).toMatch(/OAuth error: Request failed with status code 400/);
+  }, 30_000);
+
+  it("tên slot bậy bị chặn TRƯỚC khi có tiến trình nào được sinh ra", async () => {
+    const { batDauThemSlot } = await import("./slayer-ctl");
+    const ket = await batDauThemSlot("personal; rm -rf /");
+    expect(ket.ok).toBe(false);
+    if (!ket.ok) expect(ket.message).toMatch(/Tên slot/);
+  });
+
+  it("chưa mở luồng mà gửi mã → nói thẳng, không treo", async () => {
+    const { xongThemSlot } = await import("./slayer-ctl");
+    const ket = await xongThemSlot("ABC123");
+    expect(ket.ok).toBe(false);
+    if (!ket.ok) expect(ket.message).toMatch(/Không có luồng đăng nhập nào đang chờ/);
+  });
+});
+
+describe("đổi tài khoản — luật 'không đổi khi đang chạy' nằm ở lớp dưới", () => {
+  it("còn phiên chạy thì từ chối, và nói RÕ vì sao", async () => {
+    const { doiSlot } = await import("./slayer-ctl");
+    const ket = await doiSlot("work", 2);
+    expect(ket.ok).toBe(false);
+    if (!ket.ok) {
+      expect(ket.message).toMatch(/Còn 2 phiên đang chạy/);
+      expect(ket.message).toMatch(/CẢ MÁY/);
+    }
+  });
+
+  it("không phiên nào chạy thì đổi, và mục tiêu bậy vẫn bị chặn", async () => {
+    const { doiSlot } = await import("./slayer-ctl");
+    expect(await doiSlot("work", 0)).toEqual({ ok: true });
+    const xau = await doiSlot("$(id)", 0);
+    expect(xau.ok).toBe(false);
+  });
+});

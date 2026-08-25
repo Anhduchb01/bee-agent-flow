@@ -2,6 +2,7 @@ import "server-only";
 
 import { getBee } from "@/lib/bee";
 import { listEnvFiles, type BeeEnvFile } from "@/lib/bee/machine-ctl";
+import { docTrangThaiSlayer, type TrangThaiSlayer } from "@/lib/bee/slayer-ctl";
 import type { BeeClaudeAuth, BeeDoctor } from "@/lib/bee/types";
 
 /** Latest machine self-check; `null` = doctor has never run. */
@@ -17,6 +18,11 @@ export function loadGc() {
 /** Live Claude sign-in status — direct read, no doctor run needed. */
 export function loadClaudeAuth(): Promise<BeeClaudeAuth> {
   return getBee().readClaudeAuth();
+}
+
+/** Bảng tài khoản Claude của token-slayer — pool, slot đang bật, token ghim. */
+export function loadSlayer(): Promise<TrangThaiSlayer> {
+  return docTrangThaiSlayer();
 }
 
 /** Env store per registered repo — what session-run overlays onto worktrees. */

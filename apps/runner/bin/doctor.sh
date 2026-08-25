@@ -30,10 +30,27 @@ fi
 # ── 1b · Claude auth — sessions cannot run without it. Two accepted paths:
 #         a setup-token token pasted on /setup (claude.env), or an
 #         interactive login done on the machine.
+#         Khi có token-slayer, thêm một câu: tài khoản NÀO đang dùng. Bảng
+#         tài khoản ở /setup chọn slot bằng cách ghi ~/.claude/.credentials
+#         .json — mà claude.env thì đè lên nó (biến môi trường thắng file),
+#         nên hai thứ cùng tồn tại là một cái bẫy im lặng: bấm đổi tài khoản
+#         thấy đổi, phiên vẫn chạy tài khoản cũ.
+SLOT=""
+if command -v tok >/dev/null 2>&1; then
+  SLOT=$(tok list --json 2>/dev/null | jq -r '.active // ""' 2>/dev/null || true)
+fi
 if grep -q '^CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-' "$BEE_ROOT/claude.env" 2>/dev/null; then
-  ghi "claude" true "token từ claude setup-token (claude.env)"
+  if [[ -n "$SLOT" ]]; then
+    ghi "claude" true "token ghim ở claude.env — ĐÈ LÊN slot '$SLOT' đang chọn; gỡ ở /setup nếu muốn đổi tài khoản có tác dụng"
+  else
+    ghi "claude" true "token từ claude setup-token (claude.env)"
+  fi
 elif [[ -f "$HOME/.claude/.credentials.json" ]]; then
-  ghi "claude" true "đã login tương tác trên máy"
+  if [[ -n "$SLOT" ]]; then
+    ghi "claude" true "đã login trên máy · tài khoản đang dùng: $SLOT"
+  else
+    ghi "claude" true "đã login tương tác trên máy"
+  fi
 else
   ghi "claude" false "chưa có auth — chạy \`claude setup-token\` ở BẤT KỲ máy nào rồi dán token vào /setup"
 fi
