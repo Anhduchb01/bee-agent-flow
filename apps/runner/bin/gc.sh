@@ -194,6 +194,21 @@ for wt in "$BEE_ROOT"/work/*/; do
     ly_do="$ly_do; docker: đã hạ ${kq_docker#removed:}"
   fi
 
+  # ── Service slice (T15) ───────────────────────────────────────────────
+  # Same rule as the containers above: if we cannot give the slice back, KEEP
+  # the worktree. A database nobody can trace to a session is worse than a
+  # directory that survived one more day. service-slice exits 0 when the
+  # session never had a slice, so this stays quiet for most sessions.
+  slice_sh="$(dirname "$(readlink -f "$0")")/service-slice.sh"
+  if [[ -x "$slice_sh" && -f "$sdir/services.json" ]]; then
+    if "$slice_sh" reclaim "$id" >/dev/null 2>&1; then
+      ly_do="$ly_do; slice: đã trả"
+    else
+      ghi "$id" kept "không trả được lát dịch vụ — giữ worktree để tick sau thử lại"
+      continue
+    fi
+  fi
+
   # ── Thu hồi ────────────────────────────────────────────────────────────
   bytes=$(du -sb "$wt" 2>/dev/null | cut -f1 || echo 0)
   if [[ -d "$bare" ]]; then

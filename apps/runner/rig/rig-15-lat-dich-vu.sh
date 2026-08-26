@@ -236,5 +236,65 @@ bash "$LAT" provision '../../etc/passwd' >/dev/null 2>&1 && rc=0 || rc=$?
   && kq ok "dirty session id: rejected at the door, docker untouched" \
   || kq no "dirty id got past the gate (rc=$rc)"
 
+# ── 4 · service-slice.sh reclaim ──────────────────────────────────────────
+# This is the dangerous half: it DROPs databases, in a timer, with nobody
+# watching. Everything here is about bounding that blast radius.
+echo
+echo "-- 4 · reclaim --"
+
+: > "$RIG_DOCKER_LOG"
+RIG_POOL_UP=1 bash "$LAT" reclaim "$ID_PG" >/dev/null 2>&1 && rc=0 || rc=$?
+[[ $rc -eq 0 ]] && kq ok "reclaim succeeded" || kq no "reclaim failed rc=$rc"
+
+grep -q "DROP DATABASE IF EXISTS bee_cc000000" "$RIG_DOCKER_LOG" \
+  && kq ok "drops the database" || kq no "database not dropped"
+grep -q "DROP ROLE IF EXISTS bee_cc000000" "$RIG_DOCKER_LOG" \
+  && kq ok "drops the role too — a role left behind still owns grants" \
+  || kq no "role left behind"
+[[ "$(grep -n 'DROP DATABASE' "$RIG_DOCKER_LOG" | cut -d: -f1)" -lt \
+   "$(grep -n 'DROP ROLE' "$RIG_DOCKER_LOG" | cut -d: -f1)" ]] \
+  && kq ok "database before role — postgres refuses to drop an owner" \
+  || kq no "wrong order: role dropped while it still owns the database"
+
+# Never touches anything outside the pool services it was told about.
+grep -q "redis\|acme/blob" "$RIG_DOCKER_LOG" \
+  && kq no "reclaim reached for a service that was never provisioned" \
+  || kq ok "leaves non-pool services alone"
+
+[[ ! -f "$BEE_ROOT/sessions/$ID_PG/services.json" ]] \
+  && kq ok "slice record removed — nothing claims a slice that is gone" \
+  || kq no "services.json survived reclaim"
+
+# Reclaiming twice must be quiet, because gc will run again tomorrow.
+bash "$LAT" reclaim "$ID_PG" >/dev/null 2>&1 \
+  && kq ok "second reclaim: no-op, no error" || kq no "reclaim is not idempotent"
+
+# THE important one. services.json is a file on disk; if a name in it ever
+# reached psql unchecked, a crafted record would run arbitrary SQL as
+# superuser in a timer. The name must be re-derived and re-checked, always.
+ID_XAU=cc000000-0000-4000-8000-00000000000e
+phien_lat "$ID_XAU" true "$CO_PG"
+RIG_POOL_UP=1 bash "$LAT" provision "$ID_XAU" >/dev/null 2>&1
+jq -c '.slice = "bee_x; DROP DATABASE postgres; --"' \
+  "$BEE_ROOT/sessions/$ID_XAU/services.json" > "$T/xau.json"
+cp "$T/xau.json" "$BEE_ROOT/sessions/$ID_XAU/services.json"
+: > "$RIG_DOCKER_LOG"
+bash "$LAT" reclaim "$ID_XAU" >/dev/null 2>&1 || true
+grep -q "DROP DATABASE postgres" "$RIG_DOCKER_LOG" \
+  && kq no "A TAMPERED services.json REACHED psql — arbitrary SQL as superuser" \
+  || kq ok "tampered slice name never reaches psql (name re-derived from uuid)"
+grep -q "DROP DATABASE IF EXISTS bee_cc000000" "$RIG_DOCKER_LOG" \
+  && kq ok "and it still reclaims the real slice it derived" \
+  || kq no "derived name was not used either"
+
+# Pool down: refuse and keep the record, so the next tick can try again.
+ID_SAU=cc000000-0000-4000-8000-00000000000f
+phien_lat "$ID_SAU" true "$CO_PG"
+RIG_POOL_UP=1 bash "$LAT" provision "$ID_SAU" >/dev/null 2>&1
+RIG_POOL_UP=0 bash "$LAT" reclaim "$ID_SAU" >/dev/null 2>&1 && rc=0 || rc=$?
+[[ $rc -ne 0 && -f "$BEE_ROOT/sessions/$ID_SAU/services.json" ]] \
+  && kq ok "pool down: refuses and KEEPS the record for the next tick" \
+  || kq no "dropped the record without reclaiming — the slice becomes an orphan (rc=$rc)"
+
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-15: ALL GREEN"; else echo "RIG-15: RED"; exit 1; fi

@@ -253,5 +253,41 @@ con "$ID_D5" \
   && kq no "máy không có docker: chặn oan phiên không dùng docker ($(ly_do "$ID_D5"))" \
   || kq ok "máy không có docker + phiên không compose: vẫn thu hồi"
 
+# --- ca 6+7: gc phải TRẢ LẠI lát dịch vụ, và giữ worktree nếu trả không được
+ID_D6=bbbbbbbb-0000-4000-8000-000000000006
+san2 "$ID_D6" 16 done false khong
+# Giả một lát đã cấp. gc phải gọi service-slice reclaim, không tự chế lệnh SQL.
+jq -cn '{slice:"bee_bbbbbbbb", at:"x",
+         items:[{service:"db", image:"postgres:16", kind:"postgres",
+                 in_pool:true, pool_service:"postgres",
+                 slice:"bee_bbbbbbbb", password:"p"}]}' \
+  > "$BEE_ROOT/sessions/$ID_D6/services.json"
+mkdir -p "$BEE_ROOT/services"
+printf 'services:\n  postgres:\n    image: postgres:16\n' > "$BEE_ROOT/services/compose.yml"
+
+: > "$RIG_DOCKER_LOG"
+RIG_DOCKER_UP=1 GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
+con "$ID_D6" && kq no "D6: lẽ ra phải thu hồi" || kq ok "D6: worktree đã thu hồi"
+grep -q "DROP DATABASE IF EXISTS bee_bbbbbbbb" "$RIG_DOCKER_LOG" \
+  && kq ok "gc trả lại lát dịch vụ cùng lúc thu hồi worktree" \
+  || kq no "gc xoá worktree nhưng để database ở lại — không ai lần ra nó của phiên nào"
+[[ ! -f "$BEE_ROOT/sessions/$ID_D6/services.json" ]] \
+  && kq ok "bản ghi lát đã xoá" || kq no "services.json còn lại sau khi thu hồi"
+
+# Trả không được (pool chết) → GIỮ worktree, đừng để lát thành mồ côi.
+ID_D7=bbbbbbbb-0000-4000-8000-000000000007
+san2 "$ID_D7" 17 done false khong
+jq -cn '{slice:"bee_bbbbbbbb", at:"x",
+         items:[{service:"db", image:"postgres:16", kind:"postgres",
+                 in_pool:true, pool_service:"postgres",
+                 slice:"bee_bbbbbbbb", password:"p"}]}' \
+  > "$BEE_ROOT/sessions/$ID_D7/services.json"
+RIG_DOCKER_UP=0 GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
+if con "$ID_D7" && [[ "$(ly_do "$ID_D7")" == *lát* ]]; then
+  kq ok "không trả được lát: giữ worktree ($(ly_do "$ID_D7"))"
+else
+  kq no "xoá worktree khi chưa trả được lát ($(ly_do "$ID_D7"))"
+fi
+
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-07: TẤT CẢ XANH"; else echo "RIG-07: CÓ ĐỎ"; exit 1; fi

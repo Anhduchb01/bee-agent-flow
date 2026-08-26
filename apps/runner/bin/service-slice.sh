@@ -193,7 +193,81 @@ lam_provision() {
   return 0
 }
 
+# ── Reclaiming, one function per kind ─────────────────────────────────────
+# The dangerous half. Every name below is DERIVED from the uuid argument and
+# re-checked against LAT_RE — never read back out of services.json. That file
+# lives on disk; if a name in it reached psql unchecked, a crafted record
+# would run arbitrary SQL as superuser inside a timer. rig-15 tampers with it
+# on purpose and asserts nothing escapes.
+
+thu_postgres() {  # thu_postgres <pool-service> <slice>
+  local svc="$1" lat="$2"
+  # Database first: postgres refuses to drop a role that still owns one.
+  pool_exec "$svc" psql -v ON_ERROR_STOP=1 -U postgres -d postgres \
+    -c "DROP DATABASE IF EXISTS $lat"
+  pool_exec "$svc" psql -v ON_ERROR_STOP=1 -U postgres -d postgres \
+    -c "DROP ROLE IF EXISTS $lat"
+}
+
+thu_rabbitmq() {  # thu_rabbitmq <pool-service> <slice>
+  local svc="$1" lat="$2"
+  pool_exec "$svc" rabbitmqctl delete_vhost "/$lat" 2>/dev/null || true
+  pool_exec "$svc" rabbitmqctl delete_user "$lat" 2>/dev/null || true
+}
+
+thu_s3() {  # thu_s3 <pool-service> <slice>
+  local svc="$1" lat="$2"
+  pool_exec "$svc" mc alias set beelocal http://127.0.0.1:9000 \
+    "${MINIO_ROOT_USER:-minioadmin}" "${MINIO_ROOT_PASSWORD:-minioadmin}" >/dev/null 2>&1 || true
+  pool_exec "$svc" mc rb --force "beelocal/${lat//_/-}" >/dev/null 2>&1 || true
+  pool_exec "$svc" mc admin user rm beelocal "$lat" >/dev/null 2>&1 || true
+}
+
+lam_reclaim() {
+  local id="$1"
+  [[ "$id" =~ $UUID_RE ]] || { loi "service-slice: not a session id"; return 2; }
+
+  local uuid8="${id//-/}"; uuid8="${uuid8:0:8}"
+  local lat="bee_$uuid8"
+  [[ "$lat" =~ $LAT_RE ]] || { loi "service-slice: derived slice name failed its own check"; return 2; }
+
+  # Split, not one `local`: bash declares every name in a `local` statement
+  # (unset) before assigning any of them, so `rec="$sdir/..."` on the same
+  # line would read an unset sdir and die under `set -u`.
+  local sdir="$BEE_ROOT/sessions/$id"
+  local rec="$sdir/services.json"
+  # Nothing recorded means nothing was ever carved. gc runs again tomorrow,
+  # so silence here has to be success, not an error.
+  [[ -f "$rec" ]] || return 0
+
+  # Only the KIND is taken from the record, and only to pick which pool
+  # service to talk to. The name itself is always the derived one above.
+  local kinds
+  kinds=$(jq -r '[.items[]? | select(.in_pool == true) | .kind] | unique[]' "$rec" 2>/dev/null || true)
+  [[ -n "$kinds" ]] || { rm -f "$rec"; return 0; }
+
+  if ! pool_song; then
+    loi "service-slice: pool is not running — keeping the slice record so the next tick can retry"
+    return 3
+  fi
+
+  local kind svc
+  while read -r kind; do
+    [[ -n "$kind" ]] || continue
+    svc=$(pool_service_for "$kind") || continue
+    case "$kind" in
+      postgres) thu_postgres "$svc" "$lat";;
+      rabbitmq) thu_rabbitmq "$svc" "$lat";;
+      s3)       thu_s3 "$svc" "$lat";;
+    esac
+  done <<<"$kinds"
+
+  rm -f "$rec"
+  return 0
+}
+
 case "${1:-}" in
   provision) lam_provision "${2:-}";;
-  *) loi "usage: service-slice.sh provision <session-id>"; exit 2;;
+  reclaim)   lam_reclaim   "${2:-}";;
+  *) loi "usage: service-slice.sh provision|reclaim <session-id>"; exit 2;;
 esac
