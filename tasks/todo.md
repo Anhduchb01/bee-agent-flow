@@ -169,13 +169,29 @@ Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestar
       họ biến đó** — envsubst không giới hạn sẽ nuốt `$VAR` trong secret của
       repo. rig-11: 7/7. bee không cần biết tên biến của từng repo.
 - [ ] 🤖 **T17** Lấy lại cgroup driver `systemd` cho rootless docker (S) —
+      *(spec T15 §10 chốt: với thiết kế lát-chung thì CHƯA cần — chỉ thành bắt
+      buộc nếu để mỗi phiên tự dựng stack đầy đủ.)*
       hôm nay đang chạy `cgroupfs` nên `docker info` báo `Cgroup Driver: none`
       và `--memory`/`--cpus` không ai thi hành. Gốc: `containerd` không thừa
       kế `DBUS_SESSION_BUS_ADDRESS` từ `dockerd` nên `runc` đi hỏi systemd hệ
       thống. Xem [docker-cho-bee.md §5b](../docs/docker-cho-bee.md). Chỉ cần
       làm khi T15 muốn đặt trần tài nguyên cho từng phiên.
-- [ ] 🤖 **T15** Cấp lát dịch vụ cho phiên (M) — database + **role riêng**,
-      vhost, bucket; gc thu hồi.
+- [ ] 🤖 **T15** Cấp lát dịch vụ cho phiên (M) — **đã có spec 26/08:**
+      [`docs/specs/lat-dich-vu.md`](../docs/specs/lat-dich-vu.md). Năm quyết
+      định đã chốt trước khi code: bee tự đọc compose của repo và **đoán kiểu
+      từ image** · tên lát theo **session uuid** (không theo `<slug>-<num>`,
+      vì `num` trùng được khi mở hai phiên cùng lúc) · cấp lát là **rule chứ
+      không AI** (chạy lúc không ai ngồi cạnh, cầm admin credential, và gc
+      phải suy ra được tên để thu hồi) · pool định nghĩa **trên web** · màn
+      cấu hình gộp một trang **hai tab**. Chia ba đợt:
+  - [ ] 🤖 **T15a** `gc.sh` biết `docker compose -p … down -v` (S) — **vá nợ
+        đã có, không phụ thuộc phần còn lại**: hôm nay gc không có một dòng
+        docker nào, nên agent tự `compose up` là để lại container + volume
+        vĩnh viễn. 6.9GB volume / 17 cái từ thời `ducba` là bằng chứng.
+  - [ ] 🤖 **T15b** `lat-dich-vu.sh` cấp/thu hồi + bảng tra image + mở rộng
+        `env.d` nhận `${BEE_DB_URL}`… + rig (M). Chạy tay được trước khi có UI.
+  - [ ] 🤖 **T15c** `/setup` hai tab + panel pool + panel lát đang cấp +
+        doctor mục `dich-vu` (M).
 
 ## P4c · Nhiều tài khoản Claude (25/08)
 
