@@ -26,6 +26,7 @@ import { humanDuration } from "@/lib/duration";
 
 import { loadArtifactDetailAction } from "../api/actions";
 import { unwrapArtifactUrl, artifactColour, type ArtifactSong } from "../lib/artifact-live";
+import { type NodeKind } from "../lib/build-graph";
 import type {
   EdgeCanvas,
   NodeArtifact,
@@ -55,7 +56,7 @@ const TONE: Record<SessionStatus, Tone> = {
   failed: "down",
 };
 
-type SessionFlow = Node<NodeSession["data"] & Record<string, unknown>, "phien">;
+type SessionFlow = Node<NodeSession["data"] & Record<string, unknown>, "session">;
 type FlowArtifact = Node<NodeArtifact["data"] & Record<string, unknown>, "artifact">;
 type FlowNhomRepo = Node<NodeRepoGroup["data"] & Record<string, unknown>, "repo-group">;
 
@@ -223,8 +224,11 @@ function ChoChayNode({ data }: { data: { title: string; hint: string; href: stri
   );
 }
 
-const nodeTypes: NodeTypes = {
-  "cho-chay": ChoChayNode,
+// Typed against NodeKind, not NodeTypes: a key that drifts from the kind
+// build-graph emits must fail the build, because React Flow will not — it
+// falls back to a blank default node without a word of warning.
+export const nodeTypes: Record<NodeKind, NodeTypes[string]> = {
+  queued: ChoChayNode,
   session: SessionNode,
   artifact: ArtifactNode,
   "repo-group": RepoGroupNode,
@@ -356,7 +360,7 @@ export function CanvasView({
         nodesConnectable={false}
         deleteKeyCode={null}
         onNodeClick={(_, node) => {
-          if (node.type === "phien") setChon(session.find((p) => p.id === node.id) ?? null);
+          if (node.type === "session") setChon(session.find((p) => p.id === node.id) ?? null);
           if (node.type === "demo") {
             const d = node.data as NodeDemo["data"];
             setXemVideo({ name: d.name, url: d.url });

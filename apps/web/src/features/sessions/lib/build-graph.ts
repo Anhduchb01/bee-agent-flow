@@ -14,7 +14,7 @@ import type { SessionGroup } from "../api/load";
 
 export interface NodeSession {
   id: string;
-  type: "phien";
+  type: "session";
   position: { x: number; y: number };
   parentId?: string;
   extent?: "parent";
@@ -54,17 +54,17 @@ export interface NodeRepoGroup {
   style: { width: number; height: number };
 }
 
-/** 🎬 demo video node: attached to the PR its session made. */
 /** Node cho việc CHƯA xảy ra — vẽ mờ, nhãn nói rõ nó là dự định. */
 export interface NodeQueued {
   id: string;
-  type: "cho-chay";
+  type: "queued";
   position: { x: number; y: number };
   parentId?: string;
   extent?: "parent";
   data: { title: string; hint: string; href: string };
 }
 
+/** 🎬 demo video node: attached to the PR its session made. */
 export interface NodeDemo {
   id: string;
   type: "demo";
@@ -77,6 +77,14 @@ export interface NodeDemo {
     url: string;
   };
 }
+
+/**
+ * The kinds a canvas node can be. canvas-view types its React Flow registry
+ * `Record<NodeKind, …>`, so a renderer that goes missing is a typecheck error
+ * — React Flow itself would just draw a blank box and say nothing.
+ */
+export const NODE_KIND = ["session", "artifact", "repo-group", "demo", "queued"] as const;
+export type NodeKind = (typeof NODE_KIND)[number];
 
 export type NodeCanvas = NodeSession | NodeArtifact | NodeRepoGroup | NodeDemo | NodeQueued;
 
@@ -127,7 +135,7 @@ export function buildGraph(
       if (v.repo !== g.repo || v.status !== "waiting") continue;
       remaining.push({
         id: `queued-${v.repo}#${v.issue}`,
-        type: "cho-chay",
+        type: "queued",
         position: { x: X_PHIEN, y },
         parentId: idNhom,
         extent: "parent",
@@ -143,7 +151,7 @@ export function buildGraph(
     for (const p of g.session) {
       remaining.push({
         id: p.id,
-        type: "phien",
+        type: "session",
         position: { x: X_PHIEN, y },
         parentId: idNhom,
         extent: "parent",

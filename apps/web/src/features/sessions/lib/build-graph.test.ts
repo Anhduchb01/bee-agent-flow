@@ -44,8 +44,8 @@ describe("buildGraph", () => {
       nodes.findIndex((n) => n.id === A),
     );
     const nodeA = nodes.find((n) => n.id === A);
-    expect(nodeA?.type === "phien" && nodeA.parentId).toBe("group-you/myapp");
-    expect(nodeA?.type === "phien" && nodeA.extent).toBe("parent");
+    expect(nodeA?.type === "session" && nodeA.parentId).toBe("group-you/myapp");
+    expect(nodeA?.type === "session" && nodeA.extent).toBe("parent");
 
     // Artifact dạt phải phiên (toạ độ TƯƠNG ĐỐI trong container)
     const artifactPr = nodes.find((n) => n.id === `${A}-pr-123`);
@@ -81,7 +81,7 @@ describe("buildGraph", () => {
     const chat = { ...session(A, "myapp", 3, "you/myapp"), worktree: false };
     const { nodes } = buildGraph([{ repo: "you/myapp", session: [chat] }], {});
     const node = nodes.find((n) => n.id === A);
-    expect(node?.type === "phien" && node.data.nhanh).toBe("chat");
+    expect(node?.type === "session" && node.data.nhanh).toBe("chat");
   });
 });
 

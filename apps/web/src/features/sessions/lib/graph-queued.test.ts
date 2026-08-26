@@ -15,7 +15,7 @@ const HANG = (status: "waiting" | "running" = "waiting"): Queue => ({
 describe("canvas — issue đã xếp hàng mà CHƯA chạy cũng phải thấy được (D5)", () => {
   it("mọc một node chờ, nhãn nói rõ đây là dự định chứ chưa xảy ra", () => {
     const { nodes } = buildGraph([{ repo: "you/myapp", session: [] }], {}, {}, {}, HANG());
-    const waitFor = nodes.find((n) => n.type === "cho-chay");
+    const waitFor = nodes.find((n) => n.type === "queued");
     expect(waitFor).toBeDefined();
     expect(JSON.stringify(waitFor?.data)).toMatch(/41/);
     expect(JSON.stringify(waitFor?.data)).toMatch(/chờ|queued/i);
@@ -23,12 +23,12 @@ describe("canvas — issue đã xếp hàng mà CHƯA chạy cũng phải thấy
 
   it("node chờ nằm trong đúng group của repo, không trôi ra ngoài", () => {
     const { nodes } = buildGraph([{ repo: "you/myapp", session: [] }], {}, {}, {}, HANG());
-    expect(nodes.find((n) => n.type === "cho-chay")?.parentId).toBe("group-you/myapp");
+    expect(nodes.find((n) => n.type === "queued")?.parentId).toBe("group-you/myapp");
   });
 
   it("việc đã chạy KHÔNG mọc node chờ — phiên thật thay chỗ nó", () => {
     const { nodes } = buildGraph([{ repo: "you/myapp", session: [] }], {}, {}, {}, HANG("running"));
-    expect(nodes.some((n) => n.type === "cho-chay")).toBe(false);
+    expect(nodes.some((n) => n.type === "queued")).toBe(false);
   });
 
   it("repo không có trong hàng đợi thì canvas y như cũ", () => {
