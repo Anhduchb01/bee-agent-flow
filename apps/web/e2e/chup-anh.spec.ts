@@ -37,6 +37,7 @@ const MAN_THEO_CANH: Man[] = [
  */
 const MAN_MOT_LAN: Man[] = [
   { ten: "06-du-an-loc", url: "/projects?p=myapp" },
+  { ten: "10-setup-config", url: "/setup?tab=config" },
 ];
 
 const CANH = [
