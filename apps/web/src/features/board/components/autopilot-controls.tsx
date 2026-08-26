@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import {
   boKhoiHangDoiAction,
+  chayNgayAction,
   doiThuTuAction,
   themVaoHangDoiAction,
 } from "../api/queue-actions";
@@ -47,7 +48,7 @@ export function NutXepHang({ muc }: { muc: MucBang }) {
         type="button"
         onClick={bam}
         disabled={dang}
-        aria-label={daXep ? `Bỏ #${muc.issue.number} khỏi Autopilot` : `Xếp #${muc.issue.number} vào Autopilot`}
+        aria-label={daXep ? `Remove #${muc.issue.number} from Autopilot` : `Queue #${muc.issue.number} for Autopilot`}
         className={NUT}
       >
         {daXep ? "−" : "+"}
@@ -70,12 +71,52 @@ export function NutDoiThuTu({ muc }: { muc: MucBang }) {
 
   return (
     <span className="flex gap-1">
-      <button type="button" onClick={di(-1)} disabled={dang} aria-label={`Đưa #${muc.issue.number} lên trước`} className={NUT}>
+      <button type="button" onClick={di(-1)} disabled={dang} aria-label={`Move #${muc.issue.number} earlier`} className={NUT}>
         ↑
       </button>
-      <button type="button" onClick={di(1)} disabled={dang} aria-label={`Đưa #${muc.issue.number} xuống sau`} className={NUT}>
+      <button type="button" onClick={di(1)} disabled={dang} aria-label={`Move #${muc.issue.number} later`} className={NUT}>
         ↓
       </button>
+    </span>
+  );
+}
+
+/**
+ * "Run now" ở đầu lane Autopilot.
+ *
+ * Nếu không có nó, câu hỏi đầu tiên của bất kỳ ai xếp việc xong là "nó chạy
+ * chưa, hay tôi phải đợi?" — và câu trả lời đúng (≤30 phút) không có chỗ nào
+ * trên màn hình nói ra. Nút này vừa rút ngắn thời gian chờ về 0, vừa TRẢ LỜI
+ * câu hỏi đó bằng chính lý do nó in ra khi không mở được phiên nào.
+ */
+export function NutChayNgay({ soViec }: { soViec: number }) {
+  const router = useRouter();
+  const [dang, batDau] = useTransition();
+  const [noi, setNoi] = useState("");
+
+  function bam() {
+    batDau(async () => {
+      const ket = await chayNgayAction();
+      setNoi(ket.message);
+      router.refresh();
+    });
+  }
+
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={bam}
+        disabled={dang || soViec === 0}
+        className="flex h-9 items-center rounded-control border border-border px-3 text-xs text-body hover:bg-accent disabled:opacity-40"
+      >
+        {dang ? "Running…" : "Run now"}
+      </button>
+      {noi !== "" && (
+        <span role="status" className="text-xs text-muted-foreground">
+          {noi}
+        </span>
+      )}
     </span>
   );
 }

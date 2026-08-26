@@ -30,8 +30,8 @@ describe("BriefView — sáng dậy cầm điện thoại là đọc được", 
 
   it("không xếp việc: nói thẳng là chưa xếp, và chỉ đường đi xếp", () => {
     render(<BriefView banTin={{ ...BASE, loai: "khong-xep-viec", daChay: [] }} />);
-    expect(screen.getByText(/không có việc nào được xếp/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /bảng dự án/ })).toHaveAttribute("href", "/projects?view=kanban");
+    expect(screen.getByText(/Nothing has been queued/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /project board/ })).toHaveAttribute("href", "/projects?view=kanban");
   });
 
   it("có xếp mà không chạy được là MỘT CÂU CHUYỆN KHÁC — không gộp với 'chưa xếp'", () => {
@@ -41,7 +41,7 @@ describe("BriefView — sáng dậy cầm điện thoại là đọc được", 
         conCho: [{ viec: { slug: "myapp", repo: "you/myapp", issue: 41, mode: "auto", model: "default", status: "waiting", sessionId: null, reason: "hạn mức 5h đang 91%", added_at: "t" }, viSao: "hạn mức 5h đang 91%" }],
       }} />,
     );
-    expect(screen.getByText(/không chạy được/i)).toBeInTheDocument();
+    expect(screen.getByText(/nothing could run/i)).toBeInTheDocument();
     expect(screen.getByText(/91%/)).toBeInTheDocument();
   });
 });

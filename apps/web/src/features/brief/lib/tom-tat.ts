@@ -44,10 +44,10 @@ export interface BanTin {
 function viSaoKet(p: BeeSession): string {
   const reason = (p as unknown as Record<string, unknown>).reason;
   if (typeof reason === "string" && reason !== "") return reason;
-  if (p.needs_human) return "cần người xem — phiên hỏng hai lần liên tiếp";
-  if (p.status === "failed") return "phiên kết thúc với lỗi; xem dòng sự kiện để biết chi tiết";
-  if (p.status === "stopped") return "bị dừng giữa chừng";
-  return "không rõ lý do — xem lại dòng sự kiện của phiên";
+  if (p.needs_human) return "needs a human — the session failed twice in a row";
+  if (p.status === "failed") return "the session ended with an error — open it to read the event stream";
+  if (p.status === "stopped") return "stopped part-way";
+  return "no reason recorded — open the session and read its event stream";
 }
 
 function trongKhoang(p: BeeSession, tu: Date, den: Date): boolean {
@@ -87,7 +87,7 @@ export function dungBanTin(input: {
     .filter((v) => v.status === "waiting")
     .map((v) => ({
       viec: v,
-      viSao: v.reason ?? "chưa tới lượt",
+      viSao: v.reason ?? "not its turn yet",
     }));
 
   const loai: LoaiDem =

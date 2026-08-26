@@ -100,9 +100,9 @@ export function laThaHopLe(tu: Lane, den: Lane): { ok: boolean; lyDo: string } {
   const vi: Record<Lane, string> = {
     backlog: "",
     autopilot: "",
-    working: "một phiên đang chạy hay không là sự thật, không kéo vào được",
-    review: "lane này do PR quyết định, không do kéo thả",
-    done: "issue đóng trên GitHub mới sang Done",
+    working: "whether a session is running is a fact — you cannot drag one into being",
+    review: "this lane is decided by the PR, not by dragging",
+    done: "an issue reaches Done by being closed on GitHub",
   };
   return { ok: false, lyDo: vi[den] !== "" ? vi[den] : vi[tu] };
 }

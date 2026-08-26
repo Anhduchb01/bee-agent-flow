@@ -124,7 +124,7 @@ bash apps/runner/install.sh`}</Cmd>
             <ClaudeSetup auth={claudeAuth} />
           </Card>
           <Card>
-            <h3 className="text-sm font-medium text-foreground">Tài khoản Claude trên máy</h3>
+            <h3 className="text-sm font-medium text-foreground">Claude accounts on this machine</h3>
             <ClaudeAccounts trangThai={slayer} />
           </Card>
           <Card>

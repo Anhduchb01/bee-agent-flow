@@ -66,34 +66,34 @@ describe("ClaudeAccounts", () => {
   it("chưa cài → chỉ có ô dán token, không có bảng tài khoản rỗng gây hiểu nhầm", () => {
     render(<ClaudeAccounts trangThai={{ daCai: false, pool: null, tokenGhim: false, message: null, coLoginMay: false }} />);
     expect(screen.getByLabelText("Token token-slayer")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Dùng cái này" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Use this one" })).not.toBeInTheDocument();
   });
 
   it("dán token → gọi trình cài đặt", async () => {
     const user = userEvent.setup();
     render(<ClaudeAccounts trangThai={{ daCai: false, pool: null, tokenGhim: false, message: null, coLoginMay: false }} />);
     await user.type(screen.getByLabelText("Token token-slayer"), "a".repeat(47));
-    await user.click(screen.getByRole("button", { name: "Cài" }));
+    await user.click(screen.getByRole("button", { name: "Install" }));
     expect(caiSlayerAction).toHaveBeenCalledWith("a".repeat(47));
   });
 
   it("liệt kê pool: cái đang dùng có nhãn và KHÔNG có nút đổi sang chính nó", () => {
     render(<ClaudeAccounts trangThai={HAI_SLOT} />);
     expect(screen.getByText("work")).toBeInTheDocument();
-    expect(screen.getByText("đang dùng")).toBeInTheDocument();
+    expect(screen.getByText("in use")).toBeInTheDocument();
     // Đúng một nút đổi: slot đang bật không tự đổi sang chính nó.
-    expect(screen.getAllByRole("button", { name: "Dùng cái này" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Use this one" })).toHaveLength(1);
   });
 
   it("slot hết hạn được nói thẳng, không im lặng nằm đó chờ phiên đêm chết", () => {
     render(<ClaudeAccounts trangThai={HAI_SLOT} />);
-    expect(screen.getByText(/hết hạn/)).toBeInTheDocument();
+    expect(screen.getByText(/expired/)).toBeInTheDocument();
   });
 
   it("bấm đổi → gửi đúng tên slot", async () => {
     const user = userEvent.setup();
     render(<ClaudeAccounts trangThai={HAI_SLOT} />);
-    await user.click(screen.getByRole("button", { name: "Dùng cái này" }));
+    await user.click(screen.getByRole("button", { name: "Use this one" }));
     expect(doiSlotAction).toHaveBeenCalledWith("personal");
   });
 
@@ -104,60 +104,60 @@ describe("ClaudeAccounts", () => {
     });
     const user = userEvent.setup();
     render(<ClaudeAccounts trangThai={HAI_SLOT} />);
-    await user.click(screen.getByRole("button", { name: "Dùng cái này" }));
+    await user.click(screen.getByRole("button", { name: "Use this one" }));
     expect(await screen.findByText(/Còn 2 phiên đang chạy/)).toBeInTheDocument();
   });
 
   it("token ghim trong claude.env → cảnh báo kèm nút gỡ, vì bảng này khi đó chỉ là trang trí", async () => {
     const user = userEvent.setup();
     render(<ClaudeAccounts trangThai={{ ...HAI_SLOT, tokenGhim: true }} />);
-    expect(screen.getByText(/đang ghim một token/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Gỡ token ghim" }));
+    expect(screen.getByText(/pins a token/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove the pinned token" }));
     expect(boTokenGhimAction).toHaveBeenCalled();
   });
 
   it("lưu tài khoản đang đăng nhập thành slot mới", async () => {
     const user = userEvent.setup();
     render(<ClaudeAccounts trangThai={HAI_SLOT} />);
-    await user.type(screen.getByLabelText("Tên slot mới"), "laptop");
-    await user.click(screen.getByRole("button", { name: /Lưu tài khoản đang đăng nhập/ }));
+    await user.type(screen.getByLabelText("New slot name"), "laptop");
+    await user.click(screen.getByRole("button", { name: /Save the account already signed in/ }));
     expect(chupSlotAction).toHaveBeenCalledWith("laptop");
   });
 
   it("đăng nhập tài khoản khác → hiện link duyệt rồi mới hỏi mã", async () => {
     const user = userEvent.setup();
     render(<ClaudeAccounts trangThai={HAI_SLOT} />);
-    expect(screen.queryByLabelText("Mã xác nhận")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Confirmation code")).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Tên slot mới"), "personal2");
-    await user.click(screen.getByRole("button", { name: /Đăng nhập tài khoản khác/ }));
+    await user.type(screen.getByLabelText("New slot name"), "personal2");
+    await user.click(screen.getByRole("button", { name: /Sign in with another account/ }));
     expect(batDauThemSlotAction).toHaveBeenCalledWith("personal2");
 
-    const link = await screen.findByRole("link", { name: /Mở trang duyệt/ });
+    const link = await screen.findByRole("link", { name: /Open the approval page/ });
     expect(link).toHaveAttribute("href", "https://claude.com/cai/oauth/x");
-    expect(screen.getByLabelText("Mã xác nhận")).toBeInTheDocument();
+    expect(screen.getByLabelText("Confirmation code")).toBeInTheDocument();
   });
 
   it("máy không có login tương tác → nút CHỤP tắt, và nói vì sao", () => {
     render(<ClaudeAccounts trangThai={{ ...HAI_SLOT, coLoginMay: false }} />);
-    expect(screen.getByRole("button", { name: /Lưu tài khoản đang đăng nhập/ })).toBeDisabled();
-    expect(screen.getByText(/không phải một phiên đăng nhập/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Save the account already signed in/ })).toBeDisabled();
+    expect(screen.getByText(/not on a login session/)).toBeInTheDocument();
     // Đường còn lại phải mở, nếu không thì panel thành ngõ cụt.
-    expect(screen.getByRole("button", { name: /Đăng nhập tài khoản khác/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Sign in with another account/ })).toBeInTheDocument();
   });
 
   it("cài rồi vẫn còn đường dán token mới — giấu đi là bịt lối lúc admin cấp lại", async () => {
     const user = userEvent.setup();
     render(<ClaudeAccounts trangThai={HAI_SLOT} />);
     await user.type(screen.getByLabelText("Token token-slayer"), "b".repeat(47));
-    await user.click(screen.getByRole("button", { name: /Cài lại \/ đổi token/ }));
+    await user.click(screen.getByRole("button", { name: /Reinstall \/ change token/ }));
     expect(caiSlayerAction).toHaveBeenCalledWith("b".repeat(47));
   });
 
   it("nhận tài khoản admin cấp → in NGUYÊN lời của tok, kể cả khi nó nói 'chưa có gì'", async () => {
     const user = userEvent.setup();
     render(<ClaudeAccounts trangThai={HAI_SLOT} />);
-    await user.click(screen.getByRole("button", { name: "Nhận tài khoản admin cấp" }));
+    await user.click(screen.getByRole("button", { name: "Pull accounts your admin granted" }));
     expect(nhanTaiKhoanCapAction).toHaveBeenCalled();
     // Câu "ask an admin to Reissue" chính là câu trả lời hữu ích duy nhất.
     expect(await screen.findByText(/ask an admin to Reissue/)).toBeInTheDocument();
@@ -169,6 +169,6 @@ describe("ClaudeAccounts", () => {
         trangThai={{ daCai: true, pool: { dangBat: null, slots: [] }, tokenGhim: false, message: null, coLoginMay: true }}
       />,
     );
-    expect(screen.getByText(/Chưa có tài khoản nào trong pool/)).toBeInTheDocument();
+    expect(screen.getByText(/No accounts in the pool yet/)).toBeInTheDocument();
   });
 });

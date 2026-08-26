@@ -33,7 +33,7 @@ export default async function DuAnPage({
   const duAn = typeof p === "string" && p !== "" ? p : null;
   const choXem: ChoXem = view === "kanban" ? "kanban" : "table";
 
-  const { muc, repos, loi } = await loadBoard();
+  const { muc, repos, loi, hangDoi } = await loadBoard();
   const hienThi = locTheoDuAn(muc, duAn);
   const dangMo = hienThi.filter((m) => m.issue.state === "OPEN").length;
 
@@ -51,7 +51,12 @@ export default async function DuAnPage({
       </PageHeader>
 
       <div className="flex flex-col gap-4 p-4 sm:p-6">
-        <BoardToolbar repos={repos} duAn={duAn} view={choXem} />
+        <BoardToolbar
+          repos={repos}
+          duAn={duAn}
+          view={choXem}
+          soXepHang={hangDoi.items.filter((v) => v.status === "waiting").length}
+        />
 
         {loi.map((l) => (
           <p key={l.repo} className="text-xs text-destructive">

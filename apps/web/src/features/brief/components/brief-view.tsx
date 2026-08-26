@@ -6,9 +6,9 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import type { BanTin } from "../lib/tom-tat";
 
 /**
- * Bản tin buổi sáng. Thứ tự cố ý: **chờ bạn duyệt** trước (việc của người),
- * rồi **kẹt** (cần can thiệp), rồi phần còn lại. Sáng dậy cầm điện thoại thì
- * hai mục đầu là tất cả những gì cần đọc.
+ * Activity. Thứ tự cố ý: **chờ bạn duyệt** trước (việc của người), rồi **kẹt**
+ * (cần can thiệp), rồi phần còn lại. Mở điện thoại ra thì hai mục đầu là tất
+ * cả những gì cần đọc.
  */
 export function BriefView({ banTin }: { banTin: BanTin }) {
   if (banTin.loai !== "co-viec") {
@@ -17,13 +17,15 @@ export function BriefView({ banTin }: { banTin: BanTin }) {
       <Empty>
         <EmptyHeader>
           <EmptyTitle>
-            {banTin.loai === "khong-xep-viec" ? "Đêm qua không có việc nào được xếp" : "Có việc trong hàng nhưng không chạy được"}
+            {banTin.loai === "khong-xep-viec"
+              ? "Nothing has been queued"
+              : "Work is queued but nothing could run"}
           </EmptyTitle>
           <EmptyDescription>
             {banTin.loai === "khong-xep-viec" ? (
-              <>Xếp issue vào lane Autopilot trên <Link href="/projects?view=kanban" className="underline">bảng dự án</Link> trước khi đi ngủ.</>
+              <>Queue an issue into the Autopilot lane on the{" "}<Link href="/projects?view=kanban" className="underline">project board</Link>, then hit Run now — or leave it for the next tick.</>
             ) : (
-              <>Lý do nằm trên từng việc bên dưới — thường là phanh hạn mức hoặc PAUSE.</>
+              <>The reason is on each item below — usually the quota brake or PAUSE.</>
             )}
           </EmptyDescription>
         </EmptyHeader>
@@ -37,7 +39,7 @@ export function BriefView({ banTin }: { banTin: BanTin }) {
       {banTin.choDuyet.length > 0 && (
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-foreground">
-            Chờ bạn duyệt ({banTin.choDuyet.length})
+            Waiting for you ({banTin.choDuyet.length})
           </h2>
           <ul className="flex flex-col gap-2">
             {banTin.choDuyet.map((m) => (
@@ -59,7 +61,7 @@ export function BriefView({ banTin }: { banTin: BanTin }) {
 
       {banTin.ket.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-foreground">Kẹt ({banTin.ket.length})</h2>
+          <h2 className="text-sm font-semibold text-foreground">Stuck ({banTin.ket.length})</h2>
           <ul className="flex flex-col gap-2">
             {banTin.ket.map((m) => (
               <li key={m.phien.id} className="flex flex-col gap-1 rounded-card border border-border bg-card p-3">
@@ -78,7 +80,7 @@ export function BriefView({ banTin }: { banTin: BanTin }) {
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold text-foreground">Đã chạy ({banTin.daChay.length})</h2>
+        <h2 className="text-sm font-semibold text-foreground">Ran ({banTin.daChay.length})</h2>
         <ul className="flex flex-col gap-1">
           {banTin.daChay.map((m) => (
             <li key={m.phien.id} className="flex items-center gap-3 px-1 text-xs">
@@ -99,7 +101,7 @@ export function BriefView({ banTin }: { banTin: BanTin }) {
 function DanhSachCho({ banTin }: { banTin: BanTin }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold text-foreground">Còn chờ ({banTin.conCho.length})</h2>
+      <h2 className="text-sm font-semibold text-foreground">Still queued ({banTin.conCho.length})</h2>
       <ul className="flex flex-col gap-1">
         {banTin.conCho.map((m) => (
           <li key={`${m.viec.repo}#${m.viec.issue}`} className="flex flex-wrap items-center gap-2 px-1 text-xs">

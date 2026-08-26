@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BeeArtifact, BeeSession, HangDoi } from "@/lib/bee/types";
 
+import { khoangGanDay } from "../api/load";
 import { dungBanTin } from "./tom-tat";
 
 const TU = new Date("2026-08-24T22:00:00Z");
@@ -63,7 +64,7 @@ describe("dungBanTin — sáng dậy đọc một trang là biết đêm qua ra 
       items: [{
         slug: "myapp", repo: "you/myapp", issue: 41, mode: "auto", model: "default",
         status: "waiting", sessionId: null,
-        reason: "Không mở phiên mới: hạn mức 5h đang 91%", added_at: "t",
+        reason: "Not opening a new session: 5h quota is at 91%", added_at: "t",
       }],
     };
     const b = dungBanTin({ phien: [], artifacts: {}, hangDoi: hang, tu: TU, den: DEN });
@@ -86,5 +87,24 @@ describe("dungBanTin — sáng dậy đọc một trang là biết đêm qua ra 
   it("có chạy → loại 'có việc', và đếm đúng", () => {
     const b = dungBanTin({ phien: [phien({})], artifacts: {}, hangDoi: HANG_RONG, tu: TU, den: DEN });
     expect(b.loai).toBe("co-viec");
+  });
+});
+
+describe("khoangGanDay — cửa sổ 24h trượt, không phải mốc 18:00", () => {
+  it("3 giờ chiều vẫn thấy việc chạy lúc 2 giờ chiều", () => {
+    // Bản cũ cắt từ 18:00 hôm trước, nên mở trang lúc 15:00 là KHÔNG thấy gì
+    // chạy trong ngày — trong khi Autopilot chạy suốt ngày. Đó là điểm mù
+    // theo giờ trên chính cái trang sinh ra để nói "chuyện gì đã xảy ra".
+    const bayGio = new Date("2026-08-26T15:00:00Z");
+    const { tu, den } = khoangGanDay(bayGio);
+    expect(den).toEqual(bayGio);
+    expect(new Date("2026-08-26T14:00:00Z").getTime()).toBeGreaterThan(tu.getTime());
+    // Và vẫn phủ trọn đêm hôm trước — không đánh đổi ca dùng cũ lấy ca mới.
+    expect(new Date("2026-08-26T02:00:00Z").getTime()).toBeGreaterThan(tu.getTime());
+  });
+
+  it("cắt đúng 24 giờ: cũ hơn thì ra ngoài", () => {
+    const { tu } = khoangGanDay(new Date("2026-08-26T15:00:00Z"));
+    expect(tu.toISOString()).toBe("2026-08-25T15:00:00.000Z");
   });
 });

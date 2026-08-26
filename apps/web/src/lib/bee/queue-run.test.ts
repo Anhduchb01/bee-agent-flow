@@ -62,7 +62,7 @@ describe("chayMotNhip — cái vòng chạy lúc người đang ngủ", () => {
 
   it("phanh hạn mức chặn (moPhien từ chối) → việc quay lại waiting, KHÔNG mất", async () => {
     const mt = moiTruong({
-      moPhien: vi.fn(async () => ({ ok: false as const, message: "Không mở phiên mới: hạn mức 5h đang 91%" })),
+      moPhien: vi.fn(async () => ({ ok: false as const, message: "Not opening a new session: 5h quota is at 91%" })),
     });
     const kq = await chayMotNhip(mt);
 
@@ -77,7 +77,7 @@ describe("chayMotNhip — cái vòng chạy lúc người đang ngủ", () => {
     const mt = moiTruong({ hangDoi: { items: [], paused: false } });
     const kq = await chayMotNhip(mt);
     expect(kq.daMo).toBeNull();
-    expect(kq.lyDo).toMatch(/hết việc|không có việc/i);
+    expect(kq.lyDo).toMatch(/nothing left waiting/i);
     expect(mt.ghi).not.toHaveBeenCalled();  // không có gì đổi thì đừng ghi đĩa
   });
 

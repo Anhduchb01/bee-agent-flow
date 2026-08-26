@@ -58,12 +58,12 @@ function Hang({
       </span>
       {slot.dangBat && (
         <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-2xs font-medium text-emerald-500">
-          đang dùng
+          in use
         </span>
       )}
       {slot.hetHan && (
         <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-2xs font-medium text-amber-500">
-          hết hạn — đăng nhập lại
+          expired — sign in again
         </span>
       )}
       <span className="flex-1" />
@@ -71,7 +71,7 @@ function Hang({
       <Thanh nhan="7d" muc={slot.bayNgay} />
       {!slot.dangBat && (
         <Button size="sm" variant="outline" disabled={dang} onClick={() => doi(slot.name)}>
-          Dùng cái này
+          Use this one
         </Button>
       )}
     </li>
@@ -130,13 +130,13 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
         <Input
           value={tokenSlayer}
           onChange={(e) => setTokenSlayer(e.target.value)}
-          placeholder="Dán TOKEN_SLAYER_TOKEN"
+          placeholder="Paste TOKEN_SLAYER_TOKEN"
           aria-label="Token token-slayer"
           autoComplete="off"
           className="min-w-48 flex-1 font-mono"
         />
         <Button type="submit" disabled={dang || tokenSlayer.trim() === ""}>
-          {dang ? "Đang cài…" : trangThai.daCai ? "Cài lại / đổi token" : "Cài"}
+          {dang ? "Installing…" : trangThai.daCai ? "Reinstall / change token" : "Install"}
         </Button>
         {trangThai.daCai && (
           <Button
@@ -145,15 +145,16 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
             disabled={dang}
             onClick={() => chay(nhanTaiKhoanCapAction)}
           >
-            Nhận tài khoản admin cấp
+            Pull accounts your admin granted
           </Button>
         )}
       </form>
       <p className="text-xs text-muted-foreground">
-        Token đi qua biến môi trường, không qua dòng lệnh — argv thì ai trên máy cũng đọc được.
-        Trình cài đặt lấy từ <span className="font-mono">token-slayer.ownego.com</span>, ghim cứng
-        trong mã. Token này là vé vào dịch vụ slayer, <strong>không phải</strong> đăng nhập Claude:
-        nó chỉ lấy về những tài khoản admin đã cấp cho bạn.
+        The token travels through the environment, never through the command line — anyone on the
+        machine can read argv. The installer comes from{" "}
+        <span className="font-mono">token-slayer.ownego.com</span>, hard-coded in the source. This
+        token is a ticket into the slayer service, <strong>not</strong> a Claude login: it only pulls
+        down the accounts an admin has granted you.
       </p>
       {tin !== "" && (
         <pre className="overflow-x-auto rounded-control border border-border bg-muted/40 p-2.5 font-mono text-2xs leading-relaxed text-body">
@@ -167,8 +168,8 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-body">
-          Chưa cài <span className="font-mono">token-slayer</span> — cài rồi thì bee giữ được nhiều
-          tài khoản Claude và đổi qua lại ngay ở đây.
+          <span className="font-mono">token-slayer</span> is not installed — once it is, bee can
+          hold several Claude accounts and switch between them right here.
         </p>
         {khoiToken}
         {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
@@ -183,8 +184,8 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
       {trangThai.tokenGhim && (
         <div className="flex flex-wrap items-center gap-2 rounded-control border border-amber-500/40 bg-amber-500/10 p-3">
           <span className="flex-1 text-xs text-body">
-            <span className="font-mono">claude.env</span> đang ghim một token — phiên chạy bằng token
-            đó, <strong>không</strong> theo tài khoản chọn ở đây.
+            <span className="font-mono">claude.env</span> pins a token — sessions run on that token,
+            <strong> not</strong> on the account picked here.
           </span>
           <Button
             size="sm"
@@ -192,7 +193,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
             disabled={dang}
             onClick={() => chay(boTokenGhimAction)}
           >
-            Gỡ token ghim
+            Remove the pinned token
           </Button>
         </div>
       )}
@@ -203,8 +204,8 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
 
       {slots.length === 0 ? (
         <p className="text-sm text-body">
-          Chưa có tài khoản nào trong pool. Thêm bằng ô bên dưới — đặt tên rồi{" "}
-          <strong>Đăng nhập tài khoản khác</strong>.
+          No accounts in the pool yet. Add one below — give it a name, then{" "}
+          <strong>Sign in with another account</strong>.
         </p>
       ) : (
         <ul className="flex flex-col rounded-control border border-border bg-muted/20 px-3">
@@ -230,8 +231,8 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
           <Input
             value={tenMoi}
             onChange={(e) => setTenMoi(e.target.value)}
-            placeholder="Tên slot, ví dụ work"
-            aria-label="Tên slot mới"
+            placeholder="Slot name, e.g. work"
+            aria-label="New slot name"
             autoComplete="off"
             className="min-w-40 flex-1 font-mono"
           />
@@ -242,10 +243,10 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
             title={
               trangThai.coLoginMay
                 ? undefined
-                : "Máy chưa có phiên đăng nhập nào để chụp — dùng nút bên cạnh"
+                : "No login session on this machine to capture — use the button next to it"
             }
           >
-            Lưu tài khoản đang đăng nhập
+            Save the account already signed in
           </Button>
           <Button
             type="button"
@@ -261,7 +262,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
               })
             }
           >
-            {dang ? "Đang mở…" : "Đăng nhập tài khoản khác"}
+            {dang ? "Opening…" : "Sign in with another account"}
           </Button>
         </form>
 
@@ -273,7 +274,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
               rel="noreferrer"
               className="text-sm text-body underline underline-offset-2"
             >
-              1 · Mở trang duyệt ↗
+              1 · Open the approval page ↗
             </a>
             <form
               className="flex gap-2"
@@ -294,13 +295,13 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="2 · Dán mã xác nhận"
-                aria-label="Mã xác nhận"
+                placeholder="2 · Paste the confirmation code"
+                aria-label="Confirmation code"
                 autoComplete="off"
                 className="flex-1 font-mono"
               />
               <Button type="submit" disabled={dang || code.trim() === ""}>
-                {dang ? "Đang kiểm…" : "Xong"}
+                {dang ? "Checking…" : "Done"}
               </Button>
             </form>
           </div>
@@ -309,7 +310,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
 
       <details className="rounded-control border border-border p-3">
         <summary className="cursor-pointer text-xs text-muted-foreground">
-          Token slayer · tài khoản công ty
+          Slayer token · company accounts
         </summary>
         <div className="mt-3">{khoiToken}</div>
       </details>
@@ -317,13 +318,14 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
       {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
       {!trangThai.coLoginMay && (
         <p className="text-xs text-muted-foreground">
-          Máy này chạy bằng token dán ở bước trên, không phải một phiên đăng nhập — nên không có gì
-          để “lưu lại”. Thêm tài khoản bằng <strong>Đăng nhập tài khoản khác</strong>.
+          This machine runs on the token pasted above, not on a login session — so there is nothing
+          to “save”. Add an account with <strong>Sign in with another account</strong>.
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        Đổi tài khoản là đổi cho cả máy. Còn phiên đang chạy thì thao tác này bị từ chối — phiên đó
-        sẽ trôi sang tài khoản mới lúc nó làm mới token, và đó là kiểu hỏng không ai lần ra được.
+        Switching accounts switches the whole machine. With a session still running the switch is
+        refused — that session would drift onto the new account the moment it refreshes its token,
+        and that is the kind of failure nobody ever traces back.
       </p>
     </div>
   );

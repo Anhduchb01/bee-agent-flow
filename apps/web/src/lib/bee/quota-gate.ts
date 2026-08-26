@@ -32,8 +32,8 @@ function moTaReset(w: BeeClaudeWindow | null, luc: Date): string {
   if (Number.isNaN(t.getTime())) return "";
   const phut = Math.max(0, Math.round((t.getTime() - luc.getTime()) / 60_000));
   const gio = Math.floor(phut / 60);
-  const con = gio > 0 ? `${gio}h${String(phut % 60).padStart(2, "0")}` : `${phut} phút`;
-  return `, reset lúc ${t.toISOString().slice(11, 16)} (còn ${con})`;
+  const con = gio > 0 ? `${gio}h${String(phut % 60).padStart(2, "0")}` : `${phut} min`;
+  return `, resets at ${t.toISOString().slice(11, 16)} (in ${con})`;
 }
 
 export function xetHanMuc(
@@ -42,9 +42,9 @@ export function xetHanMuc(
 ): KetQuaPhanh {
   const luc = opts.luc ?? new Date();
   // Ngưỡng 0 = tắt phanh. Cửa thoát phải tường minh, không phải tác dụng phụ.
-  if (opts.nguong <= 0) return { moDuoc: true, lyDo: "phanh đang tắt (ngưỡng 0)" };
+  if (opts.nguong <= 0) return { moDuoc: true, lyDo: "the brake is off (threshold 0)" };
   if (usage === null) {
-    return { moDuoc: true, lyDo: "chưa đo hạn mức lần nào — mở, nhưng đang bay mù" };
+    return { moDuoc: true, lyDo: "quota has never been measured — opening, but flying blind" };
   }
 
   const nam = phanTram(usage.five_hour);
@@ -53,7 +53,7 @@ export function xetHanMuc(
     nam > opts.nguong
       ? { ten: "5h", pct: nam, w: usage.five_hour }
       : bay > opts.nguong
-        ? { ten: "7 ngày", pct: bay, w: usage.seven_day }
+        ? { ten: "7-day", pct: bay, w: usage.seven_day }
         : null;
 
   const tuoiGio = (luc.getTime() - new Date(usage.fetched_at).getTime()) / 3_600_000;
@@ -62,14 +62,14 @@ export function xetHanMuc(
   if (qua !== null) {
     return {
       moDuoc: false,
-      lyDo: `hạn mức ${qua.ten} đang ${qua.pct}% (ngưỡng ${opts.nguong}%)${moTaReset(qua.w, luc)}`,
+      lyDo: `${qua.ten} quota is at ${qua.pct}% (threshold ${opts.nguong}%)${moTaReset(qua.w, luc)}`,
     };
   }
   if (cu) {
     return {
       moDuoc: true,
-      lyDo: `số hạn mức đã cũ ${Math.round(tuoiGio)}h — tick có chạy không? Mở, nhưng phanh không đáng tin`,
+      lyDo: `quota numbers are ${Math.round(tuoiGio)}h old — is tick running? Opening, but the brake cannot be trusted`,
     };
   }
-  return { moDuoc: true, lyDo: `hạn mức 5h ${nam}% · 7 ngày ${bay}%` };
+  return { moDuoc: true, lyDo: `quota 5h ${nam}% · 7-day ${bay}%` };
 }

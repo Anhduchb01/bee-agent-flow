@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { NutChayNgay } from "./autopilot-controls";
+
 /**
  * Filter + view switch, built from LINKS, not client state: the board is a
  * server component, so a phone gets a plain navigation instead of shipping
@@ -46,10 +48,13 @@ export function BoardToolbar({
   repos,
   duAn,
   view,
+  soXepHang,
 }: {
   repos: { slug: string; repo: string }[];
   duAn: string | null;
   view: ChoXem;
+  /** Số việc đang chờ trong Autopilot — 0 thì "Run now" không có gì để chạy. */
+  soXepHang: number;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -67,14 +72,20 @@ export function BoardToolbar({
         ))}
       </nav>
 
-      <nav aria-label="View" className="flex gap-1.5">
-        <Chip href={duongDanBang(duAn, "table")} dangChon={view === "table"}>
-          Table
-        </Chip>
-        <Chip href={duongDanBang(duAn, "kanban")} dangChon={view === "kanban"}>
-          Kanban
-        </Chip>
-      </nav>
+      <div className="flex flex-wrap items-center gap-3">
+        <nav aria-label="View" className="flex gap-1.5">
+          <Chip href={duongDanBang(duAn, "table")} dangChon={view === "table"}>
+            Table
+          </Chip>
+          <Chip href={duongDanBang(duAn, "kanban")} dangChon={view === "kanban"}>
+            Kanban
+          </Chip>
+        </nav>
+        {/* Ở toolbar chứ không ở riêng lane Autopilot: lane đó chỉ hiện trong
+            Kanban, mà mặc định là Table — nút nằm trong một tab người dùng
+            chưa mở thì cũng như không có. */}
+        <NutChayNgay soViec={soXepHang} />
+      </div>
     </div>
   );
 }

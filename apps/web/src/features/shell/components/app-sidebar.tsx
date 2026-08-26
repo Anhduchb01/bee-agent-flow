@@ -172,12 +172,12 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={pathname.startsWith("/brief")}
-                  tooltip="Đêm qua"
+                  tooltip="Activity"
                   onClick={dongTrenDienThoai}
                   render={<Link href="/brief" />}
                 >
                   <SunriseIcon />
-                  <span>Đêm qua</span>
+                  <span>Activity</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

@@ -7,20 +7,22 @@ import type { BeeArtifact } from "@/lib/bee/types";
 import { dungBanTin, type BanTin } from "../lib/tom-tat";
 
 /**
- * "Đêm qua" = từ 18:00 hôm qua tới lúc mở trang. Không phải 00:00–24:00: người
- * xếp việc lúc tối muộn và đọc bản tin lúc sáng, nên cắt theo mốc đó mới khớp
- * với cách dùng thật.
+ * Cửa sổ của trang Activity: **24 giờ trượt**, không phải "từ 18:00 hôm qua".
+ *
+ * Bản đầu cắt theo mốc 18:00 vì hình dung việc chỉ chạy ban đêm. Nhưng
+ * Autopilot chưa bao giờ có khung giờ — `bee-tick.timer` gõ mỗi 30 phút suốt
+ * ngày, và giờ có thêm nút "Run now". Một cửa sổ bắt đầu lúc 18:00 sẽ GIẤU
+ * mọi thứ chạy trong ngày cho tới khi trời tối: mở trang lúc 3 giờ chiều thấy
+ * "chưa chạy gì" trong khi ba phiên vừa xong lúc 2 giờ. Trang này tồn tại để
+ * nói ra chuyện gì đã xảy ra, nên nó không được có điểm mù nào theo giờ.
  */
-export function khoangDem(luc = new Date()): { tu: Date; den: Date } {
-  const tu = new Date(luc);
-  tu.setHours(18, 0, 0, 0);
-  if (tu.getTime() > luc.getTime()) tu.setDate(tu.getDate() - 1);
-  return { tu, den: luc };
+export function khoangGanDay(luc = new Date(), soGio = 24): { tu: Date; den: Date } {
+  return { tu: new Date(luc.getTime() - soGio * 3_600_000), den: luc };
 }
 
 export async function loadBanTin(luc = new Date()): Promise<BanTin> {
   const bee = getBee();
-  const { tu, den } = khoangDem(luc);
+  const { tu, den } = khoangGanDay(luc);
   const [phien, hangDoi] = await Promise.all([
     bee.listSessions(),
     docHangDoi(process.env.BEE_SRV ?? "/srv/bee"),

@@ -27,7 +27,7 @@ describe("nút Autopilot — điện thoại không cần kéo thả", () => {
     const { themVaoHangDoiAction } = await import("../api/queue-actions");
     render(<NutXepHang muc={MUC(false)} />);
 
-    await user.click(screen.getByRole("button", { name: /Xếp #41/ }));
+    await user.click(screen.getByRole("button", { name: /Queue #41/ }));
     expect(vi.mocked(themVaoHangDoiAction)).toHaveBeenCalledWith({
       slug: "myapp", repo: "you/myapp", issue: 41,
     });
@@ -38,20 +38,20 @@ describe("nút Autopilot — điện thoại không cần kéo thả", () => {
     const { boKhoiHangDoiAction } = await import("../api/queue-actions");
     render(<NutXepHang muc={MUC(true)} />);
 
-    await user.click(screen.getByRole("button", { name: /Bỏ #41/ }));
+    await user.click(screen.getByRole("button", { name: /Remove #41/ }));
     expect(vi.mocked(boKhoiHangDoiAction)).toHaveBeenCalledWith("you/myapp", 41);
   });
 
   it("vùng bấm đủ cho ngón tay (size-9 = 36px + viền, không phải icon 16px)", () => {
     render(<NutXepHang muc={MUC(false)} />);
-    expect(screen.getByRole("button", { name: /Xếp #41/ })).toHaveClass("size-9");
+    expect(screen.getByRole("button", { name: /Queue #41/ })).toHaveClass("size-9");
   });
 
   it("↑↓ chỉ hiện với việc đã xếp hàng", () => {
     const { rerender } = render(<NutDoiThuTu muc={MUC(false)} />);
-    expect(screen.queryByRole("button", { name: /lên trước/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Move #41 earlier/ })).not.toBeInTheDocument();
     rerender(<NutDoiThuTu muc={MUC(true)} />);
-    expect(screen.getByRole("button", { name: /lên trước/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Move #41 earlier/ })).toBeInTheDocument();
   });
 
   it("↑ đi một bậc lên, ↓ một bậc xuống", async () => {
@@ -59,9 +59,9 @@ describe("nút Autopilot — điện thoại không cần kéo thả", () => {
     const { doiThuTuAction } = await import("../api/queue-actions");
     render(<NutDoiThuTu muc={MUC(true)} />);
 
-    await user.click(screen.getByRole("button", { name: /lên trước/ }));
+    await user.click(screen.getByRole("button", { name: /Move #41 earlier/ }));
     expect(vi.mocked(doiThuTuAction)).toHaveBeenCalledWith("you/myapp", 41, -1);
-    await user.click(screen.getByRole("button", { name: /xuống sau/ }));
+    await user.click(screen.getByRole("button", { name: /Move #41 later/ }));
     expect(vi.mocked(doiThuTuAction)).toHaveBeenCalledWith("you/myapp", 41, 1);
   });
 
@@ -71,7 +71,7 @@ describe("nút Autopilot — điện thoại không cần kéo thả", () => {
     vi.mocked(themVaoHangDoiAction).mockResolvedValueOnce({ ok: false, message: "Invalid issue number." });
     render(<NutXepHang muc={MUC(false)} />);
 
-    await user.click(screen.getByRole("button", { name: /Xếp #41/ }));
+    await user.click(screen.getByRole("button", { name: /Queue #41/ }));
     expect(await screen.findByText(/Invalid issue number/)).toBeInTheDocument();
   });
 });

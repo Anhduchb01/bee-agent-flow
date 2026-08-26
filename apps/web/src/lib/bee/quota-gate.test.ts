@@ -38,7 +38,7 @@ describe("xetHanMuc — the brake (FR-3.3)", () => {
       luc: LUC,
     });
     expect(k.moDuoc).toBe(false);
-    expect(k.lyDo).toMatch(/7 ngày|7d/);
+    expect(k.lyDo).toMatch(/7-day/);
   });
 
   it("exactly at the threshold still opens — the rule is 'over', not 'at'", () => {
@@ -49,7 +49,7 @@ describe("xetHanMuc — the brake (FR-3.3)", () => {
   it("never measured → opens, and SAYS it is flying blind", () => {
     const k = xetHanMuc(null, { nguong: 85, luc: LUC });
     expect(k.moDuoc).toBe(true);
-    expect(k.lyDo).toMatch(/chưa đo|không biết/i);
+    expect(k.lyDo).toMatch(/never been measured/i);
   });
 
   it("stale numbers → still opens, but the reason admits the brake is untrustworthy", () => {

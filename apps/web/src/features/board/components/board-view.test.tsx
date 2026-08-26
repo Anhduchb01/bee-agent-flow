@@ -113,7 +113,7 @@ describe("BoardToolbar — filter and view live in the URL", () => {
     expect(duongDanBang("blog", "table")).toBe("/projects?p=blog");
     expect(duongDanBang("blog", "kanban")).toBe("/projects?p=blog&view=kanban");
 
-    render(<BoardToolbar repos={REPOS} duAn="blog" view="kanban" />);
+    render(<BoardToolbar repos={REPOS} duAn="blog" view="kanban" soXepHang={2} />);
     expect(screen.getByRole("link", { name: "blog" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Kanban" })).toHaveAttribute("aria-current", "page");
     // Switching view keeps the project filter, and vice versa.
@@ -122,5 +122,13 @@ describe("BoardToolbar — filter and view live in the URL", () => {
       "href",
       "/projects?view=kanban",
     );
+    // "Run now" nằm ở toolbar chứ không ở riêng lane Autopilot — lane đó chỉ
+    // có trong Kanban, mà mặc định là Table.
+    expect(screen.getByRole("button", { name: "Run now" })).toBeEnabled();
+  });
+
+  it("hàng đợi rỗng thì Run now tắt — không có gì để chạy thì đừng hứa", () => {
+    render(<BoardToolbar repos={REPOS} duAn={null} view="table" soXepHang={0} />);
+    expect(screen.getByRole("button", { name: "Run now" })).toBeDisabled();
   });
 });

@@ -42,14 +42,14 @@ function capNhat(q: HangDoi, v: ViecTrongHang, thay: Partial<ViecTrongHang>): Ha
 export async function chayMotNhip(cua: CuaNhip): Promise<KetQuaNhip> {
   const toiDa = cua.songSongToiDa ?? 1;
 
-  if (cua.dangPause) return { daMo: null, lyDo: "PAUSE đang bật — máy không mở phiên nào" };
-  if (cua.hangDoi.paused) return { daMo: null, lyDo: "hàng đợi đang tạm dừng (⏸)" };
+  if (cua.dangPause) return { daMo: null, lyDo: "PAUSE is on — the machine opens no sessions" };
+  if (cua.hangDoi.paused) return { daMo: null, lyDo: "the queue is paused (⏸)" };
   if (cua.soPhienDangChay >= toiDa) {
-    return { daMo: null, lyDo: `đã đủ ${toiDa} phiên song song — chờ slot` };
+    return { daMo: null, lyDo: `${toiDa} session(s) already running — waiting for a slot` };
   }
 
   const viec = viecKeTiep(cua.hangDoi, { songSongToiDa: toiDa });
-  if (viec === null) return { daMo: null, lyDo: "hết việc chờ trong hàng đợi" };
+  if (viec === null) return { daMo: null, lyDo: "nothing left waiting in the queue" };
 
   const ket = await cua.moPhien(viec);
   if (!ket.ok) {
@@ -62,5 +62,5 @@ export async function chayMotNhip(cua: CuaNhip): Promise<KetQuaNhip> {
   await cua.ghi(
     capNhat(cua.hangDoi, viec, { status: "running", sessionId: ket.id, reason: null }),
   );
-  return { daMo: viec, lyDo: `đã mở phiên cho ${viec.repo}#${viec.issue}` };
+  return { daMo: viec, lyDo: `opened a session for ${viec.repo}#${viec.issue}` };
 }

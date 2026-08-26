@@ -108,7 +108,7 @@ export async function moPhien(input: {
     nguong: Number(process.env.QUOTA_BRAKE_PCT ?? 85),
   });
   if (!phanh.moDuoc) {
-    return { ok: false, message: `Không mở phiên mới: ${phanh.lyDo}` };
+    return { ok: false, message: `Not opening a new session: ${phanh.lyDo}` };
   }
 
   // ── Dải cổng riêng cho phiên (V3.T14) ─────────────────────────────────

@@ -3,8 +3,9 @@ import { PageHeader } from "@/features/shell";
 import { getActor } from "@/lib/auth";
 
 /**
- * Bản tin buổi sáng (FR-5.3) — "chạy gì, xong gì, kẹt gì, và vì sao".
- * Tính từ 18:00 hôm trước, vì việc được xếp lúc tối muộn và đọc lúc sáng.
+ * Activity (FR-5.3) — "what ran, what finished, what is stuck, and why".
+ * Cửa sổ là 24 giờ trượt: Autopilot chạy cả ngày, nên trang này không được
+ * có điểm mù theo giờ (xem `khoangGanDay`).
  */
 export default async function BriefPage() {
   const actor = await getActor();
@@ -15,10 +16,11 @@ export default async function BriefPage() {
   return (
     <>
       <PageHeader
-        title="Đêm qua"
+        title="Activity"
         meta={
           <span className="font-mono text-xs text-muted-foreground">
-            {banTin.daChay.length} phiên · {banTin.choDuyet.length} chờ duyệt · {banTin.ket.length} kẹt
+            last 24h · {banTin.daChay.length} sessions · {banTin.choDuyet.length} to review ·{" "}
+            {banTin.ket.length} stuck
           </span>
         }
       />

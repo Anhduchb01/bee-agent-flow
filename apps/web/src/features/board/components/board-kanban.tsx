@@ -55,7 +55,7 @@ export function BoardKanban({ muc }: { muc: MucBang[] }) {
     <div className="flex flex-col gap-2">
       {tuChoi !== "" && (
         <p role="status" className="text-xs text-destructive">
-          Không thả được: {tuChoi}
+          Cannot drop here: {tuChoi}
         </p>
       )}
       <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
