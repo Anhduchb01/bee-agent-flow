@@ -135,5 +135,123 @@ jq -e '.removed == 0' "$BEE_ROOT/gc.json" >/dev/null 2>&1 \
   && kq ok "chạy lại: no-op, không lỗi (idempotent)" \
   || kq no "chạy lại không phải no-op"
 
+# ══════════════════════════════════════════════════════════════════════════
+# Phần 2 · Docker: thu hồi worktree phải kéo theo compose project của phiên
+# ══════════════════════════════════════════════════════════════════════════
+#
+# Nợ có trước cả T15: gc không có một dòng docker nào, nên một phiên tự
+# `compose up` là để lại container + volume vĩnh viễn. Máy thật đang có 6.9GB
+# volume / 17 cái là bằng chứng chuyện đó xảy ra.
+#
+# Sáu ca, và bốn trong số đó là "ĐỪNG đụng vào" — cùng tinh thần phần 1.
+echo
+echo "-- phần 2 · docker --"
+
+mkdir -p "$T/bin"
+export RIG_DOCKER_LOG="$T/docker.log"
+: > "$RIG_DOCKER_LOG"
+
+# Stub docker. Nó ghi lại MỌI lệnh kèm việc worktree còn tồn tại hay chưa —
+# "container trước, worktree sau" chỉ kiểm được bằng cách đó.
+cat > "$T/bin/docker" <<'EOF'
+#!/usr/bin/env bash
+con="no"; [[ -n "${RIG_WT:-}" && -d "$RIG_WT" ]] && con="yes"
+echo "wt:$con | $*" >> "$RIG_DOCKER_LOG"
+[[ "$1" == info ]] && { [[ "${RIG_DOCKER_UP:-1}" == 1 ]] && exit 0 || exit 1; }
+if [[ "$1" == ps ]]; then
+  for pj in ${RIG_DOCKER_PROJECTS:-}; do
+    case " $* " in *"project=$pj"*) echo "c0ffeec0ffee"; exit 0;; esac
+  done
+  exit 0
+fi
+exit 0
+EOF
+chmod +x "$T/bin/docker"
+export PATH="$T/bin:$PATH"
+
+# Sân sạch cho phần 2: dùng lại đúng bare + origin ở trên.
+san2() {   # san2 <id> <num> <status> <needs_human> <có-compose>
+  local id="$1" num="$2" st="$3" nh="$4" co="$5"
+  phien "$id" "$num" "$st" "$XUA" "$nh"
+  commit_trong "$BEE_ROOT/work/$id"
+  git -C "$BEE_ROOT/work/$id" push -q "$ORIGIN" "bee/myapp-$num:bee/myapp-$num"
+  [[ "$co" == co ]] && printf 'services:\n  db:\n    image: postgres:16\n' \
+    > "$BEE_ROOT/work/$id/docker-compose.yml"
+  # compose file chưa commit sẽ làm worktree "bẩn" → gc giữ vì lý do khác.
+  # Ở đây nó là file của repo, nên commit + push cho sạch.
+  if [[ "$co" == co ]]; then
+    git -C "$BEE_ROOT/work/$id" add -A
+    git -C "$BEE_ROOT/work/$id" commit -qm compose
+    git -C "$BEE_ROOT/work/$id" push -q "$ORIGIN" "bee/myapp-$num:bee/myapp-$num"
+  fi
+}
+
+ID_D1=bbbbbbbb-0000-4000-8000-000000000001   # có compose, docker sống
+ID_D2=bbbbbbbb-0000-4000-8000-000000000002   # có compose, docker CHẾT
+ID_D3=bbbbbbbb-0000-4000-8000-000000000003   # KHÔNG compose, docker chết
+ID_D4=bbbbbbbb-0000-4000-8000-000000000004   # needs_human, có compose
+
+# Mỗi ca dựng NGAY TRƯỚC lượt gc của nó. Dựng hết từ đầu thì lượt gc đầu tiên
+# (docker còn sống) sẽ thu hồi luôn mấy ca dành cho lượt sau, và bài test đo
+# một cái sân đã bị dọn mất.
+san2 "$ID_D1" 11 done   false co
+san2 "$ID_D4" 14 failed true  co
+
+# --- ca 1+2: docker sống, phiên D1 có container ---------------------------
+: > "$RIG_DOCKER_LOG"
+RIG_WT="$BEE_ROOT/work/$ID_D1" RIG_DOCKER_UP=1 \
+  RIG_DOCKER_PROJECTS="bee-bbbbbbbb bee-myapp-11" \
+  GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
+
+grep -q "compose .*-p .*down" "$RIG_DOCKER_LOG" \
+  && kq ok "phiên có compose project: gc gọi compose down" \
+  || kq no "gc KHÔNG hạ compose project — container + volume ở lại vĩnh viễn"
+
+grep -q -- "-v" <<<"$(grep 'down' "$RIG_DOCKER_LOG")" \
+  && kq ok "down kèm -v: volume cũng đi theo (đó mới là phần chiếm đĩa)" \
+  || kq no "down thiếu -v: volume mồ côi ở lại"
+
+[[ "$(grep 'down' "$RIG_DOCKER_LOG" | head -1)" == wt:yes* ]] \
+  && kq ok "thứ tự đúng: hạ container TRƯỚC khi xoá worktree" \
+  || kq no "hạ container sau khi worktree đã biến mất — compose mất file để đọc"
+
+con "$ID_D1" && kq no "D1: lẽ ra phải thu hồi" || kq ok "D1: worktree đã thu hồi"
+[[ "$(ly_do "$ID_D1")" == *docker* || "$(ly_do "$ID_D1")" == *compose* ]] \
+  && kq ok "gc.json nói ra đã dọn docker ($(ly_do "$ID_D1"))" \
+  || kq no "gc.json im lặng về phần docker: $(ly_do "$ID_D1")"
+
+# --- ca 4: needs_human thì KHÔNG được đụng container ----------------------
+grep -q "project=bee-myapp-14\|project=bee-bbbbbbbb" <<<"$(grep 'down' "$RIG_DOCKER_LOG")" \
+  && kq no "needs_human mà vẫn hạ container của nó — người còn phải xem cái xác" \
+  || kq ok "needs_human: container để nguyên, không đụng"
+
+# --- ca 3: docker CHẾT + worktree có compose → GIỮ ------------------------
+san2 "$ID_D2" 12 done false co
+san2 "$ID_D3" 13 done false khong
+: > "$RIG_DOCKER_LOG"
+RIG_WT="$BEE_ROOT/work/$ID_D2" RIG_DOCKER_UP=0 \
+  GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
+
+if con "$ID_D2" && [[ "$(ly_do "$ID_D2")" == *docker* ]]; then
+  kq ok "docker chết + worktree có compose: GIỮ ($(ly_do "$ID_D2"))"
+else
+  kq no "xoá worktree khi không dọn nổi container — container thành mồ côi không ai lần ra ($(ly_do "$ID_D2"))"
+fi
+
+# --- ca 4: docker chết nhưng phiên KHÔNG có compose → vẫn thu hồi ---------
+con "$ID_D3" \
+  && kq no "docker chết chặn oan một phiên chưa từng dùng docker ($(ly_do "$ID_D3"))" \
+  || kq ok "docker chết nhưng phiên không có compose: vẫn thu hồi bình thường"
+
+# --- ca 5: máy không có docker + không compose → vẫn thu hồi --------------
+ID_D5=bbbbbbbb-0000-4000-8000-000000000005
+san2 "$ID_D5" 15 done false khong
+PATH_CU="$PATH"; PATH="/usr/bin:/bin"; export PATH
+GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
+PATH="$PATH_CU"; export PATH
+con "$ID_D5" \
+  && kq no "máy không có docker: chặn oan phiên không dùng docker ($(ly_do "$ID_D5"))" \
+  || kq ok "máy không có docker + phiên không compose: vẫn thu hồi"
+
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-07: TẤT CẢ XANH"; else echo "RIG-07: CÓ ĐỎ"; exit 1; fi

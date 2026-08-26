@@ -38,6 +38,64 @@ epoch_cua() {  # ISO → epoch; rỗng/hỏng → 0 (coi như rất cũ, để l
   [[ -n "$1" ]] && date -u -d "$1" +%s 2>/dev/null || echo 0
 }
 
+co_compose() {  # worktree có khai compose không
+  local wt="$1" f
+  for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
+    [[ -f "$wt/$f" ]] && return 0
+  done
+  return 1
+}
+
+# don_docker <id> <slug> <num> <worktree> — hạ compose project của phiên.
+# In ĐÚNG một dòng:
+#   none            không có gì để dọn
+#   removed:<a,b>   đã hạ những project này
+#   giu:<lý do>     KHÔNG dọn nổi → worktree phải được GIỮ
+#
+# Vì sao "giu" tồn tại: xoá worktree khi chưa hạ được container là biến chúng
+# thành mồ côi không ai lần ra được của phiên nào. Đó chính là cách 6.9GB
+# volume / 17 cái tích lại trên máy này. Cùng nguyên tắc với cả file: THÀ GIỮ
+# NHẦM CÒN HƠN XOÁ NHẦM — nhưng chỉ giữ khi worktree THẬT SỰ có khai compose,
+# chứ docker chết mà chặn oan cả phiên chưa từng đụng docker thì là lỗi khác.
+#
+# Hai tên project vì hai thời kỳ: `bee-<uuid8>` (spec lat-dich-vu §4) và
+# `bee-<slug>-<num>` (skill bee-preview đang dùng). Hỏi nhãn trước rồi mới hạ,
+# nên thử cả hai không tốn gì.
+don_docker() {
+  local id="$1" slug="$2" num="$3" wt="$4" uuid8 p
+  uuid8="${id//-/}"; uuid8="${uuid8:0:8}"
+
+  if ! command -v docker >/dev/null 2>&1; then
+    co_compose "$wt" \
+      && { echo "giu:máy không có docker mà worktree khai compose — không hạ nổi container của phiên"; return; }
+    echo none; return
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    co_compose "$wt" \
+      && { echo "giu:docker không chạy — chưa hạ được container của phiên, giữ worktree để còn lần ra"; return; }
+    echo none; return
+  fi
+
+  local da=()
+  for p in "bee-$uuid8" "bee-$slug-$num"; do
+    [[ -n "$(docker ps -aq --filter "label=com.docker.compose.project=$p" 2>/dev/null)" ]] || continue
+    # -v vì volume mới là phần chiếm đĩa; --remove-orphans vì service bị xoá
+    # khỏi compose giữa chừng vẫn để lại container mang nhãn project này.
+    if docker compose -p "$p" down -v --remove-orphans >/dev/null 2>&1; then
+      da+=("$p")
+    else
+      echo "giu:hạ compose project $p thất bại — giữ worktree để tick sau thử lại"
+      return
+    fi
+  done
+  if (( ${#da[@]} )); then
+    local IFS=,
+    echo "removed:${da[*]}"
+    return
+  fi
+  echo none
+}
+
 for wt in "$BEE_ROOT"/work/*/; do
   [[ -d "$wt" ]] || continue
   wt="${wt%/}"
@@ -121,6 +179,19 @@ for wt in "$BEE_ROOT"/work/*/; do
   if [[ -z "$an_toan" ]]; then
     ghi "$id" kept "$ly_do"
     continue
+  fi
+
+  # ── Docker của phiên: hạ TRƯỚC khi worktree biến mất ──────────────────
+  # compose cần file trong worktree để đọc, và một container còn sống mà thư
+  # mục dưới chân nó vừa bị xoá sẽ đổ log rác cho tới khi ai đó để ý. Thứ tự
+  # này là thứ rig-07 phần 2 canh.
+  kq_docker=$(don_docker "$id" "$slug" "$num" "$wt")
+  if [[ "$kq_docker" == giu:* ]]; then
+    ghi "$id" kept "${kq_docker#giu:}"
+    continue
+  fi
+  if [[ "$kq_docker" == removed:* ]]; then
+    ly_do="$ly_do; docker: đã hạ ${kq_docker#removed:}"
   fi
 
   # ── Thu hồi ────────────────────────────────────────────────────────────

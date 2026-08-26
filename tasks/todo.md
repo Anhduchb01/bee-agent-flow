@@ -184,10 +184,17 @@ Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestar
       không AI** (chạy lúc không ai ngồi cạnh, cầm admin credential, và gc
       phải suy ra được tên để thu hồi) · pool định nghĩa **trên web** · màn
       cấu hình gộp một trang **hai tab**. Chia ba đợt:
-  - [ ] 🤖 **T15a** `gc.sh` biết `docker compose -p … down -v` (S) — **vá nợ
-        đã có, không phụ thuộc phần còn lại**: hôm nay gc không có một dòng
-        docker nào, nên agent tự `compose up` là để lại container + volume
-        vĩnh viễn. 6.9GB volume / 17 cái từ thời `ducba` là bằng chứng.
+  - [x] 🤖 **T15a** ~~`gc.sh` biết dọn docker của phiên~~ **XONG 26/08** —
+        `don_docker()` hạ compose project **TRƯỚC** khi worktree biến mất
+        (compose cần file trong worktree để đọc), `down -v --remove-orphans`
+        vì volume mới là phần chiếm đĩa, thử cả hai tên project
+        (`bee-<uuid8>` của spec và `bee-<slug>-<num>` của bee-preview).
+        **Không hạ được thì GIỮ worktree** kèm lý do — xoá lúc đó là biến
+        container thành mồ côi không ai lần ra được của phiên nào, đúng cách
+        6.9GB volume / 17 cái đã tích lại. Nhưng chỉ giữ khi worktree **thật
+        sự khai compose**: docker chết mà chặn oan phiên chưa từng đụng docker
+        là lỗi khác. rig-07 phần 2: 9 ca mới, đã thử tắt code để chắc cả 5 ca
+        chính đều đỏ trước khi nhận là xanh.
   - [ ] 🤖 **T15b** `lat-dich-vu.sh` cấp/thu hồi + bảng tra image + mở rộng
         `env.d` nhận `${BEE_DB_URL}`… + rig (M). Chạy tay được trước khi có UI.
   - [ ] 🤖 **T15c** `/setup` hai tab + panel pool + panel lát đang cấp +
