@@ -13,10 +13,12 @@ import {
   PatForm,
   PauseToggle,
   RepoRegistry,
+  ServicesPanel,
 } from "@/features/setup";
 import { PageHeader } from "@/features/shell";
 import { tabMacDinh, type SetupTab } from "@/features/setup";
 import { getActor } from "@/lib/auth";
+import { readPool, readSlices } from "@/lib/bee/services-fs";
 import Link from "next/link";
 
 /**
@@ -101,6 +103,7 @@ export default async function SetupPage({
     loadGc(),
   ]);
   const envFiles = await loadEnvFiles(repos.map((r) => r.slug));
+  const [pool, slices] = await Promise.all([readPool(), readSlices()]);
 
   const check = (id: string): boolean | null =>
     doctor?.checks.find((c) => c.id === id)?.ok ?? null;
@@ -155,13 +158,17 @@ export default async function SetupPage({
               </Card>
             </Step>
 
-            <Step num={3} title="Claude accounts on this machine">
+            <Step num={3} title="Shared services, and who is using them">
+              <ServicesPanel pool={pool} slices={slices} />
+            </Step>
+
+            <Step num={4} title="Claude accounts on this machine">
               <Card>
                 <ClaudeAccounts trangThai={slayer} />
               </Card>
             </Step>
 
-            <Step num={4} title="Take new work, or stop taking it">
+            <Step num={5} title="Take new work, or stop taking it">
               <Card>
                 <PauseToggle paused={doctor?.paused ?? true} ready={doctor?.ok === true} />
               </Card>

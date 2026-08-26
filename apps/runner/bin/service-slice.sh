@@ -266,8 +266,24 @@ lam_reclaim() {
   return 0
 }
 
+# lam_pool — the pool as JSON, for the web.
+#
+# The web asks this script rather than re-implementing the image table in
+# TypeScript. Two copies of that table would drift, and the drift would show
+# up as the UI promising a shared slice that the runner never carved.
+lam_pool() {
+  local ra='[]' ten img kind
+  while read -r ten img kind; do
+    [[ -n "$ten" ]] || continue
+    ra=$(jq -c --arg s "$ten" --arg i "$img" --arg k "$kind" \
+      '. + [{service:$s, image:$i, kind:$k}]' <<<"$ra")
+  done < <(doc_compose "$POOL_DIR")
+  printf '%s\n' "$ra"
+}
+
 case "${1:-}" in
   provision) lam_provision "${2:-}";;
   reclaim)   lam_reclaim   "${2:-}";;
-  *) loi "usage: service-slice.sh provision|reclaim <session-id>"; exit 2;;
+  pool)      lam_pool;;
+  *) loi "usage: service-slice.sh provision|reclaim <session-id> | pool"; exit 2;;
 esac
