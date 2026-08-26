@@ -165,3 +165,49 @@ doan_kieu() {
     *)                                     : ;;   # unknown on purpose
   esac
 }
+
+# doc_compose <dir> — list the services a compose file declares, one per line:
+#     "<service> <image> <kind>"       kind is empty when unrecognised
+#
+# Parsed as TEXT, not through `docker compose config`. This runs before claude
+# starts, on a machine where docker may be down and where the repo's compose
+# may not even be valid yet — needing docker to find out whether we need docker
+# is a loop nobody wants at 2am.
+#
+# Two things it must get right, both pinned by rig-15:
+#   · a service with no `image:` (built from source) is SKIPPED — there is
+#     nothing to guess from, and it is never a shared service anyway;
+#   · an `image:` outside the `services:` block (x-anchors, top-level keys)
+#     is NOT a service. Compose files legally carry those.
+#
+# Awk over a YAML parser is a deliberate trade: the only thing we read is
+# two-space-indented keys under `services:` and their `image:`. A file exotic
+# enough to break that (merge keys, flow mappings) degrades to fewer rows,
+# which lands on "run it per session" — the safe side of §3.
+doc_compose() {
+  local dir="$1" f
+  for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
+    [[ -f "$dir/$f" ]] || continue
+    awk '
+      # Track which top-level block we are in. A top-level key has no indent.
+      /^[^[:space:]#]/ { in_svc = ($0 ~ /^services:/); name = ""; next }
+      !in_svc { next }
+      # Service name: exactly one indent level (2 spaces), ends with a colon.
+      /^[[:space:]]{2}[^[:space:]#][^:]*:[[:space:]]*$/ {
+        name = $1; sub(/:$/, "", name); next
+      }
+      # image: belonging to the service we are inside.
+      name != "" && /^[[:space:]]+image:[[:space:]]*/ {
+        img = $0
+        sub(/^[[:space:]]+image:[[:space:]]*/, "", img)
+        gsub(/^["\x27]|["\x27][[:space:]]*$/, "", img)
+        sub(/[[:space:]]+$/, "", img)
+        if (img != "") print name, img
+        name = ""
+      }
+    ' "$dir/$f" | while read -r ten img; do
+      printf '%s %s %s\n' "$ten" "$img" "$(doan_kieu "$img")"
+    done
+    return 0
+  done
+}
