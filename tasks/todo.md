@@ -3,10 +3,14 @@
 Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖 = tôi làm được
 
 **Mốc đang làm:** V3 — vận hành bền + tự chạy đêm (PRD Epic 5 + FR-3.3/3.4)
-**Trạng thái 26/08:** **M2 XONG — máy đã LIVE.** PAUSE gỡ, `pat`/`claude`/
-`repos` xanh, `26c4c40` đã deploy lên bee. Nợ T18–T20 trả xong và T19 đã
-**nghiệm thu trên máy thật**, không chỉ trong rig. Từ đây là *chờ số liệu*:
-Checkpoint 1 bắt đầu đếm 3 ngày từ 26/08.
+**Trạng thái 26/08:** **M2 XONG — máy đã LIVE**, và đã dùng thử: T23–T29 là
+những thứ chỉ lộ ra khi mở app lên nhìn. Nhưng **chưa phiên thật nào chạy**,
+nên cả ba Checkpoint đều chưa đo được gì: đồng hồ của Checkpoint 1 bắt đầu từ
+phiên đầu tiên, không phải từ lúc gỡ PAUSE.
+
+**Việc kế tiếp, và nó nhỏ:** xếp MỘT issue vào Autopilot rồi bấm **Run now**
+giữa ban ngày. Đó là lần đầu chuỗi clone → worktree → fence → `gh` → PR chạy
+trên user `bee`; chạy nó lúc có người nhìn rẻ hơn nhiều so với lúc 2 giờ sáng.
 
 **Cổng đo** (26/08, sau P5b): lint sạch · typecheck xanh · **527 test / 72
 file** xanh · **13 rig** xanh (rig-14: 16/16) · build hết cảnh báo Turbopack.
@@ -65,9 +69,13 @@ Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestar
 - [x] 🤖 **T3** ~~`/setup`: dung lượng + nút "Dọn ngay"~~ **XONG 24/08** — panel
       đọc `gc.json`, hiện đã thu hồi bao nhiêu và **lý do GIỮ từng worktree**
       (phần đáng giá hơn con số), nút gọi `bee-gc.service` oneshot. 10 test mới.
-- [ ] ✅ **Checkpoint 1** — **ĐANG CHẠY từ 26/08** (M2 xong, PAUSE gỡ). Chạy 3
-      ngày, đĩa không phình, **doctor xanh HẾT** (không còn "trừ D1": `may-sach`
-      xanh từ 25/08, và từ 26/08 có thêm mục `web`). Mốc điểm danh: **29/08**.
+- [ ] ✅ **Checkpoint 1** — **CHƯA BẮT ĐẦU ĐẾM.** Máy đã live từ 26/08 (M2 xong,
+      PAUSE gỡ) nhưng **chưa chạy phiên nào**: `dia-phien: 0`, repo chưa clone,
+      `gc removed: 0`. Trên một máy nằm im thì đĩa không thể phình và gc không
+      có gì để thu hồi — hai trong ba điều kiện tự "đạt" mà không chứng minh
+      được gì. AC của T1b cũng nói thẳng *"sau khi có phiên thật"*.
+      **Đồng hồ 3 ngày bắt đầu từ PHIÊN THẬT ĐẦU TIÊN.** Từ 26/08 tới đó chỉ
+      đo được đúng một thứ, và cứ ghi nhận nó: doctor có xanh liên tục không.
 
 ## P2 · Hạn mức tươi + phanh (FR-3.3 P0 · FR-3.4 P1)
 
@@ -83,8 +91,15 @@ Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestar
       cuối trong run.jsonl (`total_cost_usd` CỘNG DỒN — đo trên máy: 1.02→5.60),
       vượt `SESSION_MAX_USD` thì ghi lifecycle + `needs_human` **rồi mới** dừng
       unit. Mặc định 0 = tắt. rig-09: 8/8.
-- [ ] ✅ **Checkpoint 2** — ép quota trên ngưỡng: chặn đúng, lý do đọc được trên
+- [ ] ✅ **Checkpoint 2** — quota trên ngưỡng: chặn đúng, lý do đọc được trên
       điện thoại; dưới ngưỡng không phiền.
+      **Điều kiện tiên quyết:** `state/claude-usage.json` phải tồn tại. Khi
+      `usage === null`, `xetHanMuc` **cho mở** kèm câu "đang bay mù" — nên máy
+      chưa fetch usage lần nào thì bài này không thể trượt đúng cách, nó sẽ
+      luôn cho qua. Đợi tick ghi file đó trước.
+      **Cách đo** (không đẩy được usage thật lên, nên phải hạ ngưỡng xuống):
+      sửa `QUOTA_BRAKE_PCT` trong `web.env` xuống dưới mức đang dùng, hoặc ghi
+      thẳng `state/claude-usage.json`. Đo xong trả ngưỡng về 85.
 
 ## P3 · Hàng đợi + đi ngủ (FR-5.1 P0 · FR-5.2 P1) — ~~cần D1~~ *D1 đã mở*
 
@@ -108,6 +123,12 @@ Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestar
       đồ hoạ. Chạy rồi thì node phiên thật thay chỗ.
 - [ ] ✅ **Checkpoint 3 — nghiệm thu V3**: tối xếp 2 việc → **sáng có 2 PR chờ
       duyệt**, 0 lần hỏi tay, hạn mức không cháy giữa đêm.
+      **Đây KHÔNG phải "xếp việc rồi đi ngủ" lần đầu.** Trên user `bee` mới,
+      chưa thứ nào trong chuỗi này từng chạy: clone → worktree → cài fence
+      pre-push → `gh` → skill `bee-push-pr`. Giao cả chuỗi đó cho một đêm không
+      ai ngồi cạnh là chọn chỗ tệ nhất để phát hiện mắt xích hỏng.
+      **Chạy thử MỘT việc giữa ban ngày bằng nút "Run now" trước** — cùng đúng
+      đường code, chỉ khác là có người nhìn.
 
 ## P4 · Bản tin sáng (FR-5.3 P1)
 
@@ -247,10 +268,43 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       tiến trình đang đứng. Chặn HOME rỗng + `turbopackIgnore`. Test mới **đã
       thử đỏ trên code cũ** trước khi nhận là xanh.
 
+## P5c · Dùng thật thì lộ ra (26/08) ✅
+
+- [x] 🤖 **T26** ~~Autopilot trông như không làm gì~~ **XONG 26/08** — hàng đợi
+      vốn chạy **bất cứ lúc nào** (tick 30 phút, không có khung giờ nào ở đâu),
+      nhưng chờ nửa tiếng thì trên màn hình đọc y hệt "hệ thống đứng im". Thêm
+      nút **Run now** ở toolbar bảng dự án, gọi ĐÚNG nhịp mà timer gọi — vẫn
+      một phiên, vẫn qua phanh, vẫn tôn trọng PAUSE/⏸ — và in ra lý do khi
+      không mở được. Phần nối dây rời `/api/tick` sang `lib/bee/tick.ts` để hai
+      đường gọi dùng chung một bản. 4 test mới.
+- [x] 🤖 **T27** ~~Màn "Đêm qua" có điểm mù theo giờ~~ **XONG 26/08** — cửa sổ
+      cắt từ 18:00 hôm trước, nên mở lúc 3 giờ chiều là thấy "chưa chạy gì"
+      trong khi ba phiên vừa xong lúc 2 giờ. Một trang sinh ra để nói *chuyện
+      gì đã xảy ra* mà có điểm mù thì nó đang nói dối. Đổi sang **24 giờ
+      trượt**, đổi tên thành **Activity**. 2 test mới.
+- [x] 🤖 **T28** ~~UI còn tiếng Việt~~ **XONG 26/08** — theo quy ước 18/08
+      (chat tiếng Việt, màn hình tiếng Anh): lý do hàng đợi, câu phanh hạn mức,
+      câu vì-sao của Activity, lý do từ chối kéo thả, panel tài khoản Claude.
+      Comment trong code vẫn tiếng Việt — đây là chữ NGƯỜI DÙNG đọc.
+- [x] 🤖 **T29** ~~Nền và component không tách nhau~~ **XONG 26/08** — dark cũ
+      là Geist: nền `#000`, thẻ `#0a0a0a` — cách nhau 4/255 (**1.06:1**), thẻ
+      chỉ tồn tại nhờ một đường 1px; ô nhập `bg-input/30` trên nền đen là vô
+      hình. Đổi sang **VS Code Dark Modern**, lấy từ upstream microsoft/vscode.
+      *Bài học kèm theo:* lần đọc đầu tôi lấy file trên máy (VS Code 1.121),
+      thiếu ba khoá, và đọc `#2B2B2B` là màu **viền** rồi kết luận ngược —
+      chủ dự án bắt kiểm lại upstream mới ra `welcomePage.tileBackground`
+      (màu **thẻ**), `editorGroup.border #FFFFFF17` (trắng mờ, tự chỉnh theo
+      bề mặt) và `quickInput #222222`. Chrome `#181818` ôm nội dung `#1F1F1F`,
+      thẻ `#2B2B2B`, ô nhập `#313131`. Nghiệm thu bằng máy chụp ảnh qua 7 cảnh
+      dữ liệu + điện thoại, không bằng bảng số.
+
 ## Treo — có lý do, không phải quên
 
-- [ ] **FR-5.4 mở khoá dần theo repo** — mode per-phiên + PAUSE + phanh đã phủ
-      phần lớn. Treo tới khi chạy đêm thật rồi mới biết còn thiếu gì.
+- [ ] **FR-5.4 mở khoá dần theo repo** — **là FR của V3, chưa đóng, chỉ hoãn.**
+      mode per-phiên + PAUSE + phanh đã phủ phần lớn. Treo tới khi chạy đêm
+      thật rồi mới biết còn thiếu gì. Nên câu đúng về V3 là *"không còn code
+      nào ĐÃ LÊN LỊCH"*, không phải *"không còn code nào bắt buộc"*:
+      Checkpoint 3 là thứ quyết định dòng này có đẻ ra code hay không.
 - [ ] **Auto-compact trong `-p`** (spec §11) — chưa quan sát được lần nào; đường
       may `⇅` đã có để đo. Phiên đêm dài là lúc nó lộ ra.
 - [ ] **V4** — xoá nhánh fallback hai UID, đồng bộ `AGENTS.md`/`README.md`.
@@ -371,9 +425,10 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       tự ghi claude.env 0600 → session-run.sh export
       CLAUDE_CODE_OAUTH_TOKEN. Fallback dán token thủ công vẫn còn.
       Ở máy chỉ còn đúng install.sh.
-- [ ] 🧑 **S4.1** Tạo fine-grained PAT (contents + PR + issues, đúng danh sách
-      repo) · bật branch protection `main` từng repo · thử push main phải bị từ chối
-      → làm theo trang `/setup`, doctor phải xanh trên đó
+- [x] 🧑 **S4.1** ~~Tạo fine-grained PAT · branch protection `main`~~
+      **ĐÓNG 26/08 bởi M2** — PAT đã dán qua `/setup`, `pat` xanh. Branch
+      protection GitHub không bật được (plan Free + repo private, chốt 19/08);
+      thay bằng fence hạ cấp `pre-push-bee`, doctor ghi rõ trạng thái hạ cấp.
 - [x] 🤖 **S4.2** ~~Cài runner lên máy~~ **XONG 18/08** — cài thật trên máy
       dev (chủ động chọn, biết may-sach đỏ): `~/.local/opt/bee` +
       `~/.local/srv/bee` (units template hoá vì /opt/bee root-owned còn
