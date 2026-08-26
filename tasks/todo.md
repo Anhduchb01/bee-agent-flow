@@ -3,14 +3,14 @@
 Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖 = tôi làm được
 
 **Mốc đang làm:** V3 — vận hành bền + tự chạy đêm (PRD Epic 5 + FR-3.3/3.4)
-**Trạng thái 25/08 (tối):** *code V3 xong hết*, và **ba món nợ nhỏ T18–T20 đã
-trả**. Việc còn lại **không phải code**: máy mới chưa có token/repo nên chưa
-chạy được một đêm thật — tức cả ba Checkpoint đều đang chờ **M2** chứ không
-chờ tôi.
+**Trạng thái 26/08:** **M2 XONG — máy đã LIVE.** PAUSE gỡ, `pat`/`claude`/
+`repos` xanh, `26c4c40` đã deploy lên bee. Nợ T18–T20 trả xong và T19 đã
+**nghiệm thu trên máy thật**, không chỉ trong rig. Từ đây là *chờ số liệu*:
+Checkpoint 1 bắt đầu đếm 3 ngày từ 26/08.
 
-**Cổng đo hôm nay** (chạy lại 25/08 23:50): lint sạch · typecheck xanh ·
-**524 test / 72 file** xanh · **13 rig** xanh (rig-14: 16/16) ·
-tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
+**Cổng đo trên chính máy bee** (deploy 26/08 10:27, runner `/home/bee/.local/bee`):
+lint sạch · typecheck xanh · **524 test / 72 file** xanh · **13 rig** xanh
+(rig-14: 16/16) · tailnet `/login` → 307 · `bee-web` `NRestarts=0`.
 
 ---
 
@@ -64,8 +64,9 @@ tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
 - [x] 🤖 **T3** ~~`/setup`: dung lượng + nút "Dọn ngay"~~ **XONG 24/08** — panel
       đọc `gc.json`, hiện đã thu hồi bao nhiêu và **lý do GIỮ từng worktree**
       (phần đáng giá hơn con số), nút gọi `bee-gc.service` oneshot. 10 test mới.
-- [ ] ✅ **Checkpoint 1** — chạy 3 ngày, đĩa không phình, **doctor xanh HẾT**
-      (không còn "trừ D1" nữa: `may-sach` đã xanh từ 25/08). Chờ **M2**.
+- [ ] ✅ **Checkpoint 1** — **ĐANG CHẠY từ 26/08** (M2 xong, PAUSE gỡ). Chạy 3
+      ngày, đĩa không phình, **doctor xanh HẾT** (không còn "trừ D1": `may-sach`
+      xanh từ 25/08, và từ 26/08 có thêm mục `web`). Mốc điểm danh: **29/08**.
 
 ## P2 · Hạn mức tươi + phanh (FR-3.3 P0 · FR-3.4 P1)
 
@@ -126,11 +127,11 @@ tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
       lui (**T21** xoá sau). `tailscale serve` không phải sửa: vẫn
       `127.0.0.1:3210`, chỉ đổi ai giữ cổng. Đường đi thật (kể cả chỗ vấp):
       [`docs/tach-user.md`](../docs/tach-user.md).
-- [ ] 🧑 **M2** **Việc duy nhất đang chặn cả ba Checkpoint** — mở
-      `https://ducba.tail7d9c45.ts.net` → `/setup`: ① dán token Claude
-      (`claude setup-token`) · ② dán **PAT fine-grained** (bee đang dùng token
-      `gho_` OAuth — doctor đỏ đúng chỗ này) · ③ đăng ký repo · ④ gỡ `PAUSE`.
-      doctor sẽ tự chuyển 3 mục đỏ (`pat` · `claude` · `repos`) sang xanh.
+- [x] 🧑 **M2** ~~Việc duy nhất đang chặn cả ba Checkpoint~~ **XONG 26/08** —
+      token Claude, PAT fine-grained, `Anhduchb01/lifebook-assessment` đã đăng
+      ký, `PAUSE` đã gỡ. Doctor xanh hết trên máy bee. **T13c tự khỏi luôn**:
+      repo giờ đọc được (`repo:lifebook-assessment` xanh — chưa clone, fence
+      pre-push sẽ cài ở phiên đầu). Ba Checkpoint hết bị chặn.
 - [x] 🤖 **T16** ~~`bootstrap.sh` — máy trắng thành máy chạy bằng MỘT lệnh~~
       **XONG 25/08** — gộp node/pnpm · claude cli · docker rootless · `pnpm
       install` + `deploy.sh` đầu tiên. Chặn sớm và chặn có chỉ dẫn: ở group
@@ -190,6 +191,14 @@ tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
       của người kia, nên vòng chờ của deploy vẫn báo ✓. Kèm `doctor.sh
       --exit-zero` (unit dùng bản đó): chạy xong một lượt khám và khám ra bệnh
       là hai chuyện khác nhau. rig-14: 16/16.
+      **Nghiệm thu trên MÁY THẬT 26/08** — một check chỉ từng xanh thì chưa
+      chứng minh gì, nên đo bằng cách ép nó đỏ:
+      · deploy in `chủ cổng: mine 2808349` (đúng câu hỏi 25/08 không ai hỏi)
+      · `✓ bee-web active · 3210 trả 307 · restart 0 lần`
+      · **tắt bee-web → `✗ bee-web failed — không ai phục vụ`** (trước đây
+        chỗ này xanh suốt 1005 lần restart)
+      · và lúc CÓ mục đỏ, `bee-doctor.service` vẫn `Result=success`
+      · bật lại → xanh trở lại, `NRestarts` vẫn 0.
 - [x] 🤖 **T20** ~~PRD §0.2 + mo-hinh-c.md nói ngược sự thật~~ **XONG 25/08** —
       sửa **ba** chỗ (thêm `architecture.html`, nó cũng viết "ranh giới là vỏ
       máy — không phải UID"). Không xoá lịch sử: giữ nguyên đoạn 24/08 rồi nói
@@ -207,9 +216,11 @@ tailnet `/login` → 200 · `bee-web` `NRestarts=0` từ 16:04.
       rig-10: 7/7. Mặc định `RUN_MAX_KB=20480`.
 - [ ] 🧑 **T13a** `sudo rm -rf ~/.local/opt/bee` — junk root-owned **vẫn còn**.
 - [ ] 🧑 **T13b** PAT "All repositories" → "Only select repositories" (vệ sinh A+ §2).
-- [ ] 🧑 **T13c** PAT hiện **không đọc được** `Anhduchb01/lifebook-assessment`
-      (`gh` trả *Could not resolve to a Repository*) — kiểm tên repo/quyền:
-      bảng dự án đang im lặng bỏ qua repo không đọc được.
+- [x] 🧑 **T13c** ~~PAT không đọc được `lifebook-assessment`~~ **HẾT 26/08** —
+      PAT mới dán ở M2 đọc được, `repo:lifebook-assessment` xanh. *Cái nợ thật
+      sự còn lại ở đây không phải quyền mà là hành vi:* bảng dự án **im lặng**
+      bỏ qua repo không đọc được. Lần sau PAT hết hạn sẽ lại im lặng như thế —
+      xem có nên cho nó nói ra không, sau Checkpoint 1.
 
 ## Treo — có lý do, không phải quên
 
