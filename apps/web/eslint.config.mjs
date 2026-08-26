@@ -32,11 +32,11 @@ const eslintConfig = defineConfig([
             {
               name: "node:child_process",
               message:
-                "Lệnh ngoài phải đi qua @/lib/bee/ctl (ctl / ctlSpawn) — cửa đó tôn trọng BEE_CTL=none.",
+                "Outside commands must go through @/lib/bee/ctl (ctl / ctlSpawn) — that door honours BEE_CTL=none.",
             },
             {
               name: "child_process",
-              message: "Dùng @/lib/bee/ctl (ctl / ctlSpawn).",
+              message: "Use @/lib/bee/ctl (ctl / ctlSpawn).",
             },
           ],
         },

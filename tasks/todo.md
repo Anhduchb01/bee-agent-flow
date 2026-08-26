@@ -677,9 +677,20 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       (`moPhien`, `docTiep`, `ghepThe`, `dungBanTin`, `HangDoi`…). Đổi ồ ạt là
       một quyết định riêng, chạm gần như mọi file.
 
-- [ ] 🤖 **T31** Đổi nốt identifier tiếng Việt **có từ trước** sang tiếng Anh
-      (L) — `moPhien` · `docTiep` · `ghepThe` · `dungBanTin` · `HangDoi` ·
-      `SuKien` · `BanTin` · `MucBang` · `ghi_cong` · `dung_worktree` ·
-      `chep_env_d`… Khảo sát: ~212 chỗ dùng `phien`, 185 `loi`, 83 `suKien`.
-      Chạm gần như mọi file, nên làm thành **một commit riêng**, cổng chạy
-      trước và sau, không kèm thay đổi hành vi nào.
+- [x] 🤖 **T31** ~~Đổi identifier tiếng Việt sang tiếng Anh~~ **XONG 26/08** —
+      120 file, không kèm thay đổi hành vi nào; cổng trước và sau giống hệt.
+      Va chạm đáng ghi: `BeeRepoDangKy` muốn thành `BeeRepo` nhưng tên đó đã
+      có chủ (kiểu thời reconciler mang `full/enabled/paused/running/wip`).
+      Hai thứ khác nhau cùng tên sẽ biên dịch được ở vài chỗ và lệch im lặng
+      ở chỗ khác → `BeeRegisteredRepo`.
+- [x] 🤖 **T32** ~~Không ai kiểm giao ước bash↔TS~~ **XONG 26/08** — rename
+      bằng regex có một đường hỏng mà **cả 561 test lẫn 35 e2e đều không bắt
+      được**: đổi một khoá JSON ở phía TS thì test TS vẫn xanh (nó tự ghi tự
+      đọc), còn file thật do bash ghi thì lệch. `bash-contract.test.ts` chạy
+      **script thật** rồi đưa cho **reader thật**: doctor.sh → readDoctorFrom ·
+      gc.sh → readGcIn · session-run.sh → readSessionIn · service-slice.sh →
+      readSessionSliceFrom. Không fixture, không JSON viết tay.
+      Đã kiểm ngược từng khoá bằng cách phá có chủ đích — và bắt được **hai lỗ
+      trong chính bài test**: nhánh `kept` của gc để `bytes`=0 nên đọc nhầm
+      khoá vẫn xanh (thêm ca `removed`), và `services.json.at` fallback về `""`
+      nên không ai để ý (thêm khẳng định giá trị).
