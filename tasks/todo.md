@@ -195,8 +195,19 @@ Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestar
         sự khai compose**: docker chết mà chặn oan phiên chưa từng đụng docker
         là lỗi khác. rig-07 phần 2: 9 ca mới, đã thử tắt code để chắc cả 5 ca
         chính đều đỏ trước khi nhận là xanh.
-  - [ ] 🤖 **T15b** `lat-dich-vu.sh` cấp/thu hồi + bảng tra image + mở rộng
-        `env.d` nhận `${BEE_DB_URL}`… + rig (M). Chạy tay được trước khi có UI.
+  - [x] 🤖 **T15b** ~~Lõi lát dịch vụ~~ **XONG 26/08** — `service-slice.sh`
+        (tên tiếng Anh, spec viết `lat-dich-vu.sh`), sáu commit nhỏ:
+        `doan_kieu` (bảng tra image, đoán trượt → rỗng chứ không đoán bừa) ·
+        `doc_compose` (đọc compose bằng text, không cần docker) ·
+        `provision` (role+db, vhost, bucket; idempotent; REVOKE CONNECT) ·
+        `reclaim` + gc gọi (tên **luôn suy lại từ uuid**, rig thử nhét
+        `bee_x; DROP DATABASE postgres; --` vào services.json và bắt nó không
+        tới được psql) · `env.d` nhận `${BEE_DB_URL}`… · khung `services/` +
+        unit pool **render mà không enable**.
+        **Admin credential không bao giờ rời container pool** — mọi lệnh đặc
+        quyền chạy qua `docker compose exec` bên trong chính service đó, nên
+        máy không cần psql/rabbitmqctl/mc và không giữ bản sao mật khẩu nào.
+        rig-15: 45 ca. rig-07 +4, rig-03 +4.
   - [ ] 🤖 **T15c** `/setup` hai tab + panel pool + panel lát đang cấp +
         doctor mục `dich-vu` (M).
 
