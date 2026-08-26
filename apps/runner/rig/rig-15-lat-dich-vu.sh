@@ -108,5 +108,133 @@ RA2=$(doc_compose "$WT")
   && kq ok "ignores image: outside services (x-anchors, volumes)" \
   || kq no "leaked a non-service image: $RA2"
 
+# ── 3 · service-slice.sh provision ────────────────────────────────────────
+echo
+echo "-- 3 · provision --"
+
+mkdir -p "$T/bin"
+export RIG_DOCKER_LOG="$T/docker.log"
+cat > "$T/bin/docker" <<'EOF'
+#!/usr/bin/env bash
+echo "$*" >> "$RIG_DOCKER_LOG"
+[[ "$1" == info ]] && { [[ "${RIG_POOL_UP:-1}" == 1 ]] && exit 0 || exit 1; }
+if [[ "$1" == ps ]]; then
+  for pj in ${RIG_DOCKER_PROJECTS:-}; do
+    case " $* " in *"project=$pj"*) echo "c0ffeec0ffee"; exit 0;; esac
+  done
+  exit 0
+fi
+exit 0
+EOF
+chmod +x "$T/bin/docker"
+export PATH="$T/bin:$PATH"
+
+# The pool: what the owner maintains on the Settings screen.
+cat > "$BEE_ROOT/services/compose.yml" <<'EOF'
+services:
+  postgres:
+    image: postgres:16
+  rabbitmq:
+    image: rabbitmq:3-management
+EOF
+
+LAT="$HERE/../bin/service-slice.sh"
+
+phien_lat() {  # phien_lat <id> <worktree:true|false> <compose-body|"">
+  local id="$1" wt="$2" body="$3"
+  local sd="$BEE_ROOT/sessions/$id"
+  mkdir -p "$sd" "$BEE_ROOT/work/$id"
+  jq -cn --arg i "$id" --argjson w "$wt" \
+    '{id:$i, slug:"myapp", num:1, repo:"you/myapp", worktree:$w}' > "$sd/session.json"
+  [[ -n "$body" ]] && printf '%s\n' "$body" > "$BEE_ROOT/work/$id/docker-compose.yml"
+  : > "$sd/run.jsonl"
+}
+
+CO_PG=$'services:\n  db:\n    image: postgres:16\n  cache:\n    image: redis:7\n  blob:\n    image: acme/blob:1'
+
+ID_CHAT=cc000000-0000-4000-8000-00000000000a
+ID_PG=cc000000-0000-4000-8000-00000000000b
+ID_TRONG=cc000000-0000-4000-8000-00000000000c
+
+phien_lat "$ID_CHAT"  false ""
+phien_lat "$ID_PG"    true  "$CO_PG"
+phien_lat "$ID_TRONG" true  ""
+
+# A chat session has no worktree and therefore no services. It must not even
+# look — a database created for a conversation is pure waste.
+: > "$RIG_DOCKER_LOG"
+bash "$LAT" provision "$ID_CHAT" >/dev/null 2>&1 && rc=0 || rc=$?
+[[ $rc -eq 0 && ! -f "$BEE_ROOT/sessions/$ID_CHAT/services.json" ]] \
+  && kq ok "chat session: no-op, no slice file" || kq no "chat session got a slice (rc=$rc)"
+[[ ! -s "$RIG_DOCKER_LOG" ]] \
+  && kq ok "chat session: docker never called" || kq no "docker called for a chat session"
+
+# A repo with no compose declares no services — same nothing, cheaply.
+bash "$LAT" provision "$ID_TRONG" >/dev/null 2>&1 && rc=0 || rc=$?
+[[ $rc -eq 0 && ! -f "$BEE_ROOT/sessions/$ID_TRONG/services.json" ]] \
+  && kq ok "repo without compose: no-op" || kq no "slice created with no compose (rc=$rc)"
+
+# The real path.
+: > "$RIG_DOCKER_LOG"
+RIG_POOL_UP=1 bash "$LAT" provision "$ID_PG" >/dev/null 2>&1 && rc=0 || rc=$?
+SJ="$BEE_ROOT/sessions/$ID_PG/services.json"
+ENVF="$BEE_ROOT/work/$ID_PG/.bee/services.env"
+
+[[ $rc -eq 0 ]] && kq ok "provision succeeded" || kq no "provision failed rc=$rc"
+[[ -f "$SJ" ]] && kq ok "sessions/<id>/services.json written" || kq no "no services.json"
+[[ "$(stat -c %a "$SJ" 2>/dev/null)" == 600 ]] \
+  && kq ok "services.json is 600 — it holds a password" || kq no "services.json mode $(stat -c %a "$SJ" 2>/dev/null)"
+[[ "$(stat -c %a "$ENVF" 2>/dev/null)" == 600 ]] \
+  && kq ok ".bee/services.env is 600" || kq no "services.env mode $(stat -c %a "$ENVF" 2>/dev/null)"
+
+grep -q "^BEE_DB_URL=postgres://bee_cc000000:" "$ENVF" 2>/dev/null \
+  && kq ok "BEE_DB_URL points at the session's own role" \
+  || kq no "BEE_DB_URL wrong: $(grep '^BEE_DB_URL=' "$ENVF" 2>/dev/null | sed 's/:[^:]*@/:***@/')"
+
+grep -q "CREATE ROLE bee_cc000000" "$RIG_DOCKER_LOG" \
+  && kq ok "role created before the database (it owns it)" || kq no "no CREATE ROLE in docker log"
+grep -q "REVOKE CONNECT" "$RIG_DOCKER_LOG" \
+  && kq ok "REVOKE CONNECT … FROM PUBLIC — the point of a per-session role" \
+  || kq no "database left open to PUBLIC: any session could read it"
+
+# redis is cheap enough to run per session, and acme/blob is unrecognised.
+# Neither is in the pool, so neither may reach an admin command.
+grep -q "redis\|acme/blob" "$RIG_DOCKER_LOG" \
+  && kq no "ran an admin command for a service that is not in the pool" \
+  || kq ok "kinds absent from the pool: recorded, never provisioned"
+jq -e '[.items[] | select(.in_pool == false)] | length == 2' "$SJ" >/dev/null 2>&1 \
+  && kq ok "both non-pool services recorded so the UI can explain them" \
+  || kq no "non-pool services not recorded: $(jq -c '[.items[].service]' "$SJ" 2>/dev/null)"
+
+# Continue must not rotate the password: the worktree may still hold the old
+# one, and a session that comes back to a database it can no longer open is
+# the kind of failure nobody traces back.
+MK1=$(jq -r '.items[] | select(.kind=="postgres") | .password' "$SJ")
+bash "$LAT" provision "$ID_PG" >/dev/null 2>&1
+MK2=$(jq -r '.items[] | select(.kind=="postgres") | .password' "$SJ")
+[[ -n "$MK1" && "$MK1" == "$MK2" ]] \
+  && kq ok "idempotent: same password on a second provision" \
+  || kq no "password rotated on re-provision — a resumed session loses its db"
+
+# Pool down while the repo needs it: refuse LOUDLY at the door instead of
+# letting the agent hit connection-refused twenty minutes in.
+: > "$RIG_DOCKER_LOG"
+ID_CHET=cc000000-0000-4000-8000-00000000000d
+phien_lat "$ID_CHET" true "$CO_PG"
+RIG_POOL_UP=0 bash "$LAT" provision "$ID_CHET" >"$T/out" 2>&1 && rc=0 || rc=$?
+[[ $rc -ne 0 ]] && kq ok "pool down + repo needs it: refuses (rc=$rc)" \
+  || kq no "pool down but provision reported success"
+grep -qi "pool" "$T/out" \
+  && kq ok "and says the pool is why" || kq no "refused without naming the pool: $(head -1 "$T/out")"
+[[ ! -f "$BEE_ROOT/sessions/$ID_CHET/services.json" ]] \
+  && kq ok "nothing half-written when it refuses" || kq no "left a partial services.json"
+
+# A session id that is not a uuid must die at the door, before any argv.
+: > "$RIG_DOCKER_LOG"
+bash "$LAT" provision '../../etc/passwd' >/dev/null 2>&1 && rc=0 || rc=$?
+[[ $rc -ne 0 && ! -s "$RIG_DOCKER_LOG" ]] \
+  && kq ok "dirty session id: rejected at the door, docker untouched" \
+  || kq no "dirty id got past the gate (rc=$rc)"
+
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-15: ALL GREEN"; else echo "RIG-15: RED"; exit 1; fi
