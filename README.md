@@ -27,11 +27,13 @@ Gồm các phần dùng được độc lập:
 1. **Phiên là đối tượng gốc.** Một phiên = một lần Claude Code chạy trong một
    worktree, sống như một systemd unit — web chỉ là người đọc file và bấm nút.
    Task, issue, PR là *sản phẩm phụ* của phiên, do agent tự tạo bằng `gh`.
-2. **Ranh giới là vỏ máy + hàng rào phía GitHub, không phải UID.** Máy chuyên
-   dụng không chứa gì đáng lấy; agent cầm fine-grained PAT phạm vi hẹp; `main`
-   có branch protection — đường duy nhất vào main là nút merge người bấm.
-   Quyết định này (gọi là **A+**) kèm cái giá chấp nhận có ý thức và **5 cò
-   súng** buộc quay về mô hình hai UID — xem [PRD §0](docs/PRD_bee-agent-flow.md).
+2. **Ranh giới là uid `bee` + vỏ máy + hàng rào phía GitHub — không phải hai
+   UID.** bee là user Linux riêng (không sudo, không group docker, docker
+   rootless), nên trong tầm với của agent không có gì ngoài thứ nó cần: một
+   fine-grained PAT phạm vi hẹp và một login Claude. `main` có branch
+   protection — đường duy nhất vào main là nút merge người bấm. Quyết định này
+   (gọi là **A+**) kèm cái giá chấp nhận có ý thức và **5 cò súng** buộc quay
+   về mô hình hai UID — xem [PRD §0](docs/PRD_bee-agent-flow.md).
 3. **Trạng thái sống trên đĩa.** Đầu ra phiên rơi thẳng xuống `run.jsonl`,
    đầu vào qua FIFO — đóng trình duyệt, restart web, `kill -9` đều không mất gì.
 
