@@ -176,7 +176,12 @@ Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestar
       kế `DBUS_SESSION_BUS_ADDRESS` từ `dockerd` nên `runc` đi hỏi systemd hệ
       thống. Xem [docker-cho-bee.md §5b](../docs/docker-cho-bee.md). Chỉ cần
       làm khi T15 muốn đặt trần tài nguyên cho từng phiên.
-- [ ] 🤖 **T15** Cấp lát dịch vụ cho phiên (M) — **đã có spec 26/08:**
+- [~] 🤖 **T15** Cấp lát dịch vụ cho phiên — **CODE XONG 26/08, CHƯA NGHIỆM
+      THU TRÊN POOL THẬT.** Máy dev không có postgres/rabbitmq/minio và không
+      sudo sang `bee` được, nên toàn bộ b+c đo bằng rig với stub docker (đúng
+      khuôn rig-14 dùng cho `systemctl`). Bằng chứng trên máy thật cần: deploy
+      → thêm service vào `services/compose.yml` ở tab Configuration → bật
+      `bee-services` → mở một phiên của repo có compose. **Spec 26/08:**
       [`docs/specs/lat-dich-vu.md`](../docs/specs/lat-dich-vu.md). Năm quyết
       định đã chốt trước khi code: bee tự đọc compose của repo và **đoán kiểu
       từ image** · tên lát theo **session uuid** (không theo `<slug>-<num>`,
