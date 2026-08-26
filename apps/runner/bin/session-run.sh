@@ -170,7 +170,7 @@ if [[ "$CO_WORKTREE" == "yes" ]]; then
   # because the repo's compose is what tells us which services it wants.
   # A refusal here ends the session at the door: better than letting the agent
   # hit connection-refused twenty minutes into a run nobody is watching.
-  if ! cap_lat_dich_vu "$SDIR" "$ID"; then
+  if ! ensure_service_slice "$SDIR" "$ID"; then
     meta_merge "$SDIR" "$(jq -cn --arg t "$(now_iso)" \
       '{status:"failed", reason:"service-slice", ended_at:$t}')"
     exit 1

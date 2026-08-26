@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { NutChayNgay } from "./autopilot-controls";
+import { RunNowButton } from "./autopilot-controls";
 
 /**
  * Filter + view switch, built from LINKS, not client state: the board is a
@@ -48,13 +48,13 @@ export function BoardToolbar({
   repos,
   duAn,
   view,
-  soXepHang,
+  queuedCount,
 }: {
   repos: { slug: string; repo: string }[];
   duAn: string | null;
   view: ChoXem;
-  /** Số việc đang chờ trong Autopilot — 0 thì "Run now" không có gì để chạy. */
-  soXepHang: number;
+  /** Items waiting in Autopilot — at 0 "Run now" has nothing to run. */
+  queuedCount: number;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -81,10 +81,10 @@ export function BoardToolbar({
             Kanban
           </Chip>
         </nav>
-        {/* Ở toolbar chứ không ở riêng lane Autopilot: lane đó chỉ hiện trong
-            Kanban, mà mặc định là Table — nút nằm trong một tab người dùng
-            chưa mở thì cũng như không có. */}
-        <NutChayNgay soViec={soXepHang} />
+        {/* In the toolbar rather than on the Autopilot lane: that lane only
+            exists in Kanban, and Table is the default — a button inside a tab
+            nobody opened may as well not exist. */}
+        <RunNowButton queued={queuedCount} />
       </div>
     </div>
   );

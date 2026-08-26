@@ -5,37 +5,38 @@ import path from "node:path";
 
 import { getBee } from "./index";
 import { docHangDoi, ghiHangDoi } from "./queue-fs";
-import { chayMotNhip } from "./queue-run";
+import { runOneTick } from "./queue-run";
 import { moPhien } from "./session-ctl";
 
 /**
- * Một nhịp Autopilot, nối dây vào đĩa + systemd.
+ * One Autopilot tick, wired to disk and systemd.
  *
- * Ở đây vì có HAI người gọi và chỉ được có MỘT bản luật: `bee-tick.timer` gõ
- * vào `/api/tick` mỗi 30 phút, và nút "Run now" trên bảng dự án gọi thẳng khi
- * người dùng không muốn chờ. Nếu để mỗi bên tự nối dây, hai đường sẽ trôi khỏi
- * nhau đúng lúc khó phát hiện nhất — một cái phanh hạn mức, cái kia không.
+ * It lives here because there are TWO callers and there may be only ONE copy
+ * of the rule: `bee-tick.timer` hits `/api/tick` every 30 minutes, and the
+ * "Run now" button calls it directly when somebody does not want to wait. Let
+ * each side do its own wiring and they drift apart at the worst possible
+ * moment — one honouring the quota brake, the other not.
  *
- * Luật thuần vẫn nằm ở `queue-run.ts`; file này chỉ bơm tác dụng phụ vào.
+ * The pure rule stays in `queue-run.ts`; this file only injects side effects.
  *
- * KHÔNG có khung giờ nào ở đây, và chưa bao giờ có: Autopilot chạy bất cứ lúc
- * nào trong ngày. "Đi ngủ" chỉ là câu chuyện dùng trong PRD, không phải lịch.
+ * There is no time window here and never was: Autopilot runs at any hour.
+ * "Leave it overnight" is a story in the PRD, not a schedule.
  */
 
-export interface KetQuaNhipHang {
-  daMo: string | null;
-  lyDo: string;
+export interface QueueTickResult {
+  opened: string | null;
+  reason: string;
 }
 
 function root(): string {
   return process.env.BEE_SRV ?? "/srv/bee";
 }
 
-export async function chayNhipHangDoi(): Promise<KetQuaNhipHang> {
+export async function runQueueTick(): Promise<QueueTickResult> {
   const goc = root();
   const q = await docHangDoi(goc);
-  // Hàng rỗng thì đừng chạm gì thêm — tick nhẹ nhất có thể khi không có việc.
-  if (q.items.length === 0) return { daMo: null, lyDo: "the queue is empty" };
+  // Empty queue: touch nothing else. A tick with no work should be cheap.
+  if (q.items.length === 0) return { opened: null, reason: "the queue is empty" };
 
   const dangPause = await fs
     .access(path.join(goc, "PAUSE"))
@@ -43,7 +44,7 @@ export async function chayNhipHangDoi(): Promise<KetQuaNhipHang> {
     .catch(() => false);
   const phien = await getBee().listSessions();
 
-  const kq = await chayMotNhip({
+  const kq = await runOneTick({
     hangDoi: q,
     dangPause,
     soPhienDangChay: phien.filter((p) => p.status === "running" || p.status === "starting").length,
@@ -65,5 +66,5 @@ export async function chayNhipHangDoi(): Promise<KetQuaNhipHang> {
     ghi: (moi) => ghiHangDoi(goc, moi),
   });
 
-  return { daMo: kq.daMo === null ? null : `${kq.daMo.repo}#${kq.daMo.issue}`, lyDo: kq.lyDo };
+  return { opened: kq.opened === null ? null : `${kq.opened.repo}#${kq.opened.issue}`, reason: kq.reason };
 }

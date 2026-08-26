@@ -16,13 +16,13 @@ import { dungBanTin, type BanTin } from "../lib/tom-tat";
  * "chưa chạy gì" trong khi ba phiên vừa xong lúc 2 giờ. Trang này tồn tại để
  * nói ra chuyện gì đã xảy ra, nên nó không được có điểm mù nào theo giờ.
  */
-export function khoangGanDay(luc = new Date(), soGio = 24): { tu: Date; den: Date } {
+export function recentWindow(luc = new Date(), soGio = 24): { tu: Date; den: Date } {
   return { tu: new Date(luc.getTime() - soGio * 3_600_000), den: luc };
 }
 
 export async function loadBanTin(luc = new Date()): Promise<BanTin> {
   const bee = getBee();
-  const { tu, den } = khoangGanDay(luc);
+  const { tu, den } = recentWindow(luc);
   const [phien, hangDoi] = await Promise.all([
     bee.listSessions(),
     docHangDoi(process.env.BEE_SRV ?? "/srv/bee"),

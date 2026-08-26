@@ -239,13 +239,13 @@ function VongNguCanh({
 export function LiveView({
   phien,
   commands = [],
-  lat = null,
+  slice = null,
 }: {
   phien: BeeSession;
   /** Global slash commands (~/.claude/commands) — the "/" palette. */
   commands?: { name: string; moTa: string }[];
   /** The service slice this session holds, if any (T15c4). */
-  lat?: BeeSlice | null;
+  slice?: BeeSlice | null;
 }) {
   const { suKien, dangGo, dangNghi, trangThai, ketThuc, boQua } = useSessionStream(phien.id);
   const [nhap, setNhap] = useState("");
@@ -417,7 +417,7 @@ export function LiveView({
         </span>
         <span className="flex-1" />
         {/* Left of Stop on purpose: it answers "what am I about to stop". */}
-        <SessionServices lat={lat} />
+        <SessionServices slice={slice} />
         {dangChay && (
           <Button size="sm" variant="outline" onClick={() => void dungPhienAction(phien.id)}>
             Stop

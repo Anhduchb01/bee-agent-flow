@@ -13,7 +13,7 @@ import type { BeePoolService, BeeSlice } from "@/lib/bee/services-fs";
  * the other) where that stops being silent.
  */
 
-const KIEU_NHAN: Record<string, string> = {
+const KIND_LABEL: Record<string, string> = {
   postgres: "database + role per session",
   mysql: "database + user per session",
   rabbitmq: "vhost + user per session",
@@ -22,7 +22,7 @@ const KIEU_NHAN: Record<string, string> = {
 };
 
 export function ServicesPanel({ pool, slices }: { pool: BeePoolService[]; slices: BeeSlice[] }) {
-  const laLung = pool.filter((p) => p.kind === "");
+  const unplaceable = pool.filter((p) => p.kind === "");
 
   return (
     <div className="flex flex-col gap-4">
@@ -52,17 +52,17 @@ export function ServicesPanel({ pool, slices }: { pool: BeePoolService[]; slices
                 {p.kind === "" ? (
                   <span className="text-warning">bee cannot place this image</span>
                 ) : (
-                  <span className="text-body">{KIEU_NHAN[p.kind] ?? p.kind}</span>
+                  <span className="text-body">{KIND_LABEL[p.kind] ?? p.kind}</span>
                 )}
               </li>
             ))}
           </ul>
         )}
 
-        {laLung.length > 0 && (
+        {unplaceable.length > 0 && (
           <p className="rounded-control border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
             bee guesses what a service is from its image, and it cannot place{" "}
-            <span className="font-mono">{laLung.map((p) => p.image).join(", ")}</span>. Sessions
+            <span className="font-mono">{unplaceable.map((p) => p.image).join(", ")}</span>. Sessions
             that need it will run their own copy instead of sharing this one. Rename to a
             standard image (postgres, rabbitmq, minio/minio, mysql) to share it — or leave it,
             and expect the memory.

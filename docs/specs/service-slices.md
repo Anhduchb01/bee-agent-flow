@@ -50,7 +50,7 @@ Ba tính chất của khối cấp lát, **mỗi cái một mình đã đủ** l
 3. **gc phải thu hồi được**, cũng không người. Nó phải *suy ra* tên database từ
    session uuid, không phải *nhớ lại*.
 
-Nên `lat-dich-vu.sh` là **bash thuần + một bảng tra**, test bằng rig như
+Nên `service-slices.sh` là **bash thuần + một bảng tra**, test bằng rig như
 `dung_worktree` / `capPhatDaiCong` / `chayMotNhip`.
 
 **Chỗ AI thật sự làm việc là mốc 7** (§5): agent chạy trong worktree, bằng
@@ -148,7 +148,7 @@ là bản sao để repo đọc.
 4  Cổng + env        ghi_cong · chep_env_d                 [đã có]
    └─ .bee/ports.env · env.d/<slug>/* → worktree · cả hai vào info/exclude
 
-5  LÁT DỊCH VỤ       lat-dich-vu.sh cap <uuid>             [T15]
+5  LÁT DỊCH VỤ       service-slices.sh cap <uuid>             [T15]
    ├─ đọc compose trong worktree → đoán kiểu từng image (§3)
    ├─ đọc pool services/compose.yml → đoán kiểu y hệt
    ├─ kiểu CÓ trong pool → cấp lát, idempotent (CREATE … IF NOT EXISTS):
@@ -349,7 +349,7 @@ Thất bại là **dữ liệu trả về**, không phải exception ném lên U
 | Đợt | Gồm | Vì sao tách |
 |---|---|---|
 | **T15a** | `gc.sh` biết `docker compose down -v` | Vá nợ đã có (§7), không phụ thuộc gì phía sau |
-| **T15b** | `lat-dich-vu.sh` (cấp/thu hồi) + bảng tra image + mở rộng `env.d` + rig | Lõi. Chạy được bằng tay trước khi có UI |
+| **T15b** | `service-slices.sh` (cấp/thu hồi) + bảng tra image + mở rộng `env.d` + rig | Lõi. Chạy được bằng tay trước khi có UI |
 | **T15c** | Hai tab `/setup` + panel pool + panel lát + **panel dịch vụ trong màn phiên** + doctor `dich-vu` | UI, sau khi lõi đã đúng |
 | **T17** | Trả `native.cgroupdriver=systemd` | **Chỉ khi** muốn đặt trần `--memory`/`--cpus` cho từng phiên. Với thiết kế này (lát chung, container per-phiên nhỏ) thì chưa cần — xem [docker-cho-bee.md §5b](../docker-cho-bee.md) |
 

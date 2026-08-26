@@ -47,13 +47,14 @@ describe("moPhien — the brake sits at the door every new session goes through"
   it("under the threshold: the brake does not get in the way", async () => {
     await datHanMuc(20);
     const ket = await moPhien({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
-    // Cửa lệnh ngoài đóng (BEE_CTL=none) → lỗi ở bước start, KHÔNG phải lỗi
-    // phanh, và session.json đã được ghi trước lệnh đó.
+    // The outside-command door is shut (BEE_CTL=none) → the failure is at
+    // start, NOT at the brake, and session.json was written before it.
     //
-    // Chú thích cũ ở đây viết "systemctl không có trong sandbox" — sai, và
-    // sai đúng chỗ đắt: trên chính máy bee, `bee-session@.service` là unit
-    // static nên start CHẠY THẬT. Ba unit chết trong journal ngày 25/08 mang
-    // đúng cái uuid dưới kia. Xem lib/bee/ctl.ts.
+    // The old comment here said "no systemctl in the sandbox" — wrong, and
+    // wrong in the expensive place: on the bee machine itself
+    // `bee-session@.service` is a static unit, so start REALLY RUNS. The
+    // three dead units in the 25/08 journal carry the uuid below. See
+    // lib/bee/ctl.ts.
     if (!ket.ok) expect(ket.message).not.toMatch(/hạn mức/);
     expect((await fs.readdir(path.join(dir, "sessions"))).length).toBe(1);
   });
@@ -73,11 +74,12 @@ describe("moPhien — the brake sits at the door every new session goes through"
     await fs.writeFile(path.join(dir, "sessions", id, "session.json"), JSON.stringify({ id }));
 
     const ket = await tiepTucPhien(id);
-    // Nó đi tới tận bước start rồi mới dừng ở CỬA LỆNH NGOÀI — nghĩa là phanh
-    // không chen vào, đúng điều bài này hỏi.
+    // It gets all the way to start and stops at the OUTSIDE-COMMAND DOOR —
+    // which is the point: the brake never got in the way.
     //
-    // Cái uuid ngay trên chính là uuid đã lọt ra journal của máy bee 25/08.
-    // Nếu ai đó mở lại cửa, dòng dưới đỏ TRƯỚC khi nó kịp start unit thật.
+    // The uuid above is the one that reached bee's journal on 25/08. If
+    // anyone reopens that door, the line below goes red BEFORE a real unit
+    // can start.
     expect(ket.ok).toBe(false);
     if (ket.ok) return;
     expect(ket.message).toMatch(/BEE_CTL=none/);

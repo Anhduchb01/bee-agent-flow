@@ -182,7 +182,7 @@ Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestar
       khuôn rig-14 dùng cho `systemctl`). Bằng chứng trên máy thật cần: deploy
       → thêm service vào `services/compose.yml` ở tab Configuration → bật
       `bee-services` → mở một phiên của repo có compose. **Spec 26/08:**
-      [`docs/specs/lat-dich-vu.md`](../docs/specs/lat-dich-vu.md). Năm quyết
+      [`docs/specs/service-slices.md`](../docs/specs/service-slices.md). Năm quyết
       định đã chốt trước khi code: bee tự đọc compose của repo và **đoán kiểu
       từ image** · tên lát theo **session uuid** (không theo `<slug>-<num>`,
       vì `num` trùng được khi mở hai phiên cùng lúc) · cấp lát là **rule chứ
@@ -201,7 +201,7 @@ Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestar
         là lỗi khác. rig-07 phần 2: 9 ca mới, đã thử tắt code để chắc cả 5 ca
         chính đều đỏ trước khi nhận là xanh.
   - [x] 🤖 **T15b** ~~Lõi lát dịch vụ~~ **XONG 26/08** — `service-slice.sh`
-        (tên tiếng Anh, spec viết `lat-dich-vu.sh`), sáu commit nhỏ:
+        (tên tiếng Anh, spec viết `service-slices.sh`), sáu commit nhỏ:
         `doan_kieu` (bảng tra image, đoán trượt → rỗng chứ không đoán bừa) ·
         `doc_compose` (đọc compose bằng text, không cần docker) ·
         `provision` (role+db, vhost, bucket; idempotent; REVOKE CONNECT) ·
@@ -650,3 +650,23 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
 - [ ] `docs/architecture.html` hiện mô tả mô hình hai UID — đã ghi chú trong
       PRD 3.0 phụ lục là *tham chiếu fallback*; vẽ lại sau khi V1 nghiệm thu
 - [ ] Trần `run.jsonl` theo byte lúc đang ghi (spec §11)
+
+## P5d · Dọn ngôn ngữ (26/08) ✅
+
+- [x] 🤖 **T30** ~~Code còn tiếng Việt~~ **XONG 26/08** — chủ dự án phải nhắc
+      lại một luật đã có từ 18/08: *"trong code tất cả đều là tiếng Anh, chỉ
+      chat mới tiếng Việt"*. Lỗi tôi mắc suốt phiên: thấy file xung quanh toàn
+      comment tiếng Việt nên viết theo cho "khớp phong cách" — sai, vì luật là
+      **code mới/sửa thì tiếng Anh** kể cả khi file xung quanh chưa đổi.
+      Dọn toàn bộ phần tôi viết trong phiên: tên hàm (`doan_kieu`→`guess_kind`,
+      `cap_lat_dich_vu`→`ensure_service_slice`, `chayNhipHangDoi`→`runQueueTick`,
+      `NutChayNgay`→`RunNowButton`, `tabMacDinh`→`defaultTab`…) · comment ·
+      chuỗi hiển thị · tên bài test · tên file rig (`rig-14-web-alive.sh`…) ·
+      tên spec (`service-slices.md`).
+      Kèm: **toàn bộ checklist doctor sang tiếng Anh** và đổi ba id cho khớp
+      (`may-sach`→`clean-host`, `dia-phien`→`session-disk`, `dia`→`disk`) —
+      chúng là chữ người dùng đọc trên `/setup`, nên nửa Việt nửa Anh là tệ
+      nhất trong ba lựa chọn.
+      **Chưa đụng:** identifier tiếng Việt có từ trước và phiên này không sửa
+      (`moPhien`, `docTiep`, `ghepThe`, `dungBanTin`, `HangDoi`…). Đổi ồ ạt là
+      một quyết định riêng, chạm gần như mọi file.

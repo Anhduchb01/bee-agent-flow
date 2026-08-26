@@ -8,9 +8,9 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
  * sidebar thì tiêu đề không còn phải gánh việc "cho biết mình đang ở đâu" nữa —
  * nó chỉ cần đặt tên cho trang.
  *
- * Nền là `chrome`, không phải `background`: dải này là khung của app chứ không
- * phải nội dung, nên nó đứng cùng phe với sidebar. Đó cũng là cấu trúc của
- * Dark Modern — titleBar và sideBar cùng #181818 ôm lấy editor #1F1F1F.
+ * Its fill is `chrome`, not `background`: this bar is app frame, not content,
+ * so it belongs on the sidebar's side. That is also Dark Modern's structure —
+ * titleBar and sideBar share #181818, wrapping the #1F1F1F editor.
  */
 export function PageHeader({
   title,

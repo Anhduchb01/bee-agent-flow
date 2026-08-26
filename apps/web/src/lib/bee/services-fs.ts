@@ -44,7 +44,7 @@ function root(): string {
   return process.env.BEE_SRV ?? "/srv/bee";
 }
 
-function laFixture(): boolean {
+function isFixture(): boolean {
   return process.env.BEE_SOURCE !== "disk";
 }
 
@@ -55,7 +55,7 @@ const POOL_FIXTURE: BeePoolService[] = [
 ];
 
 /** Narrow one row of whatever the script printed. Unknown shapes are dropped. */
-function docPoolRow(raw: unknown): BeePoolService | null {
+function parsePoolRow(raw: unknown): BeePoolService | null {
   if (typeof raw !== "object" || raw === null) return null;
   const o = raw as Record<string, unknown>;
   if (typeof o.service !== "string" || o.service === "") return null;
@@ -66,17 +66,17 @@ function docPoolRow(raw: unknown): BeePoolService | null {
   };
 }
 
-export function docPool(raw: unknown): BeePoolService[] {
+export function parsePool(raw: unknown): BeePoolService[] {
   if (!Array.isArray(raw)) return [];
-  return raw.map(docPoolRow).filter((r): r is BeePoolService => r !== null);
+  return raw.map(parsePoolRow).filter((r): r is BeePoolService => r !== null);
 }
 
 export async function readPool(opts?: { prefix?: string }): Promise<BeePoolService[]> {
-  if (laFixture()) return POOL_FIXTURE;
+  if (isFixture()) return POOL_FIXTURE;
   const prefix = opts?.prefix ?? process.env.BEE_PREFIX ?? "/opt/bee";
   try {
     const { stdout } = await ctl(path.join(prefix, "bin", "service-slice.sh"), ["pool"]);
-    return docPool(JSON.parse(stdout));
+    return parsePool(JSON.parse(stdout));
   } catch {
     // No runner installed, or the door is shut: an empty pool is the honest
     // answer, and doctor is the thing that says whether that is a problem.
@@ -84,7 +84,7 @@ export async function readPool(opts?: { prefix?: string }): Promise<BeePoolServi
   }
 }
 
-function docSliceItem(raw: unknown): BeeSliceItem | null {
+function parseSliceItem(raw: unknown): BeeSliceItem | null {
   if (typeof raw !== "object" || raw === null) return null;
   const o = raw as Record<string, unknown>;
   if (typeof o.service !== "string" || o.service === "") return null;
@@ -118,7 +118,7 @@ export async function readSessionSliceFrom(
   const o = raw as Record<string, unknown>;
   if (typeof o.slice !== "string") return null;
   const items = Array.isArray(o.items)
-    ? o.items.map(docSliceItem).filter((i): i is BeeSliceItem => i !== null)
+    ? o.items.map(parseSliceItem).filter((i): i is BeeSliceItem => i !== null)
     : [];
   return {
     sessionId: id,
@@ -129,7 +129,7 @@ export async function readSessionSliceFrom(
 }
 
 export async function readSessionSlice(id: string): Promise<BeeSlice | null> {
-  if (laFixture()) {
+  if (isFixture()) {
     return {
       sessionId: id,
       slice: "bee_de300000",
@@ -161,7 +161,7 @@ export async function readSlicesFrom(goc: string): Promise<BeeSlice[]> {
 }
 
 export async function readSlices(): Promise<BeeSlice[]> {
-  if (laFixture()) {
+  if (isFixture()) {
     const one = await readSessionSlice("de300000-0000-4000-8000-000000000001");
     return one === null ? [] : [one];
   }

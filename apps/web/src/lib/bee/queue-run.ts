@@ -15,12 +15,12 @@ import type { HangDoi, ViecTrongHang } from "./types";
  *    `waiting` kèm lý do, không phải biến mất hay kẹt ở `running`.
  */
 
-export interface KetQuaNhip {
-  daMo: ViecTrongHang | null;
-  lyDo: string;
+export interface TickResult {
+  opened: ViecTrongHang | null;
+  reason: string;
 }
 
-export interface CuaNhip {
+export interface TickPorts {
   hangDoi: HangDoi;
   /** File PAUSE của cả máy — khác với ⏸ của riêng hàng đợi. */
   dangPause: boolean;
@@ -39,28 +39,28 @@ function capNhat(q: HangDoi, v: ViecTrongHang, thay: Partial<ViecTrongHang>): Ha
   };
 }
 
-export async function chayMotNhip(cua: CuaNhip): Promise<KetQuaNhip> {
+export async function runOneTick(cua: TickPorts): Promise<TickResult> {
   const toiDa = cua.songSongToiDa ?? 1;
 
-  if (cua.dangPause) return { daMo: null, lyDo: "PAUSE is on — the machine opens no sessions" };
-  if (cua.hangDoi.paused) return { daMo: null, lyDo: "the queue is paused (⏸)" };
+  if (cua.dangPause) return { opened: null, reason: "PAUSE is on — the machine opens no sessions" };
+  if (cua.hangDoi.paused) return { opened: null, reason: "the queue is paused (⏸)" };
   if (cua.soPhienDangChay >= toiDa) {
-    return { daMo: null, lyDo: `${toiDa} session(s) already running — waiting for a slot` };
+    return { opened: null, reason: `${toiDa} session(s) already running — waiting for a slot` };
   }
 
   const viec = viecKeTiep(cua.hangDoi, { songSongToiDa: toiDa });
-  if (viec === null) return { daMo: null, lyDo: "nothing left waiting in the queue" };
+  if (viec === null) return { opened: null, reason: "nothing left waiting in the queue" };
 
   const ket = await cua.moPhien(viec);
   if (!ket.ok) {
     // Phanh hạn mức (T5) trả lời ở đây. Việc KHÔNG mất và KHÔNG kẹt: nó về lại
     // waiting kèm lý do, nhịp sau thử lại khi hạn mức đã reset.
     await cua.ghi(capNhat(cua.hangDoi, viec, { status: "waiting", reason: ket.message }));
-    return { daMo: null, lyDo: ket.message };
+    return { opened: null, reason: ket.message };
   }
 
   await cua.ghi(
     capNhat(cua.hangDoi, viec, { status: "running", sessionId: ket.id, reason: null }),
   );
-  return { daMo: viec, lyDo: `opened a session for ${viec.repo}#${viec.issue}` };
+  return { opened: viec, reason: `opened a session for ${viec.repo}#${viec.issue}` };
 }

@@ -1,5 +1,5 @@
-export const CAC_TAB = ["install", "config"] as const;
-export type SetupTab = (typeof CAC_TAB)[number];
+export const TABS = ["install", "config"] as const;
+export type SetupTab = (typeof TABS)[number];
 
 /**
  * Which tab a bare `/setup` opens on.
@@ -14,8 +14,8 @@ export type SetupTab = (typeof CAC_TAB)[number];
  * The tab lives in the URL so the page stays a server component and every
  * state is a link — same reason the project board keeps its filter there.
  */
-export function tabMacDinh(tab: unknown, doctorOk: boolean | null): SetupTab {
-  if (typeof tab === "string" && (CAC_TAB as readonly string[]).includes(tab)) {
+export function defaultTab(tab: unknown, doctorOk: boolean | null): SetupTab {
+  if (typeof tab === "string" && (TABS as readonly string[]).includes(tab)) {
     return tab as SetupTab;
   }
   return doctorOk === true ? "config" : "install";

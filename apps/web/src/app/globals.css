@@ -2,23 +2,25 @@
 @import "tw-animate-css";
 
 /*
- * Hình dạng + thang chữ: Geist (Vercel) — docs/design/vercel-geist.md.
- * Bảng màu DARK: **VS Code Dark Modern**, lấy nguyên văn từ
+ * Shape and type scale: Geist (Vercel) — docs/design/vercel-geist.md.
+ * DARK palette: **VS Code Dark Modern**, taken verbatim from
  * microsoft/vscode → extensions/theme-defaults/themes/dark_modern.json
- * (cộng dark_plus.json cho bốn màu nhấn syntax). Mỗi biến dưới kia có chú
- * thích tên khoá gốc, để lần sau còn đối chiếu được với upstream.
+ * (plus dark_plus.json for the four syntax accents). Every variable below
+ * carries its upstream key name so it stays checkable against the source.
  *
- * Vì sao đổi: bản Geist dark đặt nền #000 và thẻ #0a0a0a — cách nhau 4/255,
- * tức 1.06:1. Không có bề mặt nào tách khỏi bề mặt nào; cái thẻ chỉ tồn tại
- * nhờ một đường 1px. Dark Modern có sẵn một THANG bề mặt (181818 → 1F1F1F →
- * 222222 → 2B2B2B → 313131) và dùng trắng-mờ cho viền vùng, nên nó tự giải
- * đúng bài đó.
+ * Why it changed: the Geist dark set put the page at #000 and cards at
+ * #0a0a0a — 4/255 apart, a contrast ratio of 1.06:1. No surface separated
+ * from any other; a card existed only because of a 1px line. Dark Modern
+ * ships an actual surface LADDER (181818 → 1F1F1F → 222222 → 2B2B2B →
+ * 313131) and uses translucent white for region borders, so it solves that
+ * problem on its own.
  *
- * `:root` (light) vẫn là Geist: `<html>` đang ghim class `dark` cố định
- * (layout.tsx), nên nhánh light hôm nay không ai nhìn thấy. Đổi nó là sửa mù.
+ * `:root` (light) is still Geist: `<html>` pins the `dark` class
+ * (layout.tsx), so the light branch is not visible to anyone today. Changing
+ * it would be editing blind.
  *
- * Đổi giao diện thì đổi ở đây, KHÔNG sửa tay file trong components/ui/: một
- * lần chạy lại `shadcn add` sẽ ghi đè mọi sửa tay ở đó.
+ * Theme changes go HERE, never by hand in components/ui/: one `shadcn add`
+ * overwrites anything edited there.
  */
 
 @custom-variant dark (&:is(.dark *));
@@ -52,11 +54,12 @@
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
-  /* `--input` là màu VIỀN ô nhập (shadcn dùng `border-input`). Nền của ô là
-     một bậc riêng trong thang Dark Modern, nên nó cần biến riêng. */
+  /* `--input` is the input BORDER colour (shadcn uses `border-input`). The
+     field's fill is its own rung on the Dark Modern ladder, so it needs its
+     own variable. */
   --color-field: var(--field);
-  /* Chrome của app (sidebar, dải đầu trang) — tối HƠN vùng nội dung, đúng
-     chiều của VS Code: sideBar/titleBar #181818 ôm lấy editor #1F1F1F. */
+  /* App chrome (sidebar, page header) — DARKER than the content area, the
+     way VS Code has it: sideBar/titleBar #181818 wrapping editor #1F1F1F. */
   --color-chrome: var(--chrome);
   --color-ring: var(--ring);
 
@@ -211,16 +214,16 @@
 
 .dark {
   /*
-   * ── Thang bề mặt của Dark Modern, tối → sáng ─────────────────────────
-   *   #181818  sideBar · panel · statusBar · tab không active
-   *   #1F1F1F  editor · menu · notifications · tab active
-   *   #222222  quickInput            (bề mặt nổi)
+   * ── The Dark Modern surface ladder, dark → light ─────────────────────
+   *   #181818  sideBar · panel · statusBar · inactive tab
+   *   #1F1F1F  editor · menu · notifications · active tab
+   *   #222222  quickInput            (floating surface)
    *   #2B2B2B  welcomePage.tile · textCodeBlock · secondary hover
    *   #313131  input · dropdown · checkbox
    *   #3C3C3C  input.border · textPreformat
    *
-   * Đọc thang này theo đúng chiều: trong VS Code, **chrome tối hơn nội
-   * dung**. Sidebar không phải là nền — nền là vùng làm việc.
+   * Read the ladder in the right direction: in VS Code the CHROME is darker
+   * than the CONTENT. The sidebar is not the background — the work area is.
    */
   --background: #1f1f1f;          /* editor.background */
   --foreground: #ffffff;          /* tab.activeForeground · settings.headerForeground */
@@ -243,8 +246,8 @@
 
   --destructive: #f85149;         /* errorForeground */
   --error-deep: #f85149;
-  /* Dark Modern KHÔNG định nghĩa warning. Lấy hai thứ nó thật sự có: chữ
-     hổ phách của chat.editedFileForeground, và nền vàng của findMatch. */
+  /* Dark Modern defines no warning colour. Borrow the two it does have: the
+     amber text of chat.editedFileForeground, and findMatch's yellow fill. */
   --warning: #e2c08d;             /* chat.editedFileForeground */
   --warning-deep: #e2c08d;
   --warning-soft: #9e6a0340;      /* editor.findMatchBackground, hạ alpha */
@@ -252,18 +255,19 @@
   --link-deep: #0078d4;           /* focusBorder */
   --link-soft: #26477866;         /* chat.slashCommandBackground */
 
-  /* Bốn màu nhấn còn lại lấy từ dark_plus.json — bảng syntax mà chính
-     Dark Modern kế thừa (`"include": "./dark_plus.json"`). */
+  /* The four remaining accents come from dark_plus.json — the syntax palette
+     Dark Modern itself inherits (`"include": "./dark_plus.json"`). */
   --violet: #c586c0;              /* keyword.control */
   --cyan: #4ec9b0;                /* entity.name.type */
   --pink: #d16969;                /* constant.character-class.regexp */
   --magenta: #ce9178;             /* support.constant.color */
 
   /*
-   * Viền vùng là TRẮNG MỜ 9%, không phải một màu xám đục —
-   * `editorGroup.border: #FFFFFF17`. Nó tự chỉnh theo bề mặt bên dưới: trên
-   * sidebar #181818 nó ra ~#2D2D2D, trên thẻ #2B2B2B ra ~#3E3E3E. Một hằng
-   * số xám không làm được việc đó, và đây chính là chỗ tôi đọc sai lúc đầu.
+   * Region borders are TRANSLUCENT WHITE at 9%, not an opaque grey —
+   * `editorGroup.border: #FFFFFF17`. It adapts to whatever is underneath: on
+   * the #181818 sidebar it lands near #2D2D2D, on a #2B2B2B card near
+   * #3E3E3E. A fixed grey cannot do that, and misreading this key is what
+   * sent the first pass of this palette in the wrong direction.
    */
   --border: #ffffff17;            /* editorGroup.border */
   --input: #3c3c3c;               /* input.border */
@@ -283,7 +287,7 @@
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #2b2b2b;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #2b2b2b;             /* sideBar.border — đục, như VS Code */
+  --sidebar-border: #2b2b2b;             /* sideBar.border — opaque, as in VS Code */
   --sidebar-ring: #0078d4;
 }
 
@@ -310,14 +314,14 @@
 
 @layer base {
   /*
-   * shadcn cho ô nhập `dark:bg-input/30` — 30% của màu viền, tức gần như
-   * trong suốt. Trên nền #000 cũ thì nó vô hình, và đó là một nửa của câu
-   * "component không rõ ràng".
+   * shadcn gives inputs `dark:bg-input/30` — 30% of the border colour, so
+   * nearly transparent. On the old #000 page that was invisible, and it was
+   * half of "the components do not stand out".
    *
-   * Dark Modern trả lời bằng một bậc riêng: `input.background #313131`, cao
-   * hơn nền hai bậc (2.0:1 so với #1F1F1F) — cú tách mạnh nhất trong cả bảng
-   * màu. Đè ở ĐÂY chứ không sửa components/ui/: `shadcn add` sẽ ghi đè file
-   * ở đó, còn file này thì không.
+   * Dark Modern answers with a rung of its own: `input.background #313131`,
+   * two steps above the page (2.0:1 against #1F1F1F) — the strongest
+   * separation in the whole palette. Overridden HERE rather than in
+   * components/ui/, because `shadcn add` overwrites that and not this.
    */
   .dark [data-slot="input"],
   .dark [data-slot="textarea"],

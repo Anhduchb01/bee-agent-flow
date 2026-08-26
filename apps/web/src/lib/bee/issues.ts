@@ -136,7 +136,8 @@ const FIXTURE: Record<string, BeeIssue[]> = {
   ],
 };
 
-/** `loi` nằm TRONG cache: đọc thiếu mà lần sau im lặng thì cache đang nói dối. */
+/** The reason lives INSIDE the cache: reading short and then going quiet
+ *  60 seconds later means the cache itself is lying. */
 const cache = new Map<string, { luc: number; issues: BeeIssue[]; loi: string | null }>();
 
 /** Test hook — the cache is per-process and bee-web is long-lived. */
@@ -188,9 +189,10 @@ export async function fetchRepoIssues(
     const issues = doc
       .filter((i): i is BeeIssue => i !== null)
       .sort((a, b) => b.number - a.number);
-    // Dòng hỏng vẫn BỊ BỎ (không tin dạng dữ liệu của gh) — nhưng bỏ bao
-    // nhiêu thì phải nói ra. Nếu gh đổi JSON, bảng trống là triệu chứng duy
-    // nhất, và một bảng trống im lặng đọc y hệt "repo này chưa có issue nào".
+    // Malformed rows are still DROPPED — we do not trust gh's output shape —
+    // but how many were dropped has to be said. If gh changes its JSON, an
+    // empty board is the only symptom, and a silent empty board reads exactly
+    // like "this repo has no issues yet".
     const bo = doc.length - issues.length;
     const loi =
       bo === 0 ? null : `${repo}: skipped ${bo} of ${doc.length} rows gh returned — they did not look like issues.`;

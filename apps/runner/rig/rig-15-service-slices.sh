@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rig-15 — service slices (T15). See docs/specs/lat-dich-vu.md.
+# Rig-15 — service slices (T15). See docs/specs/service-slices.md.
 #
 # The whole slice layer is deliberately rule-based, not AI (spec §2): it runs
 # before claude even starts, it holds admin credentials, and gc has to be able
@@ -17,38 +17,38 @@ mkdir -p "$BEE_ROOT"/{sessions,work,repos,services}
 
 source "$HERE/../lib/common.sh"
 
-# ── 1 · doan_kieu: image string → service kind ────────────────────────────
+# ── 1 · guess_kind: image string → service kind ────────────────────────────
 # Guessing from the image is what the owner chose over a declaration file
 # (spec §0.1). The safety rule that comes with it: an image we cannot place
 # must return EMPTY, never a wrong kind — writing into somebody else's
 # database costs far more than one redundant container.
 echo "-- 1 · image -> kind --"
 
-kiem_kieu() {  # kiem_kieu <image> <expected>
-  local got; got=$(doan_kieu "$1")
+check_kind() {  # check_kind <image> <expected>
+  local got; got=$(guess_kind "$1")
   [[ "$got" == "$2" ]] \
     && kq ok "$1 -> ${2:-<empty>}" \
     || kq no "$1 -> '$got', expected '${2:-<empty>}'"
 }
 
-kiem_kieu "postgres:16"                 postgres
-kiem_kieu "postgres"                    postgres
-kiem_kieu "postgis/postgis:16-3.4"      postgres
-kiem_kieu "pgvector/pgvector:pg16"      postgres
-kiem_kieu "rabbitmq:3-management"       rabbitmq
-kiem_kieu "minio/minio:latest"          s3
-kiem_kieu "mysql:8"                     mysql
-kiem_kieu "mariadb:11"                  mysql
-kiem_kieu "redis:7-alpine"              redis
-kiem_kieu "valkey/valkey:8"             redis
-kiem_kieu "mycompany/db-custom:2"       ""
-kiem_kieu ""                            ""
+check_kind "postgres:16"                 postgres
+check_kind "postgres"                    postgres
+check_kind "postgis/postgis:16-3.4"      postgres
+check_kind "pgvector/pgvector:pg16"      postgres
+check_kind "rabbitmq:3-management"       rabbitmq
+check_kind "minio/minio:latest"          s3
+check_kind "mysql:8"                     mysql
+check_kind "mariadb:11"                  mysql
+check_kind "redis:7-alpine"              redis
+check_kind "valkey/valkey:8"             redis
+check_kind "mycompany/db-custom:2"       ""
+check_kind ""                            ""
 
 # A registry-qualified image must not fool the matcher, in either direction.
-kiem_kieu "docker.io/library/postgres:16"        postgres
-kiem_kieu "ghcr.io/acme/not-postgres-at-all:1"   ""
+check_kind "docker.io/library/postgres:16"        postgres
+check_kind "ghcr.io/acme/not-postgres-at-all:1"   ""
 
-# ── 2 · doc_compose: compose file -> "<service> <image> <kind>" lines ─────
+# ── 2 · read_compose: compose file -> "<service> <image> <kind>" lines ─────
 # Parsed as text on purpose, NOT via `docker compose config`: this runs before
 # claude starts, on a machine where docker may be down or the repo's compose
 # may not even be valid yet. Needing docker to find out whether we need docker
@@ -56,8 +56,8 @@ kiem_kieu "ghcr.io/acme/not-postgres-at-all:1"   ""
 echo
 echo "-- 2 · compose -> services --"
 
-WT="$T/wt"; mkdir -p "$WT"
-cat > "$WT/docker-compose.yml" <<'EOF'
+WT_COMPOSE="$T/wt"; mkdir -p "$WT_COMPOSE"
+cat > "$WT_COMPOSE/docker-compose.yml" <<'EOF'
 services:
   db:
     image: postgres:16
@@ -72,28 +72,28 @@ services:
     image: mycompany/blob:2
 EOF
 
-RA=$(doc_compose "$WT")
+OUT=$(read_compose "$WT_COMPOSE")
 
-grep -qx "db postgres:16 postgres" <<<"$RA" \
-  && kq ok "reads service + image + kind" || kq no "wrong row for db: $(grep '^db ' <<<"$RA")"
-grep -qx "cache redis:7 redis" <<<"$RA" \
+grep -qx "db postgres:16 postgres" <<<"$OUT" \
+  && kq ok "reads service + image + kind" || kq no "wrong row for db: $(grep '^db ' <<<"$OUT")"
+grep -qx "cache redis:7 redis" <<<"$OUT" \
   && kq ok "redis recognised as its own kind" || kq no "cache row wrong"
-grep -qx "blob mycompany/blob:2 " <<<"$RA" \
+grep -qx "blob mycompany/blob:2 " <<<"$OUT" \
   && kq ok "unknown image: listed, kind left EMPTY (not dropped)" \
-  || kq no "unknown image must still be listed so the UI can warn: $(grep '^blob ' <<<"$RA")"
-grep -q "^api " <<<"$RA" \
+  || kq no "unknown image must still be listed so the UI can warn: $(grep '^blob ' <<<"$OUT")"
+grep -q "^api " <<<"$OUT" \
   && kq no "service with no image must be skipped — nothing to guess from" \
   || kq ok "service built from source (no image): skipped"
-[[ "$(wc -l <<<"$RA")" == 3 ]] \
-  && kq ok "exactly three rows, no stray lines" || kq no "row count wrong: $(wc -l <<<"$RA")"
+[[ "$(wc -l <<<"$OUT")" == 3 ]] \
+  && kq ok "exactly three rows, no stray lines" || kq no "row count wrong: $(wc -l <<<"$OUT")"
 
 # A worktree with no compose at all is the common case, not an error.
-[[ -z "$(doc_compose "$T/khong-co")" ]] \
+[[ -z "$(read_compose "$T/no-such-dir")" ]] \
   && kq ok "no compose file: empty output, no error" || kq no "missing compose file did not stay quiet"
 
 # `image:` outside the services block must not be picked up — top-level keys
 # like x-templates are legal compose and would otherwise leak in.
-cat > "$WT/compose.yaml" <<'EOF'
+cat > "$WT_COMPOSE/compose.yaml" <<'EOF'
 x-shared: &shared
   image: postgres:16
 volumes:
@@ -102,11 +102,11 @@ services:
   only:
     image: rabbitmq:3
 EOF
-rm -f "$WT/docker-compose.yml"
-RA2=$(doc_compose "$WT")
-[[ "$RA2" == "only rabbitmq:3 rabbitmq" ]] \
+rm -f "$WT_COMPOSE/docker-compose.yml"
+OUT2=$(read_compose "$WT_COMPOSE")
+[[ "$OUT2" == "only rabbitmq:3 rabbitmq" ]] \
   && kq ok "ignores image: outside services (x-anchors, volumes)" \
-  || kq no "leaked a non-service image: $RA2"
+  || kq no "leaked a non-service image: $OUT2"
 
 # ── 3 · service-slice.sh provision ────────────────────────────────────────
 echo
@@ -138,9 +138,9 @@ services:
     image: rabbitmq:3-management
 EOF
 
-LAT="$HERE/../bin/service-slice.sh"
+SLICE_SH="$HERE/../bin/service-slice.sh"
 
-phien_lat() {  # phien_lat <id> <worktree:true|false> <compose-body|"">
+make_session() {  # make_session <id> <worktree:true|false> <compose-body|"">
   local id="$1" wt="$2" body="$3"
   local sd="$BEE_ROOT/sessions/$id"
   mkdir -p "$sd" "$BEE_ROOT/work/$id"
@@ -150,33 +150,33 @@ phien_lat() {  # phien_lat <id> <worktree:true|false> <compose-body|"">
   : > "$sd/run.jsonl"
 }
 
-CO_PG=$'services:\n  db:\n    image: postgres:16\n  cache:\n    image: redis:7\n  blob:\n    image: acme/blob:1'
+COMPOSE_PG=$'services:\n  db:\n    image: postgres:16\n  cache:\n    image: redis:7\n  blob:\n    image: acme/blob:1'
 
 ID_CHAT=cc000000-0000-4000-8000-00000000000a
 ID_PG=cc000000-0000-4000-8000-00000000000b
-ID_TRONG=cc000000-0000-4000-8000-00000000000c
+ID_NO_COMPOSE=cc000000-0000-4000-8000-00000000000c
 
-phien_lat "$ID_CHAT"  false ""
-phien_lat "$ID_PG"    true  "$CO_PG"
-phien_lat "$ID_TRONG" true  ""
+make_session "$ID_CHAT"  false ""
+make_session "$ID_PG"    true  "$COMPOSE_PG"
+make_session "$ID_NO_COMPOSE" true  ""
 
 # A chat session has no worktree and therefore no services. It must not even
 # look — a database created for a conversation is pure waste.
 : > "$RIG_DOCKER_LOG"
-bash "$LAT" provision "$ID_CHAT" >/dev/null 2>&1 && rc=0 || rc=$?
+bash "$SLICE_SH" provision "$ID_CHAT" >/dev/null 2>&1 && rc=0 || rc=$?
 [[ $rc -eq 0 && ! -f "$BEE_ROOT/sessions/$ID_CHAT/services.json" ]] \
   && kq ok "chat session: no-op, no slice file" || kq no "chat session got a slice (rc=$rc)"
 [[ ! -s "$RIG_DOCKER_LOG" ]] \
   && kq ok "chat session: docker never called" || kq no "docker called for a chat session"
 
 # A repo with no compose declares no services — same nothing, cheaply.
-bash "$LAT" provision "$ID_TRONG" >/dev/null 2>&1 && rc=0 || rc=$?
-[[ $rc -eq 0 && ! -f "$BEE_ROOT/sessions/$ID_TRONG/services.json" ]] \
+bash "$SLICE_SH" provision "$ID_NO_COMPOSE" >/dev/null 2>&1 && rc=0 || rc=$?
+[[ $rc -eq 0 && ! -f "$BEE_ROOT/sessions/$ID_NO_COMPOSE/services.json" ]] \
   && kq ok "repo without compose: no-op" || kq no "slice created with no compose (rc=$rc)"
 
 # The real path.
 : > "$RIG_DOCKER_LOG"
-RIG_POOL_UP=1 bash "$LAT" provision "$ID_PG" >/dev/null 2>&1 && rc=0 || rc=$?
+RIG_POOL_UP=1 bash "$SLICE_SH" provision "$ID_PG" >/dev/null 2>&1 && rc=0 || rc=$?
 SJ="$BEE_ROOT/sessions/$ID_PG/services.json"
 ENVF="$BEE_ROOT/work/$ID_PG/.bee/services.env"
 
@@ -209,29 +209,29 @@ jq -e '[.items[] | select(.in_pool == false)] | length == 2' "$SJ" >/dev/null 2>
 # Continue must not rotate the password: the worktree may still hold the old
 # one, and a session that comes back to a database it can no longer open is
 # the kind of failure nobody traces back.
-MK1=$(jq -r '.items[] | select(.kind=="postgres") | .password' "$SJ")
-bash "$LAT" provision "$ID_PG" >/dev/null 2>&1
-MK2=$(jq -r '.items[] | select(.kind=="postgres") | .password' "$SJ")
-[[ -n "$MK1" && "$MK1" == "$MK2" ]] \
+PW1=$(jq -r '.items[] | select(.kind=="postgres") | .password' "$SJ")
+bash "$SLICE_SH" provision "$ID_PG" >/dev/null 2>&1
+PW2=$(jq -r '.items[] | select(.kind=="postgres") | .password' "$SJ")
+[[ -n "$PW1" && "$PW1" == "$PW2" ]] \
   && kq ok "idempotent: same password on a second provision" \
   || kq no "password rotated on re-provision — a resumed session loses its db"
 
 # Pool down while the repo needs it: refuse LOUDLY at the door instead of
 # letting the agent hit connection-refused twenty minutes in.
 : > "$RIG_DOCKER_LOG"
-ID_CHET=cc000000-0000-4000-8000-00000000000d
-phien_lat "$ID_CHET" true "$CO_PG"
-RIG_POOL_UP=0 bash "$LAT" provision "$ID_CHET" >"$T/out" 2>&1 && rc=0 || rc=$?
+ID_POOL_DOWN=cc000000-0000-4000-8000-00000000000d
+make_session "$ID_POOL_DOWN" true "$COMPOSE_PG"
+RIG_POOL_UP=0 bash "$SLICE_SH" provision "$ID_POOL_DOWN" >"$T/out" 2>&1 && rc=0 || rc=$?
 [[ $rc -ne 0 ]] && kq ok "pool down + repo needs it: refuses (rc=$rc)" \
   || kq no "pool down but provision reported success"
 grep -qi "pool" "$T/out" \
   && kq ok "and says the pool is why" || kq no "refused without naming the pool: $(head -1 "$T/out")"
-[[ ! -f "$BEE_ROOT/sessions/$ID_CHET/services.json" ]] \
+[[ ! -f "$BEE_ROOT/sessions/$ID_POOL_DOWN/services.json" ]] \
   && kq ok "nothing half-written when it refuses" || kq no "left a partial services.json"
 
 # A session id that is not a uuid must die at the door, before any argv.
 : > "$RIG_DOCKER_LOG"
-bash "$LAT" provision '../../etc/passwd' >/dev/null 2>&1 && rc=0 || rc=$?
+bash "$SLICE_SH" provision '../../etc/passwd' >/dev/null 2>&1 && rc=0 || rc=$?
 [[ $rc -ne 0 && ! -s "$RIG_DOCKER_LOG" ]] \
   && kq ok "dirty session id: rejected at the door, docker untouched" \
   || kq no "dirty id got past the gate (rc=$rc)"
@@ -243,7 +243,7 @@ echo
 echo "-- 4 · reclaim --"
 
 : > "$RIG_DOCKER_LOG"
-RIG_POOL_UP=1 bash "$LAT" reclaim "$ID_PG" >/dev/null 2>&1 && rc=0 || rc=$?
+RIG_POOL_UP=1 bash "$SLICE_SH" reclaim "$ID_PG" >/dev/null 2>&1 && rc=0 || rc=$?
 [[ $rc -eq 0 ]] && kq ok "reclaim succeeded" || kq no "reclaim failed rc=$rc"
 
 grep -q "DROP DATABASE IF EXISTS bee_cc000000" "$RIG_DOCKER_LOG" \
@@ -266,20 +266,20 @@ grep -q "redis\|acme/blob" "$RIG_DOCKER_LOG" \
   || kq no "services.json survived reclaim"
 
 # Reclaiming twice must be quiet, because gc will run again tomorrow.
-bash "$LAT" reclaim "$ID_PG" >/dev/null 2>&1 \
+bash "$SLICE_SH" reclaim "$ID_PG" >/dev/null 2>&1 \
   && kq ok "second reclaim: no-op, no error" || kq no "reclaim is not idempotent"
 
 # THE important one. services.json is a file on disk; if a name in it ever
 # reached psql unchecked, a crafted record would run arbitrary SQL as
 # superuser in a timer. The name must be re-derived and re-checked, always.
-ID_XAU=cc000000-0000-4000-8000-00000000000e
-phien_lat "$ID_XAU" true "$CO_PG"
-RIG_POOL_UP=1 bash "$LAT" provision "$ID_XAU" >/dev/null 2>&1
+ID_TAMPERED=cc000000-0000-4000-8000-00000000000e
+make_session "$ID_TAMPERED" true "$COMPOSE_PG"
+RIG_POOL_UP=1 bash "$SLICE_SH" provision "$ID_TAMPERED" >/dev/null 2>&1
 jq -c '.slice = "bee_x; DROP DATABASE postgres; --"' \
-  "$BEE_ROOT/sessions/$ID_XAU/services.json" > "$T/xau.json"
-cp "$T/xau.json" "$BEE_ROOT/sessions/$ID_XAU/services.json"
+  "$BEE_ROOT/sessions/$ID_TAMPERED/services.json" > "$T/xau.json"
+cp "$T/xau.json" "$BEE_ROOT/sessions/$ID_TAMPERED/services.json"
 : > "$RIG_DOCKER_LOG"
-bash "$LAT" reclaim "$ID_XAU" >/dev/null 2>&1 || true
+bash "$SLICE_SH" reclaim "$ID_TAMPERED" >/dev/null 2>&1 || true
 grep -q "DROP DATABASE postgres" "$RIG_DOCKER_LOG" \
   && kq no "A TAMPERED services.json REACHED psql — arbitrary SQL as superuser" \
   || kq ok "tampered slice name never reaches psql (name re-derived from uuid)"
@@ -288,11 +288,11 @@ grep -q "DROP DATABASE IF EXISTS bee_cc000000" "$RIG_DOCKER_LOG" \
   || kq no "derived name was not used either"
 
 # Pool down: refuse and keep the record, so the next tick can try again.
-ID_SAU=cc000000-0000-4000-8000-00000000000f
-phien_lat "$ID_SAU" true "$CO_PG"
-RIG_POOL_UP=1 bash "$LAT" provision "$ID_SAU" >/dev/null 2>&1
-RIG_POOL_UP=0 bash "$LAT" reclaim "$ID_SAU" >/dev/null 2>&1 && rc=0 || rc=$?
-[[ $rc -ne 0 && -f "$BEE_ROOT/sessions/$ID_SAU/services.json" ]] \
+ID_RETRY=cc000000-0000-4000-8000-00000000000f
+make_session "$ID_RETRY" true "$COMPOSE_PG"
+RIG_POOL_UP=1 bash "$SLICE_SH" provision "$ID_RETRY" >/dev/null 2>&1
+RIG_POOL_UP=0 bash "$SLICE_SH" reclaim "$ID_RETRY" >/dev/null 2>&1 && rc=0 || rc=$?
+[[ $rc -ne 0 && -f "$BEE_ROOT/sessions/$ID_RETRY/services.json" ]] \
   && kq ok "pool down: refuses and KEEPS the record for the next tick" \
   || kq no "dropped the record without reclaiming — the slice becomes an orphan (rc=$rc)"
 
@@ -311,37 +311,37 @@ CACHE_PORT=${BEE_PORT_1}
 LITERAL=$KEEP_ME_AS_IS
 EOF
 
-WT5="$BEE_ROOT/work/$ID_PG"
-mkdir -p "$WT5/.bee"
+WT_ENV="$BEE_ROOT/work/$ID_PG"
+mkdir -p "$WT_ENV/.bee"
 printf 'BEE_DB_URL=postgres://bee_cc000000:pw@127.0.0.1/bee_cc000000
-' > "$WT5/.bee/services.env"
-chep_env_d "$ENVD" "$WT5" 54000
+' > "$WT_ENV/.bee/services.env"
+chep_env_d "$ENVD" "$WT_ENV" 54000
 
-grep -q "^DATABASE_URL=postgres://bee_cc000000:pw@" "$WT5/.env" \
+grep -q "^DATABASE_URL=postgres://bee_cc000000:pw@" "$WT_ENV/.env" \
   && kq ok "\${BEE_DB_URL} reaches the repo's own variable name" \
-  || kq no "slice var not substituted: $(grep '^DATABASE_URL' "$WT5/.env")"
-grep -qx "CACHE_PORT=54001" "$WT5/.env" \
+  || kq no "slice var not substituted: $(grep '^DATABASE_URL' "$WT_ENV/.env")"
+grep -qx "CACHE_PORT=54001" "$WT_ENV/.env" \
   && kq ok "port vars still work alongside" || kq no "port substitution broke"
-grep -qx 'LITERAL=$KEEP_ME_AS_IS' "$WT5/.env" \
+grep -qx 'LITERAL=$KEEP_ME_AS_IS' "$WT_ENV/.env" \
   && kq ok "a \$VAR outside the BEE_ family survives untouched" \
-  || kq no "envsubst ate a variable that belongs to the repo: $(grep '^LITERAL' "$WT5/.env")"
+  || kq no "envsubst ate a variable that belongs to the repo: $(grep '^LITERAL' "$WT_ENV/.env")"
 
 # ── 6 · the gate session-run puts in front of the pool ────────────────────
 echo
 echo "-- 6 · session gate --"
 
-SD6="$BEE_ROOT/sessions/$ID_CHET"
-: > "$SD6/run.jsonl"; rm -f "$SD6/meta.json"
-RIG_POOL_UP=0 cap_lat_dich_vu "$SD6" "$ID_CHET" && rc=0 || rc=$?
+SDIR_GATE="$BEE_ROOT/sessions/$ID_POOL_DOWN"
+: > "$SDIR_GATE/run.jsonl"; rm -f "$SDIR_GATE/meta.json"
+RIG_POOL_UP=0 ensure_service_slice "$SDIR_GATE" "$ID_POOL_DOWN" && rc=0 || rc=$?
 [[ $rc -ne 0 ]] && kq ok "pool down: the gate refuses the session" || kq no "gate let it through (rc=$rc)"
-grep -q "bee_lifecycle" "$SD6/run.jsonl" \
+grep -q "bee_lifecycle" "$SDIR_GATE/run.jsonl" \
   && kq ok "and writes a lifecycle line — the user reads WHY in the live view" \
   || kq no "refused in silence: nothing in run.jsonl"
 
-: > "$SD6/run.jsonl"
-RIG_POOL_UP=1 cap_lat_dich_vu "$SD6" "$ID_CHET" && rc=0 || rc=$?
+: > "$SDIR_GATE/run.jsonl"
+RIG_POOL_UP=1 ensure_service_slice "$SDIR_GATE" "$ID_POOL_DOWN" && rc=0 || rc=$?
 [[ $rc -eq 0 ]] && kq ok "pool up: the gate opens" || kq no "gate blocked a healthy pool (rc=$rc)"
-grep -q "not in the pool" "$SD6/run.jsonl" \
+grep -q "not in the pool" "$SDIR_GATE/run.jsonl" \
   && kq ok "says which services it will NOT be sharing — silence is how guessing goes wrong" \
   || kq no "no word about the services left out of the pool"
 
@@ -350,7 +350,7 @@ grep -q "not in the pool" "$SD6/run.jsonl" \
 # every session into its own copy of that service — RAM leaves and nobody is
 # told. Doctor is where "nobody is told" gets fixed, daily.
 echo
-echo "-- 7 · doctor: dich-vu --"
+echo "-- 7 · doctor: services --"
 
 for c in gh loginctl curl; do printf '#!/bin/sh\nexit 1\n' > "$T/bin/$c"; chmod +x "$T/bin/$c"; done
 cat > "$T/bin/systemctl" <<'EOF'
@@ -366,39 +366,39 @@ EOF
 chmod +x "$T/bin/systemctl"
 : > "$BEE_ROOT/gc.json"; echo '{"ts":"x"}' > "$BEE_ROOT/gc.json"
 
-muc_dv() { jq -r '.checks[]|select(.id=="dich-vu")|"\(.ok)|\(.detail)"' "$BEE_ROOT/doctor.json" 2>/dev/null; }
-kham_dv() { bash "$HERE/../bin/doctor.sh" --exit-zero >/dev/null 2>&1 || true; }
+services_check() { jq -r '.checks[]|select(.id=="services")|"\(.ok)|\(.detail)"' "$BEE_ROOT/doctor.json" 2>/dev/null; }
+run_doctor() { bash "$HERE/../bin/doctor.sh" --exit-zero >/dev/null 2>&1 || true; }
 
 # An empty pool is a legitimate state, not a fault: plenty of repos need
 # nothing shared. It must not sit red forever on such a machine.
 printf 'services: {}\n' > "$BEE_ROOT/services/compose.yml"
-kham_dv
-[[ "$(muc_dv)" == true* ]] \
+run_doctor
+[[ "$(services_check)" == true* ]] \
   && kq ok "no pool configured: green and quiet, not a permanent red" \
-  || kq no "an empty pool reads as broken: $(muc_dv)"
+  || kq no "an empty pool reads as broken: $(services_check)"
 
 # Pool declared but the unit is down → red. Sessions of a repo that needs it
 # would refuse to start, and you want to know that BEFORE queueing work.
 printf 'services:\n  postgres:\n    image: postgres:16\n' > "$BEE_ROOT/services/compose.yml"
-RIG_POOL_UNIT=inactive kham_dv
-[[ "$(muc_dv)" == false* ]] \
-  && kq ok "pool declared but not running: red ($(muc_dv | cut -d'|' -f2))" \
-  || kq no "pool down and doctor stayed green: $(muc_dv)"
+RIG_POOL_UNIT=inactive run_doctor
+[[ "$(services_check)" == false* ]] \
+  && kq ok "pool declared but not running: red ($(services_check | cut -d'|' -f2))" \
+  || kq no "pool down and doctor stayed green: $(services_check)"
 
 # Pool up, every image recognised → green.
-RIG_POOL_UNIT=active RIG_POOL_UP=1 kham_dv
-[[ "$(muc_dv)" == true* ]] \
-  && kq ok "pool up, all images recognised: green" || kq no "false red: $(muc_dv)"
+RIG_POOL_UNIT=active RIG_POOL_UP=1 run_doctor
+[[ "$(services_check)" == true* ]] \
+  && kq ok "pool up, all images recognised: green" || kq no "false red: $(services_check)"
 
 # The one that matters: an image bee cannot place. Green here would mean
 # every session silently runs its own copy and the RAM goes missing.
 printf 'services:\n  postgres:\n    image: postgres:16\n  blob:\n    image: acme/blob:2\n' \
   > "$BEE_ROOT/services/compose.yml"
-RIG_POOL_UNIT=active RIG_POOL_UP=1 kham_dv
-case "$(muc_dv)" in
+RIG_POOL_UNIT=active RIG_POOL_UP=1 run_doctor
+case "$(services_check)" in
   false*blob*) kq ok "unrecognised image in the pool: red, and names it";;
   false*)      kq ok "unrecognised image: red (but does not name it)";;
-  *)           kq no "SILENT: bee cannot place acme/blob yet doctor is green — $(muc_dv)";;
+  *)           kq no "SILENT: bee cannot place acme/blob yet doctor is green — $(services_check)";;
 esac
 
 echo

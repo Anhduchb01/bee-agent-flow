@@ -91,7 +91,7 @@ describe("POST /api/tick — nhịp hàng đợi", () => {
   it("hàng rỗng: trả lý do đọc được, không đụng gì thêm", async () => {
     const res = await goi(TOKEN);
     await expect(res.json()).resolves.toMatchObject({
-      queue: { daMo: null, lyDo: expect.stringMatching(/queue is empty/) },
+      queue: { opened: null, reason: expect.stringMatching(/queue is empty/) },
     });
   });
 

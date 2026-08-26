@@ -1,3 +1,3 @@
-export { loadBanTin, khoangGanDay } from "./api/load";
+export { loadBanTin, recentWindow } from "./api/load";
 export { BriefView } from "./components/brief-view";
 export { dungBanTin, type BanTin } from "./lib/tom-tat";

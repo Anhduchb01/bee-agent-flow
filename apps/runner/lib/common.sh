@@ -96,10 +96,10 @@ chep_env_d() {
   # BOUNDED for the same reason as the ports above: an unlimited envsubst
   # would swallow a `$VAR` that belongs to the repo's own secret.
   if [[ -f "$wt/.bee/services.env" ]]; then
-    local ten
-    while IFS='=' read -r ten _; do
-      [[ "$ten" == BEE_* ]] || continue
-      ds="$ds \${$ten}"
+    local key
+    while IFS='=' read -r key _; do
+      [[ "$key" == BEE_* ]] || continue
+      ds="$ds \${$key}"
     done < "$wt/.bee/services.env"
     set -a; . "$wt/.bee/services.env"; set +a
   fi
@@ -120,7 +120,7 @@ chep_env_d() {
 #   free                 nobody is listening
 #   mine <pid>           <unit> (default bee-web.service) holds it
 #   other <pid> <user>   somebody else holds it, and we can see who
-#   other ? khac-user    somebody holds it but the kernel hides the pid from
+#   other ? other-user   somebody holds it but the kernel hides the pid from
 #                        us — which by itself proves it is NOT ours
 #   unknown              no `ss` on this machine, cannot answer
 #
@@ -141,13 +141,13 @@ port_owner() {
   elif [[ -n "$pid" ]]; then
     echo "other $pid $(ps -o user= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
   else
-    echo "other ? khac-user"
+    echo "other ? other-user"
   fi
 }
 
-# ── Service slices (T15) — see docs/specs/lat-dich-vu.md ──────────────────
+# ── Service slices (T15) — see docs/specs/service-slices.md ──────────────
 
-# doan_kieu <image> — map a docker image to the service kind bee knows how to
+# guess_kind <image> — map a docker image to the service kind bee knows how to
 # carve a slice out of. Prints the kind, or nothing when it cannot tell.
 #
 # The owner chose "guess from the image" over a declaration file. That choice
@@ -160,7 +160,7 @@ port_owner() {
 # Matching is on the LAST path segment only, so a registry prefix cannot
 # create a match (docker.io/library/postgres -> postgres) and a substring
 # cannot either (ghcr.io/acme/not-postgres-at-all -> nothing).
-doan_kieu() {
+guess_kind() {
   local img="$1" path seg
   [[ -n "$img" ]] || return 0
 
@@ -180,7 +180,7 @@ doan_kieu() {
   esac
 }
 
-# doc_compose <dir> — list the services a compose file declares, one per line:
+# read_compose <dir> — list the services a compose file declares, one per line:
 #     "<service> <image> <kind>"       kind is empty when unrecognised
 #
 # Parsed as TEXT, not through `docker compose config`. This runs before claude
@@ -198,7 +198,7 @@ doan_kieu() {
 # two-space-indented keys under `services:` and their `image:`. A file exotic
 # enough to break that (merge keys, flow mappings) degrades to fewer rows,
 # which lands on "run it per session" — the safe side of §3.
-doc_compose() {
+read_compose() {
   local dir="$1" f
   for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
     [[ -f "$dir/$f" ]] || continue
@@ -219,28 +219,28 @@ doc_compose() {
         if (img != "") print name, img
         name = ""
       }
-    ' "$dir/$f" | while read -r ten img; do
-      printf '%s %s %s\n' "$ten" "$img" "$(doan_kieu "$img")"
+    ' "$dir/$f" | while read -r name img; do
+      printf '%s %s %s\n' "$name" "$img" "$(guess_kind "$img")"
     done
     return 0
   done
 }
 
-# cap_lat_dich_vu <session-dir> <session-id> — the gate session-run puts in
-# front of the pool. Returns non-zero when the session must NOT start.
+# ensure_service_slice <session-dir> <session-id> — the gate session-run puts
+# in front of the pool. Returns non-zero when the session must NOT start.
 #
 # It lives here rather than inline in session-run so it can be tested without
 # the whole session harness, and so the refusal always writes a lifecycle line
 # — a session that dies at this gate must say why in the live view, not just
 # in a journal nobody opens.
-cap_lat_dich_vu() {
+ensure_service_slice() {
   local sdir="$1" id="$2"
-  local sh_lat
-  sh_lat="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../bin/service-slice.sh"
-  [[ -x "$sh_lat" ]] || return 0
+  local slice_sh
+  slice_sh="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../bin/service-slice.sh"
+  [[ -x "$slice_sh" ]] || return 0
 
   local out rc=0
-  out=$("$sh_lat" provision "$id" 2>&1) || rc=$?
+  out=$("$slice_sh" provision "$id" 2>&1) || rc=$?
   if (( rc != 0 )); then
     lifecycle "$sdir" "Could not provision the service slice: ${out:-unknown error}"
     return "$rc"
@@ -250,16 +250,15 @@ cap_lat_dich_vu() {
   # failure mode guessing-from-image is most exposed to: an image bee cannot
   # place quietly becomes a per-session container, and the RAM goes missing
   # with nobody told.
-  local rec="$sdir/services.json"
-  if [[ -f "$rec" ]]; then
-    local rieng
-    rieng=$(jq -r '[.items[]? | select(.in_pool==false) | .service] | join(", ")' "$rec" 2>/dev/null || true)
-    [[ -n "$rieng" && "$rieng" != "null" ]] \
-      && lifecycle "$sdir" "Services not in the pool — this session will run its own when needed: $rieng"
-    local chung
-    chung=$(jq -r '[.items[]? | select(.in_pool==true) | .kind] | join(", ")' "$rec" 2>/dev/null || true)
-    [[ -n "$chung" && "$chung" != "null" ]] \
-      && lifecycle "$sdir" "Private service slice ready: $chung (see .bee/services.env)"
+  local record="$sdir/services.json"
+  if [[ -f "$record" ]]; then
+    local own shared
+    own=$(jq -r '[.items[]? | select(.in_pool==false) | .service] | join(", ")' "$record" 2>/dev/null || true)
+    [[ -n "$own" && "$own" != "null" ]] \
+      && lifecycle "$sdir" "Services not in the pool — this session will run its own when needed: $own"
+    shared=$(jq -r '[.items[]? | select(.in_pool==true) | .kind] | join(", ")' "$record" 2>/dev/null || true)
+    [[ -n "$shared" && "$shared" != "null" ]] \
+      && lifecycle "$sdir" "Private service slice ready: $shared (see .bee/services.env)"
   fi
   return 0
 }

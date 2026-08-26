@@ -55,7 +55,7 @@ export default async function DuAnPage({
           repos={repos}
           duAn={duAn}
           view={choXem}
-          soXepHang={hangDoi.items.filter((v) => v.status === "waiting").length}
+          queuedCount={hangDoi.items.filter((v) => v.status === "waiting").length}
         />
 
         {loi.map((l) => (

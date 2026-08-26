@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 
 import { fetchClaudeAccountUsage, harvestClaudeUsage } from "@/lib/bee/machine-ctl";
-import { chayNhipHangDoi } from "@/lib/bee/tick";
+import { runQueueTick } from "@/lib/bee/tick";
 
 /**
  * Nhịp nền của bee — `bee-tick.timer` gọi vào đây, không có ai đăng nhập.
@@ -44,13 +44,13 @@ export async function POST(req: Request): Promise<Response> {
   // đọc chính con số vừa lấy về, nên hai việc này không được đảo.
   const [quota, local] = await Promise.all([fetchClaudeAccountUsage(), harvestClaudeUsage()]);
 
-  const hang = await chayNhipHangDoi();
+  const queue = await runQueueTick();
 
   return Response.json({
     ok: true,
     at: new Date().toISOString(),
     quota,
     local,
-    queue: hang,
+    queue,
   });
 }

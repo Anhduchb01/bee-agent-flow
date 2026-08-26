@@ -21,25 +21,25 @@ import type { BeeSlice } from "@/lib/bee/services-fs";
  * No button when there is nothing to show — a control that opens an empty
  * table is noise.
  */
-export function SessionServices({ lat }: { lat: BeeSlice | null }) {
-  const [mo, setMo] = useState(false);
-  if (lat === null || lat.items.length === 0) return null;
+export function SessionServices({ slice }: { slice: BeeSlice | null }) {
+  const [open, setOpen] = useState(false);
+  if (slice === null || slice.items.length === 0) return null;
 
-  const chung = lat.items.filter((i) => i.in_pool);
+  const shared = slice.items.filter((i) => i.in_pool);
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setMo(true)}
-        aria-label={`Services for this session (${lat.items.length})`}
+        onClick={() => setOpen(true)}
+        aria-label={`Services for this session (${slice.items.length})`}
         className="flex h-8 shrink-0 items-center gap-1.5 rounded-control border border-border px-2.5 font-mono text-xs text-body hover:bg-accent"
       >
         <span aria-hidden>⛁</span>
-        {lat.items.length}
+        {slice.items.length}
       </button>
 
-      <Sheet open={mo} onOpenChange={setMo}>
+      <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full max-w-lg">
           <SheetHeader>
             <SheetTitle>Services for this session</SheetTitle>
@@ -47,11 +47,11 @@ export function SessionServices({ lat }: { lat: BeeSlice | null }) {
 
           <div className="flex flex-col gap-4 p-4">
             <p className="font-mono text-xs text-muted-foreground">
-              slice <span className="text-foreground">{lat.slice}</span>
+              slice <span className="text-foreground">{slice.slice}</span>
             </p>
 
             <ul aria-label="Session services" className="flex flex-col gap-2">
-              {lat.items.map((i) => (
+              {slice.items.map((i) => (
                 <li
                   key={i.service}
                   className="flex flex-col gap-1 rounded-control border border-border p-2.5 font-mono text-xs"
@@ -64,7 +64,7 @@ export function SessionServices({ lat }: { lat: BeeSlice | null }) {
                   <span className="text-body">
                     {i.in_pool ? (
                       <>
-                        shared pool · <span className="text-foreground">{i.slice ?? lat.slice}</span>
+                        shared pool · <span className="text-foreground">{i.slice ?? slice.slice}</span>
                       </>
                     ) : i.kind === "" ? (
                       <span className="text-warning">
@@ -78,7 +78,7 @@ export function SessionServices({ lat }: { lat: BeeSlice | null }) {
               ))}
             </ul>
 
-            {chung.length > 0 && (
+            {shared.length > 0 && (
               <p className="text-xs text-muted-foreground">
                 Pool slices are given back when gc reclaims this session&apos;s worktree — so
                 the data survives a stop, and a merged PR keeps it for at least another day.

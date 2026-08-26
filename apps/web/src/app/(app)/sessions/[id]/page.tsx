@@ -11,7 +11,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   if (!actor) return null;
 
   const { id } = await params;
-  const [phien, skills, lat] = await Promise.all([
+  const [phien, skills, slice] = await Promise.all([
     loadSession(id),
     getBee().listCommands(),
     readSessionSlice(id),
@@ -21,7 +21,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   return (
     <div className="flex h-dvh flex-col">
       <PageHeader title={phien.title ?? `${phien.slug}-${phien.num}`} />
-      <LiveView phien={phien} commands={skills} lat={lat} />
+      <LiveView phien={phien} commands={skills} slice={slice} />
     </div>
   );
 }

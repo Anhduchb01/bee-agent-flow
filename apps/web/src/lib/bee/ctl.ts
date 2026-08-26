@@ -51,8 +51,8 @@ export function ctl(
   options?: ExecFileOptions,
 ): Promise<{ stdout: string; stderr: string }> {
   if (!ctlEnabled()) return Promise.reject(refusal(cmd, args));
-  // Không đặt encoding ở đây: mặc định của execFile đã là utf8, và ép kiểu
-  // một lần tại cửa rẻ hơn việc mỗi caller phải tự hẹp kiểu Buffer|string.
+  // No encoding option here: execFile already defaults to utf8, and casting
+  // once at the door is cheaper than making every caller narrow Buffer|string.
   return runExec(cmd, args, options) as Promise<{ stdout: string; stderr: string }>;
 }
 

@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 
 import {
   boKhoiHangDoiAction,
-  chayNgayAction,
+  runNowAction,
   doiThuTuAction,
   themVaoHangDoiAction,
 } from "../api/queue-actions";
@@ -82,22 +82,22 @@ export function NutDoiThuTu({ muc }: { muc: MucBang }) {
 }
 
 /**
- * "Run now" ở đầu lane Autopilot.
+ * "Run now".
  *
- * Nếu không có nó, câu hỏi đầu tiên của bất kỳ ai xếp việc xong là "nó chạy
- * chưa, hay tôi phải đợi?" — và câu trả lời đúng (≤30 phút) không có chỗ nào
- * trên màn hình nói ra. Nút này vừa rút ngắn thời gian chờ về 0, vừa TRẢ LỜI
- * câu hỏi đó bằng chính lý do nó in ra khi không mở được phiên nào.
+ * Without it, the first question anyone has after queueing work is "did it
+ * start, or am I waiting?" — and the correct answer (up to 30 minutes) is
+ * written nowhere on screen. This button both cuts the wait to zero and
+ * ANSWERS that question, through the reason it prints when it opens nothing.
  */
-export function NutChayNgay({ soViec }: { soViec: number }) {
+export function RunNowButton({ queued }: { queued: number }) {
   const router = useRouter();
   const [dang, batDau] = useTransition();
-  const [noi, setNoi] = useState("");
+  const [says, setSays] = useState("");
 
   function bam() {
     batDau(async () => {
-      const ket = await chayNgayAction();
-      setNoi(ket.message);
+      const ket = await runNowAction();
+      setSays(ket.message);
       router.refresh();
     });
   }
@@ -107,14 +107,14 @@ export function NutChayNgay({ soViec }: { soViec: number }) {
       <button
         type="button"
         onClick={bam}
-        disabled={dang || soViec === 0}
+        disabled={dang || queued === 0}
         className="flex h-9 items-center rounded-control border border-border px-3 text-xs text-body hover:bg-accent disabled:opacity-40"
       >
         {dang ? "Running…" : "Run now"}
       </button>
-      {noi !== "" && (
+      {says !== "" && (
         <span role="status" className="text-xs text-muted-foreground">
-          {noi}
+          {says}
         </span>
       )}
     </span>

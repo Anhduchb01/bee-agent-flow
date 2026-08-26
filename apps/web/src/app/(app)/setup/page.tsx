@@ -16,7 +16,7 @@ import {
   ServicesPanel,
 } from "@/features/setup";
 import { PageHeader } from "@/features/shell";
-import { tabMacDinh, type SetupTab } from "@/features/setup";
+import { defaultTab, type SetupTab } from "@/features/setup";
 import { getActor } from "@/lib/auth";
 import { readPool, readSlices } from "@/lib/bee/services-fs";
 import Link from "next/link";
@@ -117,7 +117,7 @@ export default async function SetupPage({
   const laFixture = process.env.BEE_SOURCE !== "disk";
 
   const { tab } = await searchParams;
-  const chon = tabMacDinh(tab, doctor?.ok ?? null);
+  const tabNow = defaultTab(tab, doctor?.ok ?? null);
 
   return (
     <>
@@ -137,11 +137,11 @@ export default async function SetupPage({
       )}
       <div className="flex max-w-3xl flex-col gap-8 p-4 sm:p-6">
         <nav aria-label="Setup section" className="flex gap-1.5">
-          <TabLink tab="install" current={chon}>First run</TabLink>
-          <TabLink tab="config" current={chon}>Configuration</TabLink>
+          <TabLink tab="install" current={tabNow}>First run</TabLink>
+          <TabLink tab="config" current={tabNow}>Configuration</TabLink>
         </nav>
 
-        {chon === "config" ? (
+        {tabNow === "config" ? (
           <>
             <p className="text-sm text-body">
               Everything the machine keeps between runs. Nothing here needs a shell.

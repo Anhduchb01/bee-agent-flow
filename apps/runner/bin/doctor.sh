@@ -4,14 +4,14 @@
 # Kiểm chứ đừng đoán: mỗi mục in ✓/✗ kèm chi tiết, và ghi doctor.json để
 # web hiện đỏ khi lệch. Exit 1 nếu có mục ✗ — cắm được vào CI của máy.
 #
-#   doctor.sh              # exit 1 khi có mục đỏ (CI, dòng lệnh)
-#   doctor.sh --exit-zero  # luôn exit 0; kết quả nằm trong doctor.json
+#   doctor.sh              # exit 1 when anything is red (CI, command line)
+#   doctor.sh --exit-zero  # always exit 0; the findings are in doctor.json
 #
-# Vì sao tách được hai thứ đó: chạy XONG một lượt khám và KHÁM RA BỆNH là hai
-# chuyện khác nhau. `bee-doctor.service` gọi bản --exit-zero, nên `systemctl`
-# chỉ báo failed khi doctor thật sự không chạy được — chứ không phải mỗi lần
-# nó làm đúng việc của mình. Đọc "failed" như hỏng hóc trong khi nó đang báo
-# cáo là đúng cái kiểu nhiễu làm người ta thôi nhìn màn hình.
+# Why those two can be separated: FINISHING a checkup and FINDING something
+# wrong are different facts. `bee-doctor.service` runs the --exit-zero form,
+# so `systemctl` reports failed only when doctor genuinely could not run —
+# not every time it does its job. Reading "failed" as breakage while it is
+# merely reporting is the exact noise that teaches people to stop looking.
 set -uo pipefail
 source "$(dirname "$(readlink -f "$0")")/../lib/common.sh"
 
@@ -20,7 +20,7 @@ for a in "$@"; do
   case "$a" in
     --exit-zero) EXIT_ZERO=1;;
     -h|--help)   sed -n '2,16p' "$0"; exit 0;;
-    *)           printf 'Tham số lạ: %s (xem --help)\n' "$a" >&2; exit 2;;
+    *)           printf 'Unknown argument: %s (see --help)\n' "$a" >&2; exit 2;;
   esac
 done
 
@@ -38,11 +38,11 @@ ghi() { # ghi <id> <ok:true|false> <chi tiết>
 # ── 1 · PAT là fine-grained, không phải token full-account ─────────────────
 TOKEN=$(gh auth token 2>/dev/null || true)
 if [[ -z "$TOKEN" ]]; then
-  ghi "pat" false "gh chưa đăng nhập — chạy: gh auth login"
+  ghi "pat" false "gh is not signed in — run: gh auth login"
 elif [[ "$TOKEN" == github_pat_* ]]; then
   ghi "pat" true "fine-grained PAT"
 else
-  ghi "pat" false "token KHÔNG phải fine-grained (tiền tố $(cut -c1-4 <<<"$TOKEN")…) — tạo PAT hẹp, thu hồi token này"
+  ghi "pat" false "this token is NOT fine-grained (prefix $(cut -c1-4 <<<"$TOKEN")…) — create a narrow PAT and revoke this one"
 fi
 
 # ── 1b · Claude auth — sessions cannot run without it. Two accepted paths:
@@ -59,18 +59,18 @@ if command -v tok >/dev/null 2>&1; then
 fi
 if grep -q '^CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-' "$BEE_ROOT/claude.env" 2>/dev/null; then
   if [[ -n "$SLOT" ]]; then
-    ghi "claude" true "token ghim ở claude.env — ĐÈ LÊN slot '$SLOT' đang chọn; gỡ ở /setup nếu muốn đổi tài khoản có tác dụng"
+    ghi "claude" true "a token is pinned in claude.env — it OVERRIDES the selected slot '$SLOT'; remove it on /setup for account switching to take effect"
   else
-    ghi "claude" true "token từ claude setup-token (claude.env)"
+    ghi "claude" true "token from claude setup-token (claude.env)"
   fi
 elif [[ -f "$HOME/.claude/.credentials.json" ]]; then
   if [[ -n "$SLOT" ]]; then
-    ghi "claude" true "đã login trên máy · tài khoản đang dùng: $SLOT"
+    ghi "claude" true "signed in on the machine · account in use: $SLOT"
   else
-    ghi "claude" true "đã login tương tác trên máy"
+    ghi "claude" true "signed in interactively on the machine"
   fi
 else
-  ghi "claude" false "chưa có auth — chạy \`claude setup-token\` ở BẤT KỲ máy nào rồi dán token vào /setup"
+  ghi "claude" false "no auth yet — run \`claude setup-token\` on ANY machine and paste the token into /setup"
 fi
 
 # ── 2 · Branch protection main trên từng repo trong repos.d ────────────────
@@ -79,24 +79,24 @@ if compgen -G "$BEE_ROOT/repos.d/*.env" >/dev/null; then
     # shellcheck disable=SC1090
     REPO=$(. "$f" 2>/dev/null; printf '%s' "${REPO:-}")
     slug=$(basename "$f" .env)
-    if [[ -z "$REPO" ]]; then ghi "repo:$slug" false "thiếu biến REPO trong $f"; continue; fi
+    if [[ -z "$REPO" ]]; then ghi "repo:$slug" false "no REPO variable in $f"; continue; fi
     DEF=$(gh api "repos/$REPO" --jq .default_branch 2>/dev/null || true)
-    if [[ -z "$DEF" ]]; then ghi "repo:$slug" false "không đọc được $REPO — PAT có quyền không?"; continue; fi
+    if [[ -z "$DEF" ]]; then ghi "repo:$slug" false "cannot read $REPO — does the PAT have access?"; continue; fi
     if gh api "repos/$REPO/branches/$DEF/protection" >/dev/null 2>&1; then
-      ghi "repo:$slug" true "branch protection bật trên $DEF"
+      ghi "repo:$slug" true "branch protection is on for $DEF"
     elif [[ -x "$BEE_ROOT/repos/$slug.git/hooks/pre-push" ]]; then
       # GitHub Free không cho protection trên repo private, và PAT hẹp cũng
       # không đọc được endpoint đó — fence hạ cấp là pre-push hook local
       # (session-run cài mỗi lần mở phiên). Nói rõ đây là fence yếu hơn.
-      ghi "repo:$slug" true "protection GitHub không kiểm được (plan Free / PAT hẹp) — fence local: pre-push chặn push ngoài bee/*"
+      ghi "repo:$slug" true "GitHub protection not checkable (Free plan / narrow PAT) — local fence: pre-push refuses any push outside bee/*"
     elif [[ ! -d "$BEE_ROOT/repos/$slug.git" ]]; then
-      ghi "repo:$slug" true "chưa clone — fence pre-push sẽ được cài ở phiên đầu tiên"
+      ghi "repo:$slug" true "not cloned yet — the pre-push fence is installed on the first session"
     else
-      ghi "repo:$slug" false "KHÔNG có protection GitHub và thiếu pre-push hook trong bare clone"
+      ghi "repo:$slug" false "no GitHub protection AND no pre-push hook in the bare clone"
     fi
   done
 else
-  ghi "repos" false "chưa có repo nào trong $BEE_ROOT/repos.d/ — thêm <slug>.env với REPO=owner/name"
+  ghi "repos" false "no repos in $BEE_ROOT/repos.d/ yet — add <slug>.env with REPO=owner/name"
 fi
 
 # ── 3 · Máy sạch: không secret lạ ngoài PAT + login Claude ────────────────
@@ -105,21 +105,21 @@ for p in ~/.ssh/id_* ~/.aws ~/.kube ~/.gnupg/private-keys-v1.d; do
   compgen -G "$p" >/dev/null && LA="$LA $p"
 done
 if [[ -z "$LA" ]]; then
-  ghi "may-sach" true "không thấy SSH key / AWS / kube / GPG"
+  ghi "clean-host" true "no SSH keys / AWS / kube / GPG in reach"
 else
-  ghi "may-sach" false "thấy secret lạ:$LA — máy này phải không chứa gì đáng lấy"
+  ghi "clean-host" false "found other secrets:$LA — nothing worth stealing may sit within reach of bee"
 fi
 
 # ── 4 · linger + timer — phiên phải sống không cần ai đăng nhập ───────────
 if [[ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null)" == "yes" ]]; then
-  ghi "linger" true "bật"
+  ghi "linger" true "on"
 else
-  ghi "linger" false "chưa bật — chạy: loginctl enable-linger $USER"
+  ghi "linger" false "off — run: loginctl enable-linger $USER"
 fi
 if systemctl --user is-active --quiet bee-reaper.timer 2>/dev/null; then
-  ghi "reaper" true "bee-reaper.timer đang chạy"
+  ghi "reaper" true "bee-reaper.timer is running"
 else
-  ghi "reaper" false "bee-reaper.timer không active — xác phiên sẽ không ai dọn"
+  ghi "reaper" false "bee-reaper.timer is not active — dead sessions will never be cleaned up"
 fi
 
 # ── 4b · Đĩa của phiên + gc còn sống không ─────────────────────────────────
@@ -138,53 +138,55 @@ done
 doc_duoc=$(numfmt --to=iec "$tong" 2>/dev/null || echo "${tong}B")
 
 if [[ ! -f "$BEE_ROOT/gc.json" ]]; then
-  ghi "dia-phien" false "$doc_duoc trên đĩa · gc chưa chạy lần nào — bật: systemctl --user enable --now bee-gc.timer"
+  ghi "session-disk" false "$doc_duoc on disk · gc has never run — enable it: systemctl --user enable --now bee-gc.timer"
 else
   tuoi_h=$(( ( $(date +%s) - $(stat -c %Y "$BEE_ROOT/gc.json") ) / 3600 ))
   if (( tuoi_h > 48 )); then
-    ghi "dia-phien" false "gc im lặng ${tuoi_h}h (>48h) — timer chết? $doc_duoc đang chiếm"
+    ghi "session-disk" false "gc has been silent for ${tuoi_h}h (>48h) — dead timer? $doc_duoc is held"
   elif (( tong > GC_WARN_GB * 1073741824 )); then
-    ghi "dia-phien" false "$doc_duoc vượt ngưỡng ${GC_WARN_GB}GB — lý do giữ nằm trong gc.json"
+    ghi "session-disk" false "$doc_duoc is over the ${GC_WARN_GB}GB threshold — gc.json says why each worktree was kept"
   else
-    ghi "dia-phien" true "$doc_duoc (work+sessions) · $mo_coi worktree mồ côi · gc chạy ${tuoi_h}h trước"
+    ghi "session-disk" true "$doc_duoc (work+sessions) · $mo_coi orphaned worktree(s) · gc ran ${tuoi_h}h ago"
   fi
 fi
 
-# ── 4c · Web có ĐANG PHỤC VỤ không ────────────────────────────────────────
-# Lỗ hổng này bắt được 25/08: lúc chuyển máy, bee-web crash-loop EADDRINUSE
-# vì web của user cũ còn giữ cổng; NRestarts leo tới 1005 trong im lặng và
-# doctor vẫn xanh — vì doctor chưa bao giờ hỏi "web có sống không".
+# ── 4c · Is the web actually SERVING? ─────────────────────────────────────
+# Found the hard way 25/08: during the machine move, bee-web crash-looped on
+# EADDRINUSE because the previous user's web still held the port. NRestarts
+# climbed to 1005 in silence and doctor stayed green — because doctor had
+# never asked whether the web was alive.
 #
-# Và "cổng có trả lời" KHÔNG đủ: hôm đó cổng trả lời 200 suốt, chỉ là trả lời
-# bởi web của người khác. Nên hỏi ba câu, theo thứ tự đắt dần: unit của TA có
-# active · cổng có đúng chủ · nó có đang bị đá ra liên tục.
+# And "the port answers" is NOT enough: it answered 200 the whole time, just
+# from somebody else's web. So ask three questions, cheapest first: is OUR
+# unit active · does the port belong to it · is it being kicked over and over.
 PORT=$(sed -n 's/^PORT=//p' "$BEE_ROOT/web.env" 2>/dev/null | head -1)
 PORT="${PORT:-3210}"
 if ! systemctl --user cat bee-web.service >/dev/null 2>&1; then
-  ghi "web" false "chưa có bee-web.service — cần một bản build web rồi chạy lại install.sh"
+  ghi "web" false "no bee-web.service yet — build the web, then run install.sh again"
 else
   STATE=$(systemctl --user is-active bee-web.service 2>/dev/null || true)
   RESTARTS=$(systemctl --user show bee-web.service -p NRestarts --value 2>/dev/null || echo 0)
   RESTARTS="${RESTARTS:-0}"
   OWNER=$(port_owner "$PORT")
   if [[ "$STATE" != "active" ]]; then
-    ghi "web" false "bee-web $STATE — không ai phục vụ (restart $RESTARTS lần); xem: journalctl --user -u bee-web -n 50"
+    ghi "web" false "bee-web is $STATE — nothing is serving (restarted $RESTARTS times); look at: journalctl --user -u bee-web -n 50"
   elif [[ "$OWNER" == other* ]]; then
-    # Trường hợp 25/08 nguyên bản: unit ta tưởng là active, nhưng cổng thuộc
-    # về tiến trình khác — nên mọi thứ "thấy web chạy" đều đang thấy nhầm web.
-    read -r _ AI_PID AI_USER <<<"$OWNER"
-    ghi "web" false "cổng $PORT do tiến trình khác giữ (pid ${AI_PID:-?}${AI_USER:+, user $AI_USER}), KHÔNG phải bee-web — thứ bạn thấy trên cổng này là web của người khác"
+    # The original 25/08 case: our unit looks active, but the port belongs to
+    # another process — so everything that "sees the web running" is looking
+    # at the wrong web.
+    read -r _ OWNER_PID OWNER_USER <<<"$OWNER"
+    ghi "web" false "port $PORT is held by another process (pid ${OWNER_PID:-?}${OWNER_USER:+, user $OWNER_USER}), NOT bee-web — whatever you see on this port belongs to somebody else"
   elif (( RESTARTS > 5 )); then
-    ghi "web" false "web đã restart $RESTARTS lần — có gì đó đang đá nó ra; sửa xong thì đếm lại bằng: systemctl --user reset-failed bee-web"
+    ghi "web" false "the web has restarted $RESTARTS times — something keeps kicking it over; after fixing it, reset the count with: systemctl --user reset-failed bee-web"
   elif ! command -v curl >/dev/null 2>&1; then
-    ghi "web" true "bee-web active · cổng $PORT đúng chủ · restart $RESTARTS lần (máy không có curl để gọi thử)"
+    ghi "web" true "bee-web active · port $PORT owned by it · $RESTARTS restarts (no curl on this machine to call it)"
   else
-    # 307/302 = đá về /login: web sống và auth đang gác. Đó là khoẻ.
+    # 307/302 = redirect to /login: the web is up and auth is guarding it.
     MA=$(curl -s -m 5 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/" 2>/dev/null || true)
     if [[ "$MA" =~ ^(200|30[127])$ ]]; then
-      ghi "web" true "bee-web active · 127.0.0.1:$PORT trả $MA · restart $RESTARTS lần"
+      ghi "web" true "bee-web active · 127.0.0.1:$PORT answers $MA · $RESTARTS restarts"
     else
-      ghi "web" false "bee-web active nhưng 127.0.0.1:$PORT trả ${MA:-không gì} — unit lên nhưng chưa phục vụ được"
+      ghi "web" false "bee-web is active but 127.0.0.1:$PORT answers ${MA:-nothing} — the unit is up but not serving"
     fi
   fi
 fi
@@ -199,21 +201,21 @@ fi
 # An EMPTY pool is a legitimate state, not a fault. Plenty of repos need
 # nothing shared, and a permanent red on such a machine trains people to stop
 # reading the checklist — the same cost §4c and doctor --exit-zero were about.
-POOL_SVC=$(doc_compose "$BEE_ROOT/services" 2>/dev/null || true)
+POOL_SVC=$(read_compose "$BEE_ROOT/services" 2>/dev/null || true)
 if [[ -z "$POOL_SVC" ]]; then
-  ghi "dich-vu" true "no shared pool configured — sessions run every service themselves"
+  ghi "services" true "no shared pool configured — sessions run every service themselves"
 else
   POOL_N=$(wc -l <<<"$POOL_SVC")
   LA_MAT=$(awk '$3 == "" { printf "%s(%s) ", $1, $2 }' <<<"$POOL_SVC")
   POOL_STATE=$(systemctl --user is-active bee-services.service 2>/dev/null || true)
   if [[ "$POOL_STATE" != "active" ]]; then
-    ghi "dich-vu" false "pool has $POOL_N service(s) but bee-services is $POOL_STATE — any repo that needs one will refuse to open a session; start it from /setup"
+    ghi "services" false "pool has $POOL_N service(s) but bee-services is $POOL_STATE — any repo that needs one will refuse to open a session; start it from /setup"
   elif ! (command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1); then
-    ghi "dich-vu" false "pool unit is active but docker is not answering — slices cannot be carved or given back"
+    ghi "services" false "pool unit is active but docker is not answering — slices cannot be carved or given back"
   elif [[ -n "$LA_MAT" ]]; then
     # Deliberately red: this changes behaviour silently, which is worse than
     # loudly. Fix is either rename to a known image or accept per-session copies.
-    ghi "dich-vu" false "bee cannot tell what these pooled services are: ${LA_MAT% } — every session will run its own copy instead of sharing"
+    ghi "services" false "bee cannot tell what these pooled services are: ${LA_MAT% } — every session will run its own copy instead of sharing"
   else
     LAT_KET=0
     for sd in "$BEE_ROOT"/sessions/*/; do
@@ -224,20 +226,20 @@ else
     LAT_N=$(find "$BEE_ROOT/sessions" -maxdepth 2 -name services.json 2>/dev/null | wc -l)
     # needs_human sessions are never collected, so their slices live forever.
     # That is on purpose; the number only has to stop being invisible.
-    ghi "dich-vu" true "pool: $POOL_N service(s) up · $LAT_N slice(s) in use$( (( LAT_KET > 0 )) && echo ", $LAT_KET held by needs_human sessions (never collected)")"
+    ghi "services" true "pool: $POOL_N service(s) up · $LAT_N slice(s) in use$( (( LAT_KET > 0 )) && echo ", $LAT_KET held by needs_human sessions (never collected)")"
   fi
 fi
 
 # ── 5 · Đĩa + PAUSE (thông tin, không phải lỗi) ────────────────────────────
 if [[ -d "$BEE_ROOT" && -w "$BEE_ROOT" ]]; then
-  ghi "dia" true "$BEE_ROOT ghi được"
+  ghi "disk" true "$BEE_ROOT is writable"
 else
-  ghi "dia" false "$BEE_ROOT thiếu hoặc không ghi được — chạy install.sh"
+  ghi "disk" false "$BEE_ROOT is missing or not writable — run install.sh"
 fi
 if [[ -e "$BEE_ROOT/PAUSE" ]]; then
-  printf 'ℹ PAUSE — ĐANG BẬT: không phiên mới nào mở được\n'
+  printf 'ℹ PAUSE — ON: no new session can open\n'
 else
-  printf 'ℹ PAUSE — tắt\n'
+  printf 'ℹ PAUSE — off\n'
 fi
 
 OK=true; [[ $LOI == 0 ]] || OK=false
@@ -246,6 +248,6 @@ jq -n --arg t "$(now_iso)" --argjson ok "$OK" --argjson c "$CHECKS" \
   --argjson p "$([[ -e "$BEE_ROOT/PAUSE" ]] && echo true || echo false)" \
   '{checked_at:$t, ok:$ok, paused:$p, checks:$c}' > "$BEE_ROOT/doctor.json"
 
-# Khám xong là exit 0; kết quả khám nằm trong doctor.json (xem chú thích đầu file).
+# Finishing is exit 0; the findings live in doctor.json (see the header).
 [[ $EXIT_ZERO -eq 1 ]] && exit 0
 exit "$LOI"

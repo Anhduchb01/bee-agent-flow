@@ -204,26 +204,26 @@ RIG_WT="$BEE_ROOT/work/$ID_D1" RIG_DOCKER_UP=1 \
   GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
 
 grep -q "compose .*-p .*down" "$RIG_DOCKER_LOG" \
-  && kq ok "phiên có compose project: gc gọi compose down" \
-  || kq no "gc KHÔNG hạ compose project — container + volume ở lại vĩnh viễn"
+  && kq ok "session with a compose project: gc calls compose down" \
+  || kq no "gc did NOT bring the project down — containers and volumes stay forever"
 
 grep -q -- "-v" <<<"$(grep 'down' "$RIG_DOCKER_LOG")" \
-  && kq ok "down kèm -v: volume cũng đi theo (đó mới là phần chiếm đĩa)" \
-  || kq no "down thiếu -v: volume mồ côi ở lại"
+  && kq ok "down with -v: volumes go too (that is the part filling the disk)" \
+  || kq no "down without -v: orphaned volumes stay"
 
 [[ "$(grep 'down' "$RIG_DOCKER_LOG" | head -1)" == wt:yes* ]] \
-  && kq ok "thứ tự đúng: hạ container TRƯỚC khi xoá worktree" \
-  || kq no "hạ container sau khi worktree đã biến mất — compose mất file để đọc"
+  && kq ok "right order: containers down BEFORE the worktree is removed" \
+  || kq no "containers brought down after the worktree was gone — compose had nothing to read"
 
-con "$ID_D1" && kq no "D1: lẽ ra phải thu hồi" || kq ok "D1: worktree đã thu hồi"
+con "$ID_D1" && kq no "D1: should have been reclaimed" || kq ok "D1: worktree reclaimed"
 [[ "$(ly_do "$ID_D1")" == *docker* || "$(ly_do "$ID_D1")" == *compose* ]] \
-  && kq ok "gc.json nói ra đã dọn docker ($(ly_do "$ID_D1"))" \
-  || kq no "gc.json im lặng về phần docker: $(ly_do "$ID_D1")"
+  && kq ok "gc.json says the docker side was cleaned ($(ly_do "$ID_D1"))" \
+  || kq no "gc.json is silent about the docker side: $(ly_do "$ID_D1")"
 
 # --- ca 4: needs_human thì KHÔNG được đụng container ----------------------
 grep -q "project=bee-myapp-14\|project=bee-bbbbbbbb" <<<"$(grep 'down' "$RIG_DOCKER_LOG")" \
-  && kq no "needs_human mà vẫn hạ container của nó — người còn phải xem cái xác" \
-  || kq ok "needs_human: container để nguyên, không đụng"
+  && kq no "needs_human but its containers were brought down — somebody still has to look at it" \
+  || kq ok "needs_human: containers left alone"
 
 # --- ca 3: docker CHẾT + worktree có compose → GIỮ ------------------------
 san2 "$ID_D2" 12 done false co
@@ -233,15 +233,15 @@ RIG_WT="$BEE_ROOT/work/$ID_D2" RIG_DOCKER_UP=0 \
   GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
 
 if con "$ID_D2" && [[ "$(ly_do "$ID_D2")" == *docker* ]]; then
-  kq ok "docker chết + worktree có compose: GIỮ ($(ly_do "$ID_D2"))"
+  kq ok "docker down + worktree declares compose: KEEP ($(ly_do "$ID_D2"))"
 else
-  kq no "xoá worktree khi không dọn nổi container — container thành mồ côi không ai lần ra ($(ly_do "$ID_D2"))"
+  kq no "removed the worktree without cleaning containers — orphans nobody can trace ($(ly_do "$ID_D2"))"
 fi
 
 # --- ca 4: docker chết nhưng phiên KHÔNG có compose → vẫn thu hồi ---------
 con "$ID_D3" \
-  && kq no "docker chết chặn oan một phiên chưa từng dùng docker ($(ly_do "$ID_D3"))" \
-  || kq ok "docker chết nhưng phiên không có compose: vẫn thu hồi bình thường"
+  && kq no "docker being down falsely blocked a session that never used docker ($(ly_do "$ID_D3"))" \
+  || kq ok "docker down but the session has no compose: still reclaimed"
 
 # --- ca 5: máy không có docker + không compose → vẫn thu hồi --------------
 ID_D5=bbbbbbbb-0000-4000-8000-000000000005
@@ -250,8 +250,8 @@ PATH_CU="$PATH"; PATH="/usr/bin:/bin"; export PATH
 GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
 PATH="$PATH_CU"; export PATH
 con "$ID_D5" \
-  && kq no "máy không có docker: chặn oan phiên không dùng docker ($(ly_do "$ID_D5"))" \
-  || kq ok "máy không có docker + phiên không compose: vẫn thu hồi"
+  && kq no "no docker on the machine falsely blocked a session that never used it ($(ly_do "$ID_D5"))" \
+  || kq ok "no docker and no compose: still reclaimed"
 
 # --- ca 6+7: gc phải TRẢ LẠI lát dịch vụ, và giữ worktree nếu trả không được
 ID_D6=bbbbbbbb-0000-4000-8000-000000000006
@@ -267,12 +267,12 @@ printf 'services:\n  postgres:\n    image: postgres:16\n' > "$BEE_ROOT/services/
 
 : > "$RIG_DOCKER_LOG"
 RIG_DOCKER_UP=1 GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
-con "$ID_D6" && kq no "D6: lẽ ra phải thu hồi" || kq ok "D6: worktree đã thu hồi"
+con "$ID_D6" && kq no "D6: should have been reclaimed" || kq ok "D6: worktree reclaimed"
 grep -q "DROP DATABASE IF EXISTS bee_bbbbbbbb" "$RIG_DOCKER_LOG" \
-  && kq ok "gc trả lại lát dịch vụ cùng lúc thu hồi worktree" \
-  || kq no "gc xoá worktree nhưng để database ở lại — không ai lần ra nó của phiên nào"
+  && kq ok "gc gives the service slice back together with the worktree" \
+  || kq no "gc removed the worktree but left the database — nobody can trace it to a session"
 [[ ! -f "$BEE_ROOT/sessions/$ID_D6/services.json" ]] \
-  && kq ok "bản ghi lát đã xoá" || kq no "services.json còn lại sau khi thu hồi"
+  && kq ok "the slice record is gone" || kq no "services.json survived the reclaim"
 
 # Trả không được (pool chết) → GIỮ worktree, đừng để lát thành mồ côi.
 ID_D7=bbbbbbbb-0000-4000-8000-000000000007
@@ -284,9 +284,9 @@ jq -cn '{slice:"bee_bbbbbbbb", at:"x",
   > "$BEE_ROOT/sessions/$ID_D7/services.json"
 RIG_DOCKER_UP=0 GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
 if con "$ID_D7" && [[ "$(ly_do "$ID_D7")" == *"service slice"* ]]; then
-  kq ok "không trả được lát: giữ worktree ($(ly_do "$ID_D7"))"
+  kq ok "cannot give the slice back: keep the worktree ($(ly_do "$ID_D7"))"
 else
-  kq no "xoá worktree khi chưa trả được lát ($(ly_do "$ID_D7"))"
+  kq no "removed the worktree before the slice was given back ($(ly_do "$ID_D7"))"
 fi
 
 echo

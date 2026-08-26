@@ -68,7 +68,7 @@ test("setup page: interactive steps + live doctor checks", async ({ page }) => {
   // Live doctor checks: a pass, a fail WITH its fix hint.
   const checks = page.getByRole("list", { name: "Doctor checks" });
   await expect(checks).toContainText("fine-grained PAT");
-  await expect(checks).toContainText("CHƯA có branch protection");
+  await expect(checks).toContainText("NO branch protection on main");
 
   // Doctor red → going live is locked, and it says why.
   await expect(page.getByRole("button", { name: /remove pause/i })).toBeDisabled();
@@ -105,6 +105,6 @@ test("failing checks: login lands on /setup too", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/setup/);
   await expect(page.getByRole("list", { name: "Doctor checks" })).toContainText(
-    "CHƯA có branch protection",
+    "NO branch protection on main",
   );
 });

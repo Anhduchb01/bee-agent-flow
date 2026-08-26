@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rig-14 — "web có đang phục vụ không", và "cổng này của AI".
+# Rig-14 — "is the web serving?", and "whose port is this?".
 #
 # Chuyện thật 25/08: lúc chuyển máy, bee-web crash-loop EADDRINUSE vì web của
 # user cũ còn giữ 3210. NRestarts leo tới 1005 trong im lặng, doctor vẫn xanh,
@@ -63,7 +63,7 @@ done
 [[ $CONG -ne 0 ]] || { echo "không tìm được cổng trống để thử"; exit 1; }
 
 [[ "$(port_owner "$CONG")" == free ]] \
-  && kq ok "cổng trống → free" || kq no "cổng trống mà không free: $(port_owner "$CONG")"
+  && kq ok "free port -> free" || kq no "free port not reported as free: $(port_owner "$CONG")"
 
 python3 -c "
 import socket,time
@@ -76,15 +76,15 @@ for _ in $(seq 1 40); do ss -Hltn "sport = :$CONG" 2>/dev/null | grep -q . && br
 # MainPID KHÁC pid đang nghe → phải là "other", kèm pid thật.
 kichban active 0 999999
 KQ=$(port_owner "$CONG")
-[[ "$KQ" == other\ * ]] && kq ok "cổng của tiến trình khác → other ($KQ)" \
-  || kq no "cổng người khác giữ mà không báo other: $KQ"
+[[ "$KQ" == other\ * ]] && kq ok "another process holds it -> other ($KQ)" \
+  || kq no "somebody else holds it but it was not reported as other: $KQ"
 
 # MainPID TRÙNG pid đang nghe → "mine". Đây là ca cài lại trên máy đang chạy:
 # không được bắt người ta dừng chính web của mình.
 kichban active 0 "$NGHE"
 KQ=$(port_owner "$CONG")
-[[ "$KQ" == "mine $NGHE" ]] && kq ok "cổng của chính bee-web → mine (cài lại không bị chặn oan)" \
-  || kq no "cổng của chính mình mà không nhận ra: $KQ"
+[[ "$KQ" == "mine $NGHE" ]] && kq ok "our own bee-web holds it -> mine (a reinstall is not blocked)" \
+  || kq no "did not recognise our own port: $KQ"
 
 kill "$NGHE" 2>/dev/null || true; wait "$NGHE" 2>/dev/null || true
 
@@ -93,15 +93,15 @@ echo "PORT=$CONG" > "$BEE_ROOT/web.env"
 
 kichban active 0 0
 kham
-[[ -n "$(muc)" ]] && kq ok "doctor.json có mục web" || kq no "doctor không có mục web — đúng cái lỗ 25/08"
+[[ -n "$(muc)" ]] && kq ok "doctor.json has a web check" || kq no "no web check — exactly the 25/08 hole"
 
 # 2a · unit không active → đỏ. Đây là cái doctor CHƯA BAO GIỜ hỏi.
 kichban failed 1005 0
 kham
 case "$(muc)" in
-  false*1005*) kq ok "bee-web failed sau 1005 lần restart: đỏ, và nói ra con số";;
-  false*)      kq ok "bee-web failed: đỏ (nhưng thiếu số lần restart)";;
-  *)           kq no "web chết mà doctor vẫn xanh: $(muc)";;
+  false*1005*) kq ok "bee-web failed after 1005 restarts: red, and says the number";;
+  false*)      kq ok "bee-web failed: red (but without the restart count)";;
+  *)           kq no "the web is dead and doctor stayed green: $(muc)";;
 esac
 
 # 2b · unit active NHƯNG cổng của người khác → đỏ. Đây là ca 25/08 nguyên bản:
@@ -117,48 +117,48 @@ printf '#!/bin/sh\necho 200\n' > "$T/bin/curl"; chmod +x "$T/bin/curl"
 kichban active 0 999999
 kham
 case "$(muc)" in
-  false*"tiến trình khác"*) kq ok "cổng bị người khác giữ: đỏ, dù curl trả 200";;
-  true*) kq no "CỔNG CỦA NGƯỜI KHÁC MÀ DOCTOR XANH — chính là lỗ 25/08: $(muc)";;
-  *) kq no "kỳ vọng đỏ vì sai chủ cổng: $(muc)";;
+  false*"held by another process"*) kq ok "port held by somebody else: red, even though curl says 200";;
+  true*) kq no "SOMEBODY ELSE OWNS THE PORT AND DOCTOR IS GREEN — the 25/08 hole: $(muc)";;
+  *) kq no "expected red for the wrong port owner: $(muc)";;
 esac
 kill "$NGHE" 2>/dev/null || true; wait "$NGHE" 2>/dev/null || true
 
 # 2c · Đúng chủ + curl 200 → xanh (không được đỏ oan).
 kichban active 0 0
 kham
-[[ "$(muc)" == true* ]] && kq ok "unit active + cổng đúng chủ + 200: xanh" \
-  || kq no "lẽ ra xanh: $(muc)"
+[[ "$(muc)" == true* ]] && kq ok "unit active + port owned by us + 200: green" \
+  || kq no "expected green: $(muc)"
 
 # 2d · Restart nhiều bất thường → đỏ, kể cả khi đang trả lời được.
 kichban active 42 0
 kham
-[[ "$(muc)" == false*42* ]] && kq ok "restart 42 lần: đỏ dù đang trả lời (bị đá ra liên tục)" \
-  || kq no "restart bất thường mà vẫn xanh: $(muc)"
+[[ "$(muc)" == false*42* ]] && kq ok "42 restarts: red even while answering — something keeps kicking it" \
+  || kq no "abnormal restart count but still green: $(muc)"
 
 # 2e · Chưa cài web → đỏ có chỉ dẫn, không phải im lặng.
 kichban inactive 0 0 khong
 kham
-[[ "$(muc)" == false*install* ]] && kq ok "chưa có bee-web.service: đỏ + chỉ cách cài" \
-  || kq no "thiếu unit mà không chỉ được đường: $(muc)"
+[[ "$(muc)" == false*install* ]] && kq ok "no bee-web.service: red, and says how to install it" \
+  || kq no "missing unit with no way forward: $(muc)"
 
 # ── 3 · Mã thoát tách khỏi kết quả khám ──────────────────────────────────
 # Trước T19: bee-doctor.service báo "failed" mỗi lần máy có mục đỏ — đọc như
 # hỏng hóc trong khi nó chỉ đang làm đúng việc.
 kichban failed 1005 0
 bash "$DAY/../bin/doctor.sh" >/dev/null 2>&1 && MA=0 || MA=$?
-[[ $MA -eq 1 ]] && kq ok "dòng lệnh: có mục đỏ → exit 1 (cắm được vào CI)" \
-  || kq no "kỳ vọng exit 1, nhận $MA"
+[[ $MA -eq 1 ]] && kq ok "command line: anything red -> exit 1 (usable in CI)" \
+  || kq no "expected exit 1, got $MA"
 
 bash "$DAY/../bin/doctor.sh" --exit-zero >/dev/null 2>&1 && MA=0 || MA=$?
-[[ $MA -eq 0 ]] && kq ok "--exit-zero: khám ra bệnh KHÔNG phải doctor hỏng → exit 0" \
-  || kq no "--exit-zero vẫn exit $MA — unit sẽ còn báo failed oan"
+[[ $MA -eq 0 ]] && kq ok "--exit-zero: finding a fault is not doctor failing -> exit 0" \
+  || kq no "--exit-zero still exited $MA — unit sẽ còn báo failed oan"
 
 [[ "$(muc)" == false* ]] \
-  && kq ok "--exit-zero vẫn ghi đủ kết quả đỏ vào doctor.json" \
-  || kq no "--exit-zero nuốt mất kết quả khám: $(muc)"
+  && kq ok "--exit-zero still records every red finding in doctor.json" \
+  || kq no "--exit-zero swallowed the findings: $(muc)"
 
 bash "$DAY/../bin/doctor.sh" --xxx >/dev/null 2>&1 && MA=0 || MA=$?
-[[ $MA -eq 2 ]] && kq ok "tham số lạ → exit 2, không im lặng bỏ qua" || kq no "tham số lạ trả $MA"
+[[ $MA -eq 2 ]] && kq ok "unknown argument -> exit 2, not silently ignored" || kq no "unknown argument returned $MA"
 
 # ── 4 · install.sh dừng trước cửa, thay vì bật vào một cổng có chủ ───────
 # Trước T19 nó cứ `enable --now` — rồi unit crash-loop im lặng, còn cổng vẫn
@@ -178,10 +178,10 @@ for _ in $(seq 1 40); do ss -Hltn "sport = :$CONG" 2>/dev/null | grep -q . && br
 kichban inactive 0 999999
 RA=$(HOME="$IT/home" BEE_PREFIX="$IT/opt" BEE_ROOT="$IT/srv" BEE_WEB="$IT/web" \
        bash "$DAY/../install.sh" 2>&1) && MA=0 || MA=$?
-[[ $MA -ne 0 ]] && kq ok "cổng có chủ → install.sh dừng (exit $MA), không bật đại" \
-  || kq no "install.sh vẫn enable bee-web lên một cổng đã có chủ"
-grep -q "Cổng $CONG" <<<"$RA" && kq ok "và nói ra cổng nào, ai giữ" \
-  || kq no "dừng nhưng không nói vì sao: $(tail -2 <<<"$RA")"
+[[ $MA -ne 0 ]] && kq ok "port already owned -> install.sh stops (exit $MA), không bật đại" \
+  || kq no "install.sh enabled bee-web on a port somebody else owns"
+grep -q "Cổng $CONG" <<<"$RA" && kq ok "and says which port, and who holds it" \
+  || kq no "stopped without saying why: $(tail -2 <<<"$RA")"
 
 kill "$NGHE" 2>/dev/null || true; wait "$NGHE" 2>/dev/null || true
 
@@ -189,8 +189,8 @@ kill "$NGHE" 2>/dev/null || true; wait "$NGHE" 2>/dev/null || true
 rm -rf "$IT/home/.config"
 HOME="$IT/home" BEE_PREFIX="$IT/opt" BEE_ROOT="$IT/srv" BEE_WEB="$IT/web" \
   bash "$DAY/../install.sh" >/dev/null 2>&1 && MA=0 || MA=$?
-[[ $MA -eq 0 ]] && kq ok "cổng trống: install.sh chạy trọn, không chặn oan" \
-  || kq no "install.sh đỏ dù cổng trống (exit $MA)"
+[[ $MA -eq 0 ]] && kq ok "free port: install.sh runs through, no false block" \
+  || kq no "install.sh failed on a free port (exit $MA)"
 
 echo
-if [[ $FAIL == 0 ]]; then echo "RIG-14: TẤT CẢ XANH"; else echo "RIG-14: CÓ ĐỎ"; exit 1; fi
+if [[ $FAIL == 0 ]]; then echo "RIG-14: ALL GREEN"; else echo "RIG-14: RED"; exit 1; fi

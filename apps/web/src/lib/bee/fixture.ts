@@ -155,23 +155,23 @@ export function createFixtureBeeSource(): BeeSource {
           paused: true,
           checks: [
             { id: "pat", ok: true, detail: "fine-grained PAT" },
-            { id: "claude", ok: false, detail: "chưa có auth — lấy link login ở /setup" },
-            { id: "repo:myapp", ok: true, detail: "branch protection bật trên main" },
+            { id: "claude", ok: false, detail: "no auth yet — get a login link on /setup" },
+            { id: "repo:myapp", ok: true, detail: "branch protection is on for main" },
             {
               id: "repo:blog",
               ok: false,
-              detail: "CHƯA có branch protection trên main — push thẳng main đang mở",
+              detail: "NO branch protection on main — pushing straight to main is open",
             },
-            { id: "may-sach", ok: true, detail: "không thấy SSH key / AWS / kube / GPG" },
-            { id: "linger", ok: false, detail: "chưa bật — chạy: loginctl enable-linger bee" },
-            { id: "reaper", ok: true, detail: "bee-reaper.timer đang chạy" },
+            { id: "clean-host", ok: true, detail: "no SSH keys / AWS / kube / GPG in reach" },
+            { id: "linger", ok: false, detail: "off — run: loginctl enable-linger bee" },
+            { id: "reaper", ok: true, detail: "bee-reaper.timer is running" },
             {
               id: "web",
               ok: false,
               detail:
-                "cổng 3210 do tiến trình khác giữ (pid 4127, user ducba), KHÔNG phải bee-web — thứ bạn thấy trên cổng này là web của người khác",
+                "port 3210 is held by another process (pid 4127, user ducba), NOT bee-web — whatever you see on this port belongs to somebody else",
             },
-            { id: "dia", ok: true, detail: "/srv/bee ghi được" },
+            { id: "disk", ok: true, detail: "/srv/bee is writable" },
           ],
         };
       }
@@ -182,18 +182,18 @@ export function createFixtureBeeSource(): BeeSource {
         checks: [
           { id: "pat", ok: true, detail: "fine-grained PAT" },
           { id: "claude", ok: true, detail: "token từ claude setup-token (claude.env)" },
-          { id: "repo:myapp", ok: true, detail: "branch protection bật trên main" },
-          { id: "repo:blog", ok: true, detail: "branch protection bật trên main" },
-          { id: "may-sach", ok: true, detail: "không thấy SSH key / AWS / kube / GPG" },
-          { id: "linger", ok: true, detail: "bật" },
-          { id: "reaper", ok: true, detail: "bee-reaper.timer đang chạy" },
-          { id: "web", ok: true, detail: "bee-web active · 127.0.0.1:3210 trả 307 · restart 0 lần" },
+          { id: "repo:myapp", ok: true, detail: "branch protection is on for main" },
+          { id: "repo:blog", ok: true, detail: "branch protection is on for main" },
+          { id: "clean-host", ok: true, detail: "no SSH keys / AWS / kube / GPG in reach" },
+          { id: "linger", ok: true, detail: "on" },
+          { id: "reaper", ok: true, detail: "bee-reaper.timer is running" },
+          { id: "web", ok: true, detail: "bee-web active · 127.0.0.1:3210 answers 307 · 0 restarts" },
           {
-            id: "dich-vu",
+            id: "services",
             ok: true,
             detail: "pool: 2 service(s) up · 3 slice(s) in use",
           },
-          { id: "dia", ok: true, detail: "/srv/bee ghi được" },
+          { id: "disk", ok: true, detail: "/srv/bee is writable" },
         ],
       };
     },

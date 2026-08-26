@@ -38,7 +38,7 @@ epoch_cua() {  # ISO → epoch; rỗng/hỏng → 0 (coi như rất cũ, để l
   [[ -n "$1" ]] && date -u -d "$1" +%s 2>/dev/null || echo 0
 }
 
-co_compose() {  # worktree có khai compose không
+has_compose() {  # does the worktree declare a compose file?
   local wt="$1" f
   for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
     [[ -f "$wt/$f" ]] && return 0
@@ -46,45 +46,48 @@ co_compose() {  # worktree có khai compose không
   return 1
 }
 
-# don_docker <id> <slug> <num> <worktree> — hạ compose project của phiên.
+# teardown_compose <id> <slug> <num> <worktree> — hạ compose project của phiên.
 # In ĐÚNG một dòng:
-#   none            không có gì để dọn
-#   removed:<a,b>   đã hạ những project này
-#   giu:<lý do>     KHÔNG dọn nổi → worktree phải được GIỮ
+#   none            nothing to clean up
+#   removed:<a,b>   these projects were brought down
+#   keep:<reason>   could not clean up → the worktree must be KEPT
 #
-# Vì sao "giu" tồn tại: xoá worktree khi chưa hạ được container là biến chúng
-# thành mồ côi không ai lần ra được của phiên nào. Đó chính là cách 6.9GB
-# volume / 17 cái tích lại trên máy này. Cùng nguyên tắc với cả file: THÀ GIỮ
-# NHẦM CÒN HƠN XOÁ NHẦM — nhưng chỉ giữ khi worktree THẬT SỰ có khai compose,
-# chứ docker chết mà chặn oan cả phiên chưa từng đụng docker thì là lỗi khác.
+# Why "keep" exists: removing a worktree before its containers are down turns
+# them into orphans nobody can trace back to a session. That is exactly how
+# 6.9GB of volumes across 17 of them piled up on this machine. Same principle
+# as the rest of this file — better to keep by mistake than delete by mistake.
+# But only keep when the worktree ACTUALLY declares compose: docker being down
+# must not block a session that never touched docker. That is a different bug,
+# and rig-07 watches both directions.
 #
-# Hai tên project vì hai thời kỳ: `bee-<uuid8>` (spec lat-dich-vu §4) và
-# `bee-<slug>-<num>` (skill bee-preview đang dùng). Hỏi nhãn trước rồi mới hạ,
-# nên thử cả hai không tốn gì.
-don_docker() {
+# Two project names because there are two eras: `bee-<uuid8>` (spec
+# service-slices §4) and `bee-<slug>-<num>` (what bee-preview still uses). We
+# ask by label before bringing anything down, so trying both costs nothing.
+teardown_compose() {
   local id="$1" slug="$2" num="$3" wt="$4" uuid8 p
   uuid8="${id//-/}"; uuid8="${uuid8:0:8}"
 
   if ! command -v docker >/dev/null 2>&1; then
-    co_compose "$wt" \
-      && { echo "giu:no docker on this machine but the worktree declares compose — cannot bring the session's containers down"; return; }
+    has_compose "$wt" \
+      && { echo "keep:no docker on this machine but the worktree declares compose — cannot bring the session's containers down"; return; }
     echo none; return
   fi
   if ! docker info >/dev/null 2>&1; then
-    co_compose "$wt" \
-      && { echo "giu:docker is not running — the session's containers are still up, keeping the worktree so they stay traceable"; return; }
+    has_compose "$wt" \
+      && { echo "keep:docker is not running — the session's containers are still up, keeping the worktree so they stay traceable"; return; }
     echo none; return
   fi
 
   local da=()
   for p in "bee-$uuid8" "bee-$slug-$num"; do
     [[ -n "$(docker ps -aq --filter "label=com.docker.compose.project=$p" 2>/dev/null)" ]] || continue
-    # -v vì volume mới là phần chiếm đĩa; --remove-orphans vì service bị xoá
-    # khỏi compose giữa chừng vẫn để lại container mang nhãn project này.
+    # -v because volumes are the part that fills the disk; --remove-orphans
+    # because a service deleted from compose mid-run still leaves a container
+    # carrying this project label.
     if docker compose -p "$p" down -v --remove-orphans >/dev/null 2>&1; then
       da+=("$p")
     else
-      echo "giu:could not bring compose project $p down — keeping the worktree so the next tick can retry"
+      echo "keep:could not bring compose project $p down — keeping the worktree so the next tick can retry"
       return
     fi
   done
@@ -181,17 +184,17 @@ for wt in "$BEE_ROOT"/work/*/; do
     continue
   fi
 
-  # ── Docker của phiên: hạ TRƯỚC khi worktree biến mất ──────────────────
-  # compose cần file trong worktree để đọc, và một container còn sống mà thư
-  # mục dưới chân nó vừa bị xoá sẽ đổ log rác cho tới khi ai đó để ý. Thứ tự
-  # này là thứ rig-07 phần 2 canh.
-  kq_docker=$(don_docker "$id" "$slug" "$num" "$wt")
-  if [[ "$kq_docker" == giu:* ]]; then
-    ghi "$id" kept "${kq_docker#giu:}"
+  # ── The session's containers: down BEFORE the worktree disappears ─────
+  # compose needs the file in the worktree to read, and a container still
+  # running with the directory pulled out from under it spews log noise until
+  # somebody notices. rig-07 part 2 watches this order, not just the call.
+  docker_result=$(teardown_compose "$id" "$slug" "$num" "$wt")
+  if [[ "$docker_result" == keep:* ]]; then
+    ghi "$id" kept "${docker_result#keep:}"
     continue
   fi
-  if [[ "$kq_docker" == removed:* ]]; then
-    ly_do="$ly_do; docker: brought down ${kq_docker#removed:}"
+  if [[ "$docker_result" == removed:* ]]; then
+    ly_do="$ly_do; docker: brought down ${docker_result#removed:}"
   fi
 
   # ── Service slice (T15) ───────────────────────────────────────────────

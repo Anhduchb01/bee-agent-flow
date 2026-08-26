@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BeeArtifact, BeeSession, HangDoi } from "@/lib/bee/types";
 
-import { khoangGanDay } from "../api/load";
+import { recentWindow } from "../api/load";
 import { dungBanTin } from "./tom-tat";
 
 const TU = new Date("2026-08-24T22:00:00Z");
@@ -90,13 +90,13 @@ describe("dungBanTin — sáng dậy đọc một trang là biết đêm qua ra 
   });
 });
 
-describe("khoangGanDay — cửa sổ 24h trượt, không phải mốc 18:00", () => {
+describe("recentWindow — cửa sổ 24h trượt, không phải mốc 18:00", () => {
   it("3 giờ chiều vẫn thấy việc chạy lúc 2 giờ chiều", () => {
     // Bản cũ cắt từ 18:00 hôm trước, nên mở trang lúc 15:00 là KHÔNG thấy gì
     // chạy trong ngày — trong khi Autopilot chạy suốt ngày. Đó là điểm mù
     // theo giờ trên chính cái trang sinh ra để nói "chuyện gì đã xảy ra".
     const bayGio = new Date("2026-08-26T15:00:00Z");
-    const { tu, den } = khoangGanDay(bayGio);
+    const { tu, den } = recentWindow(bayGio);
     expect(den).toEqual(bayGio);
     expect(new Date("2026-08-26T14:00:00Z").getTime()).toBeGreaterThan(tu.getTime());
     // Và vẫn phủ trọn đêm hôm trước — không đánh đổi ca dùng cũ lấy ca mới.
@@ -104,7 +104,7 @@ describe("khoangGanDay — cửa sổ 24h trượt, không phải mốc 18:00", 
   });
 
   it("cắt đúng 24 giờ: cũ hơn thì ra ngoài", () => {
-    const { tu } = khoangGanDay(new Date("2026-08-26T15:00:00Z"));
+    const { tu } = recentWindow(new Date("2026-08-26T15:00:00Z"));
     expect(tu.toISOString()).toBe("2026-08-25T15:00:00.000Z");
   });
 });

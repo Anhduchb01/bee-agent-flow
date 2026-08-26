@@ -2,7 +2,7 @@ export { loadBoard, type DuLieuBang } from "./api/load";
 export { BoardKanban } from "./components/board-kanban";
 export { BoardTable } from "./components/board-table";
 export { BoardToolbar, duongDanBang, type ChoXem } from "./components/board-toolbar";
-export { NutChayNgay, NutDoiThuTu, NutXepHang } from "./components/autopilot-controls";
+export { RunNowButton, NutDoiThuTu, NutXepHang } from "./components/autopilot-controls";
 export {
   CAC_LANE,
   laThaHopLe,
