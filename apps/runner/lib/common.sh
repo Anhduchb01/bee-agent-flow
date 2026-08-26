@@ -130,3 +130,38 @@ port_owner() {
     echo "other ? khac-user"
   fi
 }
+
+# ── Service slices (T15) — see docs/specs/lat-dich-vu.md ──────────────────
+
+# doan_kieu <image> — map a docker image to the service kind bee knows how to
+# carve a slice out of. Prints the kind, or nothing when it cannot tell.
+#
+# The owner chose "guess from the image" over a declaration file. That choice
+# comes with one safety rule, and it is the whole reason this is a table and
+# not a heuristic: an image we cannot place returns EMPTY, never a wrong kind.
+# Guessing wrong towards "shared slice" writes into somebody else's database;
+# guessing wrong towards "run it per session" costs a little RAM and shows up
+# immediately. The two mistakes are not the same price.
+#
+# Matching is on the LAST path segment only, so a registry prefix cannot
+# create a match (docker.io/library/postgres -> postgres) and a substring
+# cannot either (ghcr.io/acme/not-postgres-at-all -> nothing).
+doan_kieu() {
+  local img="$1" path seg
+  [[ -n "$img" ]] || return 0
+
+  # Strip the tag, but only when the colon comes after the last slash —
+  # otherwise a registry port (host:5000/img) loses its host.
+  path="$img"
+  if [[ "${path##*/}" == *:* ]]; then path="${path%:*}"; fi
+  seg="${path##*/}"
+
+  case "$seg" in
+    postgres|postgis|pgvector|timescaledb) echo postgres;;
+    rabbitmq)                              echo rabbitmq;;
+    minio)                                 echo s3;;
+    mysql|mariadb|percona)                 echo mysql;;
+    redis|valkey)                          echo redis;;
+    *)                                     : ;;   # unknown on purpose
+  esac
+}
