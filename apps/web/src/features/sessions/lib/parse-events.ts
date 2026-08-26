@@ -26,24 +26,24 @@ export type StreamEvent =
    */
   | {
       loai: "tool";
-      ten: string;
+      name: string;
       thamSo: string;
       id?: string | null;
       file?: string;
       lenh?: string;
       /** Edit: old_string/new_string — đủ cho khối diff đỏ/xanh kiểu VSCode. */
       cu?: string;
-      moi?: string;
+      latest?: string;
     }
-  | { loai: "tool-xong"; text: string; id?: string | null; loi?: boolean }
+  | { loai: "tool-xong"; text: string; id?: string | null; err?: boolean }
   | {
       loai: "ket-qua";
-      loi: boolean;
+      err: boolean;
       luot?: number | null;
       nguCanh?: number | null;
       /** Raw numbers behind the ring — the % alone reads as "wrong" when
           the window is 1M and the system prompt already costs 100k. */
-      dungToken?: number | null;
+      validToken?: number | null;
       cuaSoToken?: number | null;
     }
   | { loai: "replay"; skipped: number }
@@ -60,9 +60,9 @@ export type StreamEvent =
    */
   | { loai: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
   /** Manual mode (V2.5b): the agent asks permission for one tool call. */
-  | { loai: "xin-quyen"; requestId: string; ten: string; thamSo: string }
+  | { loai: "xin-quyen"; requestId: string; name: string; thamSo: string }
   /** The owner's recorded answer (bee_approval) — pairs by requestId. */
-  | { loai: "quyen-da-tra-loi"; requestId: string; choPhep: boolean }
+  | { loai: "quyen-da-tra-loi"; requestId: string; allow: boolean }
   | {
       loai: "artifact";
       kind: "issue" | "pr";
@@ -75,7 +75,7 @@ const CAT_THAM_SO = 160;
 const CAT_KET_QUA = 400;
 const CAT_DIFF = 2000;
 
-function laObject(x: unknown): x is Record<string, unknown> {
+function isObject(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
 }
 
@@ -88,17 +88,17 @@ function textCuaToolResult(content: unknown): string {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
-      .map((c) => (laObject(c) && typeof c.text === "string" ? c.text : ""))
+      .map((c) => (isObject(c) && typeof c.text === "string" ? c.text : ""))
       .join("");
   }
   return "";
 }
 
-function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): StreamEvent[] {
+function fromContentBlocks(content: unknown, nguon: "assistant" | "user"): StreamEvent[] {
   if (!Array.isArray(content)) return [];
   const ra: StreamEvent[] = [];
   for (const block of content) {
-    if (!laObject(block)) continue;
+    if (!isObject(block)) continue;
     if (nguon === "assistant" && block.type === "text" && typeof block.text === "string") {
       if (block.text.trim() !== "") ra.push({ loai: "agent-noi", text: block.text });
     }
@@ -106,11 +106,11 @@ function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): StreamE
       if (block.thinking.trim() !== "") ra.push({ loai: "nghi", text: block.thinking });
     }
     if (nguon === "assistant" && block.type === "tool_use") {
-      const input = laObject(block.input) ? block.input : {};
+      const input = isObject(block.input) ? block.input : {};
       // Edit mang old/new, Write mang content — giữ lại (có trần) để vẽ khối
       // diff đỏ/xanh. Các tool khác chỉ cần thamSo cắt gọn.
       const cu = typeof input.old_string === "string" ? input.old_string : undefined;
-      const moi =
+      const latest =
         typeof input.new_string === "string"
           ? input.new_string
           : typeof input.content === "string"
@@ -118,13 +118,13 @@ function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): StreamE
             : undefined;
       ra.push({
         loai: "tool",
-        ten: typeof block.name === "string" ? block.name : "?",
+        name: typeof block.name === "string" ? block.name : "?",
         thamSo: cat(JSON.stringify(block.input ?? {}), CAT_THAM_SO),
         id: typeof block.id === "string" ? block.id : null,
         ...(typeof input.file_path === "string" ? { file: input.file_path } : {}),
         ...(typeof input.command === "string" ? { lenh: cat(input.command, CAT_THAM_SO) } : {}),
         ...(cu !== undefined ? { cu: cat(cu, CAT_DIFF) } : {}),
-        ...(moi !== undefined ? { moi: cat(moi, CAT_DIFF) } : {}),
+        ...(latest !== undefined ? { latest: cat(latest, CAT_DIFF) } : {}),
       });
     }
     if (nguon === "user" && block.type === "tool_result") {
@@ -132,7 +132,7 @@ function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): StreamE
         loai: "tool-xong",
         text: cat(textCuaToolResult(block.content), CAT_KET_QUA),
         id: typeof block.tool_use_id === "string" ? block.tool_use_id : null,
-        loi: block.is_error === true,
+        err: block.is_error === true,
       });
     }
   }
@@ -151,7 +151,7 @@ export function parseLine(line: string): StreamEvent[] | null {
   } catch {
     return null;
   }
-  if (!laObject(raw)) return null;
+  if (!isObject(raw)) return null;
 
   switch (raw.type) {
     case "bee_lifecycle":
@@ -170,7 +170,7 @@ export function parseLine(line: string): StreamEvent[] | null {
       // Whitelist: only compact_boundary becomes UI; init, api_retry,
       // thinking_tokens… stay silent (see the file header's principle).
       if (raw.subtype !== "compact_boundary") return [];
-      const md = laObject(raw.compact_metadata) ? raw.compact_metadata : {};
+      const md = isObject(raw.compact_metadata) ? raw.compact_metadata : {};
       return [
         {
           loai: "compact",
@@ -183,7 +183,7 @@ export function parseLine(line: string): StreamEvent[] | null {
       // Manual mode: --permission-prompt-tool stdio routes permission
       // prompts onto the stream (rig-05). Only can_use_tool becomes UI.
       const req = raw.request;
-      if (!laObject(req) || req.subtype !== "can_use_tool") return [];
+      if (!isObject(req) || req.subtype !== "can_use_tool") return [];
       if (typeof raw.request_id !== "string" || typeof req.tool_name !== "string") return [];
       let thamSo = "{}";
       try {
@@ -195,7 +195,7 @@ export function parseLine(line: string): StreamEvent[] | null {
         {
           loai: "xin-quyen",
           requestId: raw.request_id,
-          ten: req.tool_name,
+          name: req.tool_name,
           thamSo: cat(thamSo, 64_000),
         },
       ];
@@ -208,7 +208,7 @@ export function parseLine(line: string): StreamEvent[] | null {
         {
           loai: "quyen-da-tra-loi",
           requestId: raw.request_id,
-          choPhep: raw.behavior === "allow",
+          allow: raw.behavior === "allow",
         },
       ];
     }
@@ -228,14 +228,14 @@ export function parseLine(line: string): StreamEvent[] | null {
       ];
     }
     case "assistant":
-      return laObject(raw.message) ? tuContentBlocks(raw.message.content, "assistant") : [];
+      return isObject(raw.message) ? fromContentBlocks(raw.message.content, "assistant") : [];
     case "user":
-      return laObject(raw.message) ? tuContentBlocks(raw.message.content, "user") : [];
+      return isObject(raw.message) ? fromContentBlocks(raw.message.content, "user") : [];
     case "stream_event": {
       // Chỉ lấy text_delta — thứ làm chữ chạy mượt. thinking/input_json/signature
       // delta không phải thứ người dùng cần thấy từng ký tự.
       const ev = raw.event;
-      if (laObject(ev) && ev.type === "content_block_delta" && laObject(ev.delta)) {
+      if (isObject(ev) && ev.type === "content_block_delta" && isObject(ev.delta)) {
         if (ev.delta.type === "text_delta" && typeof ev.delta.text === "string") {
           return [{ loai: "delta", text: ev.delta.text }];
         }
@@ -251,30 +251,30 @@ export function parseLine(line: string): StreamEvent[] | null {
       // window right now), not from modelUsage: that one accumulates cache
       // reads across every turn of the session and hits "100%" in minutes.
       let nguCanh: number | null = null;
-      let dung = 0;
-      if (laObject(raw.usage)) {
+      let stopIt = 0;
+      if (isObject(raw.usage)) {
         for (const k of ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"]) {
           const v = (raw.usage as Record<string, unknown>)[k];
-          if (typeof v === "number") dung += v;
+          if (typeof v === "number") stopIt += v;
         }
       }
-      let cua = 0;
-      if (laObject(raw.modelUsage)) {
+      let owner = 0;
+      if (isObject(raw.modelUsage)) {
         for (const m of Object.values(raw.modelUsage as Record<string, unknown>)) {
-          if (laObject(m) && typeof m.contextWindow === "number") {
-            cua = Math.max(cua, m.contextWindow);
+          if (isObject(m) && typeof m.contextWindow === "number") {
+            owner = Math.max(owner, m.contextWindow);
           }
         }
       }
-      if (dung > 0 && cua > 0) nguCanh = Math.min(100, Math.round((dung / cua) * 100));
+      if (stopIt > 0 && owner > 0) nguCanh = Math.min(100, Math.round((stopIt / owner) * 100));
       return [
         {
           loai: "ket-qua",
-          loi: raw.subtype !== "success",
+          err: raw.subtype !== "success",
           luot: typeof raw.num_turns === "number" ? raw.num_turns : null,
           nguCanh,
-          dungToken: dung > 0 ? dung : null,
-          cuaSoToken: cua > 0 ? cua : null,
+          validToken: stopIt > 0 ? stopIt : null,
+          cuaSoToken: owner > 0 ? owner : null,
         },
       ];
     }

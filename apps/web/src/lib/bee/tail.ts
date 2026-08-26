@@ -35,11 +35,11 @@ export async function readMore(file: string, offset: number, rest: string): Prom
     const buf = Buffer.allocUnsafe(size - offset);
     await fh.read(buf, 0, buf.length, offset);
 
-    const phan = (rest + buf.toString("utf8")).split("\n");
+    const part = (rest + buf.toString("utf8")).split("\n");
     return {
-      line: phan.slice(0, -1).filter((d) => d.trim() !== ""),
+      line: part.slice(0, -1).filter((d) => d.trim() !== ""),
       offset: size,
-      rest: phan.at(-1) ?? "",
+      rest: part.at(-1) ?? "",
     };
   } finally {
     await fh.close();

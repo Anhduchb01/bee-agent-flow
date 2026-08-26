@@ -21,9 +21,9 @@ function Harness({ initial = "myapp" }: { initial?: string }) {
 describe("RepoCombobox", () => {
   it("closed by default: one combobox button with the current repo, no listbox", () => {
     render(<Harness />);
-    const nut = screen.getByRole("combobox", { name: "Repository" });
-    expect(nut).toHaveTextContent("you/myapp");
-    expect(nut).toHaveAttribute("aria-expanded", "false");
+    const btn = screen.getByRole("combobox", { name: "Repository" });
+    expect(btn).toHaveTextContent("you/myapp");
+    expect(btn).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
@@ -110,10 +110,10 @@ describe("RepoCombobox", () => {
   it("reopening clears the previous search text", async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    const nut = screen.getByRole("combobox", { name: "Repository" });
-    await user.click(nut);
+    const btn = screen.getByRole("combobox", { name: "Repository" });
+    await user.click(btn);
     await user.keyboard("mỹ{Escape}");
-    await user.click(nut);
+    await user.click(btn);
 
     expect(screen.getByPlaceholderText("Search repos…")).toHaveValue("");
     expect(screen.getAllByRole("option")).toHaveLength(3);
@@ -126,9 +126,9 @@ describe("RepoCombobox", () => {
       return <RepoCombobox repos={[]} value={value} onChange={setValue} />;
     }
     render(<Empty />);
-    const nut = screen.getByRole("combobox", { name: "Repository" });
-    expect(nut).toHaveTextContent("No repo — just chat");
-    await user.click(nut);
+    const btn = screen.getByRole("combobox", { name: "Repository" });
+    expect(btn).toHaveTextContent("No repo — just chat");
+    await user.click(btn);
     expect(screen.getAllByRole("option")).toHaveLength(1);
   });
 });

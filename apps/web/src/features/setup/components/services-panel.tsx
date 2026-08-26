@@ -94,7 +94,7 @@ export function ServicesPanel({ pool, slices }: { pool: BeePoolService[]; slices
           </ul>
         )}
         <p className="text-xs text-muted-foreground">
-          A slice lives as long as its worktree. gc gives both back together — so a merged PR
+          A slice lives as long as its worktree. gc gives both back together — count a merged PR
           keeps its database for at least another day, and a session waiting on you keeps it
           until you look.
         </p>

@@ -9,22 +9,22 @@ const PHIEN = {
   id: "s1", slug: "myapp", num: 41, repo: "you/myapp", title: "CSV export",
   phase: "work", worktree: true, status: "done", created_at: null,
   started_at: null, ended_at: null, attempt: 0, needs_human: false,
-} as Digest["ran"][number]["phien"];
+} as Digest["ran"][number]["session"];
 
 const BASE: Digest = {
-  loai: "co-viec", tu: "t", den: "t",
-  ran: [{ phien: PHIEN, pr: null, issue: null }],
+  loai: "co-viec", since: "t", den: "t",
+  ran: [{ session: PHIEN, pr: null, issue: null }],
   toReview: [], ket: [], stillQueued: [],
 };
 
 describe("DigestView — sáng dậy cầm điện thoại là đọc được", () => {
   it("PR chờ duyệt lên đầu, link thẳng vào trang duyệt", () => {
-    render(<DigestView digest={{ ...BASE, toReview: [{ phien: PHIEN, pr: { kind: "pr", url: "u", number: 12, ts: null, title: null }, issue: null }] }} />);
+    render(<DigestView digest={{ ...BASE, toReview: [{ session: PHIEN, pr: { kind: "pr", url: "u", number: 12, ts: null, title: null }, issue: null }] }} />);
     expect(screen.getByRole("link", { name: /PR #12/ })).toHaveAttribute("href", "/pr/myapp/12");
   });
 
   it("việc kẹt mang MỘT CÂU vì sao, không phải mã lỗi", () => {
-    render(<DigestView digest={{ ...BASE, ket: [{ phien: PHIEN, why: "vượt trần chi $5 USD" }] }} />);
+    render(<DigestView digest={{ ...BASE, ket: [{ session: PHIEN, why: "vượt trần chi $5 USD" }] }} />);
     expect(screen.getByText("vượt trần chi $5 USD")).toBeInTheDocument();
   });
 
@@ -38,7 +38,7 @@ describe("DigestView — sáng dậy cầm điện thoại là đọc được",
     render(
       <DigestView digest={{
         ...BASE, loai: "xep-ma-khong-chay", ran: [],
-        stillQueued: [{ viec: { slug: "myapp", repo: "you/myapp", issue: 41, mode: "auto", model: "default", status: "waiting", sessionId: null, reason: "hạn mức 5h đang 91%", added_at: "t" }, why: "hạn mức 5h đang 91%" }],
+        stillQueued: [{ item: { slug: "myapp", repo: "you/myapp", issue: 41, mode: "auto", model: "default", status: "waiting", sessionId: null, reason: "hạn mức 5h đang 91%", added_at: "t" }, why: "hạn mức 5h đang 91%" }],
       }} />,
     );
     expect(screen.getByText(/nothing could run/i)).toBeInTheDocument();

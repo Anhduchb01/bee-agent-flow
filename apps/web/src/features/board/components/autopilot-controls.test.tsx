@@ -14,7 +14,7 @@ vi.mock("../api/queue-actions", () => ({
 
 const MUC = (queued: boolean): BoardRow => ({
   issue: { number: 41, title: "CSV export", state: "OPEN", url: "https://github.com/you/myapp/issues/41", labels: [], assignees: [], createdAt: "", updatedAt: "" },
-  slug: "myapp", repo: "you/myapp", phien: [], pr: [],
+  slug: "myapp", repo: "you/myapp", session: [], pr: [],
   queue: queued
     ? { slug: "myapp", repo: "you/myapp", issue: 41, mode: "auto", model: "default", status: "waiting", sessionId: null, reason: null, added_at: "t" }
     : null,
@@ -25,7 +25,7 @@ describe("nút Autopilot — điện thoại không cần kéo thả", () => {
   it("chưa xếp: nút + gọi thêm vào hàng đợi", async () => {
     const user = userEvent.setup();
     const { enqueueAction } = await import("../api/queue-actions");
-    render(<QueueButton muc={MUC(false)} />);
+    render(<QueueButton row={MUC(false)} />);
 
     await user.click(screen.getByRole("button", { name: /Queue #41/ }));
     expect(vi.mocked(enqueueAction)).toHaveBeenCalledWith({
@@ -36,28 +36,28 @@ describe("nút Autopilot — điện thoại không cần kéo thả", () => {
   it("đã xếp: cùng nút đó gỡ ra", async () => {
     const user = userEvent.setup();
     const { dequeueAction } = await import("../api/queue-actions");
-    render(<QueueButton muc={MUC(true)} />);
+    render(<QueueButton row={MUC(true)} />);
 
     await user.click(screen.getByRole("button", { name: /Remove #41/ }));
     expect(vi.mocked(dequeueAction)).toHaveBeenCalledWith("you/myapp", 41);
   });
 
   it("vùng bấm đủ cho ngón tay (size-9 = 36px + viền, không phải icon 16px)", () => {
-    render(<QueueButton muc={MUC(false)} />);
+    render(<QueueButton row={MUC(false)} />);
     expect(screen.getByRole("button", { name: /Queue #41/ })).toHaveClass("size-9");
   });
 
   it("↑↓ chỉ hiện với việc đã xếp hàng", () => {
-    const { rerender } = render(<ReorderButtons muc={MUC(false)} />);
+    const { rerender } = render(<ReorderButtons row={MUC(false)} />);
     expect(screen.queryByRole("button", { name: /Move #41 earlier/ })).not.toBeInTheDocument();
-    rerender(<ReorderButtons muc={MUC(true)} />);
+    rerender(<ReorderButtons row={MUC(true)} />);
     expect(screen.getByRole("button", { name: /Move #41 earlier/ })).toBeInTheDocument();
   });
 
   it("↑ đi một bậc lên, ↓ một bậc xuống", async () => {
     const user = userEvent.setup();
     const { reorderAction } = await import("../api/queue-actions");
-    render(<ReorderButtons muc={MUC(true)} />);
+    render(<ReorderButtons row={MUC(true)} />);
 
     await user.click(screen.getByRole("button", { name: /Move #41 earlier/ }));
     expect(vi.mocked(reorderAction)).toHaveBeenCalledWith("you/myapp", 41, -1);
@@ -69,7 +69,7 @@ describe("nút Autopilot — điện thoại không cần kéo thả", () => {
     const user = userEvent.setup();
     const { enqueueAction } = await import("../api/queue-actions");
     vi.mocked(enqueueAction).mockResolvedValueOnce({ ok: false, message: "Invalid issue number." });
-    render(<QueueButton muc={MUC(false)} />);
+    render(<QueueButton row={MUC(false)} />);
 
     await user.click(screen.getByRole("button", { name: /Queue #41/ }));
     expect(await screen.findByText(/Invalid issue number/)).toBeInTheDocument();

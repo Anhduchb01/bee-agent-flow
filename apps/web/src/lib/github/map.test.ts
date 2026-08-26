@@ -92,9 +92,9 @@ describe("payload thật", () => {
    */
   it("gộp cả commit status lẫn check-run", () => {
     const checks = mapChecks(that.commit_status_with_statuses, that.check_runs);
-    const ten = checks.map((c) => c.name);
-    expect(ten).toContain(that.commit_status_with_statuses.statuses[0].context);
-    expect(ten).toContain(that.check_runs.check_runs[0].name);
+    const name = checks.map((c) => c.name);
+    expect(name).toContain(that.commit_status_with_statuses.statuses[0].context);
+    expect(name).toContain(that.check_runs.check_runs[0].name);
     expect(checks.length).toBe(
       that.commit_status_with_statuses.statuses.length + that.check_runs.check_runs.length,
     );

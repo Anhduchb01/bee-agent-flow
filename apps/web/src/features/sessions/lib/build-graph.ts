@@ -62,7 +62,7 @@ export interface NodeQueued {
   position: { x: number; y: number };
   parentId?: string;
   extent?: "parent";
-  data: { title: string; moTa: string; href: string };
+  data: { title: string; hint: string; href: string };
 }
 
 export interface NodeDemo {
@@ -102,7 +102,7 @@ const KHOANG_CACH_NHOM = 48;
 export function buildGraph(
   nhom: SessionGroup[],
   artifacts: Record<string, BeeArtifact[]>,
-  xemTruoc: Record<string, string | null> = {},
+  previewOf: Record<string, string | null> = {},
   /** Demo videos per session (name + authed url) — grows a 🎬 node each. */
   videos: Record<string, { name: string; url: string }[]> = {},
   /** Hàng đợi Autopilot — issue đã xếp mà CHƯA chạy mọc node mờ (V3.D5). */
@@ -114,7 +114,7 @@ export function buildGraph(
   let nhomX = 0;
   for (const g of nhom) {
     const idNhom = `group-${g.repo}`;
-    const con: NodeCanvas[] = [];
+    const remaining: NodeCanvas[] = [];
     let y = CAO_HEADER;
     let coArtifact = false;
     let coDemo = false;
@@ -125,7 +125,7 @@ export function buildGraph(
     // chạy thì thôi, node phiên thật thay chỗ.
     for (const v of queue.items) {
       if (v.repo !== g.repo || v.status !== "waiting") continue;
-      con.push({
+      remaining.push({
         id: `queued-${v.repo}#${v.issue}`,
         type: "cho-chay",
         position: { x: X_PHIEN, y },
@@ -133,15 +133,15 @@ export function buildGraph(
         extent: "parent",
         data: {
           title: `#${v.issue}`,
-          moTa: "chờ tự chạy",
+          hint: "chờ tự chạy",
           href: `/projects?p=${v.slug}&view=kanban`,
         },
       });
       y += CAO_PHIEN;
     }
 
-    for (const p of g.phien) {
-      con.push({
+    for (const p of g.session) {
+      remaining.push({
         id: p.id,
         type: "phien",
         position: { x: X_PHIEN, y },
@@ -154,16 +154,16 @@ export function buildGraph(
           status: p.status,
           needsHuman: p.needs_human,
           href: `/sessions/${p.id}`,
-          cauCuoi: xemTruoc[p.id] ?? null,
+          cauCuoi: previewOf[p.id] ?? null,
           createdAt: p.created_at,
         },
       });
 
-      const cua = artifacts[p.id] ?? [];
-      cua.forEach((a, i) => {
+      const owner = artifacts[p.id] ?? [];
+      owner.forEach((a, i) => {
         coArtifact = true;
         const idA = `${p.id}-${a.kind}-${a.number ?? i}`;
-        con.push({
+        remaining.push({
           id: idA,
           type: "artifact",
           position: { x: X_ARTIFACT, y: y + i * CAO_ARTIFACT },
@@ -177,16 +177,16 @@ export function buildGraph(
       // 🎬 demo videos hang off the PR node (the artifact they evidence);
       // a session with no PR yet parks them on the session node itself.
       const clip = videos[p.id] ?? [];
-      const prIdx = cua.findIndex((a) => a.kind === "pr");
+      const prIdx = owner.findIndex((a) => a.kind === "pr");
       clip.forEach((v, i) => {
         coDemo = true;
         const idV = `${p.id}-demo-${i}`;
-        con.push({
+        remaining.push({
           id: idV,
           type: "demo",
           position: {
             x: prIdx >= 0 ? X_DEMO : X_ARTIFACT,
-            y: y + (prIdx >= 0 ? prIdx * CAO_ARTIFACT : cua.length * CAO_ARTIFACT) + i * CAO_DEMO,
+            y: y + (prIdx >= 0 ? prIdx * CAO_ARTIFACT : owner.length * CAO_ARTIFACT) + i * CAO_DEMO,
           },
           parentId: idNhom,
           extent: "parent",
@@ -194,17 +194,17 @@ export function buildGraph(
         });
         edges.push({
           id: `e-${idV}`,
-          source: prIdx >= 0 ? `${p.id}-pr-${cua[prIdx]!.number ?? prIdx}` : p.id,
+          source: prIdx >= 0 ? `${p.id}-pr-${owner[prIdx]!.number ?? prIdx}` : p.id,
           target: idV,
         });
       });
 
       // Phiên chiếm chỗ theo cái cao hơn: chính nó hay chồng artifact + demo.
-      y += Math.max(CAO_PHIEN, cua.length * CAO_ARTIFACT + clip.length * CAO_DEMO) + 24;
+      y += Math.max(CAO_PHIEN, owner.length * CAO_ARTIFACT + clip.length * CAO_DEMO) + 24;
     }
 
     // Kích thước container theo thứ xa phải nhất nó thật sự chứa.
-    const rong = coDemo
+    const wide = coDemo
       ? X_DEMO + RONG_DEMO + PAD
       : coArtifact
         ? X_ARTIFACT + RONG_ARTIFACT + PAD
@@ -217,10 +217,10 @@ export function buildGraph(
       type: "repo-group",
       position: { x: nhomX, y: 0 },
       data: { repo: g.repo },
-      style: { width: rong, height: cao },
+      style: { width: wide, height: cao },
     });
-    nodes.push(...con);
-    nhomX += rong + KHOANG_CACH_NHOM;
+    nodes.push(...remaining);
+    nhomX += wide + KHOANG_CACH_NHOM;
   }
 
   return { nodes, edges };

@@ -77,7 +77,7 @@ export async function enableLinger(): Promise<Result> {
 
 export { validatePat } from "./pat";
 import {
-  cho,
+  waitFor,
   closeFlow,
   sendCode,
   oauthError,
@@ -201,10 +201,10 @@ export async function startClaudeSetup(): Promise<LinkResult> {
   const flow = openFlow("claude setup-token");
   setupFlow = flow;
 
-  const url = await cho(flow, extractOauthUrl);
+  const url = await waitFor(flow, extractOauthUrl);
   if (url !== null) return { ok: true, url };
-  const loi = flow.done ? "The flow exited before printing a URL." : "Timed out waiting for the URL.";
-  const thay = lastScreen(flow.out);
+  const err = flow.done ? "The flow exited before printing a URL." : "Timed out waiting for the URL.";
+  const swapWith = lastScreen(flow.out);
   killSetupFlow();
   // "Is claude installed?" sent us hunting for a missing binary on 25/08
   // when claude was installed twice and the unit's PATH picked the stale
@@ -212,7 +212,7 @@ export async function startClaudeSetup(): Promise<LinkResult> {
   // said — that names the real fault in one glance.
   return {
     ok: false,
-    message: `Could not get a login link — ${loi}${thay === null ? "" : ` Last thing the flow printed: “${thay}”`}`,
+    message: `Could not get a login link — ${err}${swapWith === null ? "" : ` Last thing the flow printed: “${swapWith}”`}`,
   };
 }
 
@@ -248,7 +248,7 @@ export async function submitClaudeCode(code: string): Promise<Result> {
     await new Promise((r) => setTimeout(r, 250));
   }
   const daXong = flow.done;
-  const thay = lastScreen(flow.out);
+  const swapWith = lastScreen(flow.out);
   killSetupFlow();
   return {
     ok: false,
@@ -256,7 +256,7 @@ export async function submitClaudeCode(code: string): Promise<Result> {
       (daXong
         ? "The code was rejected — get a new link and try again."
         : "Timed out waiting for the token — get a new link and try again.") +
-      (thay === null ? "" : ` Last thing the flow printed: “${thay}”`),
+      (swapWith === null ? "" : ` Last thing the flow printed: “${swapWith}”`),
   };
 }
 
@@ -382,7 +382,7 @@ export async function fetchClaudeAccountUsage(opts?: {
     return { ok: false, message: "Usage endpoint returned something that is not JSON." };
   }
   const o = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
-  const cuaSo = (v: unknown) => {
+  const usageWindow = (v: unknown) => {
     if (typeof v !== "object" || v === null) return null;
     const w = v as Record<string, unknown>;
     if (typeof w.utilization !== "number") return null;
@@ -392,8 +392,8 @@ export async function fetchClaudeAccountUsage(opts?: {
     };
   };
   const usage = {
-    five_hour: cuaSo(o.five_hour),
-    seven_day: cuaSo(o.seven_day),
+    five_hour: usageWindow(o.five_hour),
+    seven_day: usageWindow(o.seven_day),
     fetched_at: new Date().toISOString(),
   };
   if (usage.five_hour === null && usage.seven_day === null) {
@@ -556,19 +556,19 @@ export async function listEnvFiles(slug: string): Promise<BeeEnvFile[]> {
   const dir = envDirOf(slug);
   if (dir === null || isFixture()) return [];
   const ra: BeeEnvFile[] = [];
-  async function quet(dir: string, goc: string): Promise<void> {
-    let muc: string[] = [];
+  async function quet(dir: string, baseDir: string): Promise<void> {
+    let row: string[] = [];
     try {
-      muc = await fs.readdir(dir);
+      row = await fs.readdir(dir);
     } catch {
       return;
     }
-    for (const m of muc) {
-      const day = path.join(dir, m);
-      const st = await fs.stat(day).catch(() => null);
+    for (const m of row) {
+      const full = path.join(dir, m);
+      const st = await fs.stat(full).catch(() => null);
       if (st === null) continue;
-      if (st.isDirectory()) await quet(day, goc);
-      else ra.push({ path: path.relative(goc, day), content: await fs.readFile(day, "utf8") });
+      if (st.isDirectory()) await quet(full, baseDir);
+      else ra.push({ path: path.relative(baseDir, full), content: await fs.readFile(full, "utf8") });
     }
   }
   await quet(dir, dir);

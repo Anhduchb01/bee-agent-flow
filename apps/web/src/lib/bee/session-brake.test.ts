@@ -7,7 +7,7 @@ import { openSession, continueSession } from "./session-ctl";
 
 let dir = "";
 
-async function datHanMuc(fiveHour: number, fetchedAt = new Date().toISOString()) {
+async function setQuota(fiveHour: number, fetchedAt = new Date().toISOString()) {
   await fs.mkdir(path.join(dir, "state"), { recursive: true });
   await fs.writeFile(
     path.join(dir, "state", "claude-usage.json"),
@@ -34,7 +34,7 @@ describe("openSession — the brake sits at the door every new session goes thro
   });
 
   it("over the threshold: refuses BEFORE writing anything to disk", async () => {
-    await datHanMuc(93);
+    await setQuota(93);
     const ket = await openSession({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
 
     expect(ket.ok).toBe(false);
@@ -45,7 +45,7 @@ describe("openSession — the brake sits at the door every new session goes thro
   });
 
   it("under the threshold: the brake does not get in the way", async () => {
-    await datHanMuc(20);
+    await setQuota(20);
     const ket = await openSession({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
     // The outside-command door is shut (BEE_CTL=none) → the failure is at
     // start, NOT at the brake, and session.json was written before it.
@@ -60,7 +60,7 @@ describe("openSession — the brake sits at the door every new session goes thro
   });
 
   it("QUOTA_BRAKE_PCT tunes the line", async () => {
-    await datHanMuc(50);
+    await setQuota(50);
     process.env.QUOTA_BRAKE_PCT = "40";
     const ket = await openSession({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
     expect(ket.ok).toBe(false);
@@ -68,7 +68,7 @@ describe("openSession — the brake sits at the door every new session goes thro
   });
 
   it("Continue on an existing session is NOT braked — it resumes, it does not open", async () => {
-    await datHanMuc(99);
+    await setQuota(99);
     const id = "cc000000-0000-4000-8000-000000000001";
     await fs.mkdir(path.join(dir, "sessions", id), { recursive: true });
     await fs.writeFile(path.join(dir, "sessions", id, "session.json"), JSON.stringify({ id }));

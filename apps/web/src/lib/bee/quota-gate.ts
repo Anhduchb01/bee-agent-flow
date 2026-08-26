@@ -26,43 +26,43 @@ function percentOf(w: BeeClaudeWindow | null): number {
 }
 
 /** "2026-08-24T16:20:00Z" + bây giờ → "reset lúc 16:20 (còn 1h20)". */
-function describeReset(w: BeeClaudeWindow | null, luc: Date): string {
+function describeReset(w: BeeClaudeWindow | null, at: Date): string {
   if (w?.resets_at == null) return "";
   const t = new Date(w.resets_at);
   if (Number.isNaN(t.getTime())) return "";
-  const phut = Math.max(0, Math.round((t.getTime() - luc.getTime()) / 60_000));
-  const gio = Math.floor(phut / 60);
-  const con = gio > 0 ? `${gio}h${String(phut % 60).padStart(2, "0")}` : `${phut} min`;
-  return `, resets at ${t.toISOString().slice(11, 16)} (in ${con})`;
+  const minutes = Math.max(0, Math.round((t.getTime() - at.getTime()) / 60_000));
+  const hours = Math.floor(minutes / 60);
+  const remaining = hours > 0 ? `${hours}h${String(minutes % 60).padStart(2, "0")}` : `${minutes} min`;
+  return `, resets at ${t.toISOString().slice(11, 16)} (in ${remaining})`;
 }
 
 export function checkQuota(
   usage: BeeClaudeAccountUsage | null,
-  opts: { nguong: number; luc?: Date },
+  opts: { nguong: number; at?: Date },
 ): BrakeResult {
-  const luc = opts.luc ?? new Date();
+  const at = opts.at ?? new Date();
   // Ngưỡng 0 = tắt phanh. Cửa thoát phải tường minh, không phải tác dụng phụ.
   if (opts.nguong <= 0) return { moDuoc: true, reason: "the brake is off (threshold 0)" };
   if (usage === null) {
     return { moDuoc: true, reason: "quota has never been measured — opening, but flying blind" };
   }
 
-  const nam = percentOf(usage.five_hour);
+  const five = percentOf(usage.five_hour);
   const bay = percentOf(usage.seven_day);
-  const qua =
-    nam > opts.nguong
-      ? { ten: "5h", pct: nam, w: usage.five_hour }
+  const past =
+    five > opts.nguong
+      ? { name: "5h", pct: five, w: usage.five_hour }
       : bay > opts.nguong
-        ? { ten: "7-day", pct: bay, w: usage.seven_day }
+        ? { name: "7-day", pct: bay, w: usage.seven_day }
         : null;
 
-  const tuoiGio = (luc.getTime() - new Date(usage.fetched_at).getTime()) / 3_600_000;
+  const tuoiGio = (at.getTime() - new Date(usage.fetched_at).getTime()) / 3_600_000;
   const cu = Number.isFinite(tuoiGio) && tuoiGio > CU_SAU_GIO;
 
-  if (qua !== null) {
+  if (past !== null) {
     return {
       moDuoc: false,
-      reason: `${qua.ten} quota is at ${qua.pct}% (threshold ${opts.nguong}%)${describeReset(qua.w, luc)}`,
+      reason: `${past.name} quota is at ${past.pct}% (threshold ${opts.nguong}%)${describeReset(past.w, at)}`,
     };
   }
   if (cu) {
@@ -71,5 +71,5 @@ export function checkQuota(
       reason: `quota numbers are ${Math.round(tuoiGio)}h old — is tick running? Opening, but the brake cannot be trusted`,
     };
   }
-  return { moDuoc: true, reason: `quota 5h ${nam}% · 7-day ${bay}%` };
+  return { moDuoc: true, reason: `quota 5h ${five}% · 7-day ${bay}%` };
 }

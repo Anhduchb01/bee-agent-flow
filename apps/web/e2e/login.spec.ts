@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { dangNhap } from "./helpers";
+import { signIn } from "./helpers";
 
 test("chưa đăng nhập thì bị đưa về trang đăng nhập", async ({ page }) => {
   await page.goto("/projects");
@@ -10,14 +10,14 @@ test("chưa đăng nhập thì bị đưa về trang đăng nhập", async ({ pa
 });
 
 test("người trong allowlist thấy tên mình", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
 
   await expect(page.getByText("Nguyễn Thị Linh")).toBeVisible();
   await expect(page.getByRole("link", { name: "Overview" })).toBeVisible();
 });
 
 test("techlead vào được", async ({ page }) => {
-  await dangNhap(page, "tl-duc");
+  await signIn(page, "tl-duc");
 
   await expect(page.getByText("Phạm Đức")).toBeVisible();
 });
@@ -40,7 +40,7 @@ test("người ngoài allowlist đăng nhập được nhưng không thấy dữ
 });
 
 test("thoát rồi thì không xem tiếp được", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await page.getByRole("button", { name: "Sign out" }).click();
 
   await expect(page).toHaveURL(/\/login/);

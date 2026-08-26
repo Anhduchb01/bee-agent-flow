@@ -21,7 +21,7 @@ import type { GhRepo } from "./types";
 const DIR = process.env.BEE_WEB_STATE_DIR;
 const KEY = Symbol.for("bee.web.repos");
 
-function boNho(): GhRepo[] {
+function memory(): GhRepo[] {
   const g = globalThis as unknown as Record<symbol, GhRepo[] | undefined>;
   g[KEY] ??= [];
   return g[KEY];
@@ -30,7 +30,7 @@ function boNho(): GhRepo[] {
 const FILE = () => path.join(DIR!, "repos.json");
 
 export async function readRepos(): Promise<GhRepo[]> {
-  if (!DIR) return [...boNho()];
+  if (!DIR) return [...memory()];
   try {
     const raw: unknown = JSON.parse(await fs.readFile(FILE(), "utf8"));
     if (!Array.isArray(raw)) return [];
@@ -45,7 +45,7 @@ export async function readRepos(): Promise<GhRepo[]> {
 
 export async function writeRepos(repos: GhRepo[]): Promise<void> {
   if (!DIR) {
-    const b = boNho();
+    const b = memory();
     b.length = 0;
     b.push(...repos);
     return;

@@ -8,7 +8,7 @@ import { parseClaudeRateLimit, parseRecentLine } from "./parse";
 
 let dir = "";
 
-async function phien(id: string, input: {
+async function session(id: string, input: {
   usage?: object | null;
   rateLimit?: object;
   meta?: object;
@@ -47,7 +47,7 @@ describe("harvestClaudeUsage — refresh = re-harvest real session data into sta
   });
 
   it("writes state files the EXISTING parsers accept — same door the panel reads", async () => {
-    await phien("aa000000-0000-4000-8000-000000000001", {
+    await session("aa000000-0000-4000-8000-000000000001", {
       rateLimit: {
         status: "allowed",
         resetsAt: 1787068800,
@@ -101,7 +101,7 @@ describe("harvestClaudeUsage — refresh = re-harvest real session data into sta
   });
 
   it("sessions without usage.json still contribute their rate_limit_event", async () => {
-    await phien("bb000000-0000-4000-8000-000000000002", {
+    await session("bb000000-0000-4000-8000-000000000002", {
       usage: null,
       rateLimit: {
         status: "allowed_warning",

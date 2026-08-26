@@ -15,8 +15,8 @@ import { refreshUsageAction } from "../api/actions";
  */
 export function RefreshUsageButton() {
   const router = useRouter();
-  const [loi, setLoi] = useState("");
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [busy, start] = useTransition();
 
   return (
     <span className="flex items-center gap-2">
@@ -24,18 +24,18 @@ export function RefreshUsageButton() {
         size="sm"
         variant="ghost"
         aria-label="Refresh usage"
-        disabled={dang}
+        disabled={busy}
         onClick={() =>
           start(async () => {
             const ket = await refreshUsageAction();
-            setLoi(ket.ok ? "" : ket.message);
+            setErr(ket.ok ? "" : ket.message);
             router.refresh();
           })
         }
       >
-        <RefreshCwIcon className={dang ? "animate-spin" : ""} />
+        <RefreshCwIcon className={busy ? "animate-spin" : ""} />
       </Button>
-      {loi !== "" && <span className="text-xs text-destructive">{loi}</span>}
+      {err !== "" && <span className="text-xs text-destructive">{err}</span>}
     </span>
   );
 }

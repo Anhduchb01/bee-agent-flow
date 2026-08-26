@@ -31,14 +31,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const file = nguon.sessionRunPath(id);
   if (!file) return new Response("no such session", { status: 404 });
 
-  const tuOffset = Number(req.headers.get("last-event-id") ?? "0");
+  const fromOffset = Number(req.headers.get("last-event-id") ?? "0");
   const encoder = new TextEncoder();
 
   let timer: ReturnType<typeof setInterval> | null = null;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      let offset = Number.isFinite(tuOffset) && tuOffset > 0 ? tuOffset : 0;
+      let offset = Number.isFinite(fromOffset) && fromOffset > 0 ? fromOffset : 0;
       let rest = "";
       let nhip = 0;
 
@@ -48,14 +48,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
       // Lần gắn đầu (offset 0): replay có kiểm soát.
       if (offset === 0) {
-        const dau = await readMore(file, 0, "");
-        const line = dau.line;
+        const head = await readMore(file, 0, "");
+        const line = head.line;
         if (line.length > REPLAY_TOI_DA) {
           phat(JSON.stringify({ type: "bee_replayed", skipped: line.length - REPLAY_TOI_DA }), 0);
         }
-        for (const d of line.slice(-REPLAY_TOI_DA)) phat(d, dau.offset);
-        offset = dau.offset;
-        rest = dau.rest;
+        for (const d of line.slice(-REPLAY_TOI_DA)) phat(d, head.offset);
+        offset = head.offset;
+        rest = head.rest;
       }
 
       const line = () => {
@@ -70,20 +70,20 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
       timer = setInterval(() => {
         void (async () => {
-          const moi = await readMore(file, offset, rest);
-          for (const d of moi.line) phat(d, moi.offset);
-          offset = moi.offset;
-          rest = moi.rest;
+          const latest = await readMore(file, offset, rest);
+          for (const d of latest.line) phat(d, latest.offset);
+          offset = latest.offset;
+          rest = latest.rest;
 
           nhip += 1;
           if (nhip % KIEM_META_MOI === 0) {
-            const phien = await nguon.readSession(id);
+            const session = await nguon.readSession(id);
             // Phiên hết running → phát nốt phần còn lại rồi ĐÓNG. Không để
             // một EventSource treo vĩnh viễn trên một phiên đã xong.
-            if (phien && phien.status !== "running" && phien.status !== "starting") {
-              const cuoi = await readMore(file, offset, rest);
-              for (const d of cuoi.line) phat(d, cuoi.offset);
-              phat(JSON.stringify({ type: "bee_done", status: phien.status }), cuoi.offset);
+            if (session && session.status !== "running" && session.status !== "starting") {
+              const tail = await readMore(file, offset, rest);
+              for (const d of tail.line) phat(d, tail.offset);
+              phat(JSON.stringify({ type: "bee_done", status: session.status }), tail.offset);
               line();
             }
           }

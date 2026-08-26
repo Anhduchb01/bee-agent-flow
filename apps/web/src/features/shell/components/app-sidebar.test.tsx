@@ -47,7 +47,7 @@ function renderSidebar(duAn: { slug: string; running: number; tone: "ok" | "agen
           login="Anhduchb01"
           duAn={duAn}
           sucKhoe={{ tone: "ok", headline: "System is running", detail: null }}
-          dangXuat={vi.fn()}
+          signingOut={vi.fn()}
         />
       </SidebarProvider>
     </TooltipProvider>,
@@ -79,10 +79,10 @@ describe("AppSidebar — Projects section speaks the session model", () => {
 
   it("the + is a button in the Projects group, not a link away to /setup", () => {
     renderSidebar([]);
-    const nut = screen.getByRole("button", { name: "New project" });
+    const btn = screen.getByRole("button", { name: "New project" });
     // A link is what it used to be, and what cost the owner their place.
-    expect(nut).not.toHaveAttribute("href");
-    expect(screen.getByRole("navigation", { name: "Main navigation" })).toContainElement(nut);
+    expect(btn).not.toHaveAttribute("href");
+    expect(screen.getByRole("navigation", { name: "Main navigation" })).toContainElement(btn);
   });
 });
 
@@ -91,7 +91,7 @@ describe("on a phone the sidebar is a sheet — it must get out of the way", () 
     dienThoai = false;
   });
 
-  async function moSheet() {
+  async function openSheet() {
     dienThoai = true;
     const user = userEvent.setup();
     renderSidebar([{ slug: "lifebook-assessment", running: 0, tone: "ok" }]);
@@ -100,7 +100,7 @@ describe("on a phone the sidebar is a sheet — it must get out of the way", () 
   }
 
   it("tapping a project closes the sheet instead of navigating behind it", async () => {
-    const user = await moSheet();
+    const user = await openSheet();
     const duAn = await screen.findByRole("link", { name: /lifebook-assessment/ });
 
     await user.click(duAn);
@@ -117,9 +117,9 @@ describe("on a phone the sidebar is a sheet — it must get out of the way", () 
    */
   it("the + has a thumb-sized tap target, not just a 20px icon", () => {
     renderSidebar([]);
-    const them = screen.getByRole("button", { name: "New project" });
-    expect(them).toHaveClass("after:-inset-3");
-    expect(them).not.toHaveClass("after:-inset-2");
+    const added = screen.getByRole("button", { name: "New project" });
+    expect(added).toHaveClass("after:-inset-3");
+    expect(added).not.toHaveClass("after:-inset-2");
   });
 
   it("on a desktop viewport the same clicks leave the sidebar in place", async () => {

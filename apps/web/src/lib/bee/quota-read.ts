@@ -11,12 +11,12 @@ import type { BeeClaudeAccountUsage, BeeClaudeWindow } from "./types";
  * `session-ctl` không kéo theo cả họ hàm điều khiển máy.
  */
 
-function laObject(x: unknown): x is Record<string, unknown> {
+function isObject(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
 }
 
-function cuaSo(v: unknown): BeeClaudeWindow | null {
-  if (!laObject(v) || typeof v.percent !== "number") return null;
+function usageWindow(v: unknown): BeeClaudeWindow | null {
+  if (!isObject(v) || typeof v.percent !== "number") return null;
   return {
     percent: v.percent,
     resets_at: typeof v.resets_at === "string" ? v.resets_at : null,
@@ -30,10 +30,10 @@ export async function readAccountUsage(root: string): Promise<BeeClaudeAccountUs
   } catch {
     return null; // chưa đo lần nào — phanh sẽ mở và nói rõ là đang bay mù
   }
-  if (!laObject(raw)) return null;
+  if (!isObject(raw)) return null;
   return {
-    five_hour: cuaSo(raw.five_hour),
-    seven_day: cuaSo(raw.seven_day),
+    five_hour: usageWindow(raw.five_hour),
+    seven_day: usageWindow(raw.seven_day),
     fetched_at: typeof raw.fetched_at === "string" ? raw.fetched_at : "",
   };
 }

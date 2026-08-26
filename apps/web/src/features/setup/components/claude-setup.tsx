@@ -26,35 +26,35 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [code, setCode] = useState("");
-  const [loi, setLoi] = useState("");
-  const [xong, setXong] = useState(false);
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [finished, setXong] = useState(false);
+  const [busy, start] = useTransition();
 
-  function layLink() {
-    if (dang) return;
+  function getLink() {
+    if (busy) return;
     start(async () => {
       const ket = await startClaudeSetupAction();
       if (ket.ok) {
         setUrl(ket.url);
-        setLoi("");
+        setErr("");
         setXong(false);
       } else {
-        setLoi(ket.message);
+        setErr(ket.message);
       }
     });
   }
 
-  function guiCode() {
-    if (dang || code.trim() === "") return;
+  function sendCode() {
+    if (busy || code.trim() === "") return;
     start(async () => {
       const ket = await submitClaudeCodeAction(code);
       if (ket.ok) {
         setUrl("");
         setCode("");
-        setLoi("");
+        setErr("");
         setXong(true);
       } else {
-        setLoi(ket.message);
+        setErr(ket.message);
       }
       router.refresh();
     });
@@ -70,10 +70,10 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
           <Button
             size="sm"
             variant={auth === "none" ? "default" : "outline"}
-            disabled={dang}
-            onClick={layLink}
+            disabled={busy}
+            onClick={getLink}
           >
-            {dang ? "Starting…" : auth === "none" ? "Get login link" : "Sign in again"}
+            {busy ? "Starting…" : auth === "none" ? "Get login link" : "Sign in again"}
           </Button>
         )}
       </div>
@@ -92,7 +92,7 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
             className="flex gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              guiCode();
+              sendCode();
             }}
           >
             <Input
@@ -103,15 +103,15 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
               autoComplete="off"
               className="flex-1 font-mono"
             />
-            <Button type="submit" disabled={dang || code.trim() === ""}>
-              {dang ? "Verifying…" : "Finish sign-in"}
+            <Button type="submit" disabled={busy || code.trim() === ""}>
+              {busy ? "Verifying…" : "Finish sign-in"}
             </Button>
           </form>
         </div>
       )}
 
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
-      {xong && loi === "" && (
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
+      {finished && err === "" && (
         <p className="text-xs text-emerald-500">
           Signed in — sessions will run on your subscription.
         </p>

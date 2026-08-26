@@ -8,7 +8,7 @@ import { LinkPR, AttachedSession, SoIssue } from "./issue-bits";
  * stacked block that becomes a column layout from `sm` up, so the same
  * markup reads as a list on a thumb and as a table on a desk.
  */
-export function BoardTable({ muc }: { muc: BoardRow[] }) {
+export function BoardTable({ row }: { row: BoardRow[] }) {
   return (
     <div className="overflow-hidden rounded-card border border-border bg-card">
       <div className="hidden border-b border-border px-4 py-2 text-xs text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1fr)_180px_200px_110px_44px] sm:gap-4">
@@ -19,14 +19,14 @@ export function BoardTable({ muc }: { muc: BoardRow[] }) {
         <span className="sr-only">Autopilot</span>
       </div>
       <ul>
-        {muc.map((m) => (
+        {row.map((m) => (
           <li
             key={`${m.repo}#${m.issue.number}`}
             className="flex flex-col gap-2 border-b border-border px-4 py-3 last:border-b-0 sm:grid sm:grid-cols-[minmax(0,1fr)_180px_200px_110px_44px] sm:items-center sm:gap-4"
           >
             <span className="flex min-w-0 flex-col gap-1">
               <span className="flex items-baseline gap-2">
-                <SoIssue muc={m} />
+                <SoIssue row={m} />
                 <span className="min-w-0 truncate text-sm text-foreground">{m.issue.title}</span>
               </span>
               {m.issue.labels.length > 0 && (
@@ -43,22 +43,22 @@ export function BoardTable({ muc }: { muc: BoardRow[] }) {
               )}
             </span>
 
-            <AttachedSession phien={m.phien} />
+            <AttachedSession session={m.session} />
 
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="font-mono text-xs text-muted-foreground">{m.slug}</span>
-              <LinkPR muc={m} />
+              <LinkPR row={m} />
             </span>
 
             <span className="text-xs text-body">
               {LANE_LABEL[m.lane]}
               {m.queue?.status === "waiting" && (
                 <span className="ml-1 font-mono text-muted-foreground">
-                  #{muc.indexOf(m) + 1}
+                  #{row.indexOf(m) + 1}
                 </span>
               )}
             </span>
-            <QueueButton muc={m} />
+            <QueueButton row={m} />
           </li>
         ))}
       </ul>

@@ -10,8 +10,8 @@ export function nextQueueItem(
   opts: { maxParallel?: number } = {},
 ): QueueItem | null {
   if (q.paused) return null;
-  const toiDa = opts.maxParallel ?? 1;
+  const maxCount = opts.maxParallel ?? 1;
   const running = q.items.filter((i) => i.status === "running").length;
-  if (running >= toiDa) return null;
+  if (running >= maxCount) return null;
   return q.items.find((i) => i.status === "waiting") ?? null;
 }

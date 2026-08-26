@@ -11,7 +11,7 @@ import {
   captureSlot,
   switchSlot,
   pullGrantedAccounts,
-  xongThemSlot,
+  finishAddSlot,
 } from "@/lib/bee/slayer-ctl";
 import {
   deleteEnvFile,
@@ -163,15 +163,15 @@ export async function setPausedAction(paused: boolean): Promise<Result> {
  * này chỉ cung cấp con số nó cần.
  */
 
-async function demPhienDangChay(): Promise<number> {
-  const phien = await getBee().listSessions();
-  return phien.filter((p) => p.status === "running").length;
+async function countRunningSessions(): Promise<number> {
+  const session = await getBee().listSessions();
+  return session.filter((p) => p.status === "running").length;
 }
 
 export async function switchSlotAction(target: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await switchSlot(target, await demPhienDangChay());
+  const ket = await switchSlot(target, await countRunningSessions());
   await refresh();
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
@@ -192,10 +192,10 @@ export async function startAddSlotAction(name: string): Promise<LinkResult> {
   return startAddSlot(name);
 }
 
-export async function xongThemSlotAction(code: string): Promise<Result> {
+export async function finishAddSlotAction(code: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await xongThemSlot(code);
+  const ket = await finishAddSlot(code);
   await refresh();
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
@@ -215,7 +215,7 @@ export async function pullGrantedAccountsAction(): Promise<Result> {
   if (!actor) return KHONG_QUYEN;
   const ket = await pullGrantedAccounts();
   await refresh();
-  return ket.ok ? { ok: true, message: ket.noi ?? "" } : { ok: false, message: ket.message };
+  return ket.ok ? { ok: true, message: ket.speak ?? "" } : { ok: false, message: ket.message };
 }
 
 /** Gỡ token ghim trong claude.env để lựa chọn tài khoản có hiệu lực. */

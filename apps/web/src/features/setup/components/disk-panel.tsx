@@ -9,7 +9,7 @@ import type { BeeGc } from "@/lib/bee/gc-fs";
 import { runGcAction } from "../api/actions";
 
 /** 1932735283 → "1.8 GB" — số byte thô không nói gì với người đọc. */
-function doc(bytes: number): string {
+function reader(bytes: number): string {
   if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`;
   if (bytes >= 1_048_576) return `${Math.round(bytes / 1_048_576)} MB`;
   if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -26,19 +26,19 @@ function doc(bytes: number): string {
  */
 export function DiskPanel({ gc }: { gc: BeeGc | null }) {
   const router = useRouter();
-  const [loi, setLoi] = useState("");
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [busy, start] = useTransition();
 
-  function don() {
-    if (dang) return;
+  function cleanup() {
+    if (busy) return;
     start(async () => {
       const ket = await runGcAction();
-      setLoi(ket.ok ? "" : ket.message);
+      setErr(ket.ok ? "" : ket.message);
       router.refresh();
     });
   }
 
-  const giu = gc?.items.filter((i) => i.action === "kept") ?? [];
+  const held = gc?.items.filter((i) => i.action === "kept") ?? [];
 
   return (
     <div className="flex flex-col gap-3 rounded-card border border-border bg-card p-4">
@@ -48,24 +48,24 @@ export function DiskPanel({ gc }: { gc: BeeGc | null }) {
             "gc chưa chạy lần nào — worktree của phiên đã xong đang chiếm đĩa."
           ) : (
             <>
-              Lần dọn gần nhất: thu hồi <b>{doc(gc.freed_bytes)}</b> từ{" "}
+              Lần dọn gần nhất: tmpDir hồi <b>{reader(gc.freed_bytes)}</b> từ{" "}
               <b>{gc.removed} worktree</b>.
             </>
           )}
         </span>
         <span className="flex-1" />
-        <Button size="sm" variant="outline" disabled={dang} onClick={don}>
-          {dang ? "Đang dọn…" : "Dọn ngay"}
+        <Button size="sm" variant="outline" disabled={busy} onClick={cleanup}>
+          {busy ? "Đang dọn…" : "Dọn ngay"}
         </Button>
       </div>
 
-      {giu.length > 0 && (
+      {held.length > 0 && (
         <details>
           <summary className="cursor-pointer text-xs text-muted-foreground hover:text-body">
-            Giữ lại {giu.length} worktree — vì sao
+            Giữ lại {held.length} worktree — vì sao
           </summary>
           <ul className="mt-2 flex flex-col gap-1">
-            {giu.map((i) => (
+            {held.map((i) => (
               <li key={i.id} className="flex flex-wrap gap-2 font-mono text-xs">
                 <span className="text-muted-foreground">{i.id.slice(0, 8)}</span>
                 <span className="text-body">{i.reason}</span>
@@ -76,11 +76,11 @@ export function DiskPanel({ gc }: { gc: BeeGc | null }) {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Chỉ thu hồi worktree; <code>run.jsonl</code> và evidence (ảnh, video demo) nằm ở
+        Chỉ tmpDir hồi worktree; <code>run.jsonl</code> và evidence (ảnh, video demo) nằm ở
         <code> sessions/</code> và không bao giờ bị đụng.
       </p>
 
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
     </div>
   );
 }

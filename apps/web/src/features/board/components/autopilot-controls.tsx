@@ -22,22 +22,22 @@ import type { BoardRow } from "../lib/lanes";
 /** Vùng bấm ≥ 44px (sàn của Apple) — nút 24px với padding thì thumb vẫn trượt. */
 const NUT = "flex size-9 items-center justify-center rounded-control border border-border text-xs text-body hover:bg-accent disabled:opacity-40";
 
-export function QueueButton({ muc }: { muc: BoardRow }) {
+export function QueueButton({ row }: { row: BoardRow }) {
   const router = useRouter();
-  const [dang, start] = useTransition();
-  const [loi, setLoi] = useState("");
-  const queued = muc.queue !== null;
+  const [busy, start] = useTransition();
+  const [err, setErr] = useState("");
+  const queued = row.queue !== null;
 
   function bam() {
     start(async () => {
       const ket = queued
-        ? await dequeueAction(muc.repo, muc.issue.number)
+        ? await dequeueAction(row.repo, row.issue.number)
         : await enqueueAction({
-            slug: muc.slug,
-            repo: muc.repo,
-            issue: muc.issue.number,
+            slug: row.slug,
+            repo: row.repo,
+            issue: row.issue.number,
           });
-      setLoi(ket.ok ? "" : ket.message);
+      setErr(ket.ok ? "" : ket.message);
       router.refresh();
     });
   }
@@ -47,34 +47,34 @@ export function QueueButton({ muc }: { muc: BoardRow }) {
       <button
         type="button"
         onClick={bam}
-        disabled={dang}
-        aria-label={queued ? `Remove #${muc.issue.number} from Autopilot` : `Queue #${muc.issue.number} for Autopilot`}
+        disabled={busy}
+        aria-label={queued ? `Remove #${row.issue.number} from Autopilot` : `Queue #${row.issue.number} for Autopilot`}
         className={NUT}
       >
         {queued ? "−" : "+"}
       </button>
-      {loi !== "" && <span className="text-xs text-destructive">{loi}</span>}
+      {err !== "" && <span className="text-xs text-destructive">{err}</span>}
     </>
   );
 }
 
-export function ReorderButtons({ muc }: { muc: BoardRow }) {
+export function ReorderButtons({ row }: { row: BoardRow }) {
   const router = useRouter();
-  const [dang, start] = useTransition();
-  if (muc.queue === null) return null;
+  const [busy, start] = useTransition();
+  if (row.queue === null) return null;
 
   const di = (buoc: -1 | 1) => () =>
     start(async () => {
-      await reorderAction(muc.repo, muc.issue.number, buoc);
+      await reorderAction(row.repo, row.issue.number, buoc);
       router.refresh();
     });
 
   return (
     <span className="flex gap-1">
-      <button type="button" onClick={di(-1)} disabled={dang} aria-label={`Move #${muc.issue.number} earlier`} className={NUT}>
+      <button type="button" onClick={di(-1)} disabled={busy} aria-label={`Move #${row.issue.number} earlier`} className={NUT}>
         ↑
       </button>
-      <button type="button" onClick={di(1)} disabled={dang} aria-label={`Move #${muc.issue.number} later`} className={NUT}>
+      <button type="button" onClick={di(1)} disabled={busy} aria-label={`Move #${row.issue.number} later`} className={NUT}>
         ↓
       </button>
     </span>
@@ -91,7 +91,7 @@ export function ReorderButtons({ muc }: { muc: BoardRow }) {
  */
 export function RunNowButton({ queued }: { queued: number }) {
   const router = useRouter();
-  const [dang, start] = useTransition();
+  const [busy, start] = useTransition();
   const [says, setSays] = useState("");
 
   function bam() {
@@ -107,10 +107,10 @@ export function RunNowButton({ queued }: { queued: number }) {
       <button
         type="button"
         onClick={bam}
-        disabled={dang || queued === 0}
+        disabled={busy || queued === 0}
         className="flex h-9 items-center rounded-control border border-border px-3 text-xs text-body hover:bg-accent disabled:opacity-40"
       >
-        {dang ? "Running…" : "Run now"}
+        {busy ? "Running…" : "Run now"}
       </button>
       {says !== "" && (
         <span role="status" className="text-xs text-muted-foreground">

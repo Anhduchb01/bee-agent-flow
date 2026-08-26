@@ -37,8 +37,8 @@ export function CheckMark({ ok }: { ok: boolean | null }) {
 /** One click instead of `loginctl enable-linger` over SSH. */
 export function LingerButton({ done }: { done: boolean | null }) {
   const router = useRouter();
-  const [loi, setLoi] = useState("");
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [busy, start] = useTransition();
 
   return (
     <div className="flex items-center gap-2">
@@ -49,19 +49,19 @@ export function LingerButton({ done }: { done: boolean | null }) {
         <Button
           size="sm"
           variant="outline"
-          disabled={dang}
+          disabled={busy}
           onClick={() =>
             start(async () => {
               const ket = await enableLingerAction();
-              setLoi(ket.ok ? "" : ket.message);
+              setErr(ket.ok ? "" : ket.message);
               router.refresh();
             })
           }
         >
-          {dang ? "Enabling…" : "Enable linger"}
+          {busy ? "Enabling…" : "Enable linger"}
         </Button>
       )}
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
     </div>
   );
 }
@@ -74,24 +74,24 @@ export function LingerButton({ done }: { done: boolean | null }) {
 export function PatForm({ done }: { done: boolean | null }) {
   const router = useRouter();
   const [token, setToken] = useState("");
-  const [loi, setLoi] = useState("");
-  const [xong, setXong] = useState(false);
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [finished, setXong] = useState(false);
+  const [busy, start] = useTransition();
 
   function luu() {
-    if (dang) return;
+    if (busy) return;
     if (!validatePat(token)) {
-      setLoi("Not a fine-grained PAT (github_pat_…). Classic tokens are refused on purpose.");
+      setErr("Not a fine-grained PAT (github_pat_…). Classic tokens are refused on purpose.");
       return;
     }
     start(async () => {
       const ket = await savePatAction(token);
       if (ket.ok) {
         setToken("");
-        setLoi("");
+        setErr("");
         setXong(true);
       } else {
-        setLoi(ket.message);
+        setErr(ket.message);
       }
       router.refresh();
     });
@@ -119,12 +119,12 @@ export function PatForm({ done }: { done: boolean | null }) {
           autoComplete="off"
           className="flex-1 font-mono"
         />
-        <Button type="submit" disabled={dang || token.trim() === ""}>
-          {dang ? "Saving…" : "Save PAT"}
+        <Button type="submit" disabled={busy || token.trim() === ""}>
+          {busy ? "Saving…" : "Save PAT"}
         </Button>
       </div>
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
-      {xong && loi === "" && (
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
+      {finished && err === "" && (
         <p className="text-xs text-emerald-500">Signed in — git now pushes through this PAT.</p>
       )}
     </form>
@@ -139,24 +139,24 @@ export function PatForm({ done }: { done: boolean | null }) {
 export function ClaudeTokenForm({ done }: { done: boolean | null }) {
   const router = useRouter();
   const [token, setToken] = useState("");
-  const [loi, setLoi] = useState("");
-  const [xong, setXong] = useState(false);
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [finished, setXong] = useState(false);
+  const [busy, start] = useTransition();
 
   function luu() {
-    if (dang) return;
+    if (busy) return;
     if (!validateClaudeToken(token)) {
-      setLoi("Not a setup-token token (sk-ant-oat01-…). Run `claude setup-token` and paste its output.");
+      setErr("Not a setup-token token (sk-ant-oat01-…). Run `claude setup-token` and paste its output.");
       return;
     }
     start(async () => {
       const ket = await saveClaudeTokenAction(token);
       if (ket.ok) {
         setToken("");
-        setLoi("");
+        setErr("");
         setXong(true);
       } else {
-        setLoi(ket.message);
+        setErr(ket.message);
       }
       router.refresh();
     });
@@ -184,12 +184,12 @@ export function ClaudeTokenForm({ done }: { done: boolean | null }) {
           autoComplete="off"
           className="flex-1 font-mono"
         />
-        <Button type="submit" disabled={dang || token.trim() === ""}>
-          {dang ? "Saving…" : "Save token"}
+        <Button type="submit" disabled={busy || token.trim() === ""}>
+          {busy ? "Saving…" : "Save token"}
         </Button>
       </div>
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
-      {xong && loi === "" && (
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
+      {finished && err === "" && (
         <p className="text-xs text-emerald-500">
           Token saved — sessions will run on your subscription.
         </p>
@@ -204,13 +204,13 @@ export function ClaudeTokenForm({ done }: { done: boolean | null }) {
  */
 export function PauseToggle({ paused, ready }: { paused: boolean; ready: boolean }) {
   const router = useRouter();
-  const [loi, setLoi] = useState("");
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [busy, start] = useTransition();
 
-  function doi(next: boolean) {
+  function swap(next: boolean) {
     start(async () => {
       const ket = await setPausedAction(next);
-      setLoi(ket.ok ? "" : ket.message);
+      setErr(ket.ok ? "" : ket.message);
       router.refresh();
     });
   }
@@ -219,8 +219,8 @@ export function PauseToggle({ paused, ready }: { paused: boolean; ready: boolean
     <div className="flex flex-col gap-2">
       {paused ? (
         <>
-          <Button size="sm" disabled={dang || !ready} onClick={() => doi(false)}>
-            {dang ? "Removing…" : "Remove PAUSE — go live"}
+          <Button size="sm" disabled={busy || !ready} onClick={() => swap(false)}>
+            {busy ? "Removing…" : "Remove PAUSE — go live"}
           </Button>
           {!ready && (
             <p className="text-xs text-muted-foreground">
@@ -231,12 +231,12 @@ export function PauseToggle({ paused, ready }: { paused: boolean; ready: boolean
       ) : (
         <div className="flex items-center gap-2">
           <span className="text-sm text-emerald-500">Machine is live.</span>
-          <Button size="sm" variant="outline" disabled={dang} onClick={() => doi(true)}>
-            {dang ? "Pausing…" : "Pause machine"}
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => swap(true)}>
+            {busy ? "Pausing…" : "Pause machine"}
           </Button>
         </div>
       )}
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
     </div>
   );
 }

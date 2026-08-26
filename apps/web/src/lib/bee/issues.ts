@@ -58,14 +58,14 @@ async function isRegistered(repo: string): Promise<boolean> {
   return false;
 }
 
-function chuoi(v: unknown, fallback = ""): string {
+function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
 }
 
-function ten(v: unknown, khoa: "name" | "login"): string[] {
+function name(v: unknown, key: "name" | "login"): string[] {
   if (!Array.isArray(v)) return [];
   return v
-    .map((x) => chuoi(((x ?? {}) as Record<string, unknown>)[khoa]))
+    .map((x) => str(((x ?? {}) as Record<string, unknown>)[key]))
     .filter((s) => s !== "");
 }
 
@@ -75,17 +75,17 @@ function parseIssue(raw: unknown): BeeIssue | null {
   const o = raw as Record<string, unknown>;
   const number = o.number;
   if (typeof number !== "number" || !Number.isInteger(number) || number <= 0) return null;
-  const url = chuoi(o.url);
+  const url = str(o.url);
   if (!url.startsWith("https://github.com/")) return null;
   return {
     number,
-    title: chuoi(o.title, `#${number}`).slice(0, 200),
-    state: chuoi(o.state).toUpperCase() === "CLOSED" ? "CLOSED" : "OPEN",
+    title: str(o.title, `#${number}`).slice(0, 200),
+    state: str(o.state).toUpperCase() === "CLOSED" ? "CLOSED" : "OPEN",
     url,
-    labels: ten(o.labels, "name"),
-    assignees: ten(o.assignees, "login"),
-    createdAt: chuoi(o.createdAt),
-    updatedAt: chuoi(o.updatedAt),
+    labels: name(o.labels, "name"),
+    assignees: name(o.assignees, "login"),
+    createdAt: str(o.createdAt),
+    updatedAt: str(o.updatedAt),
   };
 }
 
@@ -138,7 +138,7 @@ const FIXTURE: Record<string, BeeIssue[]> = {
 
 /** The reason lives INSIDE the cache: reading short and then going quiet
  *  60 seconds later means the cache itself is lying. */
-const cache = new Map<string, { luc: number; issues: BeeIssue[]; loi: string | null }>();
+const cache = new Map<string, { at: number; issues: BeeIssue[]; err: string | null }>();
 
 /** Test hook — the cache is per-process and bee-web is long-lived. */
 export function resetIssuesCache(): void {
@@ -153,16 +153,16 @@ export function resetIssuesCache(): void {
 export async function fetchRepoIssues(
   repo: string,
   opts?: { runGh?: RunGh; now?: () => number },
-): Promise<{ issues: BeeIssue[]; loi: string | null }> {
-  if (!REPO_RE.test(repo)) return { issues: [], loi: "Invalid repository." };
-  if (isFixture()) return { issues: FIXTURE[repo] ?? [], loi: null };
+): Promise<{ issues: BeeIssue[]; err: string | null }> {
+  if (!REPO_RE.test(repo)) return { issues: [], err: "Invalid repository." };
+  if (isFixture()) return { issues: FIXTURE[repo] ?? [], err: null };
 
   const now = opts?.now ?? Date.now;
   const cu = cache.get(repo);
-  if (cu !== undefined && now() - cu.luc < TTL_MS) return { issues: cu.issues, loi: cu.loi };
+  if (cu !== undefined && now() - cu.at < TTL_MS) return { issues: cu.issues, err: cu.err };
 
   if (!(await isRegistered(repo))) {
-    return { issues: [], loi: `${repo} is not a registered repo on this machine.` };
+    return { issues: [], err: `${repo} is not a registered repo on this machine.` };
   }
 
   const runGh = opts?.runGh ?? ((args: string[]) => ctl("gh", args));
@@ -183,22 +183,22 @@ export async function fetchRepoIssues(
     // gh exited 0 but did not answer with a list: an empty board here would
     // look exactly like "this repo has no issues", which is a different fact.
     if (!Array.isArray(raw)) {
-      return { issues: [], loi: `${repo}: gh answered with something that is not an issue list.` };
+      return { issues: [], err: `${repo}: gh answered with something that is not an issue list.` };
     }
-    const doc = raw.map(parseIssue);
-    const issues = doc
+    const reader = raw.map(parseIssue);
+    const issues = reader
       .filter((i): i is BeeIssue => i !== null)
       .sort((a, b) => b.number - a.number);
     // Malformed rows are still DROPPED — we do not trust gh's output shape —
     // but how many were dropped has to be said. If gh changes its JSON, an
     // empty board is the only symptom, and a silent empty board reads exactly
     // like "this repo has no issues yet".
-    const bo = doc.length - issues.length;
-    const loi =
-      bo === 0 ? null : `${repo}: skipped ${bo} of ${doc.length} rows gh returned — they did not look like issues.`;
-    cache.set(repo, { luc: now(), issues, loi });
-    return { issues, loi };
+    const dropped = reader.length - issues.length;
+    const err =
+      dropped === 0 ? null : `${repo}: skipped ${dropped} of ${reader.length} rows gh returned — they did not look like issues.`;
+    cache.set(repo, { at: now(), issues, err });
+    return { issues, err };
   } catch (e) {
-    return { issues: [], loi: `Could not read issues of ${repo}: ${(e as Error).message}` };
+    return { issues: [], err: `Could not read issues of ${repo}: ${(e as Error).message}` };
   }
 }

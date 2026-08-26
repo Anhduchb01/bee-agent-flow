@@ -4,7 +4,7 @@ import type { BeeSession } from "@/lib/bee/types";
 
 import { buildGraph } from "./build-graph";
 
-function phien(id: string, slug: string, num: number, repo: string): BeeSession {
+function session(id: string, slug: string, num: number, repo: string): BeeSession {
   return {
     id, slug, num, repo,
     title: null, phase: "work", worktree: true, status: "running",
@@ -20,8 +20,8 @@ describe("buildGraph", () => {
   it("mỗi repo một cột, artifact nối edge về đúng phiên đẻ ra nó", () => {
     const { nodes, edges } = buildGraph(
       [
-        { repo: "you/myapp", phien: [phien(A, "myapp", 41, "you/myapp")] },
-        { repo: "you/blog", phien: [phien(B, "blog", 7, "you/blog")] },
+        { repo: "you/myapp", session: [session(A, "myapp", 41, "you/myapp")] },
+        { repo: "you/blog", session: [session(B, "blog", 7, "you/blog")] },
       ],
       {
         [A]: [
@@ -58,7 +58,7 @@ describe("buildGraph", () => {
 
   it("phiên có nhiều artifact chiếm chỗ cao hơn — phiên sau không đè lên", () => {
     const { nodes } = buildGraph(
-      [{ repo: "you/myapp", phien: [phien(A, "myapp", 41, "you/myapp"), phien(B, "myapp", 42, "you/myapp")] }],
+      [{ repo: "you/myapp", session: [session(A, "myapp", 41, "you/myapp"), session(B, "myapp", 42, "you/myapp")] }],
       {
         [A]: [
           { kind: "issue", url: "https://github.com/x/y/issues/1", number: 1, ts: null, title: null },
@@ -78,8 +78,8 @@ describe("buildGraph", () => {
   });
 
   it("phiên chat (worktree=false) mang nhãn 'chat' thay vì bịa tên nhánh", () => {
-    const chat = { ...phien(A, "myapp", 3, "you/myapp"), worktree: false };
-    const { nodes } = buildGraph([{ repo: "you/myapp", phien: [chat] }], {});
+    const chat = { ...session(A, "myapp", 3, "you/myapp"), worktree: false };
+    const { nodes } = buildGraph([{ repo: "you/myapp", session: [chat] }], {});
     const node = nodes.find((n) => n.id === A);
     expect(node?.type === "phien" && node.data.nhanh).toBe("chat");
   });
@@ -87,13 +87,13 @@ describe("buildGraph", () => {
 
 describe("node 🎬 demo (phương án A)", () => {
   it("video của phiên treo vào node PR khi có, vào node phiên khi chưa có PR", () => {
-    const phien = {
+    const session = {
       id: "p1", slug: "myapp", num: 1, repo: "you/myapp", title: "t", phase: "work" as const,
       worktree: true, status: "done" as const, created_at: null, started_at: null,
       ended_at: null, attempt: 0, needs_human: false,
     };
     const coPR = buildGraph(
-      [{ repo: "you/myapp", phien: [phien] }],
+      [{ repo: "you/myapp", session: [session] }],
       { p1: [{ kind: "pr", url: "https://github.com/you/myapp/pull/9", number: 9, ts: null, title: null }] },
       {},
       { p1: [{ name: "demo.webm", url: "/api/evidence/session/p1/demo.webm" }] },
@@ -103,7 +103,7 @@ describe("node 🎬 demo (phương án A)", () => {
     expect(coPR.edges).toContainEqual({ id: "e-p1-demo-0", source: "p1-pr-9", target: "p1-demo-0" });
 
     const chuaPR = buildGraph(
-      [{ repo: "you/myapp", phien: [phien] }],
+      [{ repo: "you/myapp", session: [session] }],
       { p1: [] },
       {},
       { p1: [{ name: "demo.webm", url: "/x" }] },

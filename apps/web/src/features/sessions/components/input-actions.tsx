@@ -18,13 +18,13 @@ import { MODE_OPTIONS } from "./new-session-form";
  * aliases `claude --model` takes (SESSION_MODELS); "default" sends no flag
  * at all, so whatever the machine is set to answers.
  */
-export const MODEL_OPTIONS: { value: BeeSessionModel; label: string; moTa: string }[] = [
-  { value: "default", label: "Default", moTa: "The machine's own default — recommended" },
-  { value: "opus[1m]", label: "Opus (1M context)", moTa: "Opus with the 1M-token window" },
-  { value: "opus", label: "Opus", moTa: "Best for everyday, complex tasks" },
-  { value: "sonnet", label: "Sonnet", moTa: "Efficient for routine tasks" },
-  { value: "sonnet[1m]", label: "Sonnet (1M context)", moTa: "Sonnet with the 1M-token window" },
-  { value: "haiku", label: "Haiku", moTa: "Fastest for quick answers" },
+export const MODEL_OPTIONS: { value: BeeSessionModel; label: string; hint: string }[] = [
+  { value: "default", label: "Default", hint: "The machine's own default — recommended" },
+  { value: "opus[1m]", label: "Opus (1M context)", hint: "Opus with the 1M-token window" },
+  { value: "opus", label: "Opus", hint: "Best for everyday, complex tasks" },
+  { value: "sonnet", label: "Sonnet", hint: "Efficient for routine tasks" },
+  { value: "sonnet[1m]", label: "Sonnet (1M context)", hint: "Sonnet with the 1M-token window" },
+  { value: "haiku", label: "Haiku", hint: "Fastest for quick answers" },
 ];
 
 /**
@@ -118,7 +118,7 @@ export function ActionsPanel({
   onPickMode,
   onPickModel,
 }: {
-  commands: { name: string; moTa: string }[];
+  commands: { name: string; hint: string }[];
   /** `null` = a chat session: no tools, so no permission mode to switch. */
   mode: BeeSessionMode | null;
   model: BeeSessionModel;
@@ -132,7 +132,7 @@ export function ActionsPanel({
   const [filter, setFilter] = useState("");
 
   const hit = (text: string) => text.toLowerCase().includes(filter.trim().toLowerCase());
-  const cmds = commands.filter((c) => hit(`/${c.name} ${c.moTa}`));
+  const cmds = commands.filter((c) => hit(`/${c.name} ${c.hint}`));
   const sessionActions = [
     {
       label: "Compact conversation",
@@ -142,8 +142,8 @@ export function ActionsPanel({
     },
     { label: "Stop session", hint: "the agent stops now", Icon: CircleStopIcon, run: onStop },
   ].filter((a) => hit(`${a.label} ${a.hint}`));
-  const modes = mode === null ? [] : MODE_OPTIONS.filter((m) => hit(`${m.label} ${m.moTa}`));
-  const models = MODEL_OPTIONS.filter((m) => hit(`model ${m.label} ${m.moTa}`));
+  const modes = mode === null ? [] : MODE_OPTIONS.filter((m) => hit(`${m.label} ${m.hint}`));
+  const models = MODEL_OPTIONS.filter((m) => hit(`model ${m.label} ${m.hint}`));
 
   function close() {
     setOpen(false);
@@ -196,7 +196,7 @@ export function ActionsPanel({
                   className="flex w-full items-baseline gap-2 rounded-control px-2.5 py-1.5 text-left hover:bg-accent"
                 >
                   <span className="font-mono text-sm text-body">/{c.name}</span>
-                  <span className="min-w-0 truncate text-xs text-muted-foreground">{c.moTa}</span>
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">{c.hint}</span>
                 </button>
               ))}
             </>
@@ -241,7 +241,7 @@ export function ActionsPanel({
                 >
                   <span className="text-sm text-body">{m.label}</span>
                   <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                    {m.moTa}
+                    {m.hint}
                   </span>
                   {m.value === mode && <span className="text-sm text-body">✓</span>}
                 </button>
@@ -268,7 +268,7 @@ export function ActionsPanel({
                 >
                   <span className="text-sm text-body">{m.label}</span>
                   <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                    {m.moTa}
+                    {m.hint}
                   </span>
                   {m.value === model && <span className="text-sm text-body">✓</span>}
                 </button>

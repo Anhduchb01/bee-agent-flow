@@ -33,9 +33,9 @@ export default async function DuAnPage({
   const duAn = typeof p === "string" && p !== "" ? p : null;
   const choXem: BoardView = view === "kanban" ? "kanban" : "table";
 
-  const { muc, repos, loi, queue } = await loadBoard();
-  const shown = filterByProject(muc, duAn);
-  const dangMo = shown.filter((m) => m.issue.state === "OPEN").length;
+  const { row, repos, err, queue } = await loadBoard();
+  const shown = filterByProject(row, duAn);
+  const isOpen = shown.filter((m) => m.issue.state === "OPEN").length;
 
   return (
     <>
@@ -43,7 +43,7 @@ export default async function DuAnPage({
         title="Projects"
         meta={
           <span className="font-mono text-xs text-muted-foreground">
-            {dangMo} open · {shown.length} issues
+            {isOpen} open · {shown.length} issues
           </span>
         }
       >
@@ -58,7 +58,7 @@ export default async function DuAnPage({
           queuedCount={queue.items.filter((v) => v.status === "waiting").length}
         />
 
-        {loi.map((l) => (
+        {err.map((l) => (
           <p key={l.repo} className="text-xs text-destructive">
             {l.message}
           </p>
@@ -78,9 +78,9 @@ export default async function DuAnPage({
             </EmptyHeader>
           </Empty>
         ) : choXem === "kanban" ? (
-          <BoardKanban muc={shown} />
+          <BoardKanban row={shown} />
         ) : (
-          <BoardTable muc={shown} />
+          <BoardTable row={shown} />
         )}
       </div>
     </>

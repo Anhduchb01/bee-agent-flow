@@ -79,14 +79,14 @@ export function AppSidebar({
   login,
   duAn,
   sucKhoe,
-  dangXuat,
+  signingOut,
   nutTaoDuAn,
 }: {
   displayName: string;
   login: string;
   duAn: DuAnTrongSidebar[];
   sucKhoe: SucKhoeTomTat;
-  dangXuat: () => Promise<void>;
+  signingOut: () => Promise<void>;
   /** The "+" — composed by the server layout, see below. */
   nutTaoDuAn?: React.ReactNode;
 }) {
@@ -251,7 +251,7 @@ export function AppSidebar({
           ) : null}
         </div>
 
-        <form action={dangXuat}>
+        <form action={signingOut}>
           <Button type="submit" variant="ghost" size="sm" className="w-full justify-start">
             <LogOutIcon data-icon="inline-start" />
             <span className="group-data-[collapsible=icon]:hidden">Sign out</span>

@@ -21,7 +21,7 @@ import "@xyflow/react/dist/style.css";
 
 import { StatusDot, type Tone } from "@/components/status-dot";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import type { BeeRegisteredRepo, BeeSession, TrangThaiPhien } from "@/lib/bee/types";
+import type { BeeRegisteredRepo, BeeSession, SessionStatus } from "@/lib/bee/types";
 import { humanDuration } from "@/lib/duration";
 
 import { loadArtifactDetailAction } from "../api/actions";
@@ -47,7 +47,7 @@ import { NewSessionForm } from "./new-session-form";
  * không rời ngữ cảnh đồ thị; link ↗ trong node đi sang trang riêng.
  */
 
-const TONE: Record<TrangThaiPhien, Tone> = {
+const TONE: Record<SessionStatus, Tone> = {
   running: "agent",
   starting: "idle",
   done: "ok",
@@ -55,7 +55,7 @@ const TONE: Record<TrangThaiPhien, Tone> = {
   failed: "down",
 };
 
-type FlowPhien = Node<NodeSession["data"] & Record<string, unknown>, "phien">;
+type SessionFlow = Node<NodeSession["data"] & Record<string, unknown>, "phien">;
 type FlowArtifact = Node<NodeArtifact["data"] & Record<string, unknown>, "artifact">;
 type FlowNhomRepo = Node<NodeRepoGroup["data"] & Record<string, unknown>, "repo-group">;
 
@@ -68,7 +68,7 @@ function tuoi(ts: string | null): string | null {
   return `${humanDuration(giay)} ago`;
 }
 
-function PhienNode({ data }: NodeProps<FlowPhien>) {
+function SessionNode({ data }: NodeProps<SessionFlow>) {
   return (
     <div
       className={`w-64 cursor-pointer rounded-card border bg-card px-3 py-2 shadow-none ${
@@ -209,7 +209,7 @@ function RepoGroupNode({ data }: NodeProps<FlowNhomRepo>) {
  * trông giống việc đã xảy ra là nói dối bằng đồ hoạ (D5). Viền đứt để nhìn
  * lướt cũng phân biệt được với node phiên thật.
  */
-function ChoChayNode({ data }: { data: { title: string; moTa: string; href: string } }) {
+function ChoChayNode({ data }: { data: { title: string; hint: string; href: string } }) {
   return (
     <Link
       href={data.href}
@@ -217,7 +217,7 @@ function ChoChayNode({ data }: { data: { title: string; moTa: string; href: stri
     >
       <Handle type="target" position={Position.Left} className="!bg-border" />
       <span className="font-mono text-xs text-muted-foreground">{data.title}</span>
-      <span className="text-xs text-muted-foreground">⏳ {data.moTa}</span>
+      <span className="text-xs text-muted-foreground">⏳ {data.hint}</span>
       <Handle type="source" position={Position.Right} className="!bg-border" />
     </Link>
   );
@@ -225,7 +225,7 @@ function ChoChayNode({ data }: { data: { title: string; moTa: string; href: stri
 
 const nodeTypes: NodeTypes = {
   "cho-chay": ChoChayNode,
-  phien: PhienNode,
+  session: SessionNode,
   artifact: ArtifactNode,
   "repo-group": RepoGroupNode,
   demo: DemoNode,
@@ -234,18 +234,18 @@ const nodeTypes: NodeTypes = {
 export function CanvasView({
   nodes,
   edges,
-  phien,
+  session,
   repos = [],
   commands = [],
 }: {
   nodes: NodeCanvas[];
   edges: EdgeCanvas[];
-  phien: BeeSession[];
+  session: BeeSession[];
   repos?: BeeRegisteredRepo[];
-  commands?: { name: string; moTa: string }[];
+  commands?: { name: string; hint: string }[];
 }) {
   const router = useRouter();
-  const [chon, setChon] = useState<BeeSession | null>(null);
+  const [chosen, setChon] = useState<BeeSession | null>(null);
   const [xemArtifact, setXemArtifact] = useState<{
     repo: string;
     kind: "issue" | "pr";
@@ -264,16 +264,16 @@ export function CanvasView({
   const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState<Edge>(
     edges.map((e) => ({ ...e })),
   );
-  const khoaDoThi = JSON.stringify([nodes, edges]);
-  const khoaCu = useRef(khoaDoThi);
+  const graphKey = JSON.stringify([nodes, edges]);
+  const oldKey = useRef(graphKey);
   useEffect(() => {
     // Only rebuild when the graph really changed — otherwise every poll
     // would yank nodes out of the user's hands mid-drag.
-    if (khoaDoThi === khoaCu.current) return;
-    khoaCu.current = khoaDoThi;
+    if (graphKey === oldKey.current) return;
+    oldKey.current = graphKey;
     setFlowNodes(nodes.map((n) => ({ ...n, data: { ...n.data } })));
     setFlowEdges(edges.map((e) => ({ ...e })));
-  }, [khoaDoThi, nodes, edges, setFlowNodes, setFlowEdges]);
+  }, [graphKey, nodes, edges, setFlowNodes, setFlowEdges]);
   useEffect(() => {
     const t = setInterval(() => {
       if (!document.hidden) router.refresh();
@@ -289,7 +289,7 @@ export function CanvasView({
     let song = true;
     async function tai() {
       const arts = nodes.filter((n): n is NodeArtifact => n.type === "artifact").slice(0, 12);
-      const cap = await Promise.all(
+      const granted = await Promise.all(
         arts.map(async (n) => {
           const boc = unwrapArtifactUrl(n.data.url);
           if (boc === null) return null;
@@ -306,7 +306,7 @@ export function CanvasView({
         }),
       );
       if (song) {
-        setSongTheo(Object.fromEntries(cap.filter((c): c is NonNullable<typeof c> => c !== null)));
+        setSongTheo(Object.fromEntries(granted.filter((c): c is NonNullable<typeof c> => c !== null)));
       }
     }
     void tai();
@@ -317,8 +317,8 @@ export function CanvasView({
       song = false;
       clearInterval(t);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- khoaDoThi IS the nodes' identity
-  }, [khoaDoThi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- graphKey IS the nodes' identity
+  }, [graphKey]);
   useEffect(() => {
     setFlowNodes((ns) =>
       ns.map((n) =>
@@ -340,7 +340,7 @@ export function CanvasView({
       return 1152;
     }
   });
-  const dangKeo = useRef<{ start: number; rong: number } | null>(null);
+  const dangKeo = useRef<{ start: number; wide: number } | null>(null);
 
   return (
     <div className="h-full w-full">
@@ -356,7 +356,7 @@ export function CanvasView({
         nodesConnectable={false}
         deleteKeyCode={null}
         onNodeClick={(_, node) => {
-          if (node.type === "phien") setChon(phien.find((p) => p.id === node.id) ?? null);
+          if (node.type === "phien") setChon(session.find((p) => p.id === node.id) ?? null);
           if (node.type === "demo") {
             const d = node.data as NodeDemo["data"];
             setXemVideo({ name: d.name, url: d.url });
@@ -398,7 +398,7 @@ export function CanvasView({
 
       {/* Panel chat tại chỗ — cùng LiveView với trang riêng, một nguồn sự thật.
           Width is draggable like a VSCode side panel; remembered per browser. */}
-      <Sheet open={chon !== null} onOpenChange={(mo) => !mo && setChon(null)}>
+      <Sheet open={chosen !== null} onOpenChange={(opener) => !opener && setChon(null)}>
         <SheetContent
           side="right"
           className="flex flex-col gap-0 p-0"
@@ -418,15 +418,15 @@ export function CanvasView({
             onPointerDown={(e) => {
               e.preventDefault();
               e.currentTarget.setPointerCapture(e.pointerId);
-              dangKeo.current = { start: e.clientX, rong: rongPanel };
+              dangKeo.current = { start: e.clientX, wide: rongPanel };
             }}
             onPointerMove={(e) => {
               if (dangKeo.current === null) return;
-              const moi = Math.min(
-                Math.max(dangKeo.current.rong + (dangKeo.current.start - e.clientX), 360),
+              const latest = Math.min(
+                Math.max(dangKeo.current.wide + (dangKeo.current.start - e.clientX), 360),
                 window.innerWidth - 120,
               );
-              setRongPanel(moi);
+              setRongPanel(latest);
             }}
             onPointerUp={(e) => {
               e.currentTarget.releasePointerCapture(e.pointerId);
@@ -438,19 +438,19 @@ export function CanvasView({
               }
             }}
           />
-          {chon !== null && (
+          {chosen !== null && (
             <>
               <SheetTitle className="border-b border-border px-4 py-3 text-sm">
-                {chon.title ?? `${chon.slug}-${chon.num}`}
+                {chosen.title ?? `${chosen.slug}-${chosen.num}`}
               </SheetTitle>
-              <LiveView phien={chon} commands={commands} />
+              <LiveView session={chosen} commands={commands} />
             </>
           )}
         </SheetContent>
       </Sheet>
 
       {/* 🎬 preview video demo ngay trên canvas — không rời đồ thị */}
-      <Sheet open={xemVideo !== null} onOpenChange={(mo) => !mo && setXemVideo(null)}>
+      <Sheet open={xemVideo !== null} onOpenChange={(opener) => !opener && setXemVideo(null)}>
         <SheetContent
           side="right"
           className="flex flex-col gap-0 p-0"
@@ -484,7 +484,7 @@ export function CanvasView({
       </Sheet>
 
       {/* Panel chi tiết issue/PR — đọc từ gh của máy, nút ↗ cho phần còn lại */}
-      <Sheet open={xemArtifact !== null} onOpenChange={(mo) => !mo && setXemArtifact(null)}>
+      <Sheet open={xemArtifact !== null} onOpenChange={(opener) => !opener && setXemArtifact(null)}>
         <SheetContent
           side="right"
           className="flex flex-col gap-0 p-0"

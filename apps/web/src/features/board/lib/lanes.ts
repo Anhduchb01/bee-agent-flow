@@ -42,7 +42,7 @@ export interface BoardRow {
   slug: string;
   repo: string;
   /** Sessions that logged this issue, newest first. */
-  phien: IssueSession[];
+  session: IssueSession[];
   /** PRs opened by those sessions — the "in review" signal. */
   pr: BeeArtifact[];
   /** Mục trong hàng đợi Autopilot, `null` = chưa xếp hàng. */
@@ -50,7 +50,7 @@ export interface BoardRow {
   lane: Lane;
 }
 
-function laPhien(p: BeeSession): IssueSession {
+function isSession(p: BeeSession): IssueSession {
   return {
     id: p.id,
     title: p.title,
@@ -73,12 +73,12 @@ function laPhien(p: BeeSession): IssueSession {
  */
 export function laneOf(
   issue: BeeIssue,
-  phien: IssueSession[],
+  session: IssueSession[],
   pr: BeeArtifact[],
   daXepHang = false,
 ): Lane {
   if (issue.state === "CLOSED") return "done";
-  if (phien.some((p) => p.status === "running" || p.status === "starting")) return "working";
+  if (session.some((p) => p.status === "running" || p.status === "starting")) return "working";
   if (pr.length > 0) return "review";
   // Xếp hàng là một TRẠNG THÁI (D4), nhưng đứng SAU mọi sự thật: một issue
   // vừa nằm trong hàng vừa có phiên đang chạy thì nó đang chạy, không phải
@@ -93,10 +93,10 @@ export function laneOf(
  * thả vào "Done" không đóng issue trên GitHub. Cho kéo vào đó là dạy người
  * dùng một lời nói dối, nên thả sai bị từ chối kèm lý do.
  */
-export function isDropAllowed(tu: Lane, den: Lane): { ok: boolean; reason: string } {
-  if (tu === den) return { ok: true, reason: "" };
+export function isDropAllowed(since: Lane, den: Lane): { ok: boolean; reason: string } {
+  if (since === den) return { ok: true, reason: "" };
   const duoc = new Set<Lane>(["backlog", "autopilot"]);
-  if (duoc.has(tu) && duoc.has(den)) return { ok: true, reason: "" };
+  if (duoc.has(since) && duoc.has(den)) return { ok: true, reason: "" };
   const vi: Record<Lane, string> = {
     backlog: "",
     autopilot: "",
@@ -104,7 +104,7 @@ export function isDropAllowed(tu: Lane, den: Lane): { ok: boolean; reason: strin
     review: "this lane is decided by the PR, not by dragging",
     done: "an issue reaches Done by being closed on GitHub",
   };
-  return { ok: false, reason: vi[den] !== "" ? vi[den] : vi[tu] };
+  return { ok: false, reason: vi[den] !== "" ? vi[den] : vi[since] };
 }
 
 /**
@@ -115,7 +115,7 @@ export function isDropAllowed(tu: Lane, den: Lane): { ok: boolean; reason: strin
 export function buildBoard(
   repos: { slug: string; repo: string }[],
   issuesByRepo: Record<string, BeeIssue[]>,
-  phien: BeeSession[],
+  session: BeeSession[],
   artifactsBySession: Record<string, BeeArtifact[]>,
   queue: Queue = { items: [], paused: false },
 ): BoardRow[] {
@@ -123,31 +123,31 @@ export function buildBoard(
 
   for (const { slug, repo } of repos) {
     // Sessions of this repo, newest first — the order rows inherit.
-    const phienCuaRepo = phien
+    const sessionsOfRepo = session
       .filter((p) => p.repo === repo)
       .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
 
     for (const issue of issuesByRepo[repo] ?? []) {
-      const lienQuan = phienCuaRepo.filter((p) =>
+      const related = sessionsOfRepo.filter((p) =>
         (artifactsBySession[p.id] ?? []).some(
           (a) => a.kind === "issue" && a.number === issue.number,
         ),
       );
-      const pr = lienQuan.flatMap((p) =>
+      const pr = related.flatMap((p) =>
         (artifactsBySession[p.id] ?? []).filter((a) => a.kind === "pr"),
       );
-      const dsPhien = lienQuan.map(laPhien);
-      const trongHang = queue.items.find(
+      const sessionList = related.map(isSession);
+      const inQueue = queue.items.find(
         (v) => v.repo === repo && v.issue === issue.number,
       );
       ra.push({
         issue,
         slug,
         repo,
-        phien: dsPhien,
+        session: sessionList,
         pr,
-        queue: trongHang ?? null,
-        lane: laneOf(issue, dsPhien, pr, trongHang?.status === "waiting"),
+        queue: inQueue ?? null,
+        lane: laneOf(issue, sessionList, pr, inQueue?.status === "waiting"),
       });
     }
   }
@@ -156,12 +156,12 @@ export function buildBoard(
 }
 
 /** `p` from the URL. An unknown slug filters to nothing — better than lying by showing everything. */
-export function filterByProject(muc: BoardRow[], slug: string | null): BoardRow[] {
-  return slug === null ? muc : muc.filter((m) => m.slug === slug);
+export function filterByProject(row: BoardRow[], slug: string | null): BoardRow[] {
+  return slug === null ? row : row.filter((m) => m.slug === slug);
 }
 
-export function groupByLane(muc: BoardRow[]): Record<Lane, BoardRow[]> {
+export function groupByLane(row: BoardRow[]): Record<Lane, BoardRow[]> {
   const ra = { backlog: [], autopilot: [], working: [], review: [], done: [] } as Record<Lane, BoardRow[]>;
-  for (const m of muc) ra[m.lane].push(m);
+  for (const m of row) ra[m.lane].push(m);
   return ra;
 }

@@ -15,14 +15,14 @@ import { runDoctorAction } from "../api/actions";
  */
 export function DoctorChecklist({ doctor }: { doctor: BeeDoctor | null }) {
   const router = useRouter();
-  const [loi, setLoi] = useState("");
+  const [err, setErr] = useState("");
   const [running, batDauChay] = useTransition();
 
-  function chayLai() {
+  function rerun() {
     if (running) return;
     batDauChay(async () => {
       const ket = await runDoctorAction();
-      setLoi(ket.ok ? "" : ket.message);
+      setErr(ket.ok ? "" : ket.message);
       router.refresh();
     });
   }
@@ -49,14 +49,14 @@ export function DoctorChecklist({ doctor }: { doctor: BeeDoctor | null }) {
           </span>
         ) : (
           <span className="font-mono text-xs text-destructive">
-            Some checks are failing — fix them before removing PAUSE
+            Some checks are failing — fix added before removing PAUSE
           </span>
         )}
         <span className="flex-1" />
         <span className="font-mono text-xs text-muted-foreground">
           checked {doctor.checked_at}
         </span>
-        <Button size="sm" variant="outline" onClick={chayLai} disabled={running}>
+        <Button size="sm" variant="outline" onClick={rerun} disabled={running}>
           {running ? "Running…" : "Run doctor again"}
         </Button>
       </div>
@@ -86,7 +86,7 @@ export function DoctorChecklist({ doctor }: { doctor: BeeDoctor | null }) {
         ))}
       </ul>
 
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
     </div>
   );
 }

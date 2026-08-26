@@ -84,7 +84,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             headline: health.headline,
             detail: `${running} sessions running`,
           }}
-          dangXuat={raNgoai}
+          signingOut={raNgoai}
         />
         <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>

@@ -97,17 +97,17 @@ describe("POST /api/tick — nhịp hàng đợi", () => {
 
   it("refresh hạn mức chạy TRƯỚC hàng đợi — phanh phải đọc số vừa lấy", async () => {
     const { readQueue } = await import("@/lib/bee/queue-fs");
-    const thuTu: string[] = [];
+    const order: string[] = [];
     vi.mocked(fetchClaudeAccountUsage).mockImplementationOnce(async () => {
-      thuTu.push("quota");
+      order.push("quota");
       return { ok: true };
     });
     vi.mocked(readQueue).mockImplementationOnce(async () => {
-      thuTu.push("queue");
+      order.push("queue");
       return { items: [], paused: false };
     });
 
     await goi(TOKEN);
-    expect(thuTu).toEqual(["quota", "queue"]);
+    expect(order).toEqual(["quota", "queue"]);
   });
 });

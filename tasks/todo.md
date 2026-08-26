@@ -678,7 +678,19 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       một quyết định riêng, chạm gần như mọi file.
 
 - [x] 🤖 **T31** ~~Đổi identifier tiếng Việt sang tiếng Anh~~ **XONG 26/08** —
-      120 file, không kèm thay đổi hành vi nào; cổng trước và sau giống hệt.
+      hai đợt. Đợt đầu (120 file) chỉ đổi tên xuất; đợt sau đóng nốt phần cục
+      bộ và **phải viết một bộ thay thế hiểu cú pháp** vì regex thô hỏng theo
+      hai chiều ngược nhau:
+      · ăn vào **chuỗi**: `giu-bo-loc-….gif` thành `held-dropped-loc-….gif`,
+        và regex literal `/7-day/` thành `/7-stack/`;
+      · ăn vào **comment**: 154 dòng tiếng Việt bị chèn từ tiếng Anh vào giữa,
+        thành vô nghĩa — tệ hơn cả để nguyên.
+      Bộ mới bỏ qua chuỗi và comment, chỉ viết lại phần là CODE (kể cả bên
+      trong `${…}` của template literal).
+      **Nhưng phải sửa tay hai loại mà nó cố ý không đụng:** `dataKey="nhan"`
+      và `var(--color-xong)` là *chuỗi trỏ tới tên trường* — đổi trường mà
+      không đổi chúng thì biểu đồ mất trục và mất một cột, và **chỉ e2e bắt
+      được**, không test đơn vị nào thấy.
       Va chạm đáng ghi: `BeeRepoDangKy` muốn thành `BeeRepo` nhưng tên đó đã
       có chủ (kiểu thời reconciler mang `full/enabled/paused/running/wip`).
       Hai thứ khác nhau cùng tên sẽ biên dịch được ở vài chỗ và lệch im lặng

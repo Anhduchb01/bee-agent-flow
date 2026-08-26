@@ -8,7 +8,7 @@
  */
 import binhThuong from "./binh-thuong.json";
 import coSuCo from "./co-su-co.json";
-import dayTai from "./day-tai.json";
+import heavyLoad from "./day-tai.json";
 import reconcilerChet from "./reconciler-chet.json";
 import vuaCai from "./vua-cai.json";
 
@@ -32,7 +32,7 @@ export const SCENE_LABELS: Record<SceneId, string> = {
 
 const SCENES: Record<SceneId, unknown> = {
   "binh-thuong": binhThuong,
-  "day-tai": dayTai,
+  "day-tai": heavyLoad,
   "co-su-co": coSuCo,
   "reconciler-chet": reconcilerChet,
   "vua-cai": vuaCai,
@@ -59,14 +59,14 @@ export function sceneJson(id: SceneId, now: Date = new Date()): string {
  * khiến khối "Bảy ngày qua" có lý do tồn tại — nó phải nói được "máy đang tệ
  * đi", chứ không phải vẽ bảy cột đều nhau.
  */
-const MAU_NGAY: { xong: number; loi: number }[] = [
-  { xong: 6, loi: 0 }, // 6 ngày trước
-  { xong: 10, loi: 1 },
-  { xong: 3, loi: 0 }, // cuối tuần
-  { xong: 1, loi: 0 },
-  { xong: 13, loi: 1 },
-  { xong: 12, loi: 0 },
-  { xong: 7, loi: 6 }, // hôm nay
+const MAU_NGAY: { finished: number; err: number }[] = [
+  { finished: 6, err: 0 }, // 6 ngày trước
+  { finished: 10, err: 1 },
+  { finished: 3, err: 0 }, // cuối tuần
+  { finished: 1, err: 0 },
+  { finished: 13, err: 1 },
+  { finished: 12, err: 0 },
+  { finished: 7, err: 6 }, // hôm nay
 ];
 
 const RULE = ["07-build", "04-evidence", "03-run-ci", "08-spec", "02-review-feedback"];
@@ -78,7 +78,7 @@ export function recentRunsJson(now: Date = new Date()): string[] {
 
   MAU_NGAY.forEach((ngay, i) => {
     const luiNgay = MAU_NGAY.length - 1 - i;
-    for (let k = 0; k < ngay.xong + ngay.loi; k++) {
+    for (let k = 0; k < ngay.finished + ngay.err; k++) {
       const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() - luiNgay, 9 + (k % 9), (k * 7) % 60);
       // Không vượt quá "bây giờ" — một lần chạy ở tương lai là dấu hiệu dữ liệu hỏng.
       if (at.getTime() > now.getTime()) at.setTime(now.getTime() - (k + 1) * 60_000);
@@ -89,7 +89,7 @@ export function recentRunsJson(now: Date = new Date()): string[] {
           repo,
           number: 100 + n,
           rule: RULE[n % RULE.length],
-          result: k < ngay.xong ? "ok" : k % 2 === 0 ? "fail" : "gave-up",
+          result: k < ngay.finished ? "ok" : k % 2 === 0 ? "fail" : "gave-up",
           turns: 3 + (n % 20),
           duration_s: 60 + ((n * 37) % 900),
           at: at.toISOString(),

@@ -124,7 +124,7 @@ describe("parseRecentLine", () => {
     expect(parseRecentLine(JSON.stringify({ id: "x" }))).toBeNull();
   });
 
-  const goc = {
+  const baseDir = {
     id: "myapp-41",
     repo: "myapp",
     number: 41,
@@ -142,9 +142,9 @@ describe("parseRecentLine", () => {
    * nâng cấp — mà lịch sử chính là thứ biểu đồ bảy ngày sống bằng.
    */
   it("dòng cũ không có mức dùng vẫn đọc được nguyên vẹn", () => {
-    const r = parseRecentLine(JSON.stringify(goc));
+    const r = parseRecentLine(JSON.stringify(baseDir));
 
-    expect(r).toMatchObject(goc);
+    expect(r).toMatchObject(baseDir);
     expect(r?.tokens_in).toBeUndefined();
     expect(r?.cost_usd).toBeUndefined();
   });
@@ -152,7 +152,7 @@ describe("parseRecentLine", () => {
   it("dòng mới mang mức dùng theo vào", () => {
     const r = parseRecentLine(
       JSON.stringify({
-        ...goc,
+        ...baseDir,
         tokens_in: 1200,
         tokens_out: 8400,
         tokens_cache_read: 990_000,
@@ -174,17 +174,17 @@ describe("parseRecentLine", () => {
    * `ok`, mà hai chuyện đó cần hai cách xử lý khác hẳn nhau.
    */
   it("phân biệt được ba trạng thái: vắng mặt · null · có lỗi", () => {
-    const khong = parseRecentLine(JSON.stringify(goc));
+    const none = parseRecentLine(JSON.stringify(baseDir));
     const sach = parseRecentLine(
-      JSON.stringify({ ...goc, stop_reason: "end_turn", api_error_status: null }),
+      JSON.stringify({ ...baseDir, stop_reason: "end_turn", api_error_status: null }),
     );
-    const hetHanMuc = parseRecentLine(
-      JSON.stringify({ ...goc, result: "fail", stop_reason: null, api_error_status: 429 }),
+    const quotaExhausted = parseRecentLine(
+      JSON.stringify({ ...baseDir, result: "fail", stop_reason: null, api_error_status: 429 }),
     );
 
     // Không gọi agent — khác hẳn "có gọi mà không lỗi".
-    expect(khong).not.toHaveProperty("api_error_status");
+    expect(none).not.toHaveProperty("api_error_status");
     expect(sach?.api_error_status).toBeNull();
-    expect(hetHanMuc?.api_error_status).toBe(429);
+    expect(quotaExhausted?.api_error_status).toBe(429);
   });
 });

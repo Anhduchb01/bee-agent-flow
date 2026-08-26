@@ -61,7 +61,7 @@ export function ArtifactPanel({
   url: string;
 }) {
   const [detail, setDetail] = useState<BeeArtifactDetail | null>(null);
-  const [loi, setLoi] = useState("");
+  const [err, setErr] = useState("");
   const [evidence, setEvidence] = useState<BeeEvidenceFile[]>([]);
   const [acIssue, setAcIssue] = useState<BeeArtifactDetail | null>(null);
 
@@ -72,7 +72,7 @@ export function ArtifactPanel({
     void loadArtifactDetailAction(repo, kind, number).then((ket) => {
       if (!song) return;
       if (ket.ok) setDetail(ket.detail);
-      else setLoi(ket.message);
+      else setErr(ket.message);
     });
     // Evidence loads in parallel — the panel must not wait for a disk scan.
     void loadArtifactEvidenceAction(repo, kind, number).then((ket) => {
@@ -101,10 +101,10 @@ export function ArtifactPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-        {detail === null && loi === "" && (
+        {detail === null && err === "" && (
           <p className="text-sm text-muted-foreground">Loading from GitHub…</p>
         )}
-        {loi !== "" && <p className="text-sm text-destructive">{loi}</p>}
+        {err !== "" && <p className="text-sm text-destructive">{err}</p>}
 
         {detail !== null && (
           <div className="flex flex-col gap-4">

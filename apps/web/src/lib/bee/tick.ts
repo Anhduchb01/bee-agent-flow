@@ -33,24 +33,24 @@ function root(): string {
 }
 
 export async function runQueueTick(): Promise<QueueTickResult> {
-  const goc = root();
-  const q = await readQueue(goc);
+  const baseDir = root();
+  const q = await readQueue(baseDir);
   // Empty queue: touch nothing else. A tick with no work should be cheap.
   if (q.items.length === 0) return { opened: null, reason: "the queue is empty" };
 
   const paused = await fs
-    .access(path.join(goc, "PAUSE"))
+    .access(path.join(baseDir, "PAUSE"))
     .then(() => true)
     .catch(() => false);
-  const phien = await getBee().listSessions();
+  const session = await getBee().listSessions();
 
-  const kq = await runOneTick({
+  const res = await runOneTick({
     queue: q,
     paused,
-    runningCount: phien.filter((p) => p.status === "running" || p.status === "starting").length,
+    runningCount: session.filter((p) => p.status === "running" || p.status === "starting").length,
     maxParallel: Number(process.env.QUEUE_MAX_PARALLEL ?? 1),
     openSession: async (v) => {
-      const daCo = phien.filter((p) => p.slug === v.slug).length;
+      const daCo = session.filter((p) => p.slug === v.slug).length;
       return openSession({
         slug: v.slug,
         num: daCo + 1,
@@ -63,8 +63,8 @@ export async function runQueueTick(): Promise<QueueTickResult> {
         systemPrompt: `You are working on issue #${v.issue} of ${v.repo}. Read the issue with gh, follow its acceptance criteria, then open a PR with the bee-push-pr skill.`,
       });
     },
-    ghi: (moi) => writeQueue(goc, moi),
+    writer: (latest) => writeQueue(baseDir, latest),
   });
 
-  return { opened: kq.opened === null ? null : `${kq.opened.repo}#${kq.opened.issue}`, reason: kq.reason };
+  return { opened: res.opened === null ? null : `${res.opened.repo}#${res.opened.issue}`, reason: res.reason };
 }

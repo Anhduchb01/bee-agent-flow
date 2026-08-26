@@ -12,7 +12,7 @@ vi.mock("../api/actions", () => ({
   stopSessionAction: vi.fn(async () => ({ ok: true, message: "" })),
   changeModeAction: vi.fn(async () => ({ ok: true, message: "" })),
   changeModelAction: vi.fn(async () => ({ ok: true, message: "" })),
-  tiepTucAction: vi.fn(async () => ({ ok: true, message: "" })),
+  continueAction: vi.fn(async () => ({ ok: true, message: "" })),
   uploadFileAction: vi.fn(async () => ({
     ok: true,
     message: "",
@@ -55,7 +55,7 @@ function mockStream(input: Partial<ReturnType<typeof useSessionStream>>) {
 describe("LiveView — one mode, VSCode-style controls", () => {
   it("no interview gate: no 'OK, do it' anywhere, repo session prompts plainly", () => {
     mockStream({});
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     expect(screen.queryByRole("button", { name: /ok, do it/i })).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Say something to the agent…")).toBeInTheDocument();
   });
@@ -65,7 +65,7 @@ describe("LiveView — one mode, VSCode-style controls", () => {
       events: [{ loai: "nguoi-noi", text: "do the thing" }],
       typing: "wor",
     });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     expect(screen.getByRole("button", { name: "Stop session" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Send" })).not.toBeInTheDocument();
   });
@@ -76,7 +76,7 @@ describe("LiveView — one mode, VSCode-style controls", () => {
       events: [{ loai: "nguoi-noi", text: "do the thing" }],
       typing: "wor",
     });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     await user.type(screen.getByLabelText("Message to the agent"), "and also this");
     expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Stop session" })).not.toBeInTheDocument();
@@ -86,10 +86,10 @@ describe("LiveView — one mode, VSCode-style controls", () => {
     mockStream({
       events: [
         { loai: "nguoi-noi", text: "do the thing" },
-        { loai: "ket-qua", loi: false, luot: 1, nguCanh: 12 },
+        { loai: "ket-qua", err: false, luot: 1, nguCanh: 12 },
       ],
     });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     expect(screen.queryByRole("button", { name: "Stop session" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
@@ -97,11 +97,11 @@ describe("LiveView — one mode, VSCode-style controls", () => {
   it("context ring shows the latest result's percentage", () => {
     mockStream({
       events: [
-        { loai: "ket-qua", loi: false, luot: 1, nguCanh: 7 },
-        { loai: "ket-qua", loi: false, luot: 2, nguCanh: 12 },
+        { loai: "ket-qua", err: false, luot: 1, nguCanh: 7 },
+        { loai: "ket-qua", err: false, luot: 2, nguCanh: 12 },
       ],
     });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     expect(screen.getByLabelText("Context 12% full")).toBeInTheDocument();
     expect(screen.getByText("12%")).toBeInTheDocument();
   });
@@ -111,15 +111,15 @@ describe("LiveView — one mode, VSCode-style controls", () => {
       events: [
         {
           loai: "ket-qua",
-          loi: false,
+          err: false,
           luot: 1,
           nguCanh: 10,
-          dungToken: 104_635,
+          validToken: 104_635,
           cuaSoToken: 1_000_000,
         },
       ],
     });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     expect(
       screen.getByLabelText("Context 10% full — 105k/1M tokens"),
     ).toBeInTheDocument();
@@ -132,24 +132,24 @@ describe("session mode switch (V2.5a) — the VSCode-style mode menu by the send
     const user = userEvent.setup();
     mockStream({});
     const { changeModeAction } = await import("../api/actions");
-    render(<LiveView phien={{ ...PHIEN, mode: "auto" }} />);
+    render(<LiveView session={{ ...PHIEN, mode: "auto" }} />);
 
-    const nut = screen.getByRole("button", { name: "Session mode" });
-    expect(nut).toHaveTextContent("Auto");
-    await user.click(nut);
+    const btn = screen.getByRole("button", { name: "Session mode" });
+    expect(btn).toHaveTextContent("Auto");
+    await user.click(btn);
     // Menu mở LÊN trên: từng mode có tên + mô tả, mode hiện tại đánh dấu.
     const menu = screen.getByRole("menu", { name: "Session modes" });
     expect(menu).toHaveTextContent("Read-only");
     await user.click(screen.getByRole("menuitemradio", { name: /plan/i }));
 
     expect(vi.mocked(changeModeAction)).toHaveBeenCalledWith(PHIEN.id, "plan");
-    expect(nut).toHaveTextContent("Plan");
+    expect(btn).toHaveTextContent("Plan");
     expect(screen.queryByRole("menu", { name: "Session modes" })).not.toBeInTheDocument();
   });
 
   it("chat sessions (no tools) have no mode menu", () => {
     mockStream({});
-    render(<LiveView phien={{ ...PHIEN, worktree: false }} />);
+    render(<LiveView session={{ ...PHIEN, worktree: false }} />);
     expect(screen.queryByRole("button", { name: "Session mode" })).not.toBeInTheDocument();
   });
 });
@@ -158,16 +158,16 @@ describe("continue a finished session (V2.6)", () => {
   it("ended session shows Continue; clicking calls the action", async () => {
     const user = userEvent.setup();
     mockStream({ ended: "done" });
-    const { tiepTucAction } = await import("../api/actions");
+    const { continueAction } = await import("../api/actions");
     const reload = vi.fn();
     Object.defineProperty(window, "location", {
       value: { ...window.location, reload },
       writable: true,
     });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
 
     await user.click(screen.getByRole("button", { name: /continue session/i }));
-    expect(vi.mocked(tiepTucAction)).toHaveBeenCalledWith(PHIEN.id);
+    expect(vi.mocked(continueAction)).toHaveBeenCalledWith(PHIEN.id);
     expect(reload).toHaveBeenCalled();
   });
 });
@@ -175,7 +175,7 @@ describe("continue a finished session (V2.6)", () => {
 describe("working indicator — VSCode-style shimmer while the agent owes an answer", () => {
   it("busy with NOTHING streaming yet → the indicator runs", () => {
     mockStream({ events: [{ loai: "nguoi-noi", text: "what is this repo?" }] });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     expect(screen.getByLabelText("Agent is working")).toBeInTheDocument();
   });
 
@@ -184,7 +184,7 @@ describe("working indicator — VSCode-style shimmer while the agent owes an ans
       events: [{ loai: "nguoi-noi", text: "do it" }],
       typing: "Answer star",
     });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     expect(screen.queryByLabelText("Agent is working")).not.toBeInTheDocument();
   });
 
@@ -192,24 +192,24 @@ describe("working indicator — VSCode-style shimmer while the agent owes an ans
     mockStream({
       events: [
         { loai: "nguoi-noi", text: "do it" },
-        { loai: "ket-qua", loi: false, luot: 1, nguCanh: 5 },
+        { loai: "ket-qua", err: false, luot: 1, nguCanh: 5 },
       ],
     });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     expect(screen.queryByLabelText("Agent is working")).not.toBeInTheDocument();
   });
 });
 
 describe("slash palette (global ~/.claude/commands)", () => {
   const COMMANDS = [
-    { name: "build", moTa: "Implement tasks incrementally" },
-    { name: "issue", moTa: "Create a GitHub issue" },
+    { name: "build", hint: "Implement tasks incrementally" },
+    { name: "issue", hint: "Create a GitHub issue" },
   ];
 
   it("typing / lists the machine's commands; picking keeps '/name ' for arguments", async () => {
     const user = userEvent.setup();
     mockStream({});
-    render(<LiveView phien={PHIEN} commands={COMMANDS} />);
+    render(<LiveView session={PHIEN} commands={COMMANDS} />);
 
     const o = screen.getByLabelText("Message to the agent");
     await user.type(o, "/");
@@ -224,12 +224,12 @@ describe("slash palette (global ~/.claude/commands)", () => {
   it("filters by what is typed and stays away from no-tool chat sessions", async () => {
     const user = userEvent.setup();
     mockStream({});
-    const { rerender } = render(<LiveView phien={PHIEN} commands={COMMANDS} />);
+    const { rerender } = render(<LiveView session={PHIEN} commands={COMMANDS} />);
     await user.type(screen.getByLabelText("Message to the agent"), "/is");
     expect(screen.getByRole("listbox", { name: "Commands" })).toHaveTextContent("/issue");
     expect(screen.queryByText("/build")).not.toBeInTheDocument();
 
-    rerender(<LiveView phien={{ ...PHIEN, worktree: false }} commands={COMMANDS} />);
+    rerender(<LiveView session={{ ...PHIEN, worktree: false }} commands={COMMANDS} />);
     expect(screen.queryByRole("listbox", { name: "Commands" })).not.toBeInTheDocument();
   });
 });
@@ -250,7 +250,7 @@ describe("Enter — phones get a newline, keyboards send", () => {
     mockStream({});
     const { sendToSessionAction } = await import("../api/actions");
     vi.mocked(sendToSessionAction).mockClear();
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     await user.type(screen.getByLabelText("Message to the agent"), "hello{Enter}");
     expect(vi.mocked(sendToSessionAction)).toHaveBeenCalledWith(PHIEN.id, "hello");
   });
@@ -261,7 +261,7 @@ describe("Enter — phones get a newline, keyboards send", () => {
     mockStream({});
     const { sendToSessionAction } = await import("../api/actions");
     vi.mocked(sendToSessionAction).mockClear();
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     const o = screen.getByLabelText("Message to the agent");
     await user.type(o, "dòng một{Enter}dòng hai");
     expect(vi.mocked(sendToSessionAction)).not.toHaveBeenCalled();
@@ -275,7 +275,7 @@ describe("Enter — phones get a newline, keyboards send", () => {
 describe("action chips — the phone-first flow buttons", () => {
   const FLOW_COMMANDS = ["issue", "build", "review", "pr", "demo", "preview"].map((n) => ({
     name: n,
-    moTa: n,
+    hint: n,
   }));
 
   it("tapping a chip PICKS the command as prefix — nothing is sent until the send button", async () => {
@@ -283,7 +283,7 @@ describe("action chips — the phone-first flow buttons", () => {
     mockStream({});
     const { sendToSessionAction } = await import("../api/actions");
     vi.mocked(sendToSessionAction).mockClear();
-    render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+    render(<LiveView session={PHIEN} commands={FLOW_COMMANDS} />);
 
     const chips = screen.getByRole("toolbar", { name: "Session actions" });
     expect(chips).toHaveTextContent("Issue");
@@ -302,7 +302,7 @@ describe("action chips — the phone-first flow buttons", () => {
   it("tapping the picked chip again unpicks it; tapping another swaps the prefix, body kept", async () => {
     const user = userEvent.setup();
     mockStream({});
-    render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+    render(<LiveView session={PHIEN} commands={FLOW_COMMANDS} />);
 
     const o = screen.getByLabelText("Message to the agent");
     await user.type(o, "màn đăng nhập");
@@ -322,22 +322,22 @@ describe("action chips — the phone-first flow buttons", () => {
 
   it("only chips whose command exists on the machine appear", () => {
     mockStream({});
-    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "b" }]} />);
+    render(<LiveView session={PHIEN} commands={[{ name: "build", hint: "b" }]} />);
     expect(screen.getByRole("button", { name: "Use /build" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Use /issue" })).not.toBeInTheDocument();
   });
 
   it("chat sessions (no tools) get no chips", () => {
     mockStream({});
-    render(<LiveView phien={{ ...PHIEN, worktree: false }} commands={FLOW_COMMANDS} />);
+    render(<LiveView session={{ ...PHIEN, worktree: false }} commands={FLOW_COMMANDS} />);
     expect(screen.queryByRole("toolbar", { name: "Session actions" })).not.toBeInTheDocument();
   });
 
   it("V2.4: the flow's NEXT step glows — no issue → Issue; issue → Build; PR → Preview", () => {
-    const chip = (ten: string) => screen.getByRole("button", { name: `Use /${ten}` });
+    const chip = (name: string) => screen.getByRole("button", { name: `Use /${name}` });
 
     mockStream({});
-    const { unmount } = render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+    const { unmount } = render(<LiveView session={PHIEN} commands={FLOW_COMMANDS} />);
     expect(chip("issue")).toHaveAttribute("data-suggested");
     expect(chip("build")).not.toHaveAttribute("data-suggested");
     unmount();
@@ -347,7 +347,7 @@ describe("action chips — the phone-first flow buttons", () => {
         { loai: "artifact", kind: "issue", url: "https://github.com/you/myapp/issues/7", number: 7, title: null },
       ],
     });
-    const r2 = render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+    const r2 = render(<LiveView session={PHIEN} commands={FLOW_COMMANDS} />);
     expect(chip("build")).toHaveAttribute("data-suggested");
     r2.unmount();
 
@@ -357,7 +357,7 @@ describe("action chips — the phone-first flow buttons", () => {
         { loai: "artifact", kind: "pr", url: "https://github.com/you/myapp/pull/8", number: 8, title: null },
       ],
     });
-    render(<LiveView phien={PHIEN} commands={FLOW_COMMANDS} />);
+    render(<LiveView session={PHIEN} commands={FLOW_COMMANDS} />);
     expect(chip("preview")).toHaveAttribute("data-suggested");
     expect(chip("issue")).not.toHaveAttribute("data-suggested");
   });
@@ -367,7 +367,7 @@ describe("context — VSCode-style compaction affordances", () => {
   it("palette lists the built-in /compact even though no command file exists", async () => {
     const user = userEvent.setup();
     mockStream({});
-    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "b" }]} />);
+    render(<LiveView session={PHIEN} commands={[{ name: "build", hint: "b" }]} />);
     await user.type(screen.getByLabelText("Message to the agent"), "/com");
     expect(screen.getByRole("listbox", { name: "Commands" })).toHaveTextContent("/compact");
   });
@@ -375,16 +375,16 @@ describe("context — VSCode-style compaction affordances", () => {
   it("ring at ≥90% shows the almost-full hint", () => {
     mockStream({
       events: [
-        { loai: "ket-qua", loi: false, luot: 3, nguCanh: 93, dungToken: 186_000, cuaSoToken: 200_000 },
+        { loai: "ket-qua", err: false, luot: 3, nguCanh: 93, validToken: 186_000, cuaSoToken: 200_000 },
       ],
     });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
     expect(screen.getByText(/almost full/)).toBeInTheDocument();
   });
 
   it("below the threshold there is no hint", () => {
-    mockStream({ events: [{ loai: "ket-qua", loi: false, luot: 3, nguCanh: 42 }] });
-    render(<LiveView phien={PHIEN} />);
+    mockStream({ events: [{ loai: "ket-qua", err: false, luot: 3, nguCanh: 42 }] });
+    render(<LiveView session={PHIEN} />);
     expect(screen.queryByText(/almost full/)).not.toBeInTheDocument();
   });
 });
@@ -394,7 +394,7 @@ describe("bottom-left input buttons — '+' attach and the actions panel (VSCode
     const user = userEvent.setup();
     mockStream({});
     const { uploadFileAction } = await import("../api/actions");
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
 
     await user.click(screen.getByRole("button", { name: "Attach" }));
     await user.click(screen.getByRole("menuitem", { name: /upload from computer/i }));
@@ -410,7 +410,7 @@ describe("bottom-left input buttons — '+' attach and the actions panel (VSCode
   it("the actions panel filters across commands, session actions and modes", async () => {
     const user = userEvent.setup();
     mockStream({});
-    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "Implement tasks" }]} />);
+    render(<LiveView session={PHIEN} commands={[{ name: "build", hint: "Implement tasks" }]} />);
 
     await user.click(screen.getByRole("button", { name: "Actions" }));
     const panel = screen.getByRole("menu", { name: "Session actions menu" });
@@ -428,7 +428,7 @@ describe("bottom-left input buttons — '+' attach and the actions panel (VSCode
     mockStream({});
     const { sendToSessionAction } = await import("../api/actions");
     vi.mocked(sendToSessionAction).mockClear();
-    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "Implement tasks" }]} />);
+    render(<LiveView session={PHIEN} commands={[{ name: "build", hint: "Implement tasks" }]} />);
 
     await user.click(screen.getByRole("button", { name: "Actions" }));
     await user.click(screen.getByRole("menuitem", { name: /\/build/ }));
@@ -443,7 +443,7 @@ describe("bottom-left input buttons — '+' attach and the actions panel (VSCode
   it("chat sessions: no attach button, but the panel stays — a model is not a tool", async () => {
     const user = userEvent.setup();
     mockStream({});
-    render(<LiveView phien={{ ...PHIEN, worktree: false }} commands={[{ name: "build", moTa: "b" }]} />);
+    render(<LiveView session={{ ...PHIEN, worktree: false }} commands={[{ name: "build", hint: "b" }]} />);
     expect(screen.queryByRole("button", { name: "Attach" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Actions" }));
@@ -461,7 +461,7 @@ describe("model picker (V2.7) — the panel's Model group, like VSCode's 'Select
     mockStream({});
     const { changeModelAction } = await import("../api/actions");
     vi.mocked(changeModelAction).mockClear();
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
 
     await user.click(screen.getByRole("button", { name: "Actions" }));
     const panel = screen.getByRole("menu", { name: "Session actions menu" });
@@ -484,7 +484,7 @@ describe("model picker (V2.7) — the panel's Model group, like VSCode's 'Select
     mockStream({});
     const { changeModelAction } = await import("../api/actions");
     vi.mocked(changeModelAction).mockResolvedValueOnce({ ok: false, message: "Model saved but restart failed: boom" });
-    render(<LiveView phien={PHIEN} />);
+    render(<LiveView session={PHIEN} />);
 
     await user.click(screen.getByRole("button", { name: "Actions" }));
     await user.click(screen.getByRole("menuitemradio", { name: "Model: Haiku" }));
@@ -500,7 +500,7 @@ describe("model picker (V2.7) — the panel's Model group, like VSCode's 'Select
   it("the session's saved model is what the panel shows as checked", async () => {
     const user = userEvent.setup();
     mockStream({});
-    render(<LiveView phien={{ ...PHIEN, model: "sonnet" }} />);
+    render(<LiveView session={{ ...PHIEN, model: "sonnet" }} />);
     await user.click(screen.getByRole("button", { name: "Actions" }));
     expect(screen.getByRole("menuitemradio", { name: "Model: Sonnet" })).toHaveAttribute(
       "aria-checked",
@@ -515,7 +515,7 @@ describe("model picker (V2.7) — the panel's Model group, like VSCode's 'Select
   it("filter reaches the models too", async () => {
     const user = userEvent.setup();
     mockStream({});
-    render(<LiveView phien={PHIEN} commands={[{ name: "build", moTa: "Implement" }]} />);
+    render(<LiveView session={PHIEN} commands={[{ name: "build", hint: "Implement" }]} />);
     await user.click(screen.getByRole("button", { name: "Actions" }));
     await user.type(screen.getByLabelText("Filter actions"), "haiku");
     const panel = screen.getByRole("menu", { name: "Session actions menu" });

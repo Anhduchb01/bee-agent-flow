@@ -21,7 +21,7 @@ const ROW = {
   updatedAt: "2026-08-17T10:02:00Z",
 };
 
-async function dangKy(repo: string) {
+async function registered(repo: string) {
   await fs.mkdir(path.join(dir, "repos.d"), { recursive: true });
   await fs.writeFile(path.join(dir, "repos.d", "myapp.env"), `REPO=${repo}\n`);
 }
@@ -40,13 +40,13 @@ describe("fetchRepoIssues — external data crossing into the app", () => {
   });
 
   it("reads a registered repo's issues and sorts them newest number first", async () => {
-    await dangKy("you/myapp");
+    await registered("you/myapp");
     const runGh = vi.fn<RunGh>(async () => ({
       stdout: JSON.stringify([ROW, { ...ROW, number: 44 }]),
     }));
 
-    const { issues, loi } = await fetchRepoIssues("you/myapp", { runGh });
-    expect(loi).toBeNull();
+    const { issues, err } = await fetchRepoIssues("you/myapp", { runGh });
+    expect(err).toBeNull();
     expect(issues.map((i) => i.number)).toEqual([44, 41]);
     expect(issues[1]).toMatchObject({ labels: ["enhancement"], assignees: ["Anhduchb01"] });
     // The state filter must be "all": a board without Done is not a board.
@@ -55,22 +55,22 @@ describe("fetchRepoIssues — external data crossing into the app", () => {
 
   it("refuses an unregistered repo — gh never runs for it", async () => {
     const runGh = vi.fn<RunGh>();
-    const { issues, loi } = await fetchRepoIssues("someone/else", { runGh });
+    const { issues, err } = await fetchRepoIssues("someone/else", { runGh });
     expect(issues).toEqual([]);
-    expect(loi).toMatch(/not a registered repo/);
+    expect(err).toMatch(/not a registered repo/);
     expect(runGh).not.toHaveBeenCalled();
   });
 
   it("rejects an invalid repo name before it can reach argv", async () => {
     const runGh = vi.fn<RunGh>();
     for (const xau of ["you/myapp; rm -rf /", "--repo", "../../etc", ""]) {
-      expect((await fetchRepoIssues(xau, { runGh })).loi).toBe("Invalid repository.");
+      expect((await fetchRepoIssues(xau, { runGh })).err).toBe("Invalid repository.");
     }
     expect(runGh).not.toHaveBeenCalled();
   });
 
   it("drops malformed rows instead of trusting gh's output shape", async () => {
-    await dangKy("you/myapp");
+    await registered("you/myapp");
     const runGh = vi.fn<RunGh>(async () => ({
       stdout: JSON.stringify([
         ROW,
@@ -79,53 +79,53 @@ describe("fetchRepoIssues — external data crossing into the app", () => {
         null,
       ]),
     }));
-    const { issues, loi } = await fetchRepoIssues("you/myapp", { runGh });
+    const { issues, err } = await fetchRepoIssues("you/myapp", { runGh });
     expect(issues.map((i) => i.number)).toEqual([41]);
     // Bỏ thì bỏ, nhưng phải NÓI đã bỏ mấy dòng: nếu gh đổi dạng JSON, một
     // bảng trống im lặng đọc y hệt "repo này chưa có issue nào".
-    expect(loi).toMatch(/skipped 3 of 4/);
+    expect(err).toMatch(/skipped 3 of 4/);
   });
 
   it("gh exits 0 with something that is not a list → nói ra, không trả bảng trống", async () => {
-    await dangKy("you/myapp");
+    await registered("you/myapp");
     const runGh = vi.fn<RunGh>(async () => ({ stdout: JSON.stringify({ message: "Not Found" }) }));
-    const { issues, loi } = await fetchRepoIssues("you/myapp", { runGh });
+    const { issues, err } = await fetchRepoIssues("you/myapp", { runGh });
     expect(issues).toEqual([]);
-    expect(loi).toMatch(/not an issue list/i);
+    expect(err).toMatch(/not an issue list/i);
   });
 
   it("lý do đọc thiếu nằm TRONG cache — lần sau không được im", async () => {
-    await dangKy("you/myapp");
+    await registered("you/myapp");
     const runGh = vi.fn<RunGh>(async () => ({ stdout: JSON.stringify([ROW, null]) }));
     const now = () => 1_000;
-    const dau = await fetchRepoIssues("you/myapp", { runGh, now });
-    expect(dau.loi).toMatch(/skipped 1 of 2/);
-    const sau = await fetchRepoIssues("you/myapp", { runGh, now });
+    const head = await fetchRepoIssues("you/myapp", { runGh, now });
+    expect(head.err).toMatch(/skipped 1 of 2/);
+    const next = await fetchRepoIssues("you/myapp", { runGh, now });
     expect(runGh).toHaveBeenCalledTimes(1);
-    expect(sau.loi).toBe(dau.loi);
+    expect(next.err).toBe(head.err);
   });
 
   it("a broken gh comes back as data — one repo cannot blank the board", async () => {
-    await dangKy("you/myapp");
+    await registered("you/myapp");
     const runGh = vi.fn<RunGh>(async () => {
       throw new Error("gh: could not authenticate");
     });
-    const { issues, loi } = await fetchRepoIssues("you/myapp", { runGh });
+    const { issues, err } = await fetchRepoIssues("you/myapp", { runGh });
     expect(issues).toEqual([]);
-    expect(loi).toMatch(/could not authenticate/i);
+    expect(err).toMatch(/could not authenticate/i);
   });
 
   it("caches for 60s so a page refresh does not spawn gh per repo", async () => {
-    await dangKy("you/myapp");
+    await registered("you/myapp");
     const runGh = vi.fn<RunGh>(async () => ({ stdout: JSON.stringify([ROW]) }));
-    let luc = 1_000;
-    const now = () => luc;
+    let at = 1_000;
+    const now = () => at;
 
     await fetchRepoIssues("you/myapp", { runGh, now });
     await fetchRepoIssues("you/myapp", { runGh, now });
     expect(runGh).toHaveBeenCalledTimes(1);
 
-    luc += 61_000;
+    at += 61_000;
     await fetchRepoIssues("you/myapp", { runGh, now });
     expect(runGh).toHaveBeenCalledTimes(2);
   });

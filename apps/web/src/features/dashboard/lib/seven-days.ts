@@ -4,15 +4,15 @@ export interface RunDay {
   /** `YYYY-MM-DD` theo giờ địa phương. */
   ngay: string;
   /** Nhãn ngắn trên trục: Mon…Sun, hoặc "Today". */
-  nhan: string;
-  xong: number;
-  loi: number;
+  label: string;
+  finished: number;
+  err: number;
   tong: number;
 }
 
-const THU = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function khoaNgay(d: Date): string {
+function dayKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
     d.getDate(),
   ).padStart(2, "0")}`;
@@ -30,29 +30,29 @@ function khoaNgay(d: Date): string {
  * hiện sẽ lặng lẽ rơi vào ô "xong".
  */
 export function lastSevenDays(runs: BeeRecentRun[], now: Date = new Date()): RunDay[] {
-  const dem = new Map<string, { xong: number; loi: number }>();
+  const counter = new Map<string, { finished: number; err: number }>();
 
   for (const r of runs) {
     const t = Date.parse(r.at);
     if (Number.isNaN(t)) continue;
-    const key = khoaNgay(new Date(t));
-    const o = dem.get(key) ?? { xong: 0, loi: 0 };
-    if (r.result === "ok") o.xong += 1;
-    else o.loi += 1;
-    dem.set(key, o);
+    const key = dayKey(new Date(t));
+    const o = counter.get(key) ?? { finished: 0, err: 0 };
+    if (r.result === "ok") o.finished += 1;
+    else o.err += 1;
+    counter.set(key, o);
   }
 
   const out: RunDay[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    const key = khoaNgay(d);
-    const o = dem.get(key) ?? { xong: 0, loi: 0 };
+    const key = dayKey(d);
+    const o = counter.get(key) ?? { finished: 0, err: 0 };
     out.push({
       ngay: key,
-      nhan: i === 0 ? "Today" : THU[d.getDay()],
-      xong: o.xong,
-      loi: o.loi,
-      tong: o.xong + o.loi,
+      label: i === 0 ? "Today" : WEEKDAY[d.getDay()],
+      finished: o.finished,
+      err: o.err,
+      tong: o.finished + o.err,
     });
   }
   return out;
@@ -61,18 +61,18 @@ export function lastSevenDays(runs: BeeRecentRun[], now: Date = new Date()): Run
 /** Câu tóm tắt dưới biểu đồ. `null` khi bảy ngày không có lần chạy nào. */
 export function tomTatBayNgay(days: RunDay[]): string | null {
   const homNay = days.at(-1);
-  const truoc = days.slice(0, -1);
-  const tongTruoc = truoc.reduce((n, d) => n + d.tong, 0);
-  const loiTruoc = truoc.reduce((n, d) => n + d.loi, 0);
+  const prev = days.slice(0, -1);
+  const tongTruoc = prev.reduce((n, d) => n + d.tong, 0);
+  const prevError = prev.reduce((n, d) => n + d.err, 0);
 
   if (!homNay || (homNay.tong === 0 && tongTruoc === 0)) return null;
   if (homNay.tong === 0) return "No runs today yet.";
 
-  const tiLeHomNay = homNay.loi / homNay.tong;
-  const tiLeTruoc = tongTruoc === 0 ? 0 : loiTruoc / tongTruoc;
+  const tiLeHomNay = homNay.err / homNay.tong;
+  const tiLeTruoc = tongTruoc === 0 ? 0 : prevError / tongTruoc;
 
-  if (homNay.loi > 0 && tiLeHomNay > tiLeTruoc * 2) {
-    return `${homNay.loi} of ${homNay.tong} runs failed today — sharply higher than the six days before.`;
+  if (homNay.err > 0 && tiLeHomNay > tiLeTruoc * 2) {
+    return `${homNay.err} of ${homNay.tong} runs failed today — sharply higher than the six days before.`;
   }
-  return `${homNay.xong} of ${homNay.tong} runs finished today.`;
+  return `${homNay.finished} of ${homNay.tong} runs finished today.`;
 }

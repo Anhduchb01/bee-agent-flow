@@ -25,7 +25,7 @@ function root(): string {
   return process.env.BEE_SRV ?? "/srv/bee";
 }
 
-function xong(): Result {
+function finished(): Result {
   revalidatePath("/projects");
   revalidatePath("/canvas");
   return { ok: true, message: "" };
@@ -42,16 +42,16 @@ export async function enqueueAction(input: {
   if (!Number.isInteger(input.issue) || input.issue <= 0) {
     return { ok: false, message: "Invalid issue number." };
   }
-  const goc = root();
-  await writeQueue(goc, addQueueItem(await readQueue(goc), input));
-  return xong();
+  const baseDir = root();
+  await writeQueue(baseDir, addQueueItem(await readQueue(baseDir), input));
+  return finished();
 }
 
 export async function dequeueAction(repo: string, issue: number): Promise<Result> {
   if (!(await getActor())) return KHONG_QUYEN;
-  const goc = root();
-  await writeQueue(goc, removeQueueItem(await readQueue(goc), repo, issue));
-  return xong();
+  const baseDir = root();
+  await writeQueue(baseDir, removeQueueItem(await readQueue(baseDir), repo, issue));
+  return finished();
 }
 
 export async function reorderAction(
@@ -61,17 +61,17 @@ export async function reorderAction(
 ): Promise<Result> {
   if (!(await getActor())) return KHONG_QUYEN;
   if (buoc !== -1 && buoc !== 1) return { ok: false, message: "Invalid step." };
-  const goc = root();
-  await writeQueue(goc, reorderQueueItem(await readQueue(goc), repo, issue, buoc));
-  return xong();
+  const baseDir = root();
+  await writeQueue(baseDir, reorderQueueItem(await readQueue(baseDir), repo, issue, buoc));
+  return finished();
 }
 
 /** ⏸ — hàng đợi giữ nguyên, chỉ ngừng nhặt việc mới. */
 export async function pauseQueueAction(paused: boolean): Promise<Result> {
   if (!(await getActor())) return KHONG_QUYEN;
-  const goc = root();
-  await writeQueue(goc, { ...(await readQueue(goc)), paused });
-  return xong();
+  const baseDir = root();
+  await writeQueue(baseDir, { ...(await readQueue(baseDir)), paused });
+  return finished();
 }
 
 /**

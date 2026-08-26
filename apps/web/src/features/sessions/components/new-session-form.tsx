@@ -10,11 +10,11 @@ import { startSessionAction } from "../api/actions";
 import { CHAT_OPTION, RepoCombobox } from "./repo-combobox";
 
 /** Permission modes (V2.5) — same menu as Claude Code in VSCode. */
-export const MODE_OPTIONS: { value: BeeSessionMode; label: string; moTa: string }[] = [
-  { value: "auto", label: "Auto", moTa: "Full tools, no prompts — V1 behavior" },
-  { value: "plan", label: "Plan", moTa: "Read-only: explores and presents a plan" },
-  { value: "edits", label: "Edits", moTa: "Edits files freely; other tools ask first" },
-  { value: "manual", label: "Manual", moTa: "Every tool asks — approve from the chat" },
+export const MODE_OPTIONS: { value: BeeSessionMode; label: string; hint: string }[] = [
+  { value: "auto", label: "Auto", hint: "Full tools, no prompts — V1 behavior" },
+  { value: "plan", label: "Plan", hint: "Read-only: explores and presents a plan" },
+  { value: "edits", label: "Edits", hint: "Edits files freely; other tools ask first" },
+  { value: "manual", label: "Manual", hint: "Every tool asks — approve from the chat" },
 ];
 
 /**
@@ -35,27 +35,27 @@ export function NewSessionForm({
   onCreated,
 }: {
   repos: BeeRegisteredRepo[];
-  onCreated?: (phien: BeeSession) => void;
+  onCreated?: (session: BeeSession) => void;
 }) {
   const router = useRouter();
-  const [chon, setChon] = useState(repos[0]?.slug ?? CHAT_OPTION);
+  const [chosen, setChon] = useState(repos[0]?.slug ?? CHAT_OPTION);
   const [mode, setMode] = useState<BeeSessionMode>("auto");
-  const [loi, setLoi] = useState("");
-  const [dangMo, batDauMo] = useTransition();
+  const [err, setErr] = useState("");
+  const [isOpen, batDauMo] = useTransition();
 
-  const laChat = chon === CHAT_OPTION;
+  const isChat = chosen === CHAT_OPTION;
 
-  function mo() {
-    if (dangMo) return;
+  function opener() {
+    if (isOpen) return;
     batDauMo(async () => {
-      const ket = await startSessionAction({ repoSlug: laChat ? null : chon, mode });
+      const ket = await startSessionAction({ repoSlug: isChat ? null : chosen, mode });
       if (!ket.ok) {
-        setLoi(ket.message);
+        setErr(ket.message);
         return;
       }
-      setLoi("");
-      if (onCreated && ket.phien !== null) {
-        onCreated(ket.phien);
+      setErr("");
+      if (onCreated && ket.session !== null) {
+        onCreated(ket.session);
         router.refresh();
       } else {
         router.push(`/sessions/${ket.id}`);
@@ -68,21 +68,21 @@ export function NewSessionForm({
       className="flex flex-col gap-2 rounded-card border border-border bg-card p-4 sm:flex-row sm:items-center"
       onSubmit={(e) => {
         e.preventDefault();
-        mo();
+        opener();
       }}
     >
       {/* min-w-0: without it the flex child's min-width is the FULL repo
           name, which shoves the button past the card edge on canvas. */}
       <div className="min-w-0 flex-1">
-        <RepoCombobox repos={repos} value={chon} onChange={setChon} />
+        <RepoCombobox repos={repos} value={chosen} onChange={setChon} />
       </div>
       {/* Mode như menu VSCode — phiên chat không tool nên không có mode. */}
-      {!laChat && (
+      {!isChat && (
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value as BeeSessionMode)}
           aria-label="Session mode"
-          title={MODE_OPTIONS.find((m) => m.value === mode)?.moTa}
+          title={MODE_OPTIONS.find((m) => m.value === mode)?.hint}
           className="h-9 rounded-control border border-border bg-transparent px-2 font-mono text-sm text-body"
         >
           {MODE_OPTIONS.map((m) => (
@@ -96,12 +96,12 @@ export function NewSessionForm({
           dark) read as unstyled next to the VSCode skin. */}
       <Button
         type="submit"
-        disabled={dangMo}
+        disabled={isOpen}
         className="bg-[#C15F3C] text-white hover:bg-[#a94f31]"
       >
-        {dangMo ? "Starting…" : laChat ? "New chat" : "New session"}
+        {isOpen ? "Starting…" : isChat ? "New chat" : "New session"}
       </Button>
-      {loi !== "" && <p className="text-xs text-destructive sm:ml-2">{loi}</p>}
+      {err !== "" && <p className="text-xs text-destructive sm:ml-2">{err}</p>}
     </form>
   );
 }

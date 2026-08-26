@@ -32,11 +32,11 @@ import { EnvEditor } from "./env-editor";
  */
 export function NewProjectDialog({ trigger }: { trigger: React.ReactElement }) {
   const router = useRouter();
-  const [mo, setMo] = useState(false);
+  const [opener, setMo] = useState(false);
   const [repo, setRepo] = useState("");
   const [slug, setSlug] = useState<string | null>(null);
-  const [loi, setLoi] = useState("");
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [busy, start] = useTransition();
 
   function line() {
     setMo(false);
@@ -45,27 +45,27 @@ export function NewProjectDialog({ trigger }: { trigger: React.ReactElement }) {
     setTimeout(() => {
       setRepo("");
       setSlug(null);
-      setLoi("");
+      setErr("");
     }, 0);
     router.refresh();
   }
 
-  function them() {
-    if (dang || repo.trim() === "") return;
+  function added() {
+    if (busy || repo.trim() === "") return;
     start(async () => {
       const ket = await registerRepoAction(repo.trim());
       if (ket.ok && ket.slug !== undefined) {
         setSlug(ket.slug);
-        setLoi("");
+        setErr("");
         router.refresh();
       } else {
-        setLoi(ket.message);
+        setErr(ket.message);
       }
     });
   }
 
   return (
-    <Dialog open={mo} onOpenChange={(v: boolean) => (v ? setMo(true) : line())}>
+    <Dialog open={opener} onOpenChange={(v: boolean) => (v ? setMo(true) : line())}>
       <DialogTrigger render={trigger} />
       <DialogContent className="max-w-lg">
         <DialogHeader>
@@ -82,7 +82,7 @@ export function NewProjectDialog({ trigger }: { trigger: React.ReactElement }) {
             className="flex flex-col gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              them();
+              added();
             }}
           >
             <Input
@@ -94,10 +94,10 @@ export function NewProjectDialog({ trigger }: { trigger: React.ReactElement }) {
               // text-base: under 16px iOS Safari zooms the page on focus.
               className="font-mono text-base sm:text-sm"
             />
-            {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+            {err !== "" && <p className="text-xs text-destructive">{err}</p>}
             <DialogFooter>
-              <Button type="submit" disabled={dang || repo.trim() === ""}>
-                {dang ? "Adding…" : "Add project"}
+              <Button type="submit" disabled={busy || repo.trim() === ""}>
+                {busy ? "Adding…" : "Add project"}
               </Button>
             </DialogFooter>
           </form>

@@ -6,7 +6,7 @@ import path from "node:path";
 import { ctl } from "./ctl";
 
 import {
-  cho,
+  waitFor,
   closeFlow,
   sendCode,
   oauthError,
@@ -55,7 +55,7 @@ function root(): string {
 const TOK = "tok";
 
 const POOL_DEMO: BeeClaudePool = {
-  dangBat: "work",
+  enabled: "work",
   slots: [
     {
       index: 1,
@@ -63,7 +63,7 @@ const POOL_DEMO: BeeClaudePool = {
       alias: null,
       email: "you@company.com",
       state: "active",
-      dangBat: true,
+      enabled: true,
       namGio: { percentOf: 29, resetLuc: null },
       bayNgay: { percentOf: 36, resetLuc: null },
       hetHan: false,
@@ -74,7 +74,7 @@ const POOL_DEMO: BeeClaudePool = {
       alias: null,
       email: "you@gmail.com",
       state: "idle",
-      dangBat: false,
+      enabled: false,
       namGio: { percentOf: 4, resetLuc: null },
       bayNgay: { percentOf: 11, resetLuc: null },
       hetHan: false,
@@ -101,8 +101,8 @@ export interface TrangThaiSlayer {
 
 async function coTokenGhim(): Promise<boolean> {
   try {
-    const noi = await fs.readFile(path.join(root(), "claude.env"), "utf8");
-    return /^CLAUDE_CODE_OAUTH_TOKEN=\S/m.test(noi);
+    const speak = await fs.readFile(path.join(root(), "claude.env"), "utf8");
+    return /^CLAUDE_CODE_OAUTH_TOKEN=\S/m.test(speak);
   } catch {
     return false;
   }
@@ -122,8 +122,8 @@ export async function readSlayerStatus(): Promise<TrangThaiSlayer> {
   try {
     ra = await ctl(TOK, ["list", "--json"], { timeout: 30_000, maxBuffer: 4 << 20 });
   } catch (e) {
-    const loi = e as NodeJS.ErrnoException & { stderr?: string };
-    if (loi.code === "ENOENT") {
+    const err = e as NodeJS.ErrnoException & { stderr?: string };
+    if (err.code === "ENOENT") {
       return { daCai: false, pool: null, tokenGhim: ghim, message: null, coLoginMay: coLogin };
     }
     return {
@@ -131,7 +131,7 @@ export async function readSlayerStatus(): Promise<TrangThaiSlayer> {
       pool: null,
       tokenGhim: ghim,
       coLoginMay: coLogin,
-      message: (loi.stderr ?? loi.message).slice(0, 200),
+      message: (err.stderr ?? err.message).slice(0, 200),
     };
   }
   const pool = readSlayerPool(ra.stdout);
@@ -145,18 +145,18 @@ export async function readSlayerStatus(): Promise<TrangThaiSlayer> {
 }
 
 /**
- * Đổi tài khoản đang bật. `phienDangChay` do lớp gọi đếm và truyền vào —
+ * Đổi tài khoản đang bật. `runningSessions` do lớp gọi đếm và truyền vào —
  * hàm này không tự đi đọc đĩa, để luật "không đổi khi đang chạy" test được
  * mà không cần dựng cả thư mục phiên.
  */
-export async function switchSlot(target: string, phienDangChay: number): Promise<Result> {
+export async function switchSlot(target: string, runningSessions: number): Promise<Result> {
   const trimmed = target.trim();
   if (!isSlotTarget(trimmed)) return { ok: false, message: "Tên slot không hợp lệ." };
-  if (phienDangChay > 0) {
+  if (runningSessions > 0) {
     return {
       ok: false,
       message:
-        `Còn ${phienDangChay} phiên đang chạy. Đổi tài khoản là đổi cho CẢ MÁY, ` +
+        `Còn ${runningSessions} phiên đang chạy. Đổi tài khoản là đổi cho CẢ MÁY, ` +
         "phiên đang chạy sẽ trôi sang tài khoản mới lúc nó làm mới token — dừng chúng trước đã.",
     };
   }
@@ -165,8 +165,8 @@ export async function switchSlot(target: string, phienDangChay: number): Promise
     await ctl(TOK, ["switch", trimmed], { timeout: 60_000 });
     return { ok: true };
   } catch (e) {
-    const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
-    return { ok: false, message: (loi.stderr || loi.stdout || loi.message).slice(0, 300) };
+    const err = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
+    return { ok: false, message: (err.stderr || err.stdout || err.message).slice(0, 300) };
   }
 }
 
@@ -181,8 +181,8 @@ export async function captureSlot(name: string): Promise<Result> {
     await ctl(TOK, ["add", trimmed], { timeout: 120_000 });
     return { ok: true };
   } catch (e) {
-    const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
-    return { ok: false, message: (loi.stderr || loi.stdout || loi.message).slice(0, 300) };
+    const err = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
+    return { ok: false, message: (err.stderr || err.stdout || err.message).slice(0, 300) };
   }
 }
 
@@ -191,11 +191,11 @@ export async function captureSlot(name: string): Promise<Result> {
  * vào — cùng hình dạng với `claude setup-token`, nên cùng một tay lái.
  * Một luồng tại một thời điểm; mở luồng mới là bỏ luồng cũ.
  */
-let luongThem: PtyFlow | null = null;
+let addFlow: PtyFlow | null = null;
 
 function dongThem(): void {
-  closeFlow(luongThem);
-  luongThem = null;
+  closeFlow(addFlow);
+  addFlow = null;
 }
 
 export async function startAddSlot(name: string): Promise<LinkResult> {
@@ -206,57 +206,57 @@ export async function startAddSlot(name: string): Promise<LinkResult> {
   if (isFixture()) return { ok: true, url: "https://claude.ai/oauth/authorize?demo=1" };
 
   dongThem();
-  const luong = openFlow(`${TOK} add ${trimmed} --login`);
-  luongThem = luong;
+  const flow = openFlow(`${TOK} add ${trimmed} --login`);
+  addFlow = flow;
 
-  const url = await cho(luong, extractOauthUrl);
+  const url = await waitFor(flow, extractOauthUrl);
   if (url !== null) return { ok: true, url };
-  const thay = lastScreen(luong.out);
-  const vi = luong.done ? "luồng thoát trước khi in URL" : "hết giờ chờ URL";
+  const swapWith = lastScreen(flow.out);
+  const vi = flow.done ? "luồng thoát trước khi in URL" : "hết giờ chờ URL";
   dongThem();
   return {
     ok: false,
-    message: `Không lấy được link — ${vi}.${thay === null ? "" : ` Màn hình vừa in: “${thay}”`}`,
+    message: `Không lấy được link — ${vi}.${swapWith === null ? "" : ` Màn hình vừa in: “${swapWith}”`}`,
   };
 }
 
-export async function xongThemSlot(code: string): Promise<Result> {
+export async function finishAddSlot(code: string): Promise<Result> {
   const trimmed = code.trim();
   if (!/^[A-Za-z0-9#_-]+$/.test(trimmed)) return { ok: false, message: "Đó không giống một mã xác nhận." };
   if (isFixture()) return { ok: true };
 
-  const luong = luongThem;
-  if (luong === null || luong.done) {
+  const flow = addFlow;
+  if (flow === null || flow.done) {
     dongThem();
     return { ok: false, message: "Không có luồng đăng nhập nào đang chờ — lấy link mới đã." };
   }
 
-  await sendCode(luong, trimmed);
+  await sendCode(flow, trimmed);
   // `tok` lưu credential rồi mới thoát: kết thúc sạch = xong.
   for (let i = 0; i < 120; i++) {
-    if (i === 20) nudgeEnter(luong);
-    const refused = oauthError(luong.out);
+    if (i === 20) nudgeEnter(flow);
+    const refused = oauthError(flow.out);
     if (refused !== null) {
       dongThem();
       return { ok: false, message: `${refused} — lấy link mới rồi thử lại.` };
     }
-    if (luong.done) {
-      const thay = lastScreen(luong.out);
-      const ma = luong.p.exitCode;
+    if (flow.done) {
+      const swapWith = lastScreen(flow.out);
+      const code = flow.p.exitCode;
       dongThem();
-      if (ma === 0) return { ok: true };
+      if (code === 0) return { ok: true };
       return {
         ok: false,
-        message: `tok add thoát với mã ${ma ?? "?"}.${thay === null ? "" : ` Màn hình vừa in: “${thay}”`}`,
+        message: `tok add thoát với mã ${code ?? "?"}.${swapWith === null ? "" : ` Màn hình vừa in: “${swapWith}”`}`,
       };
     }
     await new Promise((r) => setTimeout(r, 250));
   }
-  const thay = lastScreen(luong.out);
+  const swapWith = lastScreen(flow.out);
   dongThem();
   return {
     ok: false,
-    message: `Hết giờ chờ tok add.${thay === null ? "" : ` Màn hình vừa in: “${thay}”`}`,
+    message: `Hết giờ chờ tok add.${swapWith === null ? "" : ` Màn hình vừa in: “${swapWith}”`}`,
   };
 }
 
@@ -285,9 +285,9 @@ export async function installSlayer(token: string): Promise<Result> {
     );
     return { ok: true };
   } catch (e) {
-    const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
-    const noi = (loi.stderr || loi.stdout || loi.message).replaceAll(trimmed, "…");
-    return { ok: false, message: noi.slice(-300) };
+    const err = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
+    const speak = (err.stderr || err.stdout || err.message).replaceAll(trimmed, "…");
+    return { ok: false, message: speak.slice(-300) };
   }
 }
 
@@ -299,18 +299,18 @@ export async function installSlayer(token: string): Promise<Result> {
  * Reissue"* chính là câu trả lời cho "sao tôi chưa đăng nhập được", và giấu
  * nó sau một chữ "xong" là lấy mất thứ duy nhất hữu ích.
  */
-export async function pullGrantedAccounts(): Promise<Result & { noi?: string }> {
+export async function pullGrantedAccounts(): Promise<Result & { speak?: string }> {
   if (isFixture()) {
-    return { ok: true, noi: "Nothing to do. (No provisioned accounts to add or remove.)" };
+    return { ok: true, speak: "Nothing to do. (No provisioned accounts to add or remove.)" };
   }
   try {
     const ra = await ctl(TOK, ["setup"], { timeout: 180_000, maxBuffer: 4 << 20 });
-    const noi = `${ra.stdout}${ra.stderr ?? ""}`.trim().split("\n").slice(-4).join("\n");
-    return { ok: true, noi: noi === "" ? "tok setup: xong, không nói gì thêm." : noi };
+    const speak = `${ra.stdout}${ra.stderr ?? ""}`.trim().split("\n").slice(-4).join("\n");
+    return { ok: true, speak: speak === "" ? "tok setup: xong, không nói gì thêm." : speak };
   } catch (e) {
-    const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
-    if (loi.code === "ENOENT") return { ok: false, message: "Máy chưa cài token-slayer." };
-    return { ok: false, message: (loi.stderr || loi.stdout || loi.message).trim().slice(-300) };
+    const err = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
+    if (err.code === "ENOENT") return { ok: false, message: "Máy chưa cài token-slayer." };
+    return { ok: false, message: (err.stderr || err.stdout || err.message).trim().slice(-300) };
   }
 }
 

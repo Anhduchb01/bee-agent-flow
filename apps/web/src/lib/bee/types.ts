@@ -165,7 +165,7 @@ export type SessionPhase = "interview" | "work";
  * chưa": khoảnh khắc giữa lúc web ghi xong và lúc runner mở sổ. Vẽ nó ra
  * là cách duy nhất để nút vừa bấm không trông như không làm gì.
  */
-export type TrangThaiPhien = "starting" | "running" | "done" | "stopped" | "failed";
+export type SessionStatus = "starting" | "running" | "done" | "stopped" | "failed";
 
 /** One evidence file of a session (V2.1), url served by /api/evidence. */
 export interface BeeEvidenceFile {
@@ -211,7 +211,7 @@ export interface BeeSession {
   mode?: BeeSessionMode;
   /** Model alias (V2.7); absent or "default" = the machine's own default. */
   model?: BeeSessionModel;
-  status: TrangThaiPhien;
+  status: SessionStatus;
   created_at: string | null;
   started_at: string | null;
   ended_at: string | null;
@@ -288,7 +288,7 @@ export interface BeeDoctor {
  * board đọc từ đây, không phải ngược lại (hạ tầng không phụ thuộc màn hình).
  */
 
-export type TrangThaiViec = "waiting" | "running" | "done" | "failed";
+export type ItemStatus = "waiting" | "running" | "done" | "failed";
 
 export interface QueueItem {
   slug: string;
@@ -296,7 +296,7 @@ export interface QueueItem {
   issue: number;
   mode: BeeSessionMode;
   model: BeeSessionModel;
-  status: TrangThaiViec;
+  status: ItemStatus;
   /** Phiên đã mở cho việc này — link sang live view, và là bằng chứng đã chạy. */
   sessionId: string | null;
   /** Vì sao failed — bản tin sáng cần câu này, không phải mã lỗi. */
@@ -344,7 +344,7 @@ export interface BeeSource {
   /** Account-wide usage windows from the last refresh; `null` = never fetched. */
   readClaudeUsage(): Promise<BeeClaudeAccountUsage | null>;
   /** Global slash commands (~/.claude/commands) — feeds the chat "/" palette. */
-  listCommands(): Promise<{ name: string; moTa: string }[]>;
+  listCommands(): Promise<{ name: string; hint: string }[]>;
   readStatus(): Promise<StatusRead>;
   readRecent(limit?: number): Promise<BeeRecentRun[]>;
   /**

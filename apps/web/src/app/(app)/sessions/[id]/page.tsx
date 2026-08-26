@@ -11,17 +11,17 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   if (!actor) return null;
 
   const { id } = await params;
-  const [phien, skills, slice] = await Promise.all([
+  const [session, skills, slice] = await Promise.all([
     loadSession(id),
     getBee().listCommands(),
     readSessionSlice(id),
   ]);
-  if (!phien) notFound();
+  if (!session) notFound();
 
   return (
     <div className="flex h-dvh flex-col">
-      <PageHeader title={phien.title ?? `${phien.slug}-${phien.num}`} />
-      <LiveView phien={phien} commands={skills} slice={slice} />
+      <PageHeader title={session.title ?? `${session.slug}-${session.num}`} />
+      <LiveView session={session} commands={skills} slice={slice} />
     </div>
   );
 }

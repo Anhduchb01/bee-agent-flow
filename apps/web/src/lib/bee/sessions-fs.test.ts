@@ -10,7 +10,7 @@ const ID_A = "aaaaaaaa-1111-4222-8333-444444444444";
 const ID_B = "bbbbbbbb-1111-4222-8333-444444444444";
 const ID_C = "cccccccc-1111-4222-8333-444444444444";
 
-function dungSan(): string {
+function stubStage(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "bee-sessions-"));
 
   // A: đủ cả session.json lẫn meta.json — phiên bình thường
@@ -47,17 +47,17 @@ function dungSan(): string {
 
 describe("listSessionsIn", () => {
   it("đọc đủ ba phiên, mới nhất trước, tên thư mục bẩn bị bỏ qua", async () => {
-    const ds = await listSessionsIn(dungSan());
+    const ds = await listSessionsIn(stubStage());
     expect(ds.map((p) => p.id)).toEqual([ID_B, ID_A, ID_C]);
   });
 
   it("chưa có meta.json là 'starting' — trạng thái thật, không phải lỗi", async () => {
-    const ds = await listSessionsIn(dungSan());
+    const ds = await listSessionsIn(stubStage());
     expect(ds.find((p) => p.id === ID_B)?.status).toBe("starting");
   });
 
   it("meta.json hỏng thì phiên vẫn hiện, rơi về 'starting'", async () => {
-    const ds = await listSessionsIn(dungSan());
+    const ds = await listSessionsIn(stubStage());
     expect(ds.find((p) => p.id === ID_C)?.status).toBe("starting");
   });
 
@@ -68,7 +68,7 @@ describe("listSessionsIn", () => {
 
 describe("readArtifactsIn", () => {
   it("nhặt đúng dòng bee_artifact hợp lệ giữa stream hỗn tạp, loại url lạ", async () => {
-    const root = dungSan();
+    const root = stubStage();
     const runFile = path.join(root, "sessions", ID_A, "run.jsonl");
     writeFileSync(
       runFile,
@@ -95,13 +95,13 @@ describe("readArtifactsIn", () => {
   });
 
   it("chưa có run.jsonl là danh sách rỗng, không phải lỗi", async () => {
-    expect(await readArtifactsIn(dungSan(), ID_B)).toEqual([]);
+    expect(await readArtifactsIn(stubStage(), ID_B)).toEqual([]);
   });
 });
 
 describe("listReposIn", () => {
   it("đọc repos.d — chỉ file .env có dòng REPO=owner/name hợp lệ", async () => {
-    const root = dungSan();
+    const root = stubStage();
     const rd = path.join(root, "repos.d");
     mkdirSync(rd, { recursive: true });
     writeFileSync(path.join(rd, "myapp.env"), 'REPO=you/myapp\nREVIEWERS="a b"\n');
@@ -115,13 +115,13 @@ describe("listReposIn", () => {
   });
 
   it("chưa có repos.d là danh sách rỗng, không phải lỗi", async () => {
-    expect(await listReposIn(dungSan())).toEqual([]);
+    expect(await listReposIn(stubStage())).toEqual([]);
   });
 });
 
 describe("readLastLineIn", () => {
   it("lấy câu text CUỐI của assistant, gọn một dòng — bỏ qua tool_result phía sau", async () => {
-    const root = dungSan();
+    const root = stubStage();
     writeFileSync(
       path.join(root, "sessions", ID_A, "run.jsonl"),
       [
@@ -134,6 +134,6 @@ describe("readLastLineIn", () => {
   });
 
   it("chưa nói gì thì null — node vẽ trạng thái trống, không vẽ chuỗi rỗng", async () => {
-    expect(await readLastLineIn(dungSan(), ID_B)).toBeNull();
+    expect(await readLastLineIn(stubStage(), ID_B)).toBeNull();
   });
 });

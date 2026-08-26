@@ -23,8 +23,8 @@ import {
   changeModelAction,
   stopSessionAction,
   sendToSessionAction,
-  tiepTucAction,
-  traLoiQuyenAction,
+  continueAction,
+  answerPermissionAction,
   uploadFileAction,
 } from "../api/actions";
 import { useSessionStream } from "../hooks/use-session-stream";
@@ -72,12 +72,12 @@ const VSCODE_SKIN = {
  * renders when its command actually exists on the machine (~/.claude/commands).
  */
 const CHIP_FLOW = [
-  { lenh: "issue", nhan: "Issue" },
-  { lenh: "build", nhan: "Build" },
-  { lenh: "review", nhan: "Review" },
-  { lenh: "pr", nhan: "PR" },
-  { lenh: "demo", nhan: "Demo" },
-  { lenh: "preview", nhan: "Preview" },
+  { lenh: "issue", label: "Issue" },
+  { lenh: "build", label: "Build" },
+  { lenh: "review", label: "Review" },
+  { lenh: "pr", label: "PR" },
+  { lenh: "demo", label: "Demo" },
+  { lenh: "preview", label: "Preview" },
 ];
 
 /**
@@ -87,7 +87,7 @@ const CHIP_FLOW = [
  * server-side expander passes unknown names through untouched.
  */
 const BUILTIN_COMMANDS = [
-  { name: "compact", moTa: "Compact the conversation — frees context, keeps the gist" },
+  { name: "compact", hint: "Compact the conversation — frees context, keeps the gist" },
 ];
 
 const MODE_ICONS: Record<BeeSessionMode, typeof ZapIcon> = {
@@ -112,9 +112,9 @@ function ModeMenu({
   disabled: boolean;
   onPick: (m: BeeSessionMode) => void;
 }) {
-  const [mo, setMo] = useState(false);
+  const [opener, setMo] = useState(false);
   const Icon = MODE_ICONS[mode];
-  const hienTai = MODE_OPTIONS.find((m) => m.value === mode);
+  const current = MODE_OPTIONS.find((m) => m.value === mode);
   return (
     <div
       className="relative"
@@ -126,16 +126,16 @@ function ModeMenu({
         type="button"
         aria-label="Session mode"
         aria-haspopup="menu"
-        aria-expanded={mo}
+        aria-expanded={opener}
         disabled={disabled}
         onClick={() => setMo((x) => !x)}
         title="Switch permission mode — the agent restarts and resumes this conversation"
         className="flex h-7 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground hover:bg-accent hover:text-body disabled:opacity-40"
       >
         <Icon className="size-3.5" />
-        {hienTai?.label}
+        {current?.label}
       </button>
-      {mo && (
+      {opener && (
         <div
           role="menu"
           aria-label="Session modes"
@@ -158,7 +158,7 @@ function ModeMenu({
                 <MIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium text-body">{m.label}</span>
-                  <span className="block text-xs text-muted-foreground">{m.moTa}</span>
+                  <span className="block text-xs text-muted-foreground">{m.hint}</span>
                 </span>
                 {m.value === mode && <span className="text-sm text-body">✓</span>}
               </button>
@@ -188,22 +188,22 @@ function tomTatToken(n: number): string {
  */
 function VongNguCanh({
   percentOf,
-  dung = null,
-  cua = null,
+  stopIt = null,
+  owner = null,
 }: {
   percentOf: number;
-  dung?: number | null;
-  cua?: number | null;
+  stopIt?: number | null;
+  owner?: number | null;
 }) {
   const r = 6;
   const chuVi = 2 * Math.PI * r;
-  const soLieu = dung !== null && cua !== null ? `${tomTatToken(dung)}/${tomTatToken(cua)}` : null;
-  const nhan =
-    soLieu === null
+  const figures = stopIt !== null && owner !== null ? `${tomTatToken(stopIt)}/${tomTatToken(owner)}` : null;
+  const label =
+    figures === null
       ? `Context ${percentOf}% full`
-      : `Context ${percentOf}% full — ${soLieu} tokens`;
+      : `Context ${percentOf}% full — ${figures} tokens`;
   return (
-    <span className="inline-flex items-center gap-1" title={nhan} aria-label={nhan}>
+    <span className="inline-flex items-center gap-1" title={label} aria-label={label}>
       <svg width="16" height="16" viewBox="0 0 16 16" className="-rotate-90">
         <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.5" />
         <circle
@@ -219,7 +219,7 @@ function VongNguCanh({
         />
       </svg>
       <span className="font-mono text-xs text-muted-foreground">
-        {percentOf}%{soLieu !== null && <span className="hidden sm:inline"> · {soLieu}</span>}
+        {percentOf}%{figures !== null && <span className="hidden sm:inline"> · {figures}</span>}
       </span>
     </span>
   );
@@ -237,48 +237,48 @@ function VongNguCanh({
  * trong ≤ 500ms) — một nguồn sự thật duy nhất, không lo hiện đúp.
  */
 export function LiveView({
-  phien,
+  session,
   commands = [],
   slice = null,
 }: {
-  phien: BeeSession;
+  session: BeeSession;
   /** Global slash commands (~/.claude/commands) — the "/" palette. */
-  commands?: { name: string; moTa: string }[];
+  commands?: { name: string; hint: string }[];
   /** The service slice this session holds, if any (T15c4). */
   slice?: BeeSlice | null;
 }) {
-  const { events, typing, idle, status, ended, skipped } = useSessionStream(phien.id);
-  const [nhap, setNhap] = useState("");
-  const [loi, setLoi] = useState("");
-  const [dangGui, batDauGui] = useTransition();
+  const { events, typing, idle, status, ended, skipped } = useSessionStream(session.id);
+  const [input, setInput] = useState("");
+  const [err, setErr] = useState("");
+  const [sending, batDauGui] = useTransition();
   // Optimistic — the prop only refreshes on a server re-render.
-  const [mode, setMode] = useState<BeeSessionMode>(phien.mode ?? "auto");
-  const [dangDoiMode, batDauDoiMode] = useTransition();
-  const [model, setModel] = useState<BeeSessionModel>(phien.model ?? "default");
+  const [mode, setMode] = useState<BeeSessionMode>(session.mode ?? "auto");
+  const [changingMode, batDauDoiMode] = useTransition();
+  const [model, setModel] = useState<BeeSessionModel>(session.model ?? "default");
 
-  function doiMode(moi: BeeSessionMode) {
-    if (dangDoiMode || moi === mode) return;
+  function switchMode(latest: BeeSessionMode) {
+    if (changingMode || latest === mode) return;
     batDauDoiMode(async () => {
-      const truoc = mode;
-      setMode(moi);
-      const ket = await changeModeAction(phien.id, moi);
+      const prev = mode;
+      setMode(latest);
+      const ket = await changeModeAction(session.id, latest);
       if (!ket.ok) {
-        setMode(truoc);
-        setLoi(ket.message);
+        setMode(prev);
+        setErr(ket.message);
       }
     });
   }
 
   /** Model switch: optimistic like the mode one, and it restarts the unit too. */
-  function doiModel(moi: BeeSessionModel) {
-    if (dangDoiMode || moi === model) return;
+  function switchModel(latest: BeeSessionModel) {
+    if (changingMode || latest === model) return;
     batDauDoiMode(async () => {
-      const truoc = model;
-      setModel(moi);
-      const ket = await changeModelAction(phien.id, moi);
+      const prev = model;
+      setModel(latest);
+      const ket = await changeModelAction(session.id, latest);
       if (!ket.ok) {
-        setModel(truoc);
-        setLoi(ket.message);
+        setModel(prev);
+        setErr(ket.message);
       }
     });
   }
@@ -287,12 +287,12 @@ export function LiveView({
 
   // Busy = the agent owes an answer: the last user message sits after the
   // last result, or text/thinking is streaming right now.
-  const sauCung = { noi: -1, ketQua: -1 };
+  const last = { speak: -1, result: -1 };
   events.forEach((s, i) => {
-    if (s.loai === "nguoi-noi") sauCung.noi = i;
-    if (s.loai === "ket-qua") sauCung.ketQua = i;
+    if (s.loai === "nguoi-noi") last.speak = i;
+    if (s.loai === "ket-qua") last.result = i;
   });
-  const busy = running && (sauCung.noi > sauCung.ketQua || typing !== "" || idle !== "");
+  const busy = running && (last.speak > last.result || typing !== "" || idle !== "");
 
   // Latest context fill — from the newest result that carried numbers.
   let nguCanh: number | null = null;
@@ -302,32 +302,32 @@ export function LiveView({
     const s = events[i]!;
     if (s.loai === "ket-qua" && typeof s.nguCanh === "number") {
       nguCanh = s.nguCanh;
-      nguCanhDung = typeof s.dungToken === "number" ? s.dungToken : null;
+      nguCanhDung = typeof s.validToken === "number" ? s.validToken : null;
       nguCanhCua = typeof s.cuaSoToken === "number" ? s.cuaSoToken : null;
       break;
     }
   }
 
-  function gui() {
-    const text = nhap.trim();
-    if (text === "" || dangGui) return;
+  function send() {
+    const text = input.trim();
+    if (text === "" || sending) return;
     batDauGui(async () => {
-      const ket = await sendToSessionAction(phien.id, text);
+      const ket = await sendToSessionAction(session.id, text);
       if (ket.ok) {
-        setNhap("");
-        setLoi("");
+        setInput("");
+        setErr("");
       } else {
-        setLoi(ket.message);
+        setErr(ket.message);
       }
     });
   }
 
   // The command currently picked as the message prefix ("/issue hãy…" → "issue").
-  const pickedCommand = nhap.startsWith("/") ? (nhap.slice(1).split(/\s/)[0] ?? "") : null;
+  const pickedCommand = input.startsWith("/") ? (input.slice(1).split(/\s/)[0] ?? "") : null;
 
   /** Put "/name " in front of the draft, replacing any current command prefix. */
   function insertCommand(name: string) {
-    setNhap(`/${name} ${nhap.replace(/^\/\S+\s*/, "")}`);
+    setInput(`/${name} ${input.replace(/^\/\S+\s*/, "")}`);
   }
 
   /**
@@ -336,16 +336,16 @@ export function LiveView({
    * the user already typed survives either way.
    */
   function pickCommand(name: string) {
-    if (pickedCommand === name) setNhap(nhap.replace(/^\/\S+\s*/, ""));
+    if (pickedCommand === name) setInput(input.replace(/^\/\S+\s*/, ""));
     else insertCommand(name);
   }
 
   /** Send a line straight to the session — palette actions like /compact. */
   function sendDirect(text: string) {
-    if (dangGui) return;
+    if (sending) return;
     batDauGui(async () => {
-      const ket = await sendToSessionAction(phien.id, text);
-      setLoi(ket.ok ? "" : ket.message);
+      const ket = await sendToSessionAction(session.id, text);
+      setErr(ket.ok ? "" : ket.message);
     });
   }
 
@@ -354,37 +354,37 @@ export function LiveView({
     batDauGui(async () => {
       const fd = new FormData();
       fd.append("file", f);
-      const ket = await uploadFileAction(phien.id, fd);
+      const ket = await uploadFileAction(session.id, fd);
       if (ket.ok && ket.relPath !== undefined) {
-        setLoi("");
-        const ghi = `[attached: ${ket.relPath}]`;
-        setNhap((v) => (v === "" ? `${ghi} ` : `${v}\n${ghi}`));
+        setErr("");
+        const writer = `[attached: ${ket.relPath}]`;
+        setInput((v) => (v === "" ? `${writer} ` : `${v}\n${writer}`));
       } else {
-        setLoi(ket.message);
+        setErr(ket.message);
       }
     });
   }
 
-  const coChuMoi = nhap.trim() !== "";
+  const coChuMoi = input.trim() !== "";
 
   // "/..." opens the palette: the machine's global COMMANDS (expanded
   // server-side on send, REPL-style — picking one keeps "/name " in the
   // box for arguments). It only shows while the COMMAND token is being
   // typed — once a space lands the user is writing the message body and
   // the palette would just cover the chat. No tools → no palette.
-  const tatCaLenh = [...commands, ...BUILTIN_COMMANDS].map((c) => ({
-    ten: `/${c.name}`,
-    moTa: c.moTa,
+  const allCommands = [...commands, ...BUILTIN_COMMANDS].map((c) => ({
+    name: `/${c.name}`,
+    hint: c.hint,
     chen: `/${c.name} `,
   }));
   const goiLenh =
-    phien.worktree && nhap.startsWith("/") && !nhap.includes(" ")
-      ? tatCaLenh.filter((l) => l.ten.startsWith(nhap)).slice(0, 12)
+    session.worktree && input.startsWith("/") && !input.includes(" ")
+      ? allCommands.filter((l) => l.name.startsWith(input)).slice(0, 12)
       : [];
 
   // Flow chips: only the ones whose command the machine actually has.
   const coLenh = new Set(commands.map((c) => c.name));
-  const chips = phien.worktree ? CHIP_FLOW.filter((c) => coLenh.has(c.lenh)) : [];
+  const chips = session.worktree ? CHIP_FLOW.filter((c) => coLenh.has(c.lenh)) : [];
 
   // V2.4 — the flow's next step glows: no issue yet → Issue; issue but no
   // PR → Build; PR open → Preview. Read from the artifact events the
@@ -395,11 +395,11 @@ export function LiveView({
   const goiY = !coIssue ? "issue" : !coPR ? "build" : "preview";
 
   // An approval card without an answer = the ball is in the OWNER's court.
-  const daTraLoi = new Set(
+  const answered = new Set(
     events.filter((s) => s.loai === "quyen-da-tra-loi").map((s) => s.requestId),
   );
-  const dangChoQuyen = events.some(
-    (s) => s.loai === "xin-quyen" && !daTraLoi.has(s.requestId),
+  const awaitingPermission = events.some(
+    (s) => s.loai === "xin-quyen" && !answered.has(s.requestId),
   );
 
   return (
@@ -410,7 +410,7 @@ export function LiveView({
         {/* min-w-0 + truncate: repo · branch is the longest string on the
             bar — on a phone it must give way, never push Stop off-screen. */}
         <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">
-          {phien.repo} · {phien.worktree ? `bee/${phien.slug}-${phien.num}` : "chat"}
+          {session.repo} · {session.worktree ? `bee/${session.slug}-${session.num}` : "chat"}
         </span>
         <span className="shrink-0 font-mono text-xs text-muted-foreground">
           {ended === null ? (busy ? "working…" : "idle") : ended}
@@ -419,7 +419,7 @@ export function LiveView({
         {/* Left of Stop on purpose: it answers "what am I about to stop". */}
         <SessionServices slice={slice} />
         {running && (
-          <Button size="sm" variant="outline" onClick={() => void stopSessionAction(phien.id)}>
+          <Button size="sm" variant="outline" onClick={() => void stopSessionAction(session.id)}>
             Stop
           </Button>
         )}
@@ -449,11 +449,11 @@ export function LiveView({
             idle={idle}
             // Shimmer says "the AGENT is working" — while an approval card
             // waits for the OWNER, showing it would be a lie.
-            dangCho={busy && typing === "" && idle === "" && !dangChoQuyen}
-            onTraLoiQuyen={(requestId, choPhep, inputJson) =>
+            waiting={busy && typing === "" && idle === "" && !awaitingPermission}
+            onAnswerPermission={(requestId, allow, inputJson) =>
               batDauGui(async () => {
-                const ket = await traLoiQuyenAction(phien.id, requestId, choPhep, inputJson);
-                if (!ket.ok) setLoi(ket.message);
+                const ket = await answerPermissionAction(session.id, requestId, allow, inputJson);
+                if (!ket.ok) setErr(ket.message);
               })
             }
           />
@@ -486,7 +486,7 @@ export function LiveView({
                       : "border-border bg-secondary text-body"
                 }`}
               >
-                {c.nhan}
+                {c.label}
               </button>
             ))}
           </div>
@@ -496,7 +496,7 @@ export function LiveView({
             className="relative rounded-panel border border-border bg-card px-3 py-2 focus-within:border-muted-foreground/40"
             onSubmit={(e) => {
               e.preventDefault();
-              gui();
+              send();
             }}
           >
             {goiLenh.length > 0 && (
@@ -506,24 +506,24 @@ export function LiveView({
                 className="absolute bottom-full left-0 mb-1 max-h-72 w-full overflow-y-auto rounded-card border border-border bg-popover p-1 shadow-md"
               >
                 {goiLenh.map((l) => (
-                  <li key={l.ten} role="option" aria-selected={false}>
+                  <li key={l.name} role="option" aria-selected={false}>
                     <button
                       type="button"
-                      onClick={() => setNhap(l.chen)}
+                      onClick={() => setInput(l.chen)}
                       className="flex w-full items-baseline gap-2 rounded-control px-2 py-1.5 text-left hover:bg-accent"
                     >
-                      <span className="font-mono text-sm text-body">{l.ten}</span>
-                      <span className="text-xs text-muted-foreground">{l.moTa}</span>
+                      <span className="font-mono text-sm text-body">{l.name}</span>
+                      <span className="text-xs text-muted-foreground">{l.hint}</span>
                     </button>
                   </li>
                 ))}
               </ul>
             )}
             <Textarea
-              value={nhap}
-              onChange={(e) => setNhap(e.target.value)}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
               placeholder={
-                !phien.worktree
+                !session.worktree
                   ? "Ask anything — this chat has no tools and touches no code"
                   : "Say something to the agent…"
               }
@@ -534,23 +534,23 @@ export function LiveView({
                 // On phones Enter is a plain newline — only the ↑ button sends.
                 if (e.key === "Enter" && !e.shiftKey && !isCoarsePointer()) {
                   e.preventDefault();
-                  gui();
+                  send();
                 }
               }}
             />
             <div className="mt-1.5 flex items-center gap-2">
               {/* Attach needs a worktree to put the file in; the actions
                   panel does not — a chat session still picks its model. */}
-              {phien.worktree && <PlusMenu disabled={dangGui} onUpload={handleUpload} />}
+              {session.worktree && <PlusMenu disabled={sending} onUpload={handleUpload} />}
               <ActionsPanel
-                commands={phien.worktree ? [...commands, ...BUILTIN_COMMANDS] : []}
-                mode={phien.worktree ? mode : null}
+                commands={session.worktree ? [...commands, ...BUILTIN_COMMANDS] : []}
+                mode={session.worktree ? mode : null}
                 model={model}
                 onInsertCommand={insertCommand}
                 onCompact={() => sendDirect("/compact")}
-                onStop={() => void stopSessionAction(phien.id)}
-                onPickMode={doiMode}
-                onPickModel={doiModel}
+                onStop={() => void stopSessionAction(session.id)}
+                onPickMode={switchMode}
+                onPickModel={switchModel}
               />
               {model !== "default" && (
                 <span className="hidden font-mono text-xs text-muted-foreground sm:inline">
@@ -558,7 +558,7 @@ export function LiveView({
                 </span>
               )}
               {nguCanh !== null && (
-                <VongNguCanh percentOf={nguCanh} dung={nguCanhDung} cua={nguCanhCua} />
+                <VongNguCanh percentOf={nguCanh} stopIt={nguCanhDung} owner={nguCanhCua} />
               )}
               {nguCanh !== null && nguCanh >= 90 && (
                 <span className="text-xs text-destructive">
@@ -566,8 +566,8 @@ export function LiveView({
                 </span>
               )}
               <span className="flex-1" />
-              {phien.worktree && (
-                <ModeMenu mode={mode} disabled={dangDoiMode} onPick={doiMode} />
+              {session.worktree && (
+                <ModeMenu mode={mode} disabled={changingMode} onPick={switchMode} />
               )}
               {busy && !coChuMoi ? (
                 // Running and nothing new typed → the button is Stop, like
@@ -576,7 +576,7 @@ export function LiveView({
                   type="button"
                   size="icon"
                   aria-label="Stop session"
-                  onClick={() => void stopSessionAction(phien.id)}
+                  onClick={() => void stopSessionAction(session.id)}
                   className="size-7 rounded-full bg-destructive text-white hover:bg-destructive/80"
                 >
                   <SquareIcon className="size-3" fill="currentColor" />
@@ -586,7 +586,7 @@ export function LiveView({
                   type="submit"
                   size="icon"
                   aria-label="Send"
-                  disabled={dangGui || !coChuMoi}
+                  disabled={sending || !coChuMoi}
                   className="size-7 rounded-full bg-[#C15F3C] text-white hover:bg-[#a94f31] disabled:opacity-40"
                 >
                   <ArrowUpIcon className="size-4" />
@@ -601,25 +601,25 @@ export function LiveView({
             <Button
               size="sm"
               variant="outline"
-              disabled={dangGui}
+              disabled={sending}
               onClick={() =>
                 batDauGui(async () => {
-                  const ket = await tiepTucAction(phien.id);
+                  const ket = await continueAction(session.id);
                   if (ket.ok) {
                     // Full reload: the SSE stream closed on bee_done — a
                     // fresh page reattaches it to the resumed session.
                     window.location.reload();
                   } else {
-                    setLoi(ket.message);
+                    setErr(ket.message);
                   }
                 })
               }
             >
-              {dangGui ? "Continuing…" : "Continue session"}
+              {sending ? "Continuing…" : "Continue session"}
             </Button>
           </div>
         )}
-        {loi !== "" && <p className="mt-1 text-xs text-destructive">{loi}</p>}
+        {err !== "" && <p className="mt-1 text-xs text-destructive">{err}</p>}
       </div>
     </div>
   );

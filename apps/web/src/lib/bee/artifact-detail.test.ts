@@ -241,14 +241,14 @@ describe("fetchArtifactDetail — speed", () => {
       .mockResolvedValue({ stdout: PR_JSON(3) });
 
     await fetchArtifactDetail("you/myapp", "pr", 3, { runGh, now });
-    const soLanDau = runGh.mock.calls.length;
+    const firstRunCount = runGh.mock.calls.length;
     const ket = await fetchArtifactDetail("you/myapp", "pr", 3, { runGh, now });
     expect(ket.ok).toBe(true);
-    expect(runGh.mock.calls.length).toBe(soLanDau);
+    expect(runGh.mock.calls.length).toBe(firstRunCount);
 
     t += 61_000; // TTL passed → refetch
     await fetchArtifactDetail("you/myapp", "pr", 3, { runGh, now });
-    expect(runGh.mock.calls.length).toBeGreaterThan(soLanDau);
+    expect(runGh.mock.calls.length).toBeGreaterThan(firstRunCount);
   });
 });
 

@@ -44,12 +44,12 @@ describe("account usage — fetch from the oauth endpoint, read back narrowed", 
       "Bearer sk-ant-oat01-abc",
     );
 
-    const doc = await readClaudeUsageFrom(dir);
-    expect(doc).toMatchObject({
+    const reader = await readClaudeUsageFrom(dir);
+    expect(reader).toMatchObject({
       five_hour: { percent: 9, resets_at: "2026-08-19T11:19:59Z" },
       seven_day: { percent: 27, resets_at: "2026-08-21T06:59:59Z" },
     });
-    expect(typeof doc!.fetched_at).toBe("string");
+    expect(typeof reader!.fetched_at).toBe("string");
   });
 
   it("429 comes back as a message, and stale state is left untouched", async () => {

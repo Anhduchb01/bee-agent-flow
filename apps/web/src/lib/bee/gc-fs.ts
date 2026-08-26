@@ -26,24 +26,24 @@ export interface BeeGc {
   items: BeeGcItem[];
 }
 
-function laObject(x: unknown): x is Record<string, unknown> {
+function isObject(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
 }
 
-function so(v: unknown): number {
+function count(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
 /** Một dòng của gc — thiếu hình dạng thì bỏ, không kéo cả file xuống. */
-function docItem(raw: unknown): BeeGcItem | null {
-  if (!laObject(raw)) return null;
+function readItem(raw: unknown): BeeGcItem | null {
+  if (!isObject(raw)) return null;
   if (typeof raw.id !== "string") return null;
   if (raw.action !== "removed" && raw.action !== "kept") return null;
   return {
     id: raw.id,
     action: raw.action,
     reason: typeof raw.reason === "string" ? raw.reason : "",
-    bytes: so(raw.bytes),
+    bytes: count(raw.bytes),
   };
 }
 
@@ -60,14 +60,14 @@ export async function readGcIn(root: string): Promise<BeeGc | null> {
   } catch {
     return null;
   }
-  if (!laObject(raw)) return null;
+  if (!isObject(raw)) return null;
   return {
     ts: typeof raw.ts === "string" ? raw.ts : "",
-    removed: so(raw.removed),
-    freed_bytes: so(raw.freed_bytes),
-    age_hours: so(raw.age_hours),
+    removed: count(raw.removed),
+    freed_bytes: count(raw.freed_bytes),
+    age_hours: count(raw.age_hours),
     items: Array.isArray(raw.items)
-      ? raw.items.map(docItem).filter((i): i is BeeGcItem => i !== null)
+      ? raw.items.map(readItem).filter((i): i is BeeGcItem => i !== null)
       : [],
   };
 }

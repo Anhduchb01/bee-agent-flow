@@ -19,7 +19,7 @@ vi.mock("../api/actions", () => ({
   switchSlotAction: vi.fn(async () => ({ ok: true, message: "" })),
   captureSlotAction: vi.fn(async () => ({ ok: true, message: "" })),
   startAddSlotAction: vi.fn(async () => ({ ok: true, url: "https://claude.com/cai/oauth/x" })),
-  xongThemSlotAction: vi.fn(async () => ({ ok: true, message: "" })),
+  finishAddSlotAction: vi.fn(async () => ({ ok: true, message: "" })),
   installSlayerAction: vi.fn(async () => ({ ok: true, message: "" })),
   pullGrantedAccountsAction: vi.fn(async () => ({
     ok: true,
@@ -34,7 +34,7 @@ const HAI_SLOT: TrangThaiSlayer = {
   tokenGhim: false,
   message: null,
   pool: {
-    dangBat: "work",
+    enabled: "work",
     slots: [
       {
         index: 1,
@@ -42,7 +42,7 @@ const HAI_SLOT: TrangThaiSlayer = {
         alias: null,
         email: "you@company.com",
         state: "active",
-        dangBat: true,
+        enabled: true,
         namGio: { percentOf: 29, resetLuc: null },
         bayNgay: { percentOf: 36, resetLuc: null },
         hetHan: false,
@@ -53,7 +53,7 @@ const HAI_SLOT: TrangThaiSlayer = {
         alias: null,
         email: "you@gmail.com",
         state: "reauth",
-        dangBat: false,
+        enabled: false,
         namGio: null,
         bayNgay: null,
         hetHan: true,
@@ -166,7 +166,7 @@ describe("ClaudeAccounts", () => {
   it("pool rỗng nói rõ là rỗng, không để trống cho người dùng tự đoán", () => {
     render(
       <ClaudeAccounts
-        status={{ daCai: true, pool: { dangBat: null, slots: [] }, tokenGhim: false, message: null, coLoginMay: true }}
+        status={{ daCai: true, pool: { enabled: null, slots: [] }, tokenGhim: false, message: null, coLoginMay: true }}
       />,
     );
     expect(screen.getByText(/No accounts in the pool yet/)).toBeInTheDocument();

@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-import { dangNhap } from "./helpers";
+import { signIn } from "./helpers";
 
 const GOC = "/api/evidence";
 
 test("file bằng chứng hợp lệ tải được, đúng content-type", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
 
   const res = await page.request.get(`${GOC}/myapp/45/9f3c1ab/loc-don-theo-trang-thai.gif`);
 
@@ -16,7 +16,7 @@ test("file bằng chứng hợp lệ tải được, đúng content-type", async
 });
 
 test("đọc được file trong thư mục con", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
 
   const res = await page.request.get(
     `${GOC}/myapp/45/9f3c1ab/shots/loc-don-theo-trang-thai-1.png`,
@@ -44,7 +44,7 @@ test.describe("chặn đường thoát ra ngoài gốc bằng chứng", () => {
 
   for (const duong of duongXau) {
     test(`từ chối ${duong}`, async ({ page }) => {
-      await dangNhap(page, "pm-linh");
+      await signIn(page, "pm-linh");
 
       const res = await page.request.get(`${GOC}/${duong}`, { maxRedirects: 0 });
 

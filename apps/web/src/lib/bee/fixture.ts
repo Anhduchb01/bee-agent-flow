@@ -123,8 +123,8 @@ export function createFixtureBeeSource(): BeeSource {
     /** Palette "/" trên fixture: hai command mẫu — đủ để e2e kiểm ổn định. */
     async listCommands() {
       return [
-        { name: "build", moTa: "Implement tasks incrementally — build, test, verify, commit." },
-        { name: "plan", moTa: "Break work into small verifiable tasks." },
+        { name: "build", hint: "Implement tasks incrementally — build, test, verify, commit." },
+        { name: "plan", hint: "Break work into small verifiable tasks." },
       ];
     },
 
@@ -217,18 +217,18 @@ export function createFixtureBeeSource(): BeeSource {
     async findArtifactEvidence(_repo, _kind, _number) {
       // Fixture: reuse the demo shots that already live in fixtures/evidence
       // so the review panel shows real images without a machine.
-      const goc = "/api/evidence/myapp/45/9f3c1ab";
+      const baseDir = "/api/evidence/myapp/45/9f3c1ab";
       return {
         sessionId: "de300000-0000-4000-8000-000000000001",
         files: [
           {
             name: "loc-don-theo-trang-thai-1.png",
-            url: `${goc}/shots/loc-don-theo-trang-thai-1.png`,
+            url: `${baseDir}/shots/loc-don-theo-trang-thai-1.png`,
             loai: "image",
           },
           {
             name: "giu-bo-loc-khi-tai-lai.gif",
-            url: `${goc}/giu-bo-loc-khi-tai-lai.gif`,
+            url: `${baseDir}/giu-bo-loc-khi-tai-lai.gif`,
             loai: "image",
           },
         ],

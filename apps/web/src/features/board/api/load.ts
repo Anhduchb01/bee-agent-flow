@@ -8,12 +8,12 @@ import type { BeeArtifact, Queue } from "@/lib/bee/types";
 import { buildBoard, type BoardRow } from "../lib/lanes";
 
 export interface BoardData {
-  muc: BoardRow[];
+  row: BoardRow[];
   repos: { slug: string; repo: string }[];
   /** Hàng đợi Autopilot — lane thứ năm đọc từ đây (D4). */
   queue: Queue;
   /** Repos whose issue list could not be read — shown, never swallowed. */
-  loi: { repo: string; message: string }[];
+  err: { repo: string; message: string }[];
 }
 
 /**
@@ -26,7 +26,7 @@ export interface BoardData {
  */
 export async function loadBoard(): Promise<BoardData> {
   const bee = getBee();
-  const [repos, phien, queue] = await Promise.all([
+  const [repos, session, queue] = await Promise.all([
     bee.listRepos(),
     bee.listSessions(),
     readQueue(process.env.BEE_SRV ?? "/srv/bee"),
@@ -38,25 +38,25 @@ export async function loadBoard(): Promise<BoardData> {
     ),
     // Only sessions with a repo can carry issue artifacts; chat sessions cannot.
     Promise.all(
-      phien
+      session
         .filter((p) => p.repo !== "")
         .map(async (p) => [p.id, await bee.sessionArtifacts(p.id)] as const),
     ),
   ]);
 
   const issuesByRepo: Record<string, BeeIssue[]> = {};
-  const loi: { repo: string; message: string }[] = [];
+  const err: { repo: string; message: string }[] = [];
   for (const k of issueResults) {
     issuesByRepo[k.repo] = k.issues;
-    if (k.loi !== null) loi.push({ repo: k.repo, message: k.loi });
+    if (k.err !== null) err.push({ repo: k.repo, message: k.err });
   }
 
   const artifactsBySession: Record<string, BeeArtifact[]> = Object.fromEntries(artifactPairs);
 
   return {
-    muc: buildBoard(repos, issuesByRepo, phien, artifactsBySession, queue),
+    row: buildBoard(repos, issuesByRepo, session, artifactsBySession, queue),
     repos,
     queue,
-    loi,
+    err,
   };
 }

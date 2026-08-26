@@ -8,13 +8,13 @@ export default async function CanvasPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [{ nhom, artifacts, xemTruoc, videos }, repos, skills, queue] = await Promise.all([
+  const [{ nhom, artifacts, previewOf, videos }, repos, skills, queue] = await Promise.all([
     loadCanvas(),
     loadRepos(),
     getBee().listCommands(),
     readQueue(process.env.BEE_SRV ?? "/srv/bee"),
   ]);
-  const { nodes, edges } = buildGraph(nhom, artifacts, xemTruoc, videos, queue);
+  const { nodes, edges } = buildGraph(nhom, artifacts, previewOf, videos, queue);
 
   return (
     <div className="flex h-dvh flex-col">
@@ -30,7 +30,7 @@ export default async function CanvasPage() {
         <CanvasView
           nodes={nodes}
           edges={edges}
-          phien={nhom.flatMap((g) => g.phien)}
+          session={nhom.flatMap((g) => g.session)}
           repos={repos}
           commands={skills}
         />

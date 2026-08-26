@@ -32,12 +32,12 @@ const THAT = JSON.stringify({
 describe("readSlayerPool — đọc bảng tài khoản", () => {
   it("đọc đúng slot đang bật và mức dùng", () => {
     const pool = readSlayerPool(THAT);
-    expect(pool?.dangBat).toBe("pdtoan2811@gmail.com");
+    expect(pool?.enabled).toBe("pdtoan2811@gmail.com");
     expect(pool?.slots).toHaveLength(1);
     expect(pool?.slots[0]).toMatchObject({
       index: 1,
       email: "pdtoan2811@gmail.com",
-      dangBat: true,
+      enabled: true,
       state: "active",
       hetHan: false,
     });
@@ -47,7 +47,7 @@ describe("readSlayerPool — đọc bảng tài khoản", () => {
 
   it("máy chưa có slot nào → pool rỗng, không phải lỗi", () => {
     const pool = readSlayerPool(JSON.stringify({ schema: "accounts@1", active: null, accounts: [] }));
-    expect(pool).toEqual({ dangBat: null, slots: [] });
+    expect(pool).toEqual({ enabled: null, slots: [] });
   });
 
   it("thiếu usage thì slot vẫn hiện, chỉ là không có thanh", () => {

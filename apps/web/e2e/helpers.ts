@@ -13,7 +13,7 @@ export async function datCanh(page: Page, canh: string): Promise<void> {
  * Đăng nhập bằng provider giả. Provider này chỉ tồn tại khi
  * `GITHUB_SOURCE !== "live"` — xem `src/lib/auth/index.ts`.
  */
-export async function dangNhap(page: Page, login: string): Promise<void> {
+export async function signIn(page: Page, login: string): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("GitHub login").fill(login);
   await page.getByRole("button", { name: "Sign in" }).click();

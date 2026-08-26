@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { dangNhap } from "./helpers";
+import { signIn } from "./helpers";
 
 /**
  * Ba cảnh hỏng của `status.json`. Đổi cảnh bằng cookie — cookie chỉ có tác dụng
@@ -14,7 +14,7 @@ async function datCanh(page: Page, canh: string) {
 }
 
 test("heartbeat cũ 35 phút → báo đỏ, và nói rõ các con số là cũ", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await datCanh(page, "reconciler-chet");
   await page.goto("/");
 
@@ -28,7 +28,7 @@ test("heartbeat cũ 35 phút → báo đỏ, và nói rõ các con số là cũ"
 });
 
 test("thiếu status.json → báo rõ, không crash", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await datCanh(page, "chua-co-file");
   await page.goto("/");
 
@@ -39,7 +39,7 @@ test("thiếu status.json → báo rõ, không crash", async ({ page }) => {
 });
 
 test("status.json hỏng → báo rõ, không crash", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await datCanh(page, "json-hong");
   await page.goto("/");
 
@@ -50,7 +50,7 @@ test("status.json hỏng → báo rõ, không crash", async ({ page }) => {
 });
 
 test("vừa cài xong → nói bước tiếp theo, không hiện trang trống", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await datCanh(page, "vua-cai");
   await page.goto("/");
 
@@ -60,7 +60,7 @@ test("vừa cài xong → nói bước tiếp theo, không hiện trang trống"
 });
 
 test("có sự cố → gọi tên repo đang bị dừng", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await datCanh(page, "co-su-co");
   await page.goto("/");
 

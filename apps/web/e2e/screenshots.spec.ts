@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { test, type Page } from "@playwright/test";
 
-import { dangNhap } from "./helpers";
+import { signIn } from "./helpers";
 
 /**
  * Không phải bài test — đây là cái máy chụp ảnh phục vụ W12 (người duyệt giao
@@ -77,7 +77,7 @@ test.describe("UI review screenshots", () => {
 
   for (const scene of SCENES) {
     test(`scene ${scene}`, async ({ page }) => {
-      await dangNhap(page, ACTOR);
+      await signIn(page, ACTOR);
       await setScene(page, scene);
 
       for (const screen of SCENE_SCREENS) {
@@ -89,7 +89,7 @@ test.describe("UI review screenshots", () => {
   }
 
   test("screens that do not depend on the scene", async ({ page }) => {
-    await dangNhap(page, ACTOR);
+    await signIn(page, ACTOR);
     await setScene(page, "binh-thuong");
 
     for (const screen of ONCE_SCREENS) {
@@ -102,7 +102,7 @@ test.describe("UI review screenshots", () => {
 
   test("phone", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await dangNhap(page, ACTOR);
+    await signIn(page, ACTOR);
     await setScene(page, "binh-thuong");
 
     for (const screen of SCENE_SCREENS) {
@@ -113,7 +113,7 @@ test.describe("UI review screenshots", () => {
   });
 
   test("someone outside the allowlist", async ({ page }) => {
-    await dangNhap(page, "khach-la");
+    await signIn(page, "khach-la");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await shoot(page, "quyen__09-nguoi-ngoai");

@@ -24,37 +24,37 @@ const ve = (s) => { for (let i = 0; i < s.length; i += cot) process.stdout.write
 ve("Open this URL to authorize:");
 ve("https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=" + "s".repeat(60));
 process.stdout.write("Paste the code: ");
-let go = "", cum = 0, luc = 0;
+let buf = "", cum = 0, luc = 0;
 process.stdin.on("data", (d) => {
-  const gio = Date.now();
-  if (gio - luc > 150) cum = 0;
-  luc = gio;
+  const now = Date.now();
+  if (now - luc > 150) cum = 0;
+  luc = now;
   let s = d.toString();
   cum += s.length;
   if (cum > 56) s = s.replace(/\\r/g, "");   // dán: CR là chữ, không phải phím
-  go += s;
-  const i = go.indexOf("\\r");
+  buf += s;
+  const i = buf.indexOf("\\r");
   if (i === -1) return;
-  const ma = go.slice(0, i);
-  go = go.slice(i + 1);
-  if (ma.startsWith("MASAI")) { ve("OAuth error: Request failed with status code 400"); return; }
+  const code = buf.slice(0, i);
+  buf = buf.slice(i + 1);
+  if (code.startsWith("MASAI")) { ve("OAuth error: Request failed with status code 400"); return; }
   ve("Added slot " + ten);
   process.exit(0);
 });
 `;
 
-let thu = "";
+let tmpDir = "";
 let PATH_CU: string | undefined;
 let SRC_CU: string | undefined;
 let CTL_CU: string | undefined;
 
 beforeEach(async () => {
-  thu = await fs.mkdtemp(path.join(os.tmpdir(), "bee-slot-"));
-  await fs.mkdir(path.join(thu, "bin"));
-  await fs.writeFile(path.join(thu, "bin", "tok"), STUB, { mode: 0o755 });
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "bee-slot-"));
+  await fs.mkdir(path.join(tmpDir, "bin"));
+  await fs.writeFile(path.join(tmpDir, "bin", "tok"), STUB, { mode: 0o755 });
   PATH_CU = process.env.PATH;
   SRC_CU = process.env.BEE_SOURCE;
-  process.env.PATH = `${path.join(thu, "bin")}:${process.env.PATH ?? ""}`;
+  process.env.PATH = `${path.join(tmpDir, "bin")}:${process.env.PATH ?? ""}`;
   process.env.BEE_SOURCE = "disk";
   // Mở CỬA LỆNH NGOÀI cho riêng bài này (T18): mặc định cả bộ test đóng
   // (`BEE_CTL=none` trong vitest.setup.ts) để không bài nào lỡ tay start một
@@ -70,7 +70,7 @@ afterEach(async () => {
   else process.env.BEE_SOURCE = SRC_CU;
   if (CTL_CU === undefined) delete process.env.BEE_CTL;
   else process.env.BEE_CTL = CTL_CU;
-  await fs.rm(thu, { recursive: true, force: true });
+  await fs.rm(tmpDir, { recursive: true, force: true });
 });
 
 async function coScript(): Promise<boolean> {
@@ -85,22 +85,22 @@ async function coScript(): Promise<boolean> {
 describe("thêm tài khoản Claude qua tok add --login", () => {
   it("trả link duyệt nguyên vẹn, rồi mã dài vẫn gửi đi được", async () => {
     if (!(await coScript())) return;
-    const { startAddSlot, xongThemSlot } = await import("./slayer-ctl");
+    const { startAddSlot, finishAddSlot } = await import("./slayer-ctl");
 
     const link = await startAddSlot("personal");
     expect(link.ok).toBe(true);
     if (!link.ok) return;
     expect(link.url).toMatch(/^https:\/\/claude\.com\/cai\/oauth\/authorize\?code=true&client_id=9d1c250a&state=s+$/);
 
-    expect(await xongThemSlot(MA_THAT)).toEqual({ ok: true });
+    expect(await finishAddSlot(MA_THAT)).toEqual({ ok: true });
   }, 30_000);
 
   it("mã bị từ chối → chính lời của tok, không phải 'hết giờ'", async () => {
     if (!(await coScript())) return;
-    const { startAddSlot, xongThemSlot } = await import("./slayer-ctl");
+    const { startAddSlot, finishAddSlot } = await import("./slayer-ctl");
 
     expect((await startAddSlot("personal")).ok).toBe(true);
-    const ket = await xongThemSlot(`MASAI${MA_THAT}`);
+    const ket = await finishAddSlot(`MASAI${MA_THAT}`);
     expect(ket.ok).toBe(false);
     if (!ket.ok) expect(ket.message).toMatch(/OAuth error: Request failed with status code 400/);
   }, 30_000);
@@ -113,8 +113,8 @@ describe("thêm tài khoản Claude qua tok add --login", () => {
   });
 
   it("chưa mở luồng mà gửi mã → nói thẳng, không treo", async () => {
-    const { xongThemSlot } = await import("./slayer-ctl");
-    const ket = await xongThemSlot("ABC123");
+    const { finishAddSlot } = await import("./slayer-ctl");
+    const ket = await finishAddSlot("ABC123");
     expect(ket.ok).toBe(false);
     if (!ket.ok) expect(ket.message).toMatch(/Không có luồng đăng nhập nào đang chờ/);
   });

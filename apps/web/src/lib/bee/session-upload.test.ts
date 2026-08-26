@@ -45,8 +45,8 @@ describe("saveUploadToSession — chat attachments into the worktree", () => {
   it("refuses: bad id, empty file, oversized file, session without worktree", async () => {
     expect((await saveUploadToSession("not-a-uuid", "a.png", new Uint8Array([1]))).ok).toBe(false);
     expect((await saveUploadToSession(ID, "a.png", new Uint8Array())).ok).toBe(false);
-    const qua = new Uint8Array(20 * 1024 * 1024 + 1);
-    expect((await saveUploadToSession(ID, "a.png", qua)).ok).toBe(false);
+    const past = new Uint8Array(20 * 1024 * 1024 + 1);
+    expect((await saveUploadToSession(ID, "a.png", past)).ok).toBe(false);
     await fs.rm(path.join(dir, "work", ID), { recursive: true });
     const ket = await saveUploadToSession(ID, "a.png", new Uint8Array([1]));
     expect(ket).toEqual({ ok: false, message: "This session has no worktree to attach files to." });

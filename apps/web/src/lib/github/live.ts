@@ -65,11 +65,11 @@ function neuTokenHong(e: unknown): never {
   throw e;
 }
 
-const docTatCa = cache(async (): Promise<GhTask[]> => {
+const readAll = cache(async (): Promise<GhTask[]> => {
   try {
     const token = await tokenCuaNguoiXem();
     const repos = await readRepos();
-    const theoRepo = await Promise.all(repos.map((r) => docRepo(token, r)));
+    const theoRepo = await Promise.all(repos.map((r) => readRepo(token, r)));
     return theoRepo.flat();
   } catch (e) {
     neuTokenHong(e);
@@ -112,14 +112,14 @@ query($owner:String!, $name:String!, $n:Int!) {
   }
 }`;
 
-interface TraLoi {
+interface Answer {
   repository: {
     issues: { nodes: GqlIssue[] };
     pullRequests: { nodes: GqlPull[] };
   } | null;
 }
 
-async function docRepo(token: string | undefined, repo: GhRepo): Promise<GhTask[]> {
+async function readRepo(token: string | undefined, repo: GhRepo): Promise<GhTask[]> {
   if (!token) {
     // Nói ra ở đây thay vì để `ghGraphQL` ném một câu chung chung: thiếu token
     // là lỗi CẤU HÌNH (OAuth app thiếu scope `repo`, hoặc phiên cũ chưa mang
@@ -129,7 +129,7 @@ async function docRepo(token: string | undefined, repo: GhRepo): Promise<GhTask[
     );
   }
   const [owner, name] = repo.full.split("/");
-  const data = await ghGraphQL<TraLoi>(token, TRUY_VAN, { owner, name, n: MOI_TRANG });
+  const data = await ghGraphQL<Answer>(token, TRUY_VAN, { owner, name, n: MOI_TRANG });
   if (!data.repository) return [];
 
   // PR ↔ issue qua từ khoá đóng trong body. Một PR không tham chiếu issue nào
@@ -150,7 +150,7 @@ async function docRepo(token: string | undefined, repo: GhRepo): Promise<GhTask[
     return mapGqlTask(repo.slug, i, p ? mapGqlPull(p) : null);
   });
 
-  const themVao = roiRac.map((p) =>
+  const addTo = roiRac.map((p) =>
     mapGqlTask(
       repo.slug,
       { number: p.number, title: p.title, body: p.body, url: p.url, state: "OPEN" },
@@ -158,7 +158,7 @@ async function docRepo(token: string | undefined, repo: GhRepo): Promise<GhTask[
     ),
   );
 
-  return [...tasks, ...themVao];
+  return [...tasks, ...addTo];
 }
 
 /**
@@ -173,8 +173,8 @@ function repoCua(repos: GhRepo[], slug: string): GhRepo {
 }
 
 /** Đọc lại task sau khi ghi — mọi thao tác ghi trả về trạng thái MỚI. */
-async function docLai(slug: string, num: number): Promise<GhTask> {
-  const t = (await docTatCa()).find((x) => x.slug === slug && x.number === num);
+async function reread(slug: string, num: number): Promise<GhTask> {
+  const t = (await readAll()).find((x) => x.slug === slug && x.number === num);
   if (t) return t;
   throw new Error(`Task ${slug}#${num} disappeared right after the write succeeded.`);
 }
@@ -202,10 +202,10 @@ export function createLiveGithubSource(): GithubSource {
       return repo;
     },
 
-    listTasks: () => docTatCa(),
+    listTasks: () => readAll(),
 
     async getTask(slug, num): Promise<GhTask | null> {
-      return (await docTatCa()).find((t) => t.slug === slug && t.number === num) ?? null;
+      return (await readAll()).find((t) => t.slug === slug && t.number === num) ?? null;
     },
 
     async listTimeline(slug, num): Promise<GhComment[]> {
@@ -281,7 +281,7 @@ export function createLiveGithubSource(): GithubSource {
       await ghSend<unknown>(actor.token, "POST", `/repos/${repo.full}/issues/${num}/labels`, {
         labels: [label],
       });
-      return docLai(slug, num);
+      return reread(slug, num);
     },
 
     async removeLabel(slug, num, label: GhLabel, actor): Promise<GhTask> {
@@ -298,7 +298,7 @@ export function createLiveGithubSource(): GithubSource {
         // đã xong.
         if ((e as { status?: number }).status !== 404) throw e;
       }
-      return docLai(slug, num);
+      return reread(slug, num);
     },
 
     /** Approve PR. **Không có merge** — merge chỉ xảy ra trên GitHub, do người làm. */
@@ -313,7 +313,7 @@ export function createLiveGithubSource(): GithubSource {
         `/repos/${repo.full}/pulls/${String(task.pull.number)}/reviews`,
         { event: "APPROVE" },
       );
-      return docLai(slug, num);
+      return reread(slug, num);
     },
   };
 }

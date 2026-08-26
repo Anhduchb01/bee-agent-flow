@@ -27,40 +27,40 @@ export interface TickPorts {
   runningCount: number;
   maxParallel?: number;
   openSession: (v: QueueItem) => Promise<{ ok: true; id: string } | { ok: false; message: string }>;
-  ghi: (q: Queue) => Promise<void>;
+  writer: (q: Queue) => Promise<void>;
 }
 
-function capNhat(q: Queue, v: QueueItem, thay: Partial<QueueItem>): Queue {
+function patch(q: Queue, v: QueueItem, swapWith: Partial<QueueItem>): Queue {
   return {
     ...q,
     items: q.items.map((i) =>
-      i.repo === v.repo && i.issue === v.issue ? { ...i, ...thay } : i,
+      i.repo === v.repo && i.issue === v.issue ? { ...i, ...swapWith } : i,
     ),
   };
 }
 
-export async function runOneTick(cua: TickPorts): Promise<TickResult> {
-  const toiDa = cua.maxParallel ?? 1;
+export async function runOneTick(owner: TickPorts): Promise<TickResult> {
+  const maxCount = owner.maxParallel ?? 1;
 
-  if (cua.paused) return { opened: null, reason: "PAUSE is on — the machine opens no sessions" };
-  if (cua.queue.paused) return { opened: null, reason: "the queue is paused (⏸)" };
-  if (cua.runningCount >= toiDa) {
-    return { opened: null, reason: `${toiDa} session(s) already running — waiting for a slot` };
+  if (owner.paused) return { opened: null, reason: "PAUSE is on — the machine opens no sessions" };
+  if (owner.queue.paused) return { opened: null, reason: "the queue is paused (⏸)" };
+  if (owner.runningCount >= maxCount) {
+    return { opened: null, reason: `${maxCount} session(s) already running — waiting for a slot` };
   }
 
-  const viec = nextQueueItem(cua.queue, { maxParallel: toiDa });
-  if (viec === null) return { opened: null, reason: "nothing left waiting in the queue" };
+  const item = nextQueueItem(owner.queue, { maxParallel: maxCount });
+  if (item === null) return { opened: null, reason: "nothing left waiting in the queue" };
 
-  const ket = await cua.openSession(viec);
+  const ket = await owner.openSession(item);
   if (!ket.ok) {
     // Phanh hạn mức (T5) trả lời ở đây. Việc KHÔNG mất và KHÔNG kẹt: nó về lại
     // waiting kèm lý do, nhịp sau thử lại khi hạn mức đã reset.
-    await cua.ghi(capNhat(cua.queue, viec, { status: "waiting", reason: ket.message }));
+    await owner.writer(patch(owner.queue, item, { status: "waiting", reason: ket.message }));
     return { opened: null, reason: ket.message };
   }
 
-  await cua.ghi(
-    capNhat(cua.queue, viec, { status: "running", sessionId: ket.id, reason: null }),
+  await owner.writer(
+    patch(owner.queue, item, { status: "running", sessionId: ket.id, reason: null }),
   );
-  return { opened: viec, reason: `opened a session for ${viec.repo}#${viec.issue}` };
+  return { opened: item, reason: `opened a session for ${item.repo}#${item.issue}` };
 }

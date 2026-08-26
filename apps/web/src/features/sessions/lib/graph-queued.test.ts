@@ -14,26 +14,26 @@ const HANG = (status: "waiting" | "running" = "waiting"): Queue => ({
 
 describe("canvas — issue đã xếp hàng mà CHƯA chạy cũng phải thấy được (D5)", () => {
   it("mọc một node chờ, nhãn nói rõ đây là dự định chứ chưa xảy ra", () => {
-    const { nodes } = buildGraph([{ repo: "you/myapp", phien: [] }], {}, {}, {}, HANG());
-    const cho = nodes.find((n) => n.type === "cho-chay");
-    expect(cho).toBeDefined();
-    expect(JSON.stringify(cho?.data)).toMatch(/41/);
-    expect(JSON.stringify(cho?.data)).toMatch(/chờ|queued/i);
+    const { nodes } = buildGraph([{ repo: "you/myapp", session: [] }], {}, {}, {}, HANG());
+    const waitFor = nodes.find((n) => n.type === "cho-chay");
+    expect(waitFor).toBeDefined();
+    expect(JSON.stringify(waitFor?.data)).toMatch(/41/);
+    expect(JSON.stringify(waitFor?.data)).toMatch(/chờ|queued/i);
   });
 
   it("node chờ nằm trong đúng group của repo, không trôi ra ngoài", () => {
-    const { nodes } = buildGraph([{ repo: "you/myapp", phien: [] }], {}, {}, {}, HANG());
+    const { nodes } = buildGraph([{ repo: "you/myapp", session: [] }], {}, {}, {}, HANG());
     expect(nodes.find((n) => n.type === "cho-chay")?.parentId).toBe("group-you/myapp");
   });
 
   it("việc đã chạy KHÔNG mọc node chờ — phiên thật thay chỗ nó", () => {
-    const { nodes } = buildGraph([{ repo: "you/myapp", phien: [] }], {}, {}, {}, HANG("running"));
+    const { nodes } = buildGraph([{ repo: "you/myapp", session: [] }], {}, {}, {}, HANG("running"));
     expect(nodes.some((n) => n.type === "cho-chay")).toBe(false);
   });
 
   it("repo không có trong hàng đợi thì canvas y như cũ", () => {
-    const truoc = buildGraph([{ repo: "you/blog", phien: [] }], {}, {}, {});
-    const sau = buildGraph([{ repo: "you/blog", phien: [] }], {}, {}, {}, HANG());
-    expect(sau.nodes.length).toBe(truoc.nodes.length);
+    const prev = buildGraph([{ repo: "you/blog", session: [] }], {}, {}, {});
+    const next = buildGraph([{ repo: "you/blog", session: [] }], {}, {}, {}, HANG());
+    expect(next.nodes.length).toBe(prev.nodes.length);
   });
 });

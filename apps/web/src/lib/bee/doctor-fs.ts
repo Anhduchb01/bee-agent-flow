@@ -70,19 +70,19 @@ export async function readClaudeUsageFrom(root: string): Promise<BeeClaudeAccoun
   const o = raw as Record<string, unknown>;
   if (typeof o.fetched_at !== "string") return null;
 
-  const cuaSo = (v: unknown): BeeClaudeWindow | null => {
+  const usageWindow = (v: unknown): BeeClaudeWindow | null => {
     if (typeof v !== "object" || v === null) return null;
     const w = v as Record<string, unknown>;
     if (typeof w.percent !== "number") return null;
     return { percent: w.percent, resets_at: typeof w.resets_at === "string" ? w.resets_at : null };
   };
-  return { five_hour: cuaSo(o.five_hour), seven_day: cuaSo(o.seven_day), fetched_at: o.fetched_at };
+  return { five_hour: usageWindow(o.five_hour), seven_day: usageWindow(o.seven_day), fetched_at: o.fetched_at };
 }
 
 /** One slash command (…/.claude/commands/<name>.md) — feeds the "/" palette. */
 export interface BeeCommand {
   name: string;
-  moTa: string;
+  hint: string;
 }
 
 /**
@@ -101,15 +101,15 @@ export async function readCommandsFrom(dir: string): Promise<BeeCommand[]> {
   for (const f of files) {
     if (!f.endsWith(".md")) continue;
     try {
-      const dau = (await fs.readFile(path.join(dir, f), "utf8")).slice(0, 2000);
-      const moTa =
-        /^description:\s*"?(.+?)"?\s*$/m.exec(dau)?.[1] ??
-        dau.replace(/^---[\s\S]*?---/, "").trim().split("\n")[0] ??
+      const head = (await fs.readFile(path.join(dir, f), "utf8")).slice(0, 2000);
+      const hint =
+        /^description:\s*"?(.+?)"?\s*$/m.exec(head)?.[1] ??
+        head.replace(/^---[\s\S]*?---/, "").trim().split("\n")[0] ??
         "";
-      if (moTa === "") continue;
+      if (hint === "") continue;
       ra.push({
         name: f.slice(0, -3),
-        moTa: moTa.length > 120 ? `${moTa.slice(0, 120)}…` : moTa,
+        hint: hint.length > 120 ? `${hint.slice(0, 120)}…` : hint,
       });
     } catch {
       // Unreadable file — skip.
@@ -126,8 +126,8 @@ export async function readCommandsFrom(dir: string): Promise<BeeCommand[]> {
  */
 export async function expandCommandText(dir: string, text: string): Promise<string> {
   if (!text.startsWith("/")) return text;
-  const [dau = "", ...conLai] = text.split(" ");
-  const name = dau.slice(1);
+  const [head = "", ...rest] = text.split(" ");
+  const name = head.slice(1);
   if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) return text;
   let body: string;
   try {
@@ -136,7 +136,7 @@ export async function expandCommandText(dir: string, text: string): Promise<stri
     return text;
   }
   body = body.replace(/^---[\s\S]*?---\s*/, "").trim();
-  const args = conLai.join(" ").trim();
+  const args = rest.join(" ").trim();
   if (body.includes("$ARGUMENTS")) return body.replaceAll("$ARGUMENTS", args);
   return args === "" ? body : `${body}\n\nARGUMENTS: ${args}`;
 }

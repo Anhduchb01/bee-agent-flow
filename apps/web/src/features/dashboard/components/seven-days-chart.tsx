@@ -38,8 +38,8 @@ const CAU_HINH = {
   // Xanh nước biển, không phải xanh điện: `--link` (#0070f3) rực và kéo mắt
   // như một cái link bấm được. `--link-deep` (#0761d1) trầm hơn, để khối đỏ
   // giữ nguyên vai trò tín hiệu duy nhất của biểu đồ.
-  xong: { label: "Finished", color: "var(--link-deep)" },
-  loi: { label: "Failed", color: "var(--destructive)" },
+  finished: { label: "Finished", color: "var(--link-deep)" },
+  err: { label: "Failed", color: "var(--destructive)" },
 } satisfies ChartConfig;
 
 /**
@@ -70,20 +70,20 @@ export function SevenDaysChart({ days, tomTat }: { days: RunDay[]; tomTat: strin
         <ChartContainer config={CAU_HINH} className="h-56 w-full">
           <BarChart accessibilityLayer data={days} maxBarSize={64}>
             <CartesianGrid vertical={false} />
-            <XAxis dataKey="nhan" tickLine={false} axisLine={false} tickMargin={10} />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} />
             <ChartTooltip content={<ChartTooltipContent />} />
             <ChartLegend content={<ChartLegendContent />} />
             <Bar
-              dataKey="xong"
+              dataKey="finished"
               stackId="a"
-              fill="var(--color-xong)"
+              fill="var(--color-finished)"
               radius={[0, 0, 4, 4]}
               isAnimationActive={false}
             />
             <Bar
-              dataKey="loi"
+              dataKey="err"
               stackId="a"
-              fill="var(--color-loi)"
+              fill="var(--color-err)"
               radius={[4, 4, 0, 0]}
               isAnimationActive={false}
             />

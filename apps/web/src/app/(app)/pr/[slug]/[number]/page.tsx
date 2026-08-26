@@ -20,18 +20,18 @@ export default async function PrReviewPage({
   if (!actor) return null;
 
   const { slug, number } = await params;
-  const so = Number(number);
+  const count = Number(number);
   const repo = (await getBee().listRepos()).find((r) => r.slug === slug);
-  if (!repo || !Number.isInteger(so) || so <= 0) notFound();
+  if (!repo || !Number.isInteger(count) || count <= 0) notFound();
 
-  const url = `https://github.com/${repo.repo}/pull/${so}`;
+  const url = `https://github.com/${repo.repo}/pull/${count}`;
   return (
     <div className="flex h-dvh flex-col">
       <PageHeader
-        title={`PR #${so}`}
+        title={`PR #${count}`}
         meta={<span className="font-mono text-xs text-muted-foreground">{repo.repo}</span>}
       />
-      <ArtifactPanel repo={repo.repo} kind="pr" number={so} url={url} />
+      <ArtifactPanel repo={repo.repo} kind="pr" number={count} url={url} />
     </div>
   );
 }

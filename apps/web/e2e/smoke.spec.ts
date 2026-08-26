@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-import { dangNhap } from "./helpers";
+import { signIn } from "./helpers";
 
 test("trang chủ là Tổng quan, điều hướng nằm ở sidebar", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Overview");
 

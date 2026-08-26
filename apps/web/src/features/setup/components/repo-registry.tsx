@@ -30,18 +30,18 @@ export function RepoRegistry({
 }) {
   const router = useRouter();
   const [repo, setRepo] = useState("");
-  const [loi, setLoi] = useState("");
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [busy, start] = useTransition();
 
-  function them() {
-    if (dang || repo.trim() === "") return;
+  function added() {
+    if (busy || repo.trim() === "") return;
     start(async () => {
       const ket = await registerRepoAction(repo);
       if (ket.ok) {
         setRepo("");
-        setLoi("");
+        setErr("");
       } else {
-        setLoi(ket.message);
+        setErr(ket.message);
       }
       router.refresh();
     });
@@ -50,7 +50,7 @@ export function RepoRegistry({
   function go(slug: string) {
     start(async () => {
       const ket = await unregisterRepoAction(slug);
-      setLoi(ket.ok ? "" : ket.message);
+      setErr(ket.ok ? "" : ket.message);
       router.refresh();
     });
   }
@@ -61,7 +61,7 @@ export function RepoRegistry({
         className="flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          them();
+          added();
         }}
       >
         <Input
@@ -71,11 +71,11 @@ export function RepoRegistry({
           aria-label="Repository to register"
           className="flex-1 font-mono"
         />
-        <Button type="submit" disabled={dang || repo.trim() === ""}>
-          {dang ? "Adding…" : "Add repo"}
+        <Button type="submit" disabled={busy || repo.trim() === ""}>
+          {busy ? "Adding…" : "Add repo"}
         </Button>
       </form>
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
 
       {repos.length === 0 ? (
         <p className="font-mono text-xs text-muted-foreground">No repos registered yet.</p>
@@ -98,7 +98,7 @@ export function RepoRegistry({
                 >
                   Protect main ↗
                 </a>
-                <Button size="sm" variant="ghost" disabled={dang} onClick={() => go(r.slug)}>
+                <Button size="sm" variant="ghost" disabled={busy} onClick={() => go(r.slug)}>
                   Remove
                 </Button>
               </span>

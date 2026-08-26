@@ -9,8 +9,8 @@ import { gopSuKien, parseLine } from "./parse-events";
 // không phải bịa — hình dạng stream đổi theo phiên bản CLI, và bộ này là hợp
 // đồng với phiên bản đã kiểm chứng (claude 2.1.161).
 // cwd của vitest là apps/web — cùng cách EVIDENCE_ROOT trong lib/bee/fixture.ts.
-function docFixture(ten: string): string[] {
-  const file = path.join(process.cwd(), "src", "features", "sessions", "lib", "fixtures", ten);
+function readFixture(name: string): string[] {
+  const file = path.join(process.cwd(), "src", "features", "sessions", "lib", "fixtures", name);
   return readFileSync(file, "utf8")
     .split("\n")
     .filter((d) => d.trim() !== "");
@@ -77,10 +77,10 @@ describe("parseLine", () => {
     expect(ket).toEqual([
       expect.objectContaining({
         loai: "tool",
-        ten: "Edit",
+        name: "Edit",
         file: "src/a.ts",
         cu: "cũ 1\ncũ 2",
-        moi: "mới 1",
+        latest: "mới 1",
       }),
     ]);
   });
@@ -93,34 +93,34 @@ describe("parseLine", () => {
 
 describe("gopSuKien trên fixture thật", () => {
   it("fixture gõ-chen: thấy tool Bash, kết quả tool, và câu trả lời có mã hiệu", () => {
-    const { events, dongRac } = gopSuKien(docFixture("fixture-interject.jsonl"));
+    const { events, dongRac } = gopSuKien(readFixture("fixture-interject.jsonl"));
     expect(dongRac).toBe(0);
 
     const tool = events.filter((s) => s.loai === "tool");
-    expect(tool.some((t) => t.loai === "tool" && t.ten === "Bash")).toBe(true);
+    expect(tool.some((t) => t.loai === "tool" && t.name === "Bash")).toBe(true);
 
     expect(events.some((s) => s.loai === "tool-xong" && s.text.includes("xong"))).toBe(true);
     expect(events.some((s) => s.loai === "agent-noi" && s.text.includes("XOAI-XANH"))).toBe(true);
   });
 
   it("fixture gõ-chen: có delta chữ để màn hình chạy mượt", () => {
-    const { events } = gopSuKien(docFixture("fixture-interject.jsonl"));
+    const { events } = gopSuKien(readFixture("fixture-interject.jsonl"));
     expect(events.some((s) => s.loai === "delta")).toBe(true);
   });
 
   it("fixture phiên trọn vẹn: có tool Write và một kết-quả không lỗi", () => {
-    const { events, dongRac } = gopSuKien(docFixture("fixture-resume-work.jsonl"));
+    const { events, dongRac } = gopSuKien(readFixture("fixture-resume-work.jsonl"));
     expect(dongRac).toBe(0);
-    expect(events.some((s) => s.loai === "tool" && s.ten === "Write")).toBe(true);
+    expect(events.some((s) => s.loai === "tool" && s.name === "Write")).toBe(true);
     expect(events.filter((s) => s.loai === "ket-qua")).toEqual([
       // nguCanh 4%: real modelUsage from the recorded stream — the number
       // behind the context ring, plus the raw tokens it derives from.
       {
         loai: "ket-qua",
-        loi: false,
+        err: false,
         luot: 2,
         nguCanh: 4,
-        dungToken: 41752,
+        validToken: 41752,
         cuaSoToken: 1_000_000,
       },
     ]);
@@ -143,7 +143,7 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
       {
         loai: "xin-quyen",
         requestId: "d72b0535-401f-4f41-92e3-78a8bfe6ceac",
-        ten: "Bash",
+        name: "Bash",
         thamSo: JSON.stringify({ command: "cat /proc/sys/kernel/random/uuid" }),
       },
     ]);
@@ -164,7 +164,7 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
       ts: "t",
     });
     expect(gopSuKien([line]).events).toEqual([
-      { loai: "quyen-da-tra-loi", requestId: "abc-1", choPhep: false },
+      { loai: "quyen-da-tra-loi", requestId: "abc-1", allow: false },
     ]);
   });
 });

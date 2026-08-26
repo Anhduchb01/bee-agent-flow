@@ -21,20 +21,20 @@ export function boardHref(slug: string | null, view: BoardView): string {
 
 function Chip({
   href,
-  dangChon,
+  selected,
   children,
 }: {
   href: string;
-  dangChon: boolean;
+  selected: boolean;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
-      aria-current={dangChon ? "page" : undefined}
+      aria-current={selected ? "page" : undefined}
       // min-h-9: a filter you cannot hit with a thumb is not a filter.
       className={`flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs ${
-        dangChon
+        selected
           ? "border-primary bg-primary/10 text-foreground"
           : "border-border bg-card text-body hover:bg-muted"
       }`}
@@ -62,11 +62,11 @@ export function BoardToolbar({
         aria-label="Filter by project"
         className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <Chip href={boardHref(null, view)} dangChon={duAn === null}>
+        <Chip href={boardHref(null, view)} selected={duAn === null}>
           All projects
         </Chip>
         {repos.map((r) => (
-          <Chip key={r.slug} href={boardHref(r.slug, view)} dangChon={duAn === r.slug}>
+          <Chip key={r.slug} href={boardHref(r.slug, view)} selected={duAn === r.slug}>
             {r.slug}
           </Chip>
         ))}
@@ -74,10 +74,10 @@ export function BoardToolbar({
 
       <div className="flex flex-wrap items-center gap-3">
         <nav aria-label="View" className="flex gap-1.5">
-          <Chip href={boardHref(duAn, "table")} dangChon={view === "table"}>
+          <Chip href={boardHref(duAn, "table")} selected={view === "table"}>
             Table
           </Chip>
-          <Chip href={boardHref(duAn, "kanban")} dangChon={view === "kanban"}>
+          <Chip href={boardHref(duAn, "kanban")} selected={view === "kanban"}>
             Kanban
           </Chip>
         </nav>

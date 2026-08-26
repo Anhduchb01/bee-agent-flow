@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-import { dangNhap } from "./helpers";
+import { signIn } from "./helpers";
 
 test("bảng dự án: issue kèm phiên đang làm nó", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await page.goto("/projects");
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Projects");
@@ -14,11 +14,11 @@ test("bảng dự án: issue kèm phiên đang làm nó", async ({ page }) => {
 });
 
 test("lọc theo dự án và đổi sang kanban — cả hai nằm trong URL", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await page.goto("/projects");
 
-  const thanhLoc = page.getByRole("navigation", { name: "Filter by project" });
-  await thanhLoc.getByRole("link", { name: "blog", exact: true }).click();
+  const filtered = page.getByRole("navigation", { name: "Filter by project" });
+  await filtered.getByRole("link", { name: "blog", exact: true }).click();
   await expect(page).toHaveURL(/\/projects\?p=blog/);
   await expect(page.getByText("Fix RSS feed encoding")).toBeVisible();
   await expect(page.getByText("Add CSV export to the report screen")).toHaveCount(0);
@@ -31,7 +31,7 @@ test("lọc theo dự án và đổi sang kanban — cả hai nằm trong URL", 
 });
 
 test("ấn dự án ở sidebar là mở đúng bảng đã lọc", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await page.goto("/sessions");
 
   await page.getByRole("navigation", { name: "Main navigation" })
@@ -43,7 +43,7 @@ test("ấn dự án ở sidebar là mở đúng bảng đã lọc", async ({ pag
 
 test.describe("tạo project ngay tại chỗ (24/08)", () => {
   test.beforeEach(async ({ page }) => {
-    await dangNhap(page, "pm-linh");
+    await signIn(page, "pm-linh");
     await page.goto("/projects");
   });
 

@@ -2,7 +2,7 @@ import "server-only";
 
 import { getBee } from "@/lib/bee";
 
-import { hanMucTu, hanMucTuTaiKhoan, tongHopMucDung } from "./aggregate";
+import { quotaFrom, accountQuota, aggregateUsage } from "./aggregate";
 import type { ClaudeSnapshot, ClaudeSource, TrangThaiDichVu } from "./types";
 
 /**
@@ -48,7 +48,7 @@ const DU_SO_DONG = 200;
 const INDICATOR = ["none", "minor", "major", "critical"] as const;
 type Indicator = (typeof INDICATOR)[number];
 
-function laIndicator(v: unknown): v is Indicator {
+function isIndicator(v: unknown): v is Indicator {
   return typeof v === "string" && (INDICATOR as readonly string[]).includes(v);
 }
 
@@ -60,11 +60,11 @@ function laIndicator(v: unknown): v is Indicator {
  * Cache 60 giây vì mỗi lần render dashboard sẽ gọi một lần, và trang này được
  * mở suốt ngày.
  */
-let cacheDichVu: { luc: number; gia: TrangThaiDichVu } | null = null;
+let cacheDichVu: { at: number; gia: TrangThaiDichVu } | null = null;
 
-async function docDichVu(): Promise<TrangThaiDichVu> {
+async function readServices(): Promise<TrangThaiDichVu> {
   const now = Date.now();
-  if (cacheDichVu && now - cacheDichVu.luc < 60_000) return cacheDichVu.gia;
+  if (cacheDichVu && now - cacheDichVu.at < 60_000) return cacheDichVu.gia;
 
   let gia: TrangThaiDichVu;
   try {
@@ -79,8 +79,8 @@ async function docDichVu(): Promise<TrangThaiDichVu> {
       // Giá trị lạ về `unknown` chứ không về `none`: "không biết" và "bình
       // thường" là hai chuyện khác nhau, và gộp lại thì một sự cố đang diễn ra
       // sẽ hiện ra màu xanh.
-      indicator: laIndicator(status?.indicator) ? status.indicator : "unknown",
-      moTa: typeof status?.description === "string" ? status.description : "Unknown status",
+      indicator: isIndicator(status?.indicator) ? status.indicator : "unknown",
+      hint: typeof status?.description === "string" ? status.description : "Unknown status",
       kiemLuc: new Date().toISOString(),
     };
   } catch (e) {
@@ -95,12 +95,12 @@ async function docDichVu(): Promise<TrangThaiDichVu> {
     }
     gia = {
       indicator: "unknown",
-      moTa: `Could not reach ${host}: ${e instanceof Error ? e.message : String(e)}`,
+      hint: `Could not reach ${host}: ${e instanceof Error ? e.message : String(e)}`,
       kiemLuc: new Date().toISOString(),
     };
   }
 
-  cacheDichVu = { luc: now, gia };
+  cacheDichVu = { at: now, gia };
   return gia;
 }
 
@@ -112,15 +112,15 @@ export function createLiveClaudeSource(): ClaudeSource {
         bee.readRecent(DU_SO_DONG),
         bee.readClaudeRateLimit(),
         bee.readClaudeUsage(),
-        docDichVu(),
+        readServices(),
       ]);
 
       return {
         // Account-wide windows (oauth usage endpoint, refreshed by the
         // button) carry real percentages for BOTH windows — prefer them.
         // rate_limit_event stays as fallback: status only, no percent.
-        hanMuc: accountUsage !== null ? hanMucTuTaiKhoan(accountUsage) : hanMucTu(rateLimit),
-        mucDung: tongHopMucDung(runs),
+        quota: accountUsage !== null ? accountQuota(accountUsage) : quotaFrom(rateLimit),
+        toolUse: aggregateUsage(runs),
         dichVu,
       };
     },

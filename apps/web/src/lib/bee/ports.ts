@@ -15,7 +15,7 @@ import net from "node:net";
  *    còn trống, nhưng dải đó đã là của nó. Chỉ bind-test là cấp trùng.
  */
 
-function conTrong(port: number): Promise<boolean> {
+function inside(port: number): Promise<boolean> {
   return new Promise((res) => {
     const s = net.createServer();
     s.once("error", () => res(false));
@@ -24,27 +24,27 @@ function conTrong(port: number): Promise<boolean> {
 }
 
 export async function allocatePortRange(opts: {
-  tu?: number;
+  since?: number;
   den?: number;
-  so?: number;
+  count?: number;
   /** Dải các phiên khác đang giữ — đọc từ session.json của chúng. */
   daDung: number[];
 }): Promise<number | null> {
-  const tu = opts.tu ?? 54000;
+  const since = opts.since ?? 54000;
   const den = opts.den ?? 54990;
-  const so = opts.so ?? 10;
-  const giu = new Set(opts.daDung);
+  const count = opts.count ?? 10;
+  const held = new Set(opts.daDung);
 
-  for (let base = tu; base + so - 1 <= den; base += so) {
-    if (giu.has(base)) continue;
-    let trong = true;
-    for (let p = base; p < base + so; p += 1) {
-      if (!(await conTrong(p))) {
-        trong = false;
+  for (let base = since; base + count - 1 <= den; base += count) {
+    if (held.has(base)) continue;
+    let within = true;
+    for (let p = base; p < base + count; p += 1) {
+      if (!(await inside(p))) {
+        within = false;
         break;
       }
     }
-    if (trong) return base;
+    if (within) return base;
   }
   // Hết dải: trả null để người gọi nói thật, thay vì quay vòng đè lên dải của
   // phiên khác — đụng cổng lúc 2 giờ sáng là loại lỗi khó lần nhất.

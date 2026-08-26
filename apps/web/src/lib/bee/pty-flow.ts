@@ -35,54 +35,54 @@ export function openFlow(lenh: string, song = 10): PtyFlow {
     stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, TERM: "xterm-256color" },
   });
-  const luong: PtyFlow = {
+  const flow: PtyFlow = {
     p,
     out: "",
     done: false,
     // Một luồng bị bỏ giữa chừng không được nằm lại ôm nửa cái đăng nhập.
-    timeout: setTimeout(() => closeFlow(luong), song * 60 * 1000),
+    timeout: setTimeout(() => closeFlow(flow), song * 60 * 1000),
   };
-  p.stdout?.on("data", (d: Buffer) => (luong.out += d.toString()));
-  p.stderr?.on("data", (d: Buffer) => (luong.out += d.toString()));
-  p.on("close", () => (luong.done = true));
-  return luong;
+  p.stdout?.on("data", (d: Buffer) => (flow.out += d.toString()));
+  p.stderr?.on("data", (d: Buffer) => (flow.out += d.toString()));
+  p.on("close", () => (flow.done = true));
+  return flow;
 }
 
-export function closeFlow(luong: PtyFlow | null): void {
-  if (luong === null) return;
-  clearTimeout(luong.timeout);
+export function closeFlow(flow: PtyFlow | null): void {
+  if (flow === null) return;
+  clearTimeout(flow.timeout);
   try {
-    luong.p.kill("SIGKILL");
+    flow.p.kill("SIGKILL");
   } catch {
     // Đi rồi.
   }
 }
 
 /** Chờ tới khi `tim` bắt được thứ cần trên màn hình, tối đa `giay` giây. */
-export async function cho<T>(
-  luong: PtyFlow,
+export async function waitFor<T>(
+  flow: PtyFlow,
   tim: (out: string) => T | null,
   giay = 15,
 ): Promise<T | null> {
   for (let i = 0; i < giay * 4; i++) {
-    const thay = tim(luong.out);
-    if (thay !== null) return thay;
-    if (luong.done) break;
+    const swapWith = tim(flow.out);
+    if (swapWith !== null) return swapWith;
+    if (flow.done) break;
     await new Promise((r) => setTimeout(r, 250));
   }
-  return tim(luong.out);
+  return tim(flow.out);
 }
 
 /** Dán mã vào: nội dung một lần ghi, Enter một lần ghi khác. */
-export async function sendCode(luong: PtyFlow, ma: string): Promise<void> {
-  luong.p.stdin?.write(ma);
+export async function sendCode(flow: PtyFlow, code: string): Promise<void> {
+  flow.p.stdin?.write(code);
   await new Promise((r) => setTimeout(r, 500));
-  luong.p.stdin?.write("\r");
+  flow.p.stdin?.write("\r");
 }
 
 /** Enter nhắc lại — rẻ, vô hại khi ô trống, đỡ cho máy chậm. */
-export function nudgeEnter(luong: PtyFlow): void {
-  if (!luong.done) luong.p.stdin?.write("\r");
+export function nudgeEnter(flow: PtyFlow): void {
+  if (!flow.done) flow.p.stdin?.write("\r");
 }
 
 /**
@@ -98,8 +98,8 @@ export function lastScreen(out: string): string | null {
     .split(/[\r\n]+/)
     .map((d) => d.trim())
     .filter((d) => d !== "" && !/^\.+$/.test(d));
-  const cuoi = line.at(-1);
-  return cuoi === undefined ? null : cuoi.slice(0, 160);
+  const tail = line.at(-1);
+  return tail === undefined ? null : tail.slice(0, 160);
 }
 
 /** Chính lời của luồng khi nó từ chối mã, ví dụ "OAuth error: …". */

@@ -80,7 +80,7 @@ export function SessionServices({ slice }: { slice: BeeSlice | null }) {
 
             {shared.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                Pool slices are given back when gc reclaims this session&apos;s worktree — so
+                Pool slices are given back when gc reclaims this session&apos;s worktree — count
                 the data survives a stop, and a merged PR keeps it for at least another day.
                 The session&apos;s own containers go at the same moment.
               </p>

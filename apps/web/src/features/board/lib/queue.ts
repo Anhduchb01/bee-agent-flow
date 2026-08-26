@@ -2,11 +2,11 @@ import type {
   BeeSessionMode,
   BeeSessionModel,
   Queue,
-  TrangThaiViec,
+  ItemStatus,
   QueueItem,
 } from "@/lib/bee/types";
 
-export type { Queue, TrangThaiViec, QueueItem };
+export type { Queue, ItemStatus, QueueItem };
 export { nextQueueItem } from "@/lib/bee/queue-next";
 
 /**
@@ -22,7 +22,7 @@ export { nextQueueItem } from "@/lib/bee/queue-next";
  * kanban người dùng nhìn thấy.
  */
 
-export interface ViecMoi {
+export interface NewItem {
   slug: string;
   repo: string;
   issue: number;
@@ -35,7 +35,7 @@ function trung(a: { repo: string; issue: number }, repo: string, issue: number):
   return a.repo === repo && a.issue === issue;
 }
 
-export function addQueueItem(q: Queue, v: ViecMoi, luc = new Date()): Queue {
+export function addQueueItem(q: Queue, v: NewItem, at = new Date()): Queue {
   if (q.items.some((i) => trung(i, v.repo, v.issue))) return q;
   return {
     ...q,
@@ -50,7 +50,7 @@ export function addQueueItem(q: Queue, v: ViecMoi, luc = new Date()): Queue {
         status: "waiting",
         sessionId: null,
         reason: null,
-        added_at: luc.toISOString(),
+        added_at: at.toISOString(),
       },
     ],
   };

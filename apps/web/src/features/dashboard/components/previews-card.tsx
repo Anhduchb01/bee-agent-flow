@@ -18,8 +18,8 @@ import { stopPreviewAction } from "../api/actions";
  */
 export function PreviewsCard({ previews }: { previews: BeePreviewLive[] }) {
   const router = useRouter();
-  const [loi, setLoi] = useState("");
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [busy, start] = useTransition();
 
   if (previews.length === 0) return null;
 
@@ -46,11 +46,11 @@ export function PreviewsCard({ previews }: { previews: BeePreviewLive[] }) {
             <Button
               size="sm"
               variant="outline"
-              disabled={dang}
+              disabled={busy}
               onClick={() =>
                 start(async () => {
                   const ket = await stopPreviewAction(p.unit, p.port);
-                  setLoi(ket.ok ? "" : ket.message);
+                  setErr(ket.ok ? "" : ket.message);
                   router.refresh();
                 })
               }
@@ -60,7 +60,7 @@ export function PreviewsCard({ previews }: { previews: BeePreviewLive[] }) {
           </li>
         ))}
       </ul>
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { dangNhap } from "./helpers";
+import { signIn } from "./helpers";
 
 /**
  * S7.3 — the whole session slice on the fixture, one pass:
@@ -11,7 +11,7 @@ import { dangNhap } from "./helpers";
  * "XOAI-XANH" marker below is real CLI output, not an invented string.
  */
 test("create from combobox, watch the stream, interject, stop", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await page.goto("/sessions");
 
   // Repo combobox: search lives INSIDE the dropdown (S7.1).

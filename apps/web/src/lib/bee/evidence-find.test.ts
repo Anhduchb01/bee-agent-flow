@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { timEvidenceChoArtifact } from "./sessions-fs";
+import { findEvidenceForArtifact } from "./sessions-fs";
 
 const ID = "ef000000-0000-4000-8000-000000000001";
 
@@ -37,9 +37,9 @@ afterEach(async () => {
   await fs.rm(dir, { recursive: true, force: true });
 });
 
-describe("timEvidenceChoArtifact — the review panel's evidence lookup", () => {
+describe("findEvidenceForArtifact — the review panel's evidence lookup", () => {
   it("finds the session that logged the PR and types its evidence files", async () => {
-    const ket = await timEvidenceChoArtifact(dir, "you/myapp", "pr", 12);
+    const ket = await findEvidenceForArtifact(dir, "you/myapp", "pr", 12);
     expect(ket).not.toBeNull();
     expect(ket!.sessionId).toBe(ID);
     expect(ket!.files).toEqual([
@@ -57,7 +57,7 @@ describe("timEvidenceChoArtifact — the review panel's evidence lookup", () => 
   });
 
   it("no session logged that artifact → null; wrong repo → null", async () => {
-    expect(await timEvidenceChoArtifact(dir, "you/myapp", "issue", 12)).toBeNull();
-    expect(await timEvidenceChoArtifact(dir, "someone/else", "pr", 12)).toBeNull();
+    expect(await findEvidenceForArtifact(dir, "you/myapp", "issue", 12)).toBeNull();
+    expect(await findEvidenceForArtifact(dir, "someone/else", "pr", 12)).toBeNull();
   });
 });

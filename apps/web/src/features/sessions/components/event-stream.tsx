@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import { pairToolCards, type Muc } from "../lib/pair-tool-cards";
+import { pairToolCards, type Card } from "../lib/pair-tool-cards";
 import type { StreamEvent } from "../lib/parse-events";
 
 /**
@@ -74,23 +74,23 @@ export function EventStream({
   events,
   typing,
   idle = "",
-  dangCho = false,
-  onTraLoiQuyen,
+  waiting = false,
+  onAnswerPermission,
 }: {
   events: StreamEvent[];
   typing: string;
   idle?: string;
   /** Busy but nothing streaming yet — show the shimmer line. */
-  dangCho?: boolean;
+  waiting?: boolean;
   /** Manual mode (V2.5b): answer an approval card. Absent = read-only view. */
-  onTraLoiQuyen?: (requestId: string, choPhep: boolean, inputJson: string) => void;
+  onAnswerPermission?: (requestId: string, allow: boolean, inputJson: string) => void;
 }) {
-  const muc = useMemo(() => pairToolCards(events), [events]);
+  const row = useMemo(() => pairToolCards(events), [events]);
 
   return (
     <div role="log" aria-label="Session events" className="flex flex-col gap-4">
-      {muc.map((m, i) => (
-        <MotMuc key={i} m={m} onTraLoiQuyen={onTraLoiQuyen} />
+      {row.map((m, i) => (
+        <OneCard key={i} m={m} onAnswerPermission={onAnswerPermission} />
       ))}
       {idle !== "" && (
         <p
@@ -106,16 +106,16 @@ export function EventStream({
           <span className="animate-pulse">▍</span>
         </div>
       )}
-      {dangCho && <NhipChay />}
+      {waiting && <NhipChay />}
     </div>
   );
 }
 
 /** Bash's `command` reads better than raw JSON; other tools show the JSON. */
-function tomTatThamSo(ten: string, thamSo: string): string {
+function tomTatThamSo(name: string, thamSo: string): string {
   try {
     const o = JSON.parse(thamSo) as Record<string, unknown>;
-    if (ten === "Bash" && typeof o.command === "string") return o.command;
+    if (name === "Bash" && typeof o.command === "string") return o.command;
     if (typeof o.file_path === "string") return o.file_path;
   } catch {
     // fall through to raw
@@ -129,41 +129,41 @@ function tomTatThamSo(ten: string, thamSo: string): string {
  */
 function TheXinQuyen({
   m,
-  onTraLoi,
+  onAnswer,
 }: {
-  m: Extract<Muc, { loai: "xin-quyen" }>;
-  onTraLoi?: (requestId: string, choPhep: boolean, inputJson: string) => void;
+  m: Extract<Card, { loai: "xin-quyen" }>;
+  onAnswer?: (requestId: string, allow: boolean, inputJson: string) => void;
 }) {
   return (
     <div className="rounded-card border border-amber-500/50 bg-amber-500/5 px-3.5 py-3">
       <p className="mb-1.5 flex items-center gap-2 text-sm">
         <span className="text-amber-500">⏸</span>
-        <span className="font-semibold text-body">Permission — {m.ten}</span>
-        {m.traLoi !== null && (
+        <span className="font-semibold text-body">Permission — {m.name}</span>
+        {m.answer !== null && (
           <span
             className={`ml-auto font-mono text-xs ${
-              m.traLoi === "allow" ? "text-green-500" : "text-red-400"
+              m.answer === "allow" ? "text-green-500" : "text-red-400"
             }`}
           >
-            {m.traLoi === "allow" ? "✓ allowed" : "✗ denied"}
+            {m.answer === "allow" ? "✓ allowed" : "✗ denied"}
           </span>
         )}
       </p>
       <pre className="overflow-x-auto rounded-control border border-border bg-muted/40 p-2 font-mono text-xs">
-        {tomTatThamSo(m.ten, m.thamSo)}
+        {tomTatThamSo(m.name, m.thamSo)}
       </pre>
-      {m.traLoi === null && onTraLoi !== undefined && (
+      {m.answer === null && onAnswer !== undefined && (
         <div className="mt-2 flex gap-2">
           <button
             type="button"
-            onClick={() => onTraLoi(m.requestId, true, m.thamSo)}
+            onClick={() => onAnswer(m.requestId, true, m.thamSo)}
             className="rounded-control bg-[#C15F3C] px-3 py-1 text-xs font-medium text-white hover:bg-[#a94f31]"
           >
             Allow
           </button>
           <button
             type="button"
-            onClick={() => onTraLoi(m.requestId, false, m.thamSo)}
+            onClick={() => onAnswer(m.requestId, false, m.thamSo)}
             className="rounded-control border border-border px-3 py-1 text-xs text-body hover:bg-accent"
           >
             Deny
@@ -174,16 +174,16 @@ function TheXinQuyen({
   );
 }
 
-function MotMuc({
+function OneCard({
   m,
-  onTraLoiQuyen,
+  onAnswerPermission,
 }: {
-  m: Muc;
-  onTraLoiQuyen?: (requestId: string, choPhep: boolean, inputJson: string) => void;
+  m: Card;
+  onAnswerPermission?: (requestId: string, allow: boolean, inputJson: string) => void;
 }) {
   switch (m.loai) {
     case "xin-quyen":
-      return <TheXinQuyen m={m} onTraLoi={onTraLoiQuyen} />;
+      return <TheXinQuyen m={m} onAnswer={onAnswerPermission} />;
     case "lifecycle":
       return <p className="font-mono text-xs text-muted-foreground">· {m.text}</p>;
     case "nguoi-noi":
@@ -231,7 +231,7 @@ function MotMuc({
     case "ket-qua":
       return (
         <p className="border-t border-border pt-2 font-mono text-xs text-muted-foreground">
-          {m.loi ? "turn ended with an error" : "turn finished"}
+          {m.err ? "turn ended with an error" : "turn finished"}
           {m.luot !== null ? ` · ${m.luot} turns` : ""}
         </p>
       );
@@ -256,20 +256,20 @@ function MotMuc({
 
 /* ── Thẻ tool: ● Tên  tóm-tắt — mở ra panel theo từng loại tool ──────────── */
 
-function TheTool({ m }: { m: Extract<Muc, { loai: "tool-card" }> }) {
+function TheTool({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
   const tomTat = m.file ?? m.lenh ?? (m.thamSo === "{}" ? "" : m.thamSo);
-  const soDong = demDong(m);
+  const lineCount = countLines(m);
 
   return (
     <details className="group" open={m.status === "loi"}>
       <summary className="flex cursor-pointer list-none items-baseline gap-2">
         <ChamTrangThai status={m.status} />
-        <span className="text-sm font-semibold text-body">{m.ten}</span>
+        <span className="text-sm font-semibold text-body">{m.name}</span>
         <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
           {tomTat}
         </span>
-        {soDong !== null && (
-          <span className="shrink-0 font-mono text-xs text-muted-foreground">{soDong}</span>
+        {lineCount !== null && (
+          <span className="shrink-0 font-mono text-xs text-muted-foreground">{lineCount}</span>
         )}
       </summary>
       <div className="mt-2 flex flex-col gap-1.5 pl-4">
@@ -279,13 +279,13 @@ function TheTool({ m }: { m: Extract<Muc, { loai: "tool-card" }> }) {
   );
 }
 
-function ThanThe({ m }: { m: Extract<Muc, { loai: "tool-card" }> }) {
+function ThanThe({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
   // Edit/Write → diff đỏ/xanh; Bash → IN/OUT; còn lại → args + kết quả.
-  if (m.cu !== undefined || m.moi !== undefined) {
+  if (m.cu !== undefined || m.latest !== undefined) {
     return (
       <div className="overflow-hidden rounded-control border border-border font-mono text-xs leading-5">
-        {m.cu !== undefined && <KhoiDiff dau="-" text={m.cu} />}
-        {m.moi !== undefined && <KhoiDiff dau="+" text={m.moi} />}
+        {m.cu !== undefined && <KhoiDiff head="-" text={m.cu} />}
+        {m.latest !== undefined && <KhoiDiff head="+" text={m.latest} />}
       </div>
     );
   }
@@ -293,8 +293,8 @@ function ThanThe({ m }: { m: Extract<Muc, { loai: "tool-card" }> }) {
   if (m.lenh !== undefined) {
     return (
       <div className="overflow-hidden rounded-control border border-border font-mono text-xs leading-5">
-        <DongGutter nhan="IN" text={m.lenh} />
-        {m.ketQua !== null && <DongGutter nhan="OUT" text={m.ketQua} />}
+        <DongGutter label="IN" text={m.lenh} />
+        {m.result !== null && <DongGutter label="OUT" text={m.result} />}
       </div>
     );
   }
@@ -306,9 +306,9 @@ function ThanThe({ m }: { m: Extract<Muc, { loai: "tool-card" }> }) {
           {m.thamSo}
         </pre>
       )}
-      {m.ketQua !== null && (
+      {m.result !== null && (
         <pre className="overflow-x-auto whitespace-pre-wrap rounded-control border border-border p-2 font-mono text-xs">
-          {m.ketQua}
+          {m.result}
         </pre>
       )}
     </>
@@ -316,16 +316,16 @@ function ThanThe({ m }: { m: Extract<Muc, { loai: "tool-card" }> }) {
 }
 
 /** Khối diff một phía: từng dòng mang dấu +/− và nền màu như VSCode dark. */
-function KhoiDiff({ dau, text }: { dau: "+" | "-"; text: string }) {
+function KhoiDiff({ head, text }: { head: "+" | "-"; text: string }) {
   const mau =
-    dau === "+"
+    head === "+"
       ? "bg-green-950/50 text-green-200"
       : "bg-red-950/50 text-red-300";
   return (
     <div className={mau}>
       {text.split("\n").map((line, i) => (
         <div key={i} className="flex">
-          <span className="w-6 shrink-0 select-none pl-1.5 opacity-60">{dau}</span>
+          <span className="w-6 shrink-0 select-none pl-1.5 opacity-60">{head}</span>
           <span className="whitespace-pre-wrap break-all pr-2">{line}</span>
         </div>
       ))}
@@ -333,25 +333,25 @@ function KhoiDiff({ dau, text }: { dau: "+" | "-"; text: string }) {
   );
 }
 
-function DongGutter({ nhan, text }: { nhan: "IN" | "OUT"; text: string }) {
+function DongGutter({ label, text }: { label: "IN" | "OUT"; text: string }) {
   return (
     <div className="flex bg-input/30">
       <span className="w-9 shrink-0 select-none pt-1.5 pl-1.5 text-[0.625rem] tracking-wide text-muted-foreground">
-        {nhan}
+        {label}
       </span>
       <pre className="min-w-0 flex-1 overflow-x-auto whitespace-pre-wrap py-1.5 pr-2">{text}</pre>
     </div>
   );
 }
 
-function demDong(m: Extract<Muc, { loai: "tool-card" }>): string | null {
-  if (m.cu === undefined && m.moi === undefined) return null;
-  const them = m.moi === undefined ? 0 : m.moi.split("\n").length;
-  const xoa = m.cu === undefined ? 0 : m.cu.split("\n").length;
-  const phan: string[] = [];
-  if (them > 0) phan.push(`+${them}`);
-  if (xoa > 0) phan.push(`−${xoa}`);
-  return phan.join(" ");
+function countLines(m: Extract<Card, { loai: "tool-card" }>): string | null {
+  if (m.cu === undefined && m.latest === undefined) return null;
+  const added = m.latest === undefined ? 0 : m.latest.split("\n").length;
+  const removeIt = m.cu === undefined ? 0 : m.cu.split("\n").length;
+  const part: string[] = [];
+  if (added > 0) part.push(`+${added}`);
+  if (removeIt > 0) part.push(`−${removeIt}`);
+  return part.join(" ");
 }
 
 function ChamTrangThai({ status }: { status: "dang-chay" | "xong" | "loi" }) {

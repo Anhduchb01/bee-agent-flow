@@ -36,47 +36,47 @@ const ve = (s) => {
 ve("Browser didn't open? Use the url below to sign in");
 ve("https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=" + "s".repeat(60));
 process.stdout.write("Paste code here if prompted > ");
-let go = "";
+let buf = "";
 let cum = 0, luc = 0;
 process.stdin.on("data", (d) => {
   // Paste detection the way the real thing does it: by BURST, not by chunk.
   // A pty splits a big write into several reads, so "is this chunk large?"
   // measures nothing. What counts is how much arrived back-to-back — and a
   // CR riding at the end of a big burst is pasted text, not a keypress.
-  const gio = Date.now();
-  if (gio - luc > 150) cum = 0;
-  luc = gio;
+  const now = Date.now();
+  if (now - luc > 150) cum = 0;
+  luc = now;
   let s = d.toString();
   cum += s.length;
   if (cum > 56) s = s.replace(/\\r/g, "");
-  go += s;
-  const i = go.indexOf("\\r");           // CR only — LF is not Enter
+  buf += s;
+  const i = buf.indexOf("\\r");           // CR only — LF is not Enter
   if (i === -1) return;
-  const ma = go.slice(0, i);
-  go = go.slice(i + 1);
-  if (ma.startsWith("MASAI")) { ve("OAuth error: Request failed with status code 400"); ve("Press Enter to retry."); return; }
+  const code = buf.slice(0, i);
+  buf = buf.slice(i + 1);
+  if (code.startsWith("MASAI")) { ve("OAuth error: Request failed with status code 400"); ve("Press Enter to retry."); return; }
   ve("\\u2713 Long-lived authentication token created successfully!");
   ve("${TOKEN}");
   process.exit(0);
 });
 `;
 
-let thu = "";
+let tmpDir = "";
 let PATH_CU: string | undefined;
 let SRC_CU: string | undefined;
 let SRV_CU: string | undefined;
 let CTL_CU: string | undefined;
 
 beforeEach(async () => {
-  thu = await fs.mkdtemp(path.join(os.tmpdir(), "bee-setup-"));
-  await fs.mkdir(path.join(thu, "bin"));
-  await fs.writeFile(path.join(thu, "bin", "claude"), STUB, { mode: 0o755 });
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "bee-setup-"));
+  await fs.mkdir(path.join(tmpDir, "bin"));
+  await fs.writeFile(path.join(tmpDir, "bin", "claude"), STUB, { mode: 0o755 });
   PATH_CU = process.env.PATH;
   SRC_CU = process.env.BEE_SOURCE;
   SRV_CU = process.env.BEE_SRV;
-  process.env.PATH = `${path.join(thu, "bin")}:${process.env.PATH ?? ""}`;
+  process.env.PATH = `${path.join(tmpDir, "bin")}:${process.env.PATH ?? ""}`;
   process.env.BEE_SOURCE = "disk"; // the fixture short-circuit would skip everything
-  process.env.BEE_SRV = thu;
+  process.env.BEE_SRV = tmpDir;
   // Mở CỬA LỆNH NGOÀI cho riêng bài này (T18): mặc định cả bộ test đóng
   // (`BEE_CTL=none` trong vitest.setup.ts) để không bài nào lỡ tay start một
   // unit thật. Ở đây mở là đúng — thứ chạy được là stub trong $PATH trên,
@@ -93,7 +93,7 @@ afterEach(async () => {
   else process.env.BEE_SRV = SRV_CU;
   if (CTL_CU === undefined) delete process.env.BEE_CTL;
   else process.env.BEE_CTL = CTL_CU;
-  await fs.rm(thu, { recursive: true, force: true });
+  await fs.rm(tmpDir, { recursive: true, force: true });
 });
 
 // util-linux `script` is what gives the flow a pty. Without it there is
@@ -120,7 +120,7 @@ describe("claude setup-token, driven through a pty", () => {
 
     const ket = await submitClaudeCode(MA_THAT);
     expect(ket.ok).toBe(true);
-    const daLuu = await fs.readFile(path.join(thu, "claude.env"), "utf8");
+    const daLuu = await fs.readFile(path.join(tmpDir, "claude.env"), "utf8");
     // The whole token, not the first 80 characters of it.
     expect(daLuu.trim()).toBe(`CLAUDE_CODE_OAUTH_TOKEN=${TOKEN}`);
   }, 30_000);

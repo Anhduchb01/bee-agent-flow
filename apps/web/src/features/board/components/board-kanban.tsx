@@ -16,8 +16,8 @@ import { LinkPR, AttachedSession, SoIssue } from "./issue-bits";
  * The board scrolls sideways on a phone (one column ≈ one screen width,
  * snapped) instead of squeezing four unreadable columns onto 390px.
  */
-export function BoardKanban({ muc }: { muc: BoardRow[] }) {
-  const byLane = groupByLane(muc);
+export function BoardKanban({ row }: { row: BoardRow[] }) {
+  const byLane = groupByLane(row);
   const router = useRouter();
   const [dragging, setKeo] = useState<BoardRow | null>(null);
   const [refused, setTuChoi] = useState("");
@@ -34,9 +34,9 @@ export function BoardKanban({ muc }: { muc: BoardRow[] }) {
       const m = dragging;
       setKeo(null);
       if (m === null) return;
-      const kiem = isDropAllowed(m.lane, den);
-      if (!kiem.ok) {
-        setTuChoi(kiem.reason);
+      const verify = isDropAllowed(m.lane, den);
+      if (!verify.ok) {
+        setTuChoi(verify.reason);
         return;
       }
       setTuChoi("");
@@ -89,16 +89,16 @@ export function BoardKanban({ muc }: { muc: BoardRow[] }) {
                 className="flex flex-col gap-2 rounded-card border border-border bg-card p-3"
               >
                 <span className="flex items-baseline gap-2">
-                  <SoIssue muc={m} />
+                  <SoIssue row={m} />
                   <span className="min-w-0 text-sm text-foreground">{m.issue.title}</span>
                 </span>
-                <AttachedSession phien={m.phien} />
+                <AttachedSession session={m.session} />
                 <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="font-mono text-xs text-muted-foreground">{m.slug}</span>
-                  <LinkPR muc={m} />
+                  <LinkPR row={m} />
                   <span className="flex-1" />
-                  {lane === "autopilot" && <ReorderButtons muc={m} />}
-                  {(lane === "backlog" || lane === "autopilot") && <QueueButton muc={m} />}
+                  {lane === "autopilot" && <ReorderButtons row={m} />}
+                  {(lane === "backlog" || lane === "autopilot") && <QueueButton row={m} />}
                 </span>
                 {m.queue?.reason != null && (
                   <span className="text-xs text-destructive">{m.queue.reason}</span>

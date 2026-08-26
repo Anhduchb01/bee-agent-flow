@@ -23,7 +23,7 @@ function issue(number: number, state: "OPEN" | "CLOSED" = "OPEN"): BeeIssue {
   };
 }
 
-function phien(id: string, over: Partial<BeeSession> = {}): BeeSession {
+function session(id: string, over: Partial<BeeSession> = {}): BeeSession {
   return {
     id,
     slug: "myapp",
@@ -64,15 +64,15 @@ describe("laneOf — the lanes are the bee lifecycle", () => {
   });
 
   it("a running session means working; a starting one counts too", () => {
-    const chay = [{ id: "a", title: null, branch: "bee/myapp-1", status: "running" as const, needs_human: false }];
+    const runIt = [{ id: "a", title: null, branch: "bee/myapp-1", status: "running" as const, needs_human: false }];
     const start = [{ id: "a", title: null, branch: "bee/myapp-1", status: "starting" as const, needs_human: false }];
-    expect(laneOf(issue(1), chay, [])).toBe("working");
+    expect(laneOf(issue(1), runIt, [])).toBe("working");
     expect(laneOf(issue(1), start, [])).toBe("working");
   });
 
   it("a PR with no running session means the ball is with the owner", () => {
-    const xong = [{ id: "a", title: null, branch: "bee/myapp-1", status: "done" as const, needs_human: false }];
-    expect(laneOf(issue(1), xong, [artPr(9)])).toBe("review");
+    const finished = [{ id: "a", title: null, branch: "bee/myapp-1", status: "done" as const, needs_human: false }];
+    expect(laneOf(issue(1), finished, [artPr(9)])).toBe("review");
   });
 
   it("a finished session that produced nothing falls back to backlog", () => {
@@ -84,60 +84,60 @@ describe("laneOf — the lanes are the bee lifecycle", () => {
 
 describe("buildBoard — the issue↔session link GitHub cannot know", () => {
   it("attaches sessions by the issue number their run.jsonl logged", () => {
-    const muc = buildBoard(
+    const row = buildBoard(
       REPOS,
       { "you/myapp": [issue(41), issue(39)], "you/blog": [] },
-      [phien("s1"), phien("s2", { num: 2, status: "done" })],
+      [session("s1"), session("s2", { num: 2, status: "done" })],
       { s1: [artIssue(41)], s2: [artIssue(39), artPr(123)] },
     );
 
-    const m41 = muc.find((m) => m.issue.number === 41);
-    expect(m41?.phien.map((p) => p.branch)).toEqual(["bee/myapp-1"]);
+    const m41 = row.find((m) => m.issue.number === 41);
+    expect(m41?.session.map((p) => p.branch)).toEqual(["bee/myapp-1"]);
     expect(m41?.lane).toBe("working");
 
-    const m39 = muc.find((m) => m.issue.number === 39);
+    const m39 = row.find((m) => m.issue.number === 39);
     expect(m39?.pr.map((p) => p.number)).toEqual([123]);
     expect(m39?.lane).toBe("review");
   });
 
   it("never attaches a session from another repo, even on the same number", () => {
-    const muc = buildBoard(
+    const row = buildBoard(
       REPOS,
       { "you/myapp": [issue(7)], "you/blog": [{ ...issue(7), url: "https://github.com/you/blog/issues/7" }] },
-      [phien("s1", { repo: "you/blog", slug: "blog" })],
+      [session("s1", { repo: "you/blog", slug: "blog" })],
       { s1: [artIssue(7)] },
     );
-    expect(muc.find((m) => m.slug === "myapp")?.phien).toHaveLength(0);
-    expect(muc.find((m) => m.slug === "blog")?.phien).toHaveLength(1);
+    expect(row.find((m) => m.slug === "myapp")?.session).toHaveLength(0);
+    expect(row.find((m) => m.slug === "blog")?.session).toHaveLength(1);
   });
 
   it("an issue nothing touched still appears — that IS the backlog", () => {
-    const muc = buildBoard(REPOS, { "you/myapp": [issue(5)], "you/blog": [] }, [], {});
-    expect(muc).toHaveLength(1);
-    expect(muc[0]?.lane).toBe("backlog");
-    expect(muc[0]?.phien).toEqual([]);
+    const row = buildBoard(REPOS, { "you/myapp": [issue(5)], "you/blog": [] }, [], {});
+    expect(row).toHaveLength(1);
+    expect(row[0]?.lane).toBe("backlog");
+    expect(row[0]?.session).toEqual([]);
   });
 });
 
 describe("filterByProject / groupByLane", () => {
-  const muc = buildBoard(
+  const row = buildBoard(
     REPOS,
     {
       "you/myapp": [issue(41), issue(40, "CLOSED")],
       "you/blog": [{ ...issue(7), url: "https://github.com/you/blog/issues/7" }],
     },
-    [phien("s1")],
+    [session("s1")],
     { s1: [artIssue(41)] },
   );
 
   it("filters to one project, and an unknown slug shows nothing rather than everything", () => {
-    expect(filterByProject(muc, "blog").map((m) => m.issue.number)).toEqual([7]);
-    expect(filterByProject(muc, null)).toHaveLength(3);
-    expect(filterByProject(muc, "khong-co")).toEqual([]);
+    expect(filterByProject(row, "blog").map((m) => m.issue.number)).toEqual([7]);
+    expect(filterByProject(row, null)).toHaveLength(3);
+    expect(filterByProject(row, "khong-co")).toEqual([]);
   });
 
   it("groups into the five lanes with empty ones kept", () => {
-    const nhom = groupByLane(muc);
+    const nhom = groupByLane(row);
     expect(nhom.working.map((m) => m.issue.number)).toEqual([41]);
     expect(nhom.done.map((m) => m.issue.number)).toEqual([40]);
     expect(nhom.review).toEqual([]);

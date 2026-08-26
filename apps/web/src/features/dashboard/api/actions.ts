@@ -22,8 +22,8 @@ export async function refreshUsageAction(): Promise<Result> {
 
   const [taiKhoan, local] = await Promise.all([fetchClaudeAccountUsage(), harvestClaudeUsage()]);
   revalidatePath("/");
-  const loi = [taiKhoan, local].filter((k) => !k.ok).map((k) => (k.ok ? "" : k.message));
-  return loi.length === 0 ? { ok: true, message: "" } : { ok: false, message: loi.join(" · ") };
+  const err = [taiKhoan, local].filter((k) => !k.ok).map((k) => (k.ok ? "" : k.message));
+  return err.length === 0 ? { ok: true, message: "" } : { ok: false, message: err.join(" · ") };
 }
 
 /** Stop a live preview (V2.3) — validation lives in stopPreview. */

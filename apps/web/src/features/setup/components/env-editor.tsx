@@ -18,8 +18,8 @@ interface EnvFile {
 function MotFile({ slug, file }: { slug: string; file: EnvFile }) {
   const router = useRouter();
   const [content, setNoiDung] = useState(file.content);
-  const [loi, setLoi] = useState("");
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [busy, start] = useTransition();
 
   return (
     <div className="flex flex-col gap-1.5 rounded-control border border-border p-2.5">
@@ -29,11 +29,11 @@ function MotFile({ slug, file }: { slug: string; file: EnvFile }) {
         <Button
           size="sm"
           variant="ghost"
-          disabled={dang}
+          disabled={busy}
           onClick={() =>
             start(async () => {
               const ket = await deleteEnvFileAction(slug, file.path);
-              setLoi(ket.ok ? "" : ket.message);
+              setErr(ket.ok ? "" : ket.message);
               router.refresh();
             })
           }
@@ -43,11 +43,11 @@ function MotFile({ slug, file }: { slug: string; file: EnvFile }) {
         <Button
           size="sm"
           variant="outline"
-          disabled={dang || content === file.content}
+          disabled={busy || content === file.content}
           onClick={() =>
             start(async () => {
               const ket = await saveEnvFileAction(slug, file.path, content);
-              setLoi(ket.ok ? "" : ket.message);
+              setErr(ket.ok ? "" : ket.message);
               router.refresh();
             })
           }
@@ -63,7 +63,7 @@ function MotFile({ slug, file }: { slug: string; file: EnvFile }) {
         rows={3}
         className="font-mono text-base sm:text-xs"
       />
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
     </div>
   );
 }
@@ -91,19 +91,19 @@ export function EnvEditor({
   const router = useRouter();
   const [path, setDuongDan] = useState("");
   const [content, setNoiDung] = useState("");
-  const [loi, setLoi] = useState("");
-  const [dang, start] = useTransition();
+  const [err, setErr] = useState("");
+  const [busy, start] = useTransition();
 
-  function them() {
-    if (dang || path.trim() === "") return;
+  function added() {
+    if (busy || path.trim() === "") return;
     start(async () => {
       const ket = await saveEnvFileAction(slug, path.trim(), content);
       if (ket.ok) {
         setDuongDan("");
         setNoiDung("");
-        setLoi("");
+        setErr("");
       } else {
-        setLoi(ket.message);
+        setErr(ket.message);
       }
       router.refresh();
     });
@@ -135,10 +135,10 @@ export function EnvEditor({
             className="font-mono text-base sm:text-xs"
           />
           <div className="flex items-center gap-2">
-            {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+            {err !== "" && <p className="text-xs text-destructive">{err}</p>}
             <span className="flex-1" />
-            <Button size="sm" disabled={dang || path.trim() === ""} onClick={them}>
-              {dang ? "Saving…" : "Add env file"}
+            <Button size="sm" disabled={busy || path.trim() === ""} onClick={added}>
+              {busy ? "Saving…" : "Add env file"}
             </Button>
           </div>
         </div>

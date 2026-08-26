@@ -19,30 +19,30 @@ const NOW = Date.UTC(2026, 7, 13, 10, 0, 0);
 
 function snapshot(percentOf: [number | null, number | null]): ClaudeSnapshot {
   return {
-    hanMuc: [
+    quota: [
       {
-        cuaSo: "five_hour",
+        usageWindow: "five_hour",
         status: "allowed",
         percentOf: percentOf[0],
         resetsAt: Math.floor(NOW / 1000) + 3600,
       },
       {
-        cuaSo: "weekly",
+        usageWindow: "weekly",
         status: "warning",
         percentOf: percentOf[1],
         resetsAt: Math.floor(NOW / 1000) + 86_400,
       },
     ],
-    mucDung: {
-      soLanChay: 13,
-      soLanLoi: 6,
+    toolUse: {
+      runCount: 13,
+      errorCount: 6,
       token: 1_240_000,
       tiLeCache: 0.89,
       chiPhiHomNay: 2.41,
       chiPhiBayNgay: 14.8,
-      dungViHetHanMuc: 3,
+      stoppedOnQuota: 3,
     },
-    dichVu: { indicator: "none", moTa: "All Systems Operational", kiemLuc: "" },
+    dichVu: { indicator: "none", hint: "All Systems Operational", kiemLuc: "" },
   };
 }
 

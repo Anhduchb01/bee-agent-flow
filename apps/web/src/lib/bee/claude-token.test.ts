@@ -45,12 +45,12 @@ describe("extractOauthUrl — from setup-token's terminal output", () => {
   it("OSC-8 link + the redraw's chopped copy glued on → only the whole one", () => {
     // Shape copied off the machine 25/08: the hyperlink payload holds the
     // full URL, then the visible fragment starts with no space between.
-    const day =
+    const long =
       "\x1b]8;id=10gbsbl;" +
       "https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=Y6JM" +
       "https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88" +
       "\x1b]8;;";
-    expect(extractOauthUrl(day)).toBe(
+    expect(extractOauthUrl(long)).toBe(
       "https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=Y6JM",
     );
   });

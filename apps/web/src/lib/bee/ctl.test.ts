@@ -64,16 +64,16 @@ describe("ctl — cửa lệnh ngoài", () => {
     await fs.mkdir(path.join(dir, "sessions", id), { recursive: true });
     await fs.writeFile(path.join(dir, "sessions", id, "session.json"), JSON.stringify({ id }));
 
-    for (const kq of [await continueSession(id), await stopSession(id)]) {
-      expect(kq.ok).toBe(false);
-      if (!kq.ok) expect(kq.message).toMatch(/BEE_CTL=none/);
+    for (const res of [await continueSession(id), await stopSession(id)]) {
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.message).toMatch(/BEE_CTL=none/);
     }
   });
 
   it("unit của máy (doctor, gc) cũng không chạy được từ test", async () => {
-    for (const kq of [await runDoctor(), await runGc()]) {
-      expect(kq.ok).toBe(false);
-      if (!kq.ok) expect(kq.message).toMatch(/BEE_CTL=none/);
+    for (const res of [await runDoctor(), await runGc()]) {
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.message).toMatch(/BEE_CTL=none/);
     }
   });
 

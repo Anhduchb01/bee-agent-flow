@@ -19,8 +19,8 @@ vi.mock("@/lib/auth/token", () => ({
     login: "ai-do", name: "Ai Đó", avatar_url: "", role: "tl" as const, token: "gho_gia",
   })),
 }));
-vi.mock("./repos-store", async (goc) => ({
-  ...(await goc<typeof import("./repos-store")>()),
+vi.mock("./repos-store", async (baseDir) => ({
+  ...(await baseDir<typeof import("./repos-store")>()),
   readRepos: vi.fn(async () => REPOS),
   writeRepos: vi.fn(async () => {}),
 }));
@@ -29,12 +29,12 @@ const ISSUES = that.repository.issues.nodes as GqlIssue[];
 const PULLS = that.repository.pullRequests.nodes;
 
 /** Thân GraphQL thật bọc trong `data` — đó là hình dạng api.github.com trả về. */
-function dungFetch(data: unknown) {
-  return dungThan({ data });
+function stubFetch(data: unknown) {
+  return stopBody({ data });
 }
 
 /** Thân thô, để dựng đúng trường hợp "HTTP 200 mà lỗi nằm trong thân". */
-function dungThan(body: unknown) {
+function stopBody(body: unknown) {
   // Nhận `url` để bài đếm lời gọi kiểm được nó gọi tới đâu.
   return vi.fn(async (url: unknown) => {
     void url;
@@ -167,7 +167,7 @@ describe("số lời gọi mạng", () => {
    * này đỏ ngay nếu ai đó thêm lại một lời gọi cho mỗi PR.
    */
   it("một màn hình = MỘT lời gọi cho mỗi repo, bất kể bao nhiêu PR", async () => {
-    const f = dungFetch(that);
+    const f = stubFetch(that);
     vi.stubGlobal("fetch", f);
     await (await nguon()).listTasks();
     expect(f).toHaveBeenCalledTimes(1);
@@ -175,16 +175,16 @@ describe("số lời gọi mạng", () => {
   });
 
   it("issues của GraphQL không lẫn PR, nên không cần lọc", async () => {
-    vi.stubGlobal("fetch", dungFetch(that));
+    vi.stubGlobal("fetch", stubFetch(that));
     const ds = await (await nguon()).listTasks();
-    const soIssue = ISSUES.length;
+    const issueNo = ISSUES.length;
     // Task = mọi issue, cộng PR mồ côi không tham chiếu issue nào.
-    expect(ds.length).toBeGreaterThanOrEqual(soIssue);
+    expect(ds.length).toBeGreaterThanOrEqual(issueNo);
     expect(new Set(ds.map((t) => t.number)).size).toBe(ds.length);
   });
 
   it("repo không đọc được thì rỗng, không ném", async () => {
-    vi.stubGlobal("fetch", dungFetch({ repository: null }));
+    vi.stubGlobal("fetch", stubFetch({ repository: null }));
     expect(await (await nguon()).listTasks()).toEqual([]);
   });
 
@@ -198,7 +198,7 @@ describe("số lời gọi mạng", () => {
     vi.mocked(getActorWithToken).mockResolvedValueOnce({
       login: "x", name: "x", avatar_url: "", role: "pm", token: undefined,
     });
-    vi.stubGlobal("fetch", dungFetch(that));
+    vi.stubGlobal("fetch", stubFetch(that));
     await expect((await nguon()).listTasks()).rejects.toThrow(/token/i);
   });
 
@@ -209,7 +209,7 @@ describe("số lời gọi mạng", () => {
   it("lỗi nằm trong thân với HTTP 200 vẫn phải nổ", async () => {
     vi.stubGlobal(
       "fetch",
-      dungThan({ errors: [{ message: "Could not resolve to a Repository", type: "NOT_FOUND" }] }),
+      stopBody({ errors: [{ message: "Could not resolve to a Repository", type: "NOT_FOUND" }] }),
     );
     await expect((await nguon()).listTasks()).rejects.toThrow(/NOT_FOUND|resolve/i);
   });

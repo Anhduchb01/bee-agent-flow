@@ -42,7 +42,7 @@ function headersFor(token: string | undefined): HeadersInit {
 
 export async function ghGet<T>(token: string | undefined, path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { headers: headersFor(token), cache: "no-store" });
-  if (!res.ok) throw new GithubError(res.status, path, await moTaLoi(res, path));
+  if (!res.ok) throw new GithubError(res.status, path, await describeError(res, path));
   return (await res.json()) as T;
 }
 
@@ -69,7 +69,7 @@ export async function ghGraphQL<T>(
     body: JSON.stringify({ query, variables }),
     cache: "no-store",
   });
-  if (!res.ok) throw new GithubError(res.status, "/graphql", await moTaLoi(res, "/graphql"));
+  if (!res.ok) throw new GithubError(res.status, "/graphql", await describeError(res, "/graphql"));
 
   const body = (await res.json()) as {
     data?: T;
@@ -100,7 +100,7 @@ export async function ghSend<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
-  if (!res.ok) throw new GithubError(res.status, path, await moTaLoi(res, path));
+  if (!res.ok) throw new GithubError(res.status, path, await describeError(res, path));
   // 204 No Content — `DELETE /labels/{name}` trả về thân rỗng.
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
@@ -110,7 +110,7 @@ export async function ghSend<T>(
  * Thông điệp lỗi phải nói được PHẢI LÀM GÌ. `HTTP 403` trần trụi là thứ đã tốn
  * của dự án này một buổi chiều ở P1.1, khi PAT thiếu quyền "Commit statuses".
  */
-async function moTaLoi(res: Response, path: string): Promise<string> {
+async function describeError(res: Response, path: string): Promise<string> {
   let chiTiet = "";
   try {
     chiTiet = ((await res.json()) as { message?: string }).message ?? "";
@@ -123,8 +123,8 @@ async function moTaLoi(res: Response, path: string): Promise<string> {
   }
   if (res.status === 403 && res.headers.get("x-ratelimit-remaining") === "0") {
     const reset = res.headers.get("x-ratelimit-reset");
-    const luc = reset ? new Date(Number(reset) * 1000).toISOString() : "unknown";
-    return `GitHub rate limit exhausted, resets at ${luc}. [${path}]`;
+    const at = reset ? new Date(Number(reset) * 1000).toISOString() : "unknown";
+    return `GitHub rate limit exhausted, resets at ${at}. [${path}]`;
   }
   if (res.status === 403) {
     return `Your GitHub account cannot do this (403): ${chiTiet}. Check that you have write access to the repository. [${path}]`;

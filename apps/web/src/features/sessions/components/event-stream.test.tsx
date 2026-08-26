@@ -10,7 +10,7 @@ describe("EventStream", () => {
       { loai: "lifecycle", text: "Đang dựng worktree…" },
       { loai: "nguoi-noi", text: "làm gọn thôi" },
       { loai: "agent-noi", text: "Đã hiểu, tôi bắt đầu." },
-      { loai: "tool", ten: "Bash", thamSo: '{"command":"pnpm test"}', id: "toolu_1", lenh: "pnpm test" },
+      { loai: "tool", name: "Bash", thamSo: '{"command":"pnpm test"}', id: "toolu_1", lenh: "pnpm test" },
     ];
     render(<EventStream events={events} typing="" />);
 
@@ -24,8 +24,8 @@ describe("EventStream", () => {
 
   it("tool đã xong là MỘT thẻ: ✓ + tên + kết quả gập trong thẻ — không phải hai dòng rời", () => {
     const events: StreamEvent[] = [
-      { loai: "tool", ten: "Bash", thamSo: "{}", id: "toolu_1", lenh: "pnpm test" },
-      { loai: "tool-xong", text: "24 tests passed", id: "toolu_1", loi: false },
+      { loai: "tool", name: "Bash", thamSo: "{}", id: "toolu_1", lenh: "pnpm test" },
+      { loai: "tool-xong", text: "24 tests passed", id: "toolu_1", err: false },
     ];
     render(<EventStream events={events} typing="" />);
 
@@ -35,15 +35,15 @@ describe("EventStream", () => {
 
   it("tool chưa xong hiện trạng thái đang chạy", () => {
     render(
-      <EventStream events={[{ loai: "tool", ten: "Grep", thamSo: "{}", id: "toolu_2" }]} typing="" />,
+      <EventStream events={[{ loai: "tool", name: "Grep", thamSo: "{}", id: "toolu_2" }]} typing="" />,
     );
     expect(screen.getByLabelText("running")).toBeInTheDocument();
   });
 
   it("tool lỗi: dấu ✗ và thẻ TỰ MỞ — lỗi không được gập lại chờ người tò mò", () => {
     const events: StreamEvent[] = [
-      { loai: "tool", ten: "Bash", thamSo: "{}", id: "toolu_3" },
-      { loai: "tool-xong", text: "command not found", id: "toolu_3", loi: true },
+      { loai: "tool", name: "Bash", thamSo: "{}", id: "toolu_3" },
+      { loai: "tool-xong", text: "command not found", id: "toolu_3", err: true },
     ];
     const { container } = render(<EventStream events={events} typing="" />);
     expect(screen.getByLabelText("failed")).toBeInTheDocument();
@@ -67,14 +67,14 @@ describe("EventStream", () => {
     const events: StreamEvent[] = [
       {
         loai: "tool",
-        ten: "Edit",
+        name: "Edit",
         thamSo: "{}",
         id: "toolu_d",
         file: "src/a.ts",
         cu: "dòng cũ",
-        moi: "dòng mới 1\ndòng mới 2",
+        latest: "dòng mới 1\ndòng mới 2",
       },
-      { loai: "tool-xong", text: "ok", id: "toolu_d", loi: false },
+      { loai: "tool-xong", text: "ok", id: "toolu_d", err: false },
     ];
     render(<EventStream events={events} typing="" />);
 
@@ -86,8 +86,8 @@ describe("EventStream", () => {
 
   it("thẻ Bash vẽ khối IN/OUT như panel VSCode", () => {
     const events: StreamEvent[] = [
-      { loai: "tool", ten: "Bash", thamSo: "{}", id: "toolu_e", lenh: "pnpm test" },
-      { loai: "tool-xong", text: "24 passed", id: "toolu_e", loi: false },
+      { loai: "tool", name: "Bash", thamSo: "{}", id: "toolu_e", lenh: "pnpm test" },
+      { loai: "tool-xong", text: "24 passed", id: "toolu_e", err: false },
     ];
     render(<EventStream events={events} typing="" />);
     expect(screen.getByText("IN")).toBeInTheDocument();
@@ -133,36 +133,36 @@ describe("markdown trong lời agent", () => {
 describe("approval card (V2.5b)", () => {
   it("pending card shows the command and Allow/Deny; clicking Allow passes the input back", async () => {
     const user = (await import("@testing-library/user-event")).default.setup();
-    const onTraLoi = vi.fn();
+    const onAnswer = vi.fn();
     render(
       <EventStream
         events={[
           {
             loai: "xin-quyen",
             requestId: "r1",
-            ten: "Bash",
+            name: "Bash",
             thamSo: '{"command":"pnpm test"}',
           },
         ]}
         typing=""
-        onTraLoiQuyen={onTraLoi}
+        onAnswerPermission={onAnswer}
       />,
     );
     expect(screen.getByText("Permission — Bash")).toBeInTheDocument();
     expect(screen.getByText("pnpm test")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Allow" }));
-    expect(onTraLoi).toHaveBeenCalledWith("r1", true, '{"command":"pnpm test"}');
+    expect(onAnswer).toHaveBeenCalledWith("r1", true, '{"command":"pnpm test"}');
   });
 
   it("answered card shows the verdict and drops the buttons", () => {
     render(
       <EventStream
         events={[
-          { loai: "xin-quyen", requestId: "r1", ten: "Bash", thamSo: "{}" },
-          { loai: "quyen-da-tra-loi", requestId: "r1", choPhep: false },
+          { loai: "xin-quyen", requestId: "r1", name: "Bash", thamSo: "{}" },
+          { loai: "quyen-da-tra-loi", requestId: "r1", allow: false },
         ]}
         typing=""
-        onTraLoiQuyen={vi.fn()}
+        onAnswerPermission={vi.fn()}
       />,
     );
     expect(screen.getByText("✗ denied")).toBeInTheDocument();

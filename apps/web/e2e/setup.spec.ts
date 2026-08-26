@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { dangNhap, datCanh } from "./helpers";
+import { signIn, datCanh } from "./helpers";
 
 /**
  * Onboarding screen: everything but install.sh and the interactive claude
@@ -8,7 +8,7 @@ import { dangNhap, datCanh } from "./helpers";
  * doctor.json. The co-su-co scene mixes green and red on purpose.
  */
 test("setup page: interactive steps + live doctor checks", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   await datCanh(page, "co-su-co");
   await page.goto("/setup");
 
@@ -79,7 +79,7 @@ test("setup page: interactive steps + live doctor checks", async ({ page }) => {
 });
 
 test("machine ready: go-live button is armed", async ({ page }) => {
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
   // binh-thuong scene: doctor all green but... paused=false → shows live state.
   await page.goto("/setup");
   await expect(page.getByText(/machine is live/i)).toBeVisible();
@@ -93,7 +93,7 @@ test("machine ready: go-live button is armed", async ({ page }) => {
  */
 test("fresh machine: login lands on /setup", async ({ page }) => {
   await datCanh(page, "vua-cai");
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
 
   await expect(page).toHaveURL(/\/setup/);
   await expect(page.getByText(/doctor has never run/i)).toBeVisible();
@@ -101,7 +101,7 @@ test("fresh machine: login lands on /setup", async ({ page }) => {
 
 test("failing checks: login lands on /setup too", async ({ page }) => {
   await datCanh(page, "co-su-co");
-  await dangNhap(page, "pm-linh");
+  await signIn(page, "pm-linh");
 
   await expect(page).toHaveURL(/\/setup/);
   await expect(page.getByRole("list", { name: "Doctor checks" })).toContainText(

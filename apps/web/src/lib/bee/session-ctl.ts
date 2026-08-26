@@ -40,7 +40,7 @@ function fifoCua(id: string): string {
   return path.join(rt, `${id}.in`);
 }
 
-function laFixture(): boolean {
+function isFixture(): boolean {
   return process.env.BEE_SOURCE !== "disk";
 }
 
@@ -97,7 +97,7 @@ export async function openSession(input: {
   const mode: BeeSessionMode = input.mode ?? "auto";
   if (!SESSION_MODES.includes(mode)) return { ok: false, message: "Invalid session mode." };
 
-  if (laFixture()) return { ok: true, id: DEMO_SESSION_ID };
+  if (isFixture()) return { ok: true, id: DEMO_SESSION_ID };
 
   // ── Phanh hạn mức (FR-3.3) ────────────────────────────────────────────
   // MỘT chỗ duy nhất, và cố ý đặt ở đây chứ không ở action: hàng đợi đêm
@@ -162,7 +162,7 @@ export async function sendToSession(id: string, text: string, shown?: string): P
   if (trimmed === "") return { ok: false, message: "Empty message." };
   if (trimmed.length > 64_000) return { ok: false, message: "Message too long (max 64KB)." };
 
-  if (laFixture()) return { ok: true };
+  if (isFixture()) return { ok: true };
 
   // Thứ tự cố ý: FIFO trước, ghi sổ sau — bee_user_say chỉ được ghi khi
   // message THẬT SỰ đã vào phiên, không thì lịch sử nói dối.
@@ -225,7 +225,7 @@ export async function autoTitleSession(id: string, text: string): Promise<void> 
 export async function changeSessionMode(id: string, mode: BeeSessionMode): Promise<Result> {
   if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
   if (!SESSION_MODES.includes(mode)) return { ok: false, message: "Invalid session mode." };
-  if (laFixture()) return { ok: true };
+  if (isFixture()) return { ok: true };
 
   const file = path.join(root(), "sessions", id, "session.json");
   try {
@@ -264,7 +264,7 @@ export async function changeSessionMode(id: string, mode: BeeSessionMode): Promi
 export async function changeSessionModel(id: string, model: BeeSessionModel): Promise<Result> {
   if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
   if (!SESSION_MODELS.includes(model)) return { ok: false, message: "Invalid model." };
-  if (laFixture()) return { ok: true };
+  if (isFixture()) return { ok: true };
 
   const file = path.join(root(), "sessions", id, "session.json");
   try {
@@ -305,7 +305,7 @@ const REQUEST_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 export async function answerPermission(
   id: string,
   requestId: string,
-  choPhep: boolean,
+  allow: boolean,
   /** Original tool input JSON (from the can_use_tool event) — echoed back on allow. */
   inputJson: string,
 ): Promise<Result> {
@@ -313,16 +313,16 @@ export async function answerPermission(
   if (!REQUEST_ID_RE.test(requestId)) return { ok: false, message: "Invalid request id." };
   if (inputJson.length > 64_000) return { ok: false, message: "Tool input too large." };
   let input: unknown = {};
-  if (choPhep) {
+  if (allow) {
     try {
       input = JSON.parse(inputJson);
     } catch {
       return { ok: false, message: "Invalid tool input." };
     }
   }
-  if (laFixture()) return { ok: true };
+  if (isFixture()) return { ok: true };
 
-  const response = choPhep
+  const response = allow
     ? { behavior: "allow", updatedInput: input }
     : { behavior: "deny", message: "Denied by the owner from the bee approval card." };
   const line =
@@ -345,7 +345,7 @@ export async function answerPermission(
     JSON.stringify({
       type: "bee_approval",
       request_id: requestId,
-      behavior: choPhep ? "allow" : "deny",
+      behavior: allow ? "allow" : "deny",
       ts: new Date().toISOString(),
     }) + "\n";
   await fs.appendFile(path.join(root(), "sessions", id, "run.jsonl"), events).catch(() => {});
@@ -360,7 +360,7 @@ export async function answerPermission(
  */
 export async function continueSession(id: string): Promise<Result> {
   if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
-  if (laFixture()) return { ok: true };
+  if (isFixture()) return { ok: true };
   try {
     await fs.access(path.join(root(), "sessions", id, "session.json"));
   } catch {
@@ -376,7 +376,7 @@ export async function continueSession(id: string): Promise<Result> {
 
 export async function stopSession(id: string): Promise<Result> {
   if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
-  if (laFixture()) return { ok: true };
+  if (isFixture()) return { ok: true };
   try {
     await ctl("systemctl", ["--user", "stop", `bee-session@${id}.service`]);
     return { ok: true };
@@ -409,7 +409,7 @@ export async function saveUploadToSession(
   const safe = name.replace(/[^A-Za-z0-9._-]/g, "_").slice(-80) || "file";
   const file = `${Date.now()}-${safe}`;
   const relPath = `.bee/uploads/${file}`;
-  if (laFixture()) return { ok: true, relPath };
+  if (isFixture()) return { ok: true, relPath };
 
   const wt = path.join(root(), "work", id);
   try {

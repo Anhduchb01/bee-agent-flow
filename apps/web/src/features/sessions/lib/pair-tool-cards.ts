@@ -9,35 +9,35 @@ import type { StreamEvent } from "./parse-events";
  * này) rơi về FIFO — kết quả vào thẻ đang-chạy cũ nhất.
  */
 
-export type Muc =
+export type Card =
   | { loai: "lifecycle"; text: string }
   | { loai: "nguoi-noi"; text: string }
   | { loai: "agent-noi"; text: string }
   | { loai: "nghi"; text: string }
   | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null; title: string | null }
-  | { loai: "ket-qua"; loi: boolean; luot: number | null }
+  | { loai: "ket-qua"; err: boolean; luot: number | null }
   | { loai: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
   | { loai: "da-cat"; skipped: number }
-  /** Manual-mode approval card; traLoi được ghép từ bee_approval theo requestId. */
-  | { loai: "xin-quyen"; requestId: string; ten: string; thamSo: string; traLoi: "allow" | "deny" | null }
+  /** Manual-mode approval card; answer được ghép từ bee_approval theo requestId. */
+  | { loai: "xin-quyen"; requestId: string; name: string; thamSo: string; answer: "allow" | "deny" | null }
   | {
       loai: "tool-card";
-      ten: string;
+      name: string;
       id: string | null;
       file?: string;
       lenh?: string;
       cu?: string;
-      moi?: string;
+      latest?: string;
       thamSo: string;
       status: "dang-chay" | "xong" | "loi";
-      ketQua: string | null;
+      result: string | null;
     };
 
-type TheTool = Extract<Muc, { loai: "tool-card" }>;
+type TheTool = Extract<Card, { loai: "tool-card" }>;
 
-export function pairToolCards(events: StreamEvent[]): Muc[] {
-  const muc: Muc[] = [];
-  const dangCho = new Map<string, TheTool>(); // id → thẻ chưa có kết quả
+export function pairToolCards(events: StreamEvent[]): Card[] {
+  const row: Card[] = [];
+  const waiting = new Map<string, TheTool>(); // id → thẻ chưa có kết quả
   const fifo: TheTool[] = []; // thẻ không id, theo thứ tự
 
   for (const sk of events) {
@@ -45,86 +45,86 @@ export function pairToolCards(events: StreamEvent[]): Muc[] {
       case "tool": {
         const the: TheTool = {
           loai: "tool-card",
-          ten: sk.ten,
+          name: sk.name,
           id: sk.id ?? null,
           ...(sk.file !== undefined ? { file: sk.file } : {}),
           ...(sk.lenh !== undefined ? { lenh: sk.lenh } : {}),
           ...(sk.cu !== undefined ? { cu: sk.cu } : {}),
-          ...(sk.moi !== undefined ? { moi: sk.moi } : {}),
+          ...(sk.latest !== undefined ? { latest: sk.latest } : {}),
           thamSo: sk.thamSo,
           status: "dang-chay",
-          ketQua: null,
+          result: null,
         };
-        muc.push(the);
-        if (the.id) dangCho.set(the.id, the);
+        row.push(the);
+        if (the.id) waiting.set(the.id, the);
         else fifo.push(the);
         break;
       }
       case "tool-xong": {
         // Mutate thẻ đã nằm trong `muc` — vị trí của thẻ là lúc tool BẮT ĐẦU,
         // đúng dòng thời gian người dùng đã thấy; chỉ trạng thái đổi.
-        const the = (sk.id ? dangCho.get(sk.id) : undefined) ?? fifo.shift();
+        const the = (sk.id ? waiting.get(sk.id) : undefined) ?? fifo.shift();
         if (the) {
-          the.status = sk.loi === true ? "loi" : "xong";
-          the.ketQua = sk.text;
-          if (the.id) dangCho.delete(the.id);
+          the.status = sk.err === true ? "loi" : "xong";
+          the.result = sk.text;
+          if (the.id) waiting.delete(the.id);
         } else {
           // Kết quả mồ côi — tool_use nằm trong khúc bee_replayed đã cắt.
           // Vẫn phải hiện: mất kết quả tệ hơn mất tiêu đề.
-          muc.push({
+          row.push({
             loai: "tool-card",
-            ten: "tool",
+            name: "tool",
             id: sk.id ?? null,
             thamSo: "",
-            status: sk.loi === true ? "loi" : "xong",
-            ketQua: sk.text,
+            status: sk.err === true ? "loi" : "xong",
+            result: sk.text,
           });
         }
         break;
       }
       case "lifecycle":
-        muc.push({ loai: "lifecycle", text: sk.text });
+        row.push({ loai: "lifecycle", text: sk.text });
         break;
       case "nguoi-noi":
-        muc.push({ loai: "nguoi-noi", text: sk.text });
+        row.push({ loai: "nguoi-noi", text: sk.text });
         break;
       case "agent-noi":
-        muc.push({ loai: "agent-noi", text: sk.text });
+        row.push({ loai: "agent-noi", text: sk.text });
         break;
       case "nghi":
-        muc.push({ loai: "nghi", text: sk.text });
+        row.push({ loai: "nghi", text: sk.text });
         break;
       case "artifact":
-        muc.push({ loai: "artifact", kind: sk.kind, url: sk.url, number: sk.number, title: sk.title });
+        row.push({ loai: "artifact", kind: sk.kind, url: sk.url, number: sk.number, title: sk.title });
         break;
       case "xin-quyen":
-        muc.push({
+        row.push({
           loai: "xin-quyen",
           requestId: sk.requestId,
-          ten: sk.ten,
+          name: sk.name,
           thamSo: sk.thamSo,
-          traLoi: null,
+          answer: null,
         });
         break;
       case "quyen-da-tra-loi": {
         // Ghép ngược vào thẻ đã hỏi — thẻ đổi trạng thái, không thêm dòng mới.
-        for (let i = muc.length - 1; i >= 0; i -= 1) {
-          const m = muc[i]!;
+        for (let i = row.length - 1; i >= 0; i -= 1) {
+          const m = row[i]!;
           if (m.loai === "xin-quyen" && m.requestId === sk.requestId) {
-            m.traLoi = sk.choPhep ? "allow" : "deny";
+            m.answer = sk.allow ? "allow" : "deny";
             break;
           }
         }
         break;
       }
       case "ket-qua":
-        muc.push({ loai: "ket-qua", loi: sk.loi, luot: sk.luot ?? null });
+        row.push({ loai: "ket-qua", err: sk.err, luot: sk.luot ?? null });
         break;
       case "compact":
-        muc.push({ loai: "compact", trigger: sk.trigger, preTokens: sk.preTokens });
+        row.push({ loai: "compact", trigger: sk.trigger, preTokens: sk.preTokens });
         break;
       case "da-cat":
-        muc.push({ loai: "da-cat", skipped: sk.skipped });
+        row.push({ loai: "da-cat", skipped: sk.skipped });
         break;
       // delta/nghi-delta gom ở hook, replay hiện thành dải báo — không thành mục
       case "delta":
@@ -133,5 +133,5 @@ export function pairToolCards(events: StreamEvent[]): Muc[] {
         break;
     }
   }
-  return muc;
+  return row;
 }

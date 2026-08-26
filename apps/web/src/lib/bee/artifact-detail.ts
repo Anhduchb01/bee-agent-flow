@@ -73,41 +73,41 @@ async function isRegistered(repo: string): Promise<boolean> {
   return false;
 }
 
-function chuoi(v: unknown, fallback = ""): string {
+function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
 }
 
-function so(v: unknown): number {
+function count(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
-function docComments(v: unknown): BeeArtifactComment[] {
+function readComments(v: unknown): BeeArtifactComment[] {
   if (!Array.isArray(v)) return [];
   return v.slice(-20).map((c) => {
     const o = (c ?? {}) as Record<string, unknown>;
     const author = (o.author ?? {}) as Record<string, unknown>;
     return {
-      author: chuoi(author.login, "unknown"),
-      createdAt: chuoi(o.createdAt),
-      body: chuoi(o.body),
+      author: str(author.login, "unknown"),
+      createdAt: str(o.createdAt),
+      body: str(o.body),
     };
   });
 }
 
-function docLabels(v: unknown): string[] {
+function readLabels(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v
-    .map((l) => chuoi(((l ?? {}) as Record<string, unknown>).name))
+    .map((l) => str(((l ?? {}) as Record<string, unknown>).name))
     .filter((n) => n !== "");
 }
 
 /** Fold GitHub's per-check rollup into one verdict: fail > pending > pass. */
-function docChecks(v: unknown): "pass" | "fail" | "pending" | null {
+function readChecks(v: unknown): "pass" | "fail" | "pending" | null {
   if (!Array.isArray(v) || v.length === 0) return null;
   let pending = false;
   for (const c of v) {
     const o = (c ?? {}) as Record<string, unknown>;
-    const state = `${chuoi(o.conclusion)}${chuoi(o.state)}`.toUpperCase();
+    const state = `${str(o.conclusion)}${str(o.state)}`.toUpperCase();
     if (/FAILURE|ERROR|TIMED_OUT|CANCELLED|ACTION_REQUIRED/.test(state)) return "fail";
     if (!/SUCCESS|NEUTRAL|SKIPPED|COMPLETED/.test(state) || state === "") pending = true;
   }
@@ -150,7 +150,7 @@ const FIXTURE_DETAIL: BeeArtifactDetail = {
 //   short enough that a merged/closed state never looks stale for long.
 let patKhongDocDuocChecks = false;
 const TTL_MS = 60_000;
-const cache = new Map<string, { luc: number; detail: BeeArtifactDetail }>();
+const cache = new Map<string, { at: number; detail: BeeArtifactDetail }>();
 
 /** Test hook — resets the memo and cache between cases. */
 export function resetArtifactDetailCache(): void {
@@ -175,9 +175,9 @@ export async function fetchArtifactDetail(
   }
 
   const now = opts?.now ?? Date.now;
-  const khoa = `${repo}#${kind}#${number}`;
-  const cu = cache.get(khoa);
-  if (cu !== undefined && now() - cu.luc < TTL_MS) return { ok: true, detail: cu.detail };
+  const key = `${repo}#${kind}#${number}`;
+  const cu = cache.get(key);
+  if (cu !== undefined && now() - cu.at < TTL_MS) return { ok: true, detail: cu.detail };
 
   const runGh = opts?.runGh ?? ((args: string[]) => ctl("gh", args));
   const chung = "number,title,state,body,author,createdAt,url,labels,comments";
@@ -200,27 +200,27 @@ export async function fetchArtifactDetail(
   // query. Fallback: refetch without the field, then take the verdict
   // from the commit-status REST API — that one only needs
   // "Commit statuses: read" and covers deploy checks like Vercel.
-  async function docStatusRest(goc: Record<string, unknown>): Promise<"pass" | "fail" | "pending" | null> {
-    const sha = chuoi(goc.headRefOid);
+  async function readStatusRest(baseDir: Record<string, unknown>): Promise<"pass" | "fail" | "pending" | null> {
+    const sha = str(baseDir.headRefOid);
     if (!/^[0-9a-f]{40}$/.test(sha)) return null;
     try {
       const { stdout } = await runGh(["api", `repos/${repo}/commits/${sha}/status`]);
       const st = JSON.parse(stdout) as Record<string, unknown>;
-      if (so(st.total_count) === 0) return null;
-      const state = chuoi(st.state);
+      if (count(st.total_count) === 0) return null;
+      const state = str(st.state);
       return state === "success" ? "pass" : state === "pending" ? "pending" : "fail";
     } catch {
       return null; // status API refused too — show no verdict
     }
   }
 
-  let goc: Record<string, unknown>;
+  let baseDir: Record<string, unknown>;
   let checksThayThe: "pass" | "fail" | "pending" | null | undefined;
   try {
     const { stdout } = await runGh(args);
-    goc = JSON.parse(stdout) as Record<string, unknown>;
+    baseDir = JSON.parse(stdout) as Record<string, unknown>;
     // Memoized skip: the rollup field never ran, get the verdict via REST.
-    if (kind === "pr" && patKhongDocDuocChecks) checksThayThe = await docStatusRest(goc);
+    if (kind === "pr" && patKhongDocDuocChecks) checksThayThe = await readStatusRest(baseDir);
   } catch (e) {
     const msg = (e as Error).message;
     if (kind === "pr" && /not accessible by personal access token/i.test(msg)) {
@@ -229,42 +229,42 @@ export async function fetchArtifactDetail(
         const { stdout } = await runGh([
           "pr", "view", String(number), "-R", repo, "--json", prFields,
         ]);
-        goc = JSON.parse(stdout) as Record<string, unknown>;
+        baseDir = JSON.parse(stdout) as Record<string, unknown>;
       } catch (e2) {
         return { ok: false, message: `Could not load pr #${number}: ${(e2 as Error).message}` };
       }
-      checksThayThe = await docStatusRest(goc);
+      checksThayThe = await readStatusRest(baseDir);
     } else {
       return { ok: false, message: `Could not load ${kind} #${number}: ${msg}` };
     }
   }
 
-  const author = (goc.author ?? {}) as Record<string, unknown>;
+  const author = (baseDir.author ?? {}) as Record<string, unknown>;
   const detail: BeeArtifactDetail = {
     kind,
-    number: so(goc.number) || number,
-    url: chuoi(goc.url),
-    title: chuoi(goc.title, `${kind} #${number}`),
-    state: chuoi(goc.state, "OPEN"),
-    body: chuoi(goc.body),
-    author: chuoi(author.login, "unknown"),
-    createdAt: chuoi(goc.createdAt),
-    labels: docLabels(goc.labels),
-    comments: docComments(goc.comments),
+    number: count(baseDir.number) || number,
+    url: str(baseDir.url),
+    title: str(baseDir.title, `${kind} #${number}`),
+    state: str(baseDir.state, "OPEN"),
+    body: str(baseDir.body),
+    author: str(author.login, "unknown"),
+    createdAt: str(baseDir.createdAt),
+    labels: readLabels(baseDir.labels),
+    comments: readComments(baseDir.comments),
     pr:
       kind === "pr"
         ? {
-            draft: goc.isDraft === true,
-            base: chuoi(goc.baseRefName),
-            head: chuoi(goc.headRefName),
-            additions: so(goc.additions),
-            deletions: so(goc.deletions),
-            changedFiles: so(goc.changedFiles),
+            draft: baseDir.isDraft === true,
+            base: str(baseDir.baseRefName),
+            head: str(baseDir.headRefName),
+            additions: count(baseDir.additions),
+            deletions: count(baseDir.deletions),
+            changedFiles: count(baseDir.changedFiles),
             checks:
-              checksThayThe !== undefined ? checksThayThe : docChecks(goc.statusCheckRollup),
+              checksThayThe !== undefined ? checksThayThe : readChecks(baseDir.statusCheckRollup),
           }
         : null,
   };
-  cache.set(khoa, { luc: now(), detail });
+  cache.set(key, { at: now(), detail });
   return { ok: true, detail };
 }

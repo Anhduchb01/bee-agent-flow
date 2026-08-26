@@ -15,24 +15,24 @@ import type { BeeArtifact, BeeSession, Queue, QueueItem } from "@/lib/bee/types"
 export type DigestKind = "khong-xep-viec" | "xep-ma-khong-chay" | "co-viec";
 
 export interface RanItem {
-  phien: BeeSession;
+  session: BeeSession;
   pr: BeeArtifact | null;
   issue: BeeArtifact | null;
 }
 
 export interface StuckItem {
-  phien: BeeSession;
+  session: BeeSession;
   why: string;
 }
 
 export interface WaitingItem {
-  viec: QueueItem;
+  item: QueueItem;
   why: string;
 }
 
 export interface Digest {
   loai: DigestKind;
-  tu: string;
+  since: string;
   den: string;
   ran: RanItem[];
   toReview: RanItem[];
@@ -50,48 +50,48 @@ function whyStuck(p: BeeSession): string {
   return "no reason recorded — open the session and read its event stream";
 }
 
-function inWindow(p: BeeSession, tu: Date, den: Date): boolean {
+function inWindow(p: BeeSession, since: Date, den: Date): boolean {
   const moc = p.ended_at ?? p.started_at ?? p.created_at;
   if (moc === null) return false;
   const t = new Date(moc).getTime();
-  return Number.isFinite(t) && t >= tu.getTime() && t <= den.getTime();
+  return Number.isFinite(t) && t >= since.getTime() && t <= den.getTime();
 }
 
 export function buildDigest(input: {
-  phien: BeeSession[];
+  session: BeeSession[];
   artifacts: Record<string, BeeArtifact[]>;
   queue: Queue;
-  tu: Date;
+  since: Date;
   den: Date;
 }): Digest {
-  const trong = input.phien.filter((p) => inWindow(p, input.tu, input.den));
+  const within = input.session.filter((p) => inWindow(p, input.since, input.den));
 
-  const ran: RanItem[] = trong.map((p) => {
-    const cua = input.artifacts[p.id] ?? [];
+  const ran: RanItem[] = within.map((p) => {
+    const owner = input.artifacts[p.id] ?? [];
     return {
-      phien: p,
-      pr: cua.find((a) => a.kind === "pr") ?? null,
-      issue: cua.find((a) => a.kind === "issue") ?? null,
+      session: p,
+      pr: owner.find((a) => a.kind === "pr") ?? null,
+      issue: owner.find((a) => a.kind === "issue") ?? null,
     };
   });
 
   // "Chờ duyệt" là phiên xong VÀ có PR. Xong-mà-không-PR là chuyện khác hẳn —
   // trộn hai thứ lại là hứa với người dùng một cái PR không tồn tại.
-  const toReview = ran.filter((m) => m.phien.status === "done" && m.pr !== null);
+  const toReview = ran.filter((m) => m.session.status === "done" && m.pr !== null);
 
-  const ket: StuckItem[] = trong
+  const ket: StuckItem[] = within
     .filter((p) => p.needs_human || p.status === "failed" || p.status === "stopped")
-    .map((p) => ({ phien: p, why: whyStuck(p) }));
+    .map((p) => ({ session: p, why: whyStuck(p) }));
 
   const stillQueued: WaitingItem[] = input.queue.items
     .filter((v) => v.status === "waiting")
     .map((v) => ({
-      viec: v,
+      item: v,
       why: v.reason ?? "not its turn yet",
     }));
 
   const loai: DigestKind =
-    trong.length > 0
+    within.length > 0
       ? "co-viec"
       : input.queue.items.length > 0
         ? "xep-ma-khong-chay"
@@ -99,7 +99,7 @@ export function buildDigest(input: {
 
   return {
     loai,
-    tu: input.tu.toISOString(),
+    since: input.since.toISOString(),
     den: input.den.toISOString(),
     ran,
     toReview,

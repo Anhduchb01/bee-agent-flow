@@ -37,7 +37,7 @@ interface Frame {
 }
 
 /** Read SSE frames off the response until `until` says stop, then cancel. */
-async function docFrames(
+async function readFrames(
   res: Response,
   until: (frames: Frame[]) => boolean,
   timeoutMs = 4000,
@@ -46,13 +46,13 @@ async function docFrames(
   const decoder = new TextDecoder();
   const frames: Frame[] = [];
   let buf = "";
-  const hetGio = Date.now() + timeoutMs;
+  const timedOut = Date.now() + timeoutMs;
   try {
-    while (!until(frames) && Date.now() < hetGio) {
+    while (!until(frames) && Date.now() < timedOut) {
       const chunk = await Promise.race([
         reader.read(),
         new Promise<{ done: true; value: undefined }>((r) =>
-          setTimeout(() => r({ done: true, value: undefined }), Math.max(0, hetGio - Date.now())),
+          setTimeout(() => r({ done: true, value: undefined }), Math.max(0, timedOut - Date.now())),
         ),
       ]);
       if (chunk.done) break;
@@ -106,7 +106,7 @@ describe("GET /api/session/[id]/stream", () => {
     expect(res.headers.get("content-type")).toContain("text/event-stream");
     expect(res.headers.get("cache-control")).toBe("no-store");
 
-    const frames = await docFrames(res, (f) => f.length >= 2);
+    const frames = await readFrames(res, (f) => f.length >= 2);
     expect(frames.map((f) => f.data)).toEqual(['{"n":1}', '{"n":2}']);
     // Both replay frames carry the offset of the replay's end (resume point).
     expect(frames[0]?.id).toBe(Buffer.byteLength('{"n":1}\n{"n":2}\n'));
@@ -117,7 +117,7 @@ describe("GET /api/session/[id]/stream", () => {
     await fs.writeFile(runFile, line.join("\n") + "\n");
     const res = await goi(ID);
 
-    const frames = await docFrames(res, (f) => f.length >= 201);
+    const frames = await readFrames(res, (f) => f.length >= 201);
     expect(JSON.parse(frames[0]!.data)).toEqual({ type: "bee_replayed", skipped: 5 });
     expect(frames).toHaveLength(201); // 1 marker + 200 tail lines
     expect(frames[1]?.data).toBe('{"n":5}');
@@ -125,11 +125,11 @@ describe("GET /api/session/[id]/stream", () => {
   });
 
   it("Last-Event-ID resumes from that byte offset — no duplicates after reconnect", async () => {
-    const dau = '{"n":1}\n';
-    await fs.writeFile(runFile, dau + '{"n":2}\n');
-    const res = await goi(ID, String(Buffer.byteLength(dau)));
+    const head = '{"n":1}\n';
+    await fs.writeFile(runFile, head + '{"n":2}\n');
+    const res = await goi(ID, String(Buffer.byteLength(head)));
 
-    const frames = await docFrames(res, (f) => f.length >= 1);
+    const frames = await readFrames(res, (f) => f.length >= 1);
     expect(frames.map((f) => f.data)).toEqual(['{"n":2}']);
   });
 
@@ -139,8 +139,8 @@ describe("GET /api/session/[id]/stream", () => {
     const res = await goi(ID);
 
     // The meta check runs every 8 ticks × 250ms ≈ 2s — wait it out for real.
-    const frames = await docFrames(res, (f) => f.some((x) => x.data.includes("bee_done")));
-    const cuoi = frames.at(-1);
-    expect(JSON.parse(cuoi!.data)).toEqual({ type: "bee_done", status: "done" });
+    const frames = await readFrames(res, (f) => f.some((x) => x.data.includes("bee_done")));
+    const tail = frames.at(-1);
+    expect(JSON.parse(tail!.data)).toEqual({ type: "bee_done", status: "done" });
   }, 8000);
 });

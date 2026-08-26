@@ -28,12 +28,12 @@ describe("readDoctorFrom", () => {
         ],
       }),
     );
-    const doc = await readDoctorFrom(dir);
-    expect(doc).not.toBeNull();
-    expect(doc!.ok).toBe(false);
-    expect(doc!.paused).toBe(true);
-    expect(doc!.checks).toHaveLength(2);
-    expect(doc!.checks[1]).toEqual({ id: "linger", ok: false, detail: "chưa bật" });
+    const reader = await readDoctorFrom(dir);
+    expect(reader).not.toBeNull();
+    expect(reader!.ok).toBe(false);
+    expect(reader!.paused).toBe(true);
+    expect(reader!.checks).toHaveLength(2);
+    expect(reader!.checks[1]).toEqual({ id: "linger", ok: false, detail: "chưa bật" });
   });
 
   it("no doctor.json → null — the machine simply has not run doctor yet", async () => {
@@ -55,7 +55,7 @@ describe("readDoctorFrom", () => {
         checks: [{ id: "pat", ok: true, detail: "ok" }, { bogus: 1 }, "junk", null],
       }),
     );
-    const doc = await readDoctorFrom(dir);
-    expect(doc!.checks).toEqual([{ id: "pat", ok: true, detail: "ok" }]);
+    const reader = await readDoctorFrom(dir);
+    expect(reader!.checks).toEqual([{ id: "pat", ok: true, detail: "ok" }]);
   });
 });

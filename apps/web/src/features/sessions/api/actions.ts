@@ -26,7 +26,7 @@ import type {
 } from "@/lib/bee/types";
 
 export type OpenSessionResult =
-  | { ok: true; id: string; phien: BeeSession | null }
+  | { ok: true; id: string; session: BeeSession | null }
   | { ok: false; message: string };
 export interface Result {
   ok: boolean;
@@ -55,12 +55,12 @@ export async function startSessionAction(input: {
   let repo = "";
   const worktree = input.repoSlug !== null;
   if (input.repoSlug !== null) {
-    const dangKy = (await getBee().listRepos()).find((r) => r.slug === input.repoSlug);
-    if (!dangKy) {
+    const registered = (await getBee().listRepos()).find((r) => r.slug === input.repoSlug);
+    if (!registered) {
       return { ok: false, message: "This repository is not registered. Add it to repos.d first." };
     }
-    slug = dangKy.slug;
-    repo = dangKy.repo;
+    slug = registered.slug;
+    repo = registered.repo;
   }
 
   const daCo = await getBee().listSessions();
@@ -81,8 +81,8 @@ export async function startSessionAction(input: {
   revalidatePath("/sessions");
   revalidatePath("/canvas");
   // Trả luôn phiên vừa mở — canvas cần nó để mở panel tại chỗ không round-trip.
-  const phien = await getBee().readSession(ket.id);
-  return { ok: true, id: ket.id, phien };
+  const session = await getBee().readSession(ket.id);
+  return { ok: true, id: ket.id, session };
 }
 
 export async function sendToSessionAction(id: string, text: string): Promise<Result> {
@@ -90,11 +90,11 @@ export async function sendToSessionAction(id: string, text: string): Promise<Res
   if (!actor) return KHONG_QUYEN;
   // "/build args" expands to the command file's body REPL-style; the
   // history still shows what was typed. Plain text passes through as-is.
-  const moRong = await expandCommandText(
+  const expanded = await expandCommandText(
     path.join(process.env.HOME ?? "", ".claude", "commands"),
     text.trim(),
   );
-  const ket = await sendToSession(id, moRong, text);
+  const ket = await sendToSession(id, expanded, text);
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
@@ -126,20 +126,20 @@ export async function stopSessionAction(id: string): Promise<Result> {
 }
 
 /** Answer a manual-mode approval card (V2.5b) — validation in answerPermission. */
-export async function traLoiQuyenAction(
+export async function answerPermissionAction(
   id: string,
   requestId: string,
-  choPhep: boolean,
+  allow: boolean,
   inputJson: string,
 ): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await answerPermission(id, requestId, choPhep, inputJson);
+  const ket = await answerPermission(id, requestId, allow, inputJson);
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
 /** Continue a finished/stopped session (V2.6) — start = resume, idempotent. */
-export async function tiepTucAction(id: string): Promise<Result> {
+export async function continueAction(id: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await continueSession(id);

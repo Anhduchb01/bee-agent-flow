@@ -9,7 +9,7 @@ import {
   type BeeSessionMode,
   type BeeSessionModel,
   type Queue,
-  type TrangThaiViec,
+  type ItemStatus,
   type QueueItem,
 } from "./types";
 
@@ -23,14 +23,14 @@ import {
  */
 
 const RONG: Queue = { items: [], paused: false };
-const CAC_TRANG_THAI: TrangThaiViec[] = ["waiting", "running", "done", "failed"];
+const CAC_TRANG_THAI: ItemStatus[] = ["waiting", "running", "done", "failed"];
 
-function laObject(x: unknown): x is Record<string, unknown> {
+function isObject(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
 }
 
-function docViec(raw: unknown): QueueItem | null {
-  if (!laObject(raw)) return null;
+function readItem(raw: unknown): QueueItem | null {
+  if (!isObject(raw)) return null;
   const { slug, repo, issue } = raw;
   if (typeof slug !== "string" || typeof repo !== "string") return null;
   if (typeof issue !== "number" || !Number.isInteger(issue) || issue <= 0) return null;
@@ -46,8 +46,8 @@ function docViec(raw: unknown): QueueItem | null {
     issue,
     mode,
     model,
-    status: CAC_TRANG_THAI.includes(raw.status as TrangThaiViec)
-      ? (raw.status as TrangThaiViec)
+    status: CAC_TRANG_THAI.includes(raw.status as ItemStatus)
+      ? (raw.status as ItemStatus)
       : "waiting",
     sessionId: typeof raw.sessionId === "string" ? raw.sessionId : null,
     reason: typeof raw.reason === "string" ? raw.reason : null,
@@ -62,11 +62,11 @@ export async function readQueue(root: string): Promise<Queue> {
   } catch {
     return RONG; // chưa có hàng đợi, hoặc file hỏng — cả hai đều là "rỗng"
   }
-  if (!laObject(raw)) return RONG;
+  if (!isObject(raw)) return RONG;
   return {
     paused: raw.paused === true,
     items: Array.isArray(raw.items)
-      ? raw.items.map(docViec).filter((v): v is QueueItem => v !== null)
+      ? raw.items.map(readItem).filter((v): v is QueueItem => v !== null)
       : [],
   };
 }

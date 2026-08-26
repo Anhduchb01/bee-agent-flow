@@ -96,8 +96,8 @@ export function mapUser(raw: ApiUser | undefined): GhUser {
 
 export function mapLabels(raw: ApiIssue["labels"]): GhLabel[] {
   if (!Array.isArray(raw)) return [];
-  const ten = raw.map((l) => (typeof l === "string" ? l : s(l?.name)));
-  return NHAN.filter((k) => ten.includes(k));
+  const name = raw.map((l) => (typeof l === "string" ? l : s(l?.name)));
+  return NHAN.filter((k) => name.includes(k));
 }
 
 /**
@@ -300,8 +300,8 @@ function mapGqlUser(raw: GqlIssue["author"]): GhUser {
 }
 
 export function mapGqlLabels(raw: GqlIssue["labels"]): GhLabel[] {
-  const ten = (raw?.nodes ?? []).map((l) => s(l?.name));
-  return NHAN.filter((k) => ten.includes(k));
+  const name = (raw?.nodes ?? []).map((l) => s(l?.name));
+  return NHAN.filter((k) => name.includes(k));
 }
 
 export function mapGqlReviews(raw: GqlPull["reviews"]): GhReview[] {

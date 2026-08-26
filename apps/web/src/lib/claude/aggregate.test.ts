@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { BeeRecentRun } from "@/lib/bee/types";
 
-import { hanMucTu, hanMucTuTaiKhoan, tongHopMucDung } from "./aggregate";
+import { quotaFrom, accountQuota, aggregateUsage } from "./aggregate";
 
 const BAY_GIO = new Date("2026-08-14T15:00:00Z");
 
-function chay(p: Partial<BeeRecentRun> & { at: string }): BeeRecentRun {
+function runIt(p: Partial<BeeRecentRun> & { at: string }): BeeRecentRun {
   return {
     id: "myapp-1",
     repo: "myapp",
@@ -19,24 +19,24 @@ function chay(p: Partial<BeeRecentRun> & { at: string }): BeeRecentRun {
   };
 }
 
-describe("tongHopMucDung", () => {
+describe("aggregateUsage", () => {
   it("không có gì thì mọi số bằng 0, không phải NaN", () => {
-    const m = tongHopMucDung([], BAY_GIO);
+    const m = aggregateUsage([], BAY_GIO);
     expect(m).toEqual({
-      soLanChay: 0,
-      soLanLoi: 0,
+      runCount: 0,
+      errorCount: 0,
       token: 0,
       tiLeCache: 0,
       chiPhiHomNay: 0,
       chiPhiBayNgay: 0,
-      dungViHetHanMuc: 0,
+      stoppedOnQuota: 0,
     });
   });
 
   it("cộng token và chi phí của hôm nay", () => {
-    const m = tongHopMucDung(
+    const m = aggregateUsage(
       [
-        chay({
+        runIt({
           at: "2026-08-14T09:00:00Z",
           tokens_in: 1_000,
           tokens_out: 2_000,
@@ -44,11 +44,11 @@ describe("tongHopMucDung", () => {
           tokens_cache_write: 0,
           cost_usd: 0.5,
         }),
-        chay({ at: "2026-08-14T11:00:00Z", tokens_in: 10, cost_usd: 0.25 }),
+        runIt({ at: "2026-08-14T11:00:00Z", tokens_in: 10, cost_usd: 0.25 }),
       ],
       BAY_GIO,
     );
-    expect(m.soLanChay).toBe(2);
+    expect(m.runCount).toBe(2);
     expect(m.token).toBe(10_010);
     expect(m.tiLeCache).toBeCloseTo(7_000 / 10_010);
     expect(m.chiPhiHomNay).toBe(0.75);
@@ -61,14 +61,14 @@ describe("tongHopMucDung", () => {
    * bằng cách góp một mẫu số 0.
    */
   it("bản ghi không có usage vẫn được đếm là một lần chạy", () => {
-    const m = tongHopMucDung(
+    const m = aggregateUsage(
       [
-        chay({ at: "2026-08-14T09:00:00Z", rule: "03-run-ci" }),
-        chay({ at: "2026-08-14T10:00:00Z", tokens_cache_read: 100, tokens_in: 100 }),
+        runIt({ at: "2026-08-14T09:00:00Z", rule: "03-run-ci" }),
+        runIt({ at: "2026-08-14T10:00:00Z", tokens_cache_read: 100, tokens_in: 100 }),
       ],
       BAY_GIO,
     );
-    expect(m.soLanChay).toBe(2);
+    expect(m.runCount).toBe(2);
     expect(m.token).toBe(200);
     expect(m.tiLeCache).toBe(0.5);
   });
@@ -80,18 +80,18 @@ describe("tongHopMucDung", () => {
    * máy ai chạy nó.
    */
   it("hôm qua không tính vào hôm nay nhưng vẫn tính vào bảy ngày", () => {
-    const truoc = (gio: number) => new Date(BAY_GIO.getTime() - gio * 3_600_000).toISOString();
-    const m = tongHopMucDung(
-      [chay({ at: truoc(24), cost_usd: 3 }), chay({ at: truoc(2), cost_usd: 1 })],
+    const prev = (hours: number) => new Date(BAY_GIO.getTime() - hours * 3_600_000).toISOString();
+    const m = aggregateUsage(
+      [runIt({ at: prev(24), cost_usd: 3 }), runIt({ at: prev(2), cost_usd: 1 })],
       BAY_GIO,
     );
-    expect(m.soLanChay).toBe(1);
+    expect(m.runCount).toBe(1);
     expect(m.chiPhiHomNay).toBe(1);
     expect(m.chiPhiBayNgay).toBe(4);
   });
 
   it("quá bảy ngày thì rơi khỏi cả hai", () => {
-    const m = tongHopMucDung([chay({ at: "2026-08-01T10:00:00Z", cost_usd: 9 })], BAY_GIO);
+    const m = aggregateUsage([runIt({ at: "2026-08-01T10:00:00Z", cost_usd: 9 })], BAY_GIO);
     expect(m.chiPhiBayNgay).toBe(0);
   });
 
@@ -101,30 +101,30 @@ describe("tongHopMucDung", () => {
    * `result` khác `ok` — mà hai chuyện ấy cần hai cách xử lý khác hẳn nhau.
    */
   it("phân biệt hết hạn mức với thất bại thường", () => {
-    const m = tongHopMucDung(
+    const m = aggregateUsage(
       [
-        chay({ at: "2026-08-14T09:00:00Z", result: "fail", api_error_status: 429 }),
-        chay({ at: "2026-08-14T10:00:00Z", result: "fail", api_error_status: null }),
-        chay({ at: "2026-08-14T11:00:00Z", result: "ok", stop_reason: "end_turn" }),
+        runIt({ at: "2026-08-14T09:00:00Z", result: "fail", api_error_status: 429 }),
+        runIt({ at: "2026-08-14T10:00:00Z", result: "fail", api_error_status: null }),
+        runIt({ at: "2026-08-14T11:00:00Z", result: "ok", stop_reason: "end_turn" }),
       ],
       BAY_GIO,
     );
-    expect(m.soLanLoi).toBe(2);
-    expect(m.dungViHetHanMuc).toBe(1);
+    expect(m.errorCount).toBe(2);
+    expect(m.stoppedOnQuota).toBe(1);
   });
 
   it("dòng có `at` hỏng bị bỏ hẳn, không lệch giữa hai cửa sổ", () => {
-    const m = tongHopMucDung(
-      [chay({ at: "không-phải-ngày", cost_usd: 5 }), chay({ at: "2026-08-14T09:00:00Z" })],
+    const m = aggregateUsage(
+      [runIt({ at: "không-phải-ngày", cost_usd: 5 }), runIt({ at: "2026-08-14T09:00:00Z" })],
       BAY_GIO,
     );
-    expect(m.soLanChay).toBe(1);
+    expect(m.runCount).toBe(1);
     expect(m.chiPhiBayNgay).toBe(0);
   });
 });
 
-describe("hanMucTu", () => {
-  const goc = {
+describe("quotaFrom", () => {
+  const baseDir = {
     status: "allowed",
     resetsAt: 1_786_000_000,
     rateLimitType: "five_hour",
@@ -134,45 +134,45 @@ describe("hanMucTu", () => {
   };
 
   it("chưa có sự kiện nào thì không có thanh nào — không phải một thanh rỗng", () => {
-    expect(hanMucTu(null)).toEqual([]);
+    expect(quotaFrom(null)).toEqual([]);
   });
 
   it("một sự kiện cho đúng một cửa sổ", () => {
-    expect(hanMucTu(goc)).toEqual([
-      { cuaSo: "five_hour", status: "allowed", percentOf: null, resetsAt: 1_786_000_000 },
+    expect(quotaFrom(baseDir)).toEqual([
+      { usageWindow: "five_hour", status: "allowed", percentOf: null, resetsAt: 1_786_000_000 },
     ]);
   });
 
   it("percentOf luôn null — không nguồn nào phát ra nó", () => {
-    expect(hanMucTu({ ...goc, status: "allowed_warning" })[0].percentOf).toBeNull();
+    expect(quotaFrom({ ...baseDir, status: "allowed_warning" })[0].percentOf).toBeNull();
   });
 
   it("đọc được các biến thể của status", () => {
-    expect(hanMucTu({ ...goc, status: "allowed_warning" })[0].status).toBe("warning");
-    expect(hanMucTu({ ...goc, status: "rejected" })[0].status).toBe("exceeded");
+    expect(quotaFrom({ ...baseDir, status: "allowed_warning" })[0].status).toBe("warning");
+    expect(quotaFrom({ ...baseDir, status: "rejected" })[0].status).toBe("exceeded");
   });
 
   // Một thanh dán nhãn sai tệ hơn hẳn một thanh vắng mặt.
   it("cửa sổ lạ thì bỏ hẳn chứ không quy về five_hour", () => {
-    expect(hanMucTu({ ...goc, rateLimitType: "monthly" })).toEqual([]);
+    expect(quotaFrom({ ...baseDir, rateLimitType: "monthly" })).toEqual([]);
   });
 });
 
-describe("hanMucTuTaiKhoan — account-wide windows from the oauth usage endpoint", () => {
+describe("accountQuota — account-wide windows from the oauth usage endpoint", () => {
   it("maps both windows with REAL percentages and epoch resets", () => {
-    const hm = hanMucTuTaiKhoan({
+    const hm = accountQuota({
       five_hour: { percent: 9, resets_at: "2026-08-19T11:19:59.906684+00:00" },
       seven_day: { percent: 27, resets_at: "2026-08-21T06:59:59.906706+00:00" },
       fetched_at: "2026-08-19T07:00:00Z",
     });
     expect(hm).toHaveLength(2);
-    expect(hm[0]).toMatchObject({ cuaSo: "five_hour", percentOf: 9, status: "allowed" });
+    expect(hm[0]).toMatchObject({ usageWindow: "five_hour", percentOf: 9, status: "allowed" });
     expect(hm[0]!.resetsAt).toBe(Math.floor(Date.parse("2026-08-19T11:19:59.906684+00:00") / 1000));
-    expect(hm[1]).toMatchObject({ cuaSo: "weekly", percentOf: 27 });
+    expect(hm[1]).toMatchObject({ usageWindow: "weekly", percentOf: 27 });
   });
 
   it("percent drives the tone: ≥80 warns, ≥100 exceeded", () => {
-    const hm = hanMucTuTaiKhoan({
+    const hm = accountQuota({
       five_hour: { percent: 85, resets_at: null },
       seven_day: { percent: 100, resets_at: null },
       fetched_at: "2026-08-19T07:00:00Z",
@@ -184,7 +184,7 @@ describe("hanMucTuTaiKhoan — account-wide windows from the oauth usage endpoin
 
   it("missing windows are dropped, not faked", () => {
     expect(
-      hanMucTuTaiKhoan({ five_hour: null, seven_day: null, fetched_at: "x" }),
+      accountQuota({ five_hour: null, seven_day: null, fetched_at: "x" }),
     ).toEqual([]);
   });
 });

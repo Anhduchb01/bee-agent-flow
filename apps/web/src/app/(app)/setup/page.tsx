@@ -114,7 +114,7 @@ export default async function SetupPage({
   // On fixture data every button is a no-op and doctor is staged — saying
   // so loudly is the difference between a demo and a lie. One real user
   // already "finished setup" against this page in fixture mode.
-  const laFixture = process.env.BEE_SOURCE !== "disk";
+  const isFixture = process.env.BEE_SOURCE !== "disk";
 
   const { tab } = await searchParams;
   const tabNow = defaultTab(tab, doctor?.ok ?? null);
@@ -129,7 +129,7 @@ export default async function SetupPage({
           </span>
         }
       />
-      {laFixture && (
+      {isFixture && (
         <p className="border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 font-mono text-xs text-amber-500 sm:px-6">
           DEMO DATA — this page is showing fixture scenes, not a real machine. Buttons here do
           nothing. Real setup happens on the installed machine&apos;s web (BEE_SOURCE=disk).

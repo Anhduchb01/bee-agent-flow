@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { StatusDot, type Tone } from "@/components/status-dot";
-import type { BeeSession, TrangThaiPhien } from "@/lib/bee/types";
+import type { BeeSession, SessionStatus } from "@/lib/bee/types";
 
 import type { SessionGroup } from "../api/load";
 
@@ -11,7 +11,7 @@ import type { SessionGroup } from "../api/load";
  * TỐT và phải trông như vậy, không phải như lỗi.
  */
 
-const TONE: Record<TrangThaiPhien, Tone> = {
+const TONE: Record<SessionStatus, Tone> = {
   running: "agent",
   starting: "idle",
   done: "ok",
@@ -19,7 +19,7 @@ const TONE: Record<TrangThaiPhien, Tone> = {
   failed: "down",
 };
 
-const NHAN: Record<TrangThaiPhien, string> = {
+const NHAN: Record<SessionStatus, string> = {
   running: "running",
   starting: "starting",
   done: "done",
@@ -38,11 +38,11 @@ export function SessionList({ nhom }: { nhom: SessionGroup[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {nhom.map(({ repo, phien }) => (
+      {nhom.map(({ repo, session }) => (
         <section key={repo} className="flex flex-col gap-2">
           <h2 className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{repo}</h2>
           <ul className="rounded-card border border-border bg-card">
-            {phien.map((p) => (
+            {session.map((p) => (
               <MotDong key={p.id} p={p} />
             ))}
           </ul>

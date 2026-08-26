@@ -59,8 +59,8 @@ describe("changeSessionModel — V2.7 model switch", () => {
   it("the saved alias round-trips back through the session reader", async () => {
     await writeSession();
     await changeSessionModel(ID, "sonnet[1m]");
-    const phien = await readSessionIn(dir, ID);
-    expect(phien?.model).toBe("sonnet[1m]");
+    const session = await readSessionIn(dir, ID);
+    expect(session?.model).toBe("sonnet[1m]");
   });
 
   it("a session that never chose one reads back as default", async () => {

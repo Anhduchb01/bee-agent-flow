@@ -15,24 +15,24 @@ import {
   captureSlotAction,
   switchSlotAction,
   pullGrantedAccountsAction,
-  xongThemSlotAction,
+  finishAddSlotAction,
 } from "../api/actions";
 
 /** Thanh dùng — vẽ được cả khi slayer chưa kịp hỏi usage. */
-function Thanh({ nhan, muc }: { nhan: string; muc: { percentOf: number } | null }) {
-  if (muc === null) return <span className="font-mono text-2xs text-muted-foreground">{nhan} —</span>;
-  const gap = muc.percentOf >= 85;
+function Thanh({ label, row }: { label: string; row: { percentOf: number } | null }) {
+  if (row === null) return <span className="font-mono text-2xs text-muted-foreground">{label} —</span>;
+  const gap = row.percentOf >= 85;
   return (
     <span className="flex items-center gap-1.5">
-      <span className="font-mono text-2xs text-muted-foreground">{nhan}</span>
+      <span className="font-mono text-2xs text-muted-foreground">{label}</span>
       <span className="h-1.5 w-14 overflow-hidden rounded-full bg-muted">
         <span
           className={`block h-full ${gap ? "bg-amber-500" : "bg-emerald-500"}`}
-          style={{ width: `${muc.percentOf}%` }}
+          style={{ width: `${row.percentOf}%` }}
         />
       </span>
       <span className="font-mono text-2xs tabular-nums text-muted-foreground">
-        {Math.round(muc.percentOf)}%
+        {Math.round(row.percentOf)}%
       </span>
     </span>
   );
@@ -40,12 +40,12 @@ function Thanh({ nhan, muc }: { nhan: string; muc: { percentOf: number } | null 
 
 function Hang({
   slot,
-  dang,
-  doi,
+  busy,
+  swap,
 }: {
   slot: BeeSlotClaude;
-  dang: boolean;
-  doi: (t: string) => void;
+  busy: boolean;
+  swap: (t: string) => void;
 }) {
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-border py-2 first:border-t-0">
@@ -56,7 +56,7 @@ function Hang({
           <span className="truncate font-mono text-2xs text-muted-foreground">{slot.email}</span>
         )}
       </span>
-      {slot.dangBat && (
+      {slot.enabled && (
         <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-2xs font-medium text-emerald-500">
           in use
         </span>
@@ -67,10 +67,10 @@ function Hang({
         </span>
       )}
       <span className="flex-1" />
-      <Thanh nhan="5h" muc={slot.namGio} />
-      <Thanh nhan="7d" muc={slot.bayNgay} />
-      {!slot.dangBat && (
-        <Button size="sm" variant="outline" disabled={dang} onClick={() => doi(slot.name)}>
+      <Thanh label="5h" row={slot.namGio} />
+      <Thanh label="7d" row={slot.bayNgay} />
+      {!slot.enabled && (
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => swap(slot.name)}>
           Use this one
         </Button>
       )}
@@ -90,19 +90,19 @@ function Hang({
  */
 export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
   const router = useRouter();
-  const [dang, start] = useTransition();
-  const [loi, setLoi] = useState("");
+  const [busy, start] = useTransition();
+  const [err, setErr] = useState("");
   const [tokenSlayer, setTokenSlayer] = useState("");
-  const [tenMoi, setTenMoi] = useState("");
+  const [newName, setNewName] = useState("");
   const [url, setUrl] = useState("");
   const [code, setCode] = useState("");
   const [tin, setTin] = useState("");
 
-  function chay(viec: () => Promise<{ ok: boolean; message: string }>) {
-    if (dang) return;
+  function runIt(item: () => Promise<{ ok: boolean; message: string }>) {
+    if (busy) return;
     start(async () => {
-      const ket = await viec();
-      setLoi(ket.ok ? "" : ket.message);
+      const ket = await item();
+      setErr(ket.ok ? "" : ket.message);
       setTin(ket.ok ? ket.message : "");
       router.refresh();
     });
@@ -120,7 +120,7 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
         onSubmit={(e) => {
           e.preventDefault();
           if (tokenSlayer.trim() === "") return;
-          chay(async () => {
+          runIt(async () => {
             const ket = await installSlayerAction(tokenSlayer);
             if (ket.ok) setTokenSlayer("");
             return ket;
@@ -135,15 +135,15 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
           autoComplete="off"
           className="min-w-48 flex-1 font-mono"
         />
-        <Button type="submit" disabled={dang || tokenSlayer.trim() === ""}>
-          {dang ? "Installing…" : status.daCai ? "Reinstall / change token" : "Install"}
+        <Button type="submit" disabled={busy || tokenSlayer.trim() === ""}>
+          {busy ? "Installing…" : status.daCai ? "Reinstall / change token" : "Install"}
         </Button>
         {status.daCai && (
           <Button
             type="button"
             variant="outline"
-            disabled={dang}
-            onClick={() => chay(pullGrantedAccountsAction)}
+            disabled={busy}
+            onClick={() => runIt(pullGrantedAccountsAction)}
           >
             Pull accounts your admin granted
           </Button>
@@ -169,10 +169,10 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
       <div className="flex flex-col gap-3">
         <p className="text-sm text-body">
           <span className="font-mono">token-slayer</span> is not installed — once it is, bee can
-          hold several Claude accounts and switch between them right here.
+          hold several Claude accounts and switch between added right here.
         </p>
         {khoiToken}
-        {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+        {err !== "" && <p className="text-xs text-destructive">{err}</p>}
       </div>
     );
   }
@@ -190,8 +190,8 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
           <Button
             size="sm"
             variant="outline"
-            disabled={dang}
-            onClick={() => chay(unpinTokenAction)}
+            disabled={busy}
+            onClick={() => runIt(unpinTokenAction)}
           >
             Remove the pinned token
           </Button>
@@ -210,7 +210,7 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
       ) : (
         <ul className="flex flex-col rounded-control border border-border bg-muted/20 px-3">
           {slots.map((s) => (
-            <Hang key={s.name} slot={s} dang={dang} doi={(t) => chay(() => switchSlotAction(t))} />
+            <Hang key={s.name} slot={s} busy={busy} swap={(t) => runIt(() => switchSlotAction(t))} />
           ))}
         </ul>
       )}
@@ -220,17 +220,17 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
           className="flex flex-wrap gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            if (tenMoi.trim() === "") return;
-            chay(async () => {
-              const ket = await captureSlotAction(tenMoi);
-              if (ket.ok) setTenMoi("");
+            if (newName.trim() === "") return;
+            runIt(async () => {
+              const ket = await captureSlotAction(newName);
+              if (ket.ok) setNewName("");
               return ket;
             });
           }}
         >
           <Input
-            value={tenMoi}
-            onChange={(e) => setTenMoi(e.target.value)}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
             placeholder="Slot name, e.g. work"
             aria-label="New slot name"
             autoComplete="off"
@@ -239,7 +239,7 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
           <Button
             type="submit"
             variant="outline"
-            disabled={dang || tenMoi.trim() === "" || !status.coLoginMay}
+            disabled={busy || newName.trim() === "" || !status.coLoginMay}
             title={
               status.coLoginMay
                 ? undefined
@@ -251,18 +251,18 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
           <Button
             type="button"
             variant="outline"
-            disabled={dang || tenMoi.trim() === ""}
+            disabled={busy || newName.trim() === ""}
             onClick={() =>
               start(async () => {
-                const ket = await startAddSlotAction(tenMoi);
+                const ket = await startAddSlotAction(newName);
                 if (ket.ok) {
                   setUrl(ket.url);
-                  setLoi("");
-                } else setLoi(ket.message);
+                  setErr("");
+                } else setErr(ket.message);
               })
             }
           >
-            {dang ? "Opening…" : "Sign in with another account"}
+            {busy ? "Opening…" : "Sign in with another account"}
           </Button>
         </form>
 
@@ -281,12 +281,12 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (code.trim() === "") return;
-                chay(async () => {
-                  const ket = await xongThemSlotAction(code);
+                runIt(async () => {
+                  const ket = await finishAddSlotAction(code);
                   if (ket.ok) {
                     setCode("");
                     setUrl("");
-                    setTenMoi("");
+                    setNewName("");
                   }
                   return ket;
                 });
@@ -300,8 +300,8 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
                 autoComplete="off"
                 className="flex-1 font-mono"
               />
-              <Button type="submit" disabled={dang || code.trim() === ""}>
-                {dang ? "Checking…" : "Done"}
+              <Button type="submit" disabled={busy || code.trim() === ""}>
+                {busy ? "Checking…" : "Done"}
               </Button>
             </form>
           </div>
@@ -315,10 +315,10 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
         <div className="mt-3">{khoiToken}</div>
       </details>
 
-      {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
+      {err !== "" && <p className="text-xs text-destructive">{err}</p>}
       {!status.coLoginMay && (
         <p className="text-xs text-muted-foreground">
-          This machine runs on the token pasted above, not on a login session — so there is nothing
+          This machine runs on the token pasted above, not on a login session — count there is nothing
           to “save”. Add an account with <strong>Sign in with another account</strong>.
         </p>
       )}

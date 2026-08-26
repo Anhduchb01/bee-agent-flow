@@ -12,7 +12,7 @@ import type {
   BeeSession,
   BeeSessionModel,
   SessionPhase,
-  TrangThaiPhien,
+  SessionStatus,
 } from "./types";
 
 /**
@@ -21,11 +21,11 @@ import type {
  * ở runner không được phép làm trắng cả danh sách phiên.
  */
 
-function laObject(x: unknown): x is Record<string, unknown> {
+function isObject(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
 }
 
-async function docJson(file: string): Promise<unknown | null> {
+async function readJson(file: string): Promise<unknown | null> {
   try {
     return JSON.parse(await fs.readFile(file, "utf8")) as unknown;
   } catch {
@@ -33,24 +33,24 @@ async function docJson(file: string): Promise<unknown | null> {
   }
 }
 
-const TRANG_THAI: readonly TrangThaiPhien[] = ["starting", "running", "done", "stopped", "failed"];
+const TRANG_THAI: readonly SessionStatus[] = ["starting", "running", "done", "stopped", "failed"];
 
 export async function readSessionIn(root: string, id: string): Promise<BeeSession | null> {
   if (!isSessionId(id)) return null;
   const sdir = path.join(root, "sessions", id);
 
-  const s = await docJson(path.join(sdir, "session.json"));
-  if (!laObject(s)) return null;
+  const s = await readJson(path.join(sdir, "session.json"));
+  if (!isObject(s)) return null;
   if (typeof s.slug !== "string" || typeof s.repo !== "string") return null;
 
   // meta.json chưa tồn tại = runner chưa mở sổ = "starting". Đây là trạng
   // thái thật ngay sau khi bấm nút, không phải lỗi đọc.
-  const m = await docJson(path.join(sdir, "meta.json"));
-  const meta = laObject(m) ? m : {};
+  const m = await readJson(path.join(sdir, "meta.json"));
+  const meta = isObject(m) ? m : {};
 
   const statusTho = typeof meta.status === "string" ? meta.status : "starting";
-  const status: TrangThaiPhien = (TRANG_THAI as readonly string[]).includes(statusTho)
-    ? (statusTho as TrangThaiPhien)
+  const status: SessionStatus = (TRANG_THAI as readonly string[]).includes(statusTho)
+    ? (statusTho as SessionStatus)
     : "starting";
 
   const phase: SessionPhase = s.phase === "work" ? "work" : "interview";
@@ -116,8 +116,8 @@ export async function listSessionsIn(root: string): Promise<BeeSession[]> {
   } catch {
     return [];
   }
-  const phien = await Promise.all(ids.map((id) => readSessionIn(root, id)));
-  return phien
+  const sessions = await Promise.all(ids.map((id) => readSessionIn(root, id)));
+  return sessions
     .filter((p): p is BeeSession => p !== null)
     .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
 }
@@ -152,7 +152,7 @@ export async function readArtifactsIn(root: string, id: string): Promise<BeeArti
     } catch {
       continue;
     }
-    if (!laObject(raw) || raw.type !== "bee_artifact") continue;
+    if (!isObject(raw) || raw.type !== "bee_artifact") continue;
     if (raw.kind !== "issue" && raw.kind !== "pr") continue;
     if (typeof raw.url !== "string" || !raw.url.startsWith("https://github.com/")) continue;
     ra.push({
@@ -180,20 +180,20 @@ export async function readLastLineIn(root: string, id: string): Promise<string |
   } catch {
     return null;
   }
-  const dongs = text.split("\n");
-  for (let i = dongs.length - 1; i >= 0; i -= 1) {
-    if (!dongs[i].includes('"assistant"')) continue;
+  const lines = text.split("\n");
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    if (!lines[i].includes('"assistant"')) continue;
     let raw: unknown;
     try {
-      raw = JSON.parse(dongs[i]);
+      raw = JSON.parse(lines[i]);
     } catch {
       continue;
     }
-    if (!laObject(raw) || raw.type !== "assistant" || !laObject(raw.message)) continue;
+    if (!isObject(raw) || raw.type !== "assistant" || !isObject(raw.message)) continue;
     const content = raw.message.content;
     if (!Array.isArray(content)) continue;
     for (const block of content) {
-      if (laObject(block) && block.type === "text" && typeof block.text === "string") {
+      if (isObject(block) && block.type === "text" && typeof block.text === "string") {
         const trimmed = block.text.trim().replace(/\s+/g, " ");
         if (trimmed !== "") return trimmed.slice(0, 140);
       }
@@ -229,14 +229,14 @@ export async function readEvidenceIn(root: string, id: string): Promise<BeeEvide
  * this artifact, then list its evidence dir. The review panel gets real
  * screenshots/videos next to the diff — no GitHub round-trip.
  */
-export async function timEvidenceChoArtifact(
+export async function findEvidenceForArtifact(
   root: string,
   repo: string,
   kind: "issue" | "pr",
   number: number,
 ): Promise<{ sessionId: string; files: BeeEvidenceFile[] } | null> {
-  for (const phien of await listSessionsIn(root)) {
-    const arts = await readArtifactsIn(root, phien.id);
+  for (const session of await listSessionsIn(root)) {
+    const arts = await readArtifactsIn(root, session.id);
     const trung = arts.some(
       (a) =>
         a.kind === kind &&
@@ -244,7 +244,7 @@ export async function timEvidenceChoArtifact(
         a.url.startsWith(`https://github.com/${repo}/`),
     );
     if (!trung) continue;
-    return { sessionId: phien.id, files: await readEvidenceIn(root, phien.id) };
+    return { sessionId: session.id, files: await readEvidenceIn(root, session.id) };
   }
   return null;
 }
@@ -267,7 +267,7 @@ export async function readPreviewIn(root: string, id: string): Promise<BeePrevie
   } catch {
     return null;
   }
-  let cuoi: BeePreviewRecord | null = null;
+  let tail: BeePreviewRecord | null = null;
   for (const line of text.split("\n")) {
     if (!line.includes('"bee_preview"')) continue;
     let raw: unknown;
@@ -276,11 +276,11 @@ export async function readPreviewIn(root: string, id: string): Promise<BeePrevie
     } catch {
       continue;
     }
-    if (!laObject(raw) || raw.type !== "bee_preview") continue;
+    if (!isObject(raw) || raw.type !== "bee_preview") continue;
     if (typeof raw.unit !== "string" || !/^bee-preview-[a-z0-9][a-z0-9-]*$/.test(raw.unit)) continue;
     if (typeof raw.url !== "string" || !raw.url.startsWith("https://")) continue;
     if (typeof raw.port !== "number" || !Number.isInteger(raw.port)) continue;
-    cuoi = {
+    tail = {
       sessionId: id,
       unit: raw.unit,
       url: raw.url,
@@ -288,5 +288,5 @@ export async function readPreviewIn(root: string, id: string): Promise<BeePrevie
       ts: typeof raw.ts === "string" ? raw.ts : null,
     };
   }
-  return cuoi;
+  return tail;
 }

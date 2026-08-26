@@ -5,7 +5,7 @@ import type { BeeArtifact, BeeSession } from "@/lib/bee/types";
 
 export interface SessionGroup {
   repo: string;
-  phien: BeeSession[];
+  session: BeeSession[];
 }
 
 /**
@@ -14,18 +14,18 @@ export interface SessionGroup {
  * component tô đỏ và người dùng thấy ngay vì nhóm nào cũng chỉ vài dòng.
  */
 export async function loadSessions(): Promise<SessionGroup[]> {
-  const tatCa = await getBee().listSessions();
+  const everything = await getBee().listSessions();
   const nhom = new Map<string, BeeSession[]>();
-  for (const p of tatCa) {
+  for (const p of everything) {
     // Phiên chat không repo gom vào một nhóm riêng — "Chats" là nhãn, không
     // phải tên repo, và ở cuối danh sách cho đỡ lẫn.
-    const khoa = p.repo === "" ? "Chats" : p.repo;
-    const ds = nhom.get(khoa) ?? [];
+    const key = p.repo === "" ? "Chats" : p.repo;
+    const ds = nhom.get(key) ?? [];
     ds.push(p);
-    nhom.set(khoa, ds);
+    nhom.set(key, ds);
   }
   return [...nhom.entries()]
-    .map(([repo, phien]) => ({ repo, phien }))
+    .map(([repo, session]) => ({ repo, session }))
     .sort((a, b) => (a.repo === "Chats" ? 1 : b.repo === "Chats" ? -1 : 0));
 }
 
@@ -42,19 +42,19 @@ export async function loadSession(id: string): Promise<BeeSession | null> {
 export async function loadCanvas(): Promise<{
   nhom: SessionGroup[];
   artifacts: Record<string, BeeArtifact[]>;
-  xemTruoc: Record<string, string | null>;
+  previewOf: Record<string, string | null>;
   videos: Record<string, { name: string; url: string }[]>;
 }> {
   const nhom = await loadSessions();
   const bee = getBee();
   const artifacts: Record<string, BeeArtifact[]> = {};
-  const xemTruoc: Record<string, string | null> = {};
+  const previewOf: Record<string, string | null> = {};
   const videos: Record<string, { name: string; url: string }[]> = {};
   await Promise.all(
     nhom.flatMap((g) =>
-      g.phien.map(async (p) => {
+      g.session.map(async (p) => {
         let evidence;
-        [artifacts[p.id], xemTruoc[p.id], evidence] = await Promise.all([
+        [artifacts[p.id], previewOf[p.id], evidence] = await Promise.all([
           bee.sessionArtifacts(p.id),
           bee.sessionPreview(p.id),
           bee.listSessionEvidence(p.id),
@@ -66,5 +66,5 @@ export async function loadCanvas(): Promise<{
       }),
     ),
   );
-  return { nhom, artifacts, xemTruoc, videos };
+  return { nhom, artifacts, previewOf, videos };
 }

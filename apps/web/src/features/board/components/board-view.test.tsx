@@ -69,7 +69,7 @@ const MUC = buildBoard(
 
 describe("BoardTable — an issue row says who is working on it", () => {
   it("shows the issue, its project, and links to the session that owns it", () => {
-    render(<BoardTable muc={MUC} />);
+    render(<BoardTable row={MUC} />);
 
     expect(screen.getByText("Add CSV export to the report screen")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /#41/ })).toHaveAttribute(
@@ -84,15 +84,15 @@ describe("BoardTable — an issue row says who is working on it", () => {
   });
 
   it("an untouched issue says so instead of showing an empty cell", () => {
-    const trong = buildBoard(REPOS, { "you/myapp": [ISSUE], "you/blog": [] }, [], {});
-    render(<BoardTable muc={trong} />);
+    const within = buildBoard(REPOS, { "you/myapp": [ISSUE], "you/blog": [] }, [], {});
+    render(<BoardTable row={within} />);
     expect(screen.getByText("no session yet")).toBeInTheDocument();
   });
 });
 
 describe("BoardKanban — four lanes in lifecycle order", () => {
   it("puts the issue in its lane and keeps empty lanes visible", () => {
-    render(<BoardKanban muc={MUC} />);
+    render(<BoardKanban row={MUC} />);
 
     const lanes = screen.getAllByRole("region");
     expect(lanes.map((l) => l.getAttribute("aria-label"))).toEqual([

@@ -11,7 +11,7 @@ const issue = (n: number, state: "OPEN" | "CLOSED" = "OPEN"): BeeIssue => ({
   labels: [], assignees: [], createdAt: "", updatedAt: "",
 });
 
-const trongHang = (n: number, status: "waiting" | "running" = "waiting"): Queue => ({
+const inQueue = (n: number, status: "waiting" | "running" = "waiting"): Queue => ({
   paused: false,
   items: [{
     slug: "myapp", repo: "you/myapp", issue: n, mode: "auto", model: "default",
@@ -21,12 +21,12 @@ const trongHang = (n: number, status: "waiting" | "running" = "waiting"): Queue 
 
 describe("lane Autopilot (D4) — hàng đợi là một TRẠNG THÁI", () => {
   it("issue đã xếp hàng rời khỏi backlog sang autopilot", () => {
-    const muc = buildBoard(
+    const row = buildBoard(
       [{ slug: "myapp", repo: "you/myapp" }],
       { "you/myapp": [issue(41)] },
-      [], {}, trongHang(41),
+      [], {}, inQueue(41),
     );
-    expect(muc[0]?.lane).toBe("autopilot");
+    expect(row[0]?.lane).toBe("autopilot");
   });
 
   it("nhưng phiên đang chạy vẫn thắng — sự thật quan trọng hơn ý định", () => {

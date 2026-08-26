@@ -20,13 +20,13 @@ const TONE_PHIEN: Record<BeeSession["status"], Tone> = {
  * Rendered as real links so a thumb can hit them; "—" when nothing picked
  * the issue up, which is information, not an empty cell.
  */
-export function AttachedSession({ phien }: { phien: IssueSession[] }) {
-  if (phien.length === 0) {
+export function AttachedSession({ session }: { session: IssueSession[] }) {
+  if (session.length === 0) {
     return <span className="text-xs text-muted-foreground">no session yet</span>;
   }
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      {phien.map((p) => (
+      {session.map((p) => (
         <Link
           key={p.id}
           href={`/sessions/${p.id}`}
@@ -41,27 +41,27 @@ export function AttachedSession({ phien }: { phien: IssueSession[] }) {
   );
 }
 
-export function SoIssue({ muc }: { muc: BoardRow }) {
+export function SoIssue({ row }: { row: BoardRow }) {
   return (
     <a
-      href={muc.issue.url}
+      href={row.issue.url}
       target="_blank"
       rel="noopener noreferrer"
       className="font-mono text-xs text-muted-foreground hover:underline"
     >
-      #{muc.issue.number} ↗
+      #{row.issue.number} ↗
     </a>
   );
 }
 
-export function LinkPR({ muc }: { muc: BoardRow }) {
-  if (muc.pr.length === 0) return null;
+export function LinkPR({ row }: { row: BoardRow }) {
+  if (row.pr.length === 0) return null;
   return (
     <span className="flex flex-wrap gap-2">
-      {muc.pr.map((pr) => (
+      {row.pr.map((pr) => (
         <Link
           key={pr.url}
-          href={pr.number === null ? pr.url : `/pr/${muc.slug}/${pr.number}`}
+          href={pr.number === null ? pr.url : `/pr/${row.slug}/${pr.number}`}
           className="font-mono text-xs text-body hover:underline"
         >
           PR #{pr.number ?? "?"}

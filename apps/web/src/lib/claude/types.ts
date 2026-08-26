@@ -22,8 +22,8 @@
 /** Cửa sổ hạn mức. `rateLimitType` của `rate_limit_event`. */
 export type UsageWindow = "five_hour" | "weekly";
 
-export interface HanMuc {
-  cuaSo: UsageWindow;
+export interface Quota {
+  usageWindow: UsageWindow;
   /** `status` của `rate_limit_event`. */
   status: "allowed" | "warning" | "exceeded";
   /**
@@ -42,8 +42,8 @@ export interface HanMuc {
 
 export interface ToolCard {
   /** Số lần chạy trong ngày, và bao nhiêu lần thất bại. */
-  soLanChay: number;
-  soLanLoi: number;
+  runCount: number;
+  errorCount: number;
   /** Tổng token vào + ra + cache trong ngày. */
   token: number;
   /** Tỉ lệ token đọc từ cache, 0–1. Quyết định phần lớn chi phí của khối việc này. */
@@ -51,20 +51,20 @@ export interface ToolCard {
   chiPhiHomNay: number;
   chiPhiBayNgay: number;
   /** Số lần chạy dừng vì hết hạn mức — từ `stop_reason` / `api_error_status`. */
-  dungViHetHanMuc: number;
+  stoppedOnQuota: number;
 }
 
 export interface TrangThaiDichVu {
   /** `indicator` của status.claude.com; `none` là bình thường. */
   indicator: "none" | "minor" | "major" | "critical" | "unknown";
-  moTa: string;
+  hint: string;
   /** Lúc kiểm gần nhất, ISO. */
   kiemLuc: string;
 }
 
 export interface ClaudeSnapshot {
-  hanMuc: HanMuc[];
-  mucDung: ToolCard;
+  quota: Quota[];
+  toolUse: ToolCard;
   dichVu: TrangThaiDichVu;
 }
 

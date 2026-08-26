@@ -16,27 +16,27 @@ import { buildDigest, type Digest } from "../lib/digest";
  * "chưa chạy gì" trong khi ba phiên vừa xong lúc 2 giờ. Trang này tồn tại để
  * nói ra chuyện gì đã xảy ra, nên nó không được có điểm mù nào theo giờ.
  */
-export function recentWindow(luc = new Date(), soGio = 24): { tu: Date; den: Date } {
-  return { tu: new Date(luc.getTime() - soGio * 3_600_000), den: luc };
+export function recentWindow(at = new Date(), soGio = 24): { since: Date; den: Date } {
+  return { since: new Date(at.getTime() - soGio * 3_600_000), den: at };
 }
 
-export async function loadDigest(luc = new Date()): Promise<Digest> {
+export async function loadDigest(at = new Date()): Promise<Digest> {
   const bee = getBee();
-  const { tu, den } = recentWindow(luc);
-  const [phien, queue] = await Promise.all([
+  const { since, den } = recentWindow(at);
+  const [session, queue] = await Promise.all([
     bee.listSessions(),
     readQueue(process.env.BEE_SRV ?? "/srv/bee"),
   ]);
 
   // Chỉ lấy artifact của phiên trong khoảng — n phiên cũ không đáng một lượt
   // đọc đĩa mỗi lần mở trang.
-  const trong = phien.filter((p) => {
+  const within = session.filter((p) => {
     const moc = p.ended_at ?? p.started_at ?? p.created_at;
-    return moc !== null && new Date(moc).getTime() >= tu.getTime();
+    return moc !== null && new Date(moc).getTime() >= since.getTime();
   });
   const artifacts: Record<string, BeeArtifact[]> = Object.fromEntries(
-    await Promise.all(trong.map(async (p) => [p.id, await bee.sessionArtifacts(p.id)] as const)),
+    await Promise.all(within.map(async (p) => [p.id, await bee.sessionArtifacts(p.id)] as const)),
   );
 
-  return buildDigest({ phien, artifacts, queue, tu, den });
+  return buildDigest({ session, artifacts, queue, since, den });
 }

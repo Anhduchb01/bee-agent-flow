@@ -13,7 +13,7 @@ vi.mock("../api/actions", () => ({
   deleteEnvFileAction: vi.fn(async () => ({ ok: true, message: "" })),
 }));
 
-function moDialog() {
+function openDialog() {
   render(<NewProjectDialog trigger={<Button>New project</Button>} />);
   return userEvent.setup();
 }
@@ -25,7 +25,7 @@ describe("NewProjectDialog — register a repo without leaving the screen", () =
   });
 
   it("registers the repo and then offers the env step for the derived slug", async () => {
-    const user = moDialog();
+    const user = openDialog();
     const { registerRepoAction } = await import("../api/actions");
 
     await user.click(screen.getByRole("button", { name: "New project" }));
@@ -42,7 +42,7 @@ describe("NewProjectDialog — register a repo without leaving the screen", () =
   });
 
   it("env saved from the dialog goes to the same env.d store /setup writes", async () => {
-    const user = moDialog();
+    const user = openDialog();
     const { saveEnvFileAction } = await import("../api/actions");
 
     await user.click(screen.getByRole("button", { name: "New project" }));
@@ -72,7 +72,7 @@ describe("NewProjectDialog — register a repo without leaving the screen", () =
       ok: false,
       message: 'Slug "blog" is already used by you/blog.',
     });
-    const user = moDialog();
+    const user = openDialog();
 
     await user.click(screen.getByRole("button", { name: "New project" }));
     await user.type(screen.getByLabelText("org/repo"), "someone/blog");
@@ -83,7 +83,7 @@ describe("NewProjectDialog — register a repo without leaving the screen", () =
   });
 
   it("does nothing on an empty repo — the button stays disabled", async () => {
-    const user = moDialog();
+    const user = openDialog();
     const { registerRepoAction } = await import("../api/actions");
 
     await user.click(screen.getByRole("button", { name: "New project" }));

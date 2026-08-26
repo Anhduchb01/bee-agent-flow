@@ -10,7 +10,7 @@
  * mọi thứ sắp đi vào argv. Phần gọi lệnh nằm ở `slayer-ctl.ts`.
  */
 
-export interface BeeMucDung {
+export interface BeeToolUse {
   /** Phần trăm đã dùng, 0–100. */
   percentOf: number;
   /** Lúc cửa sổ này reset, epoch giây; null = không biết. */
@@ -24,35 +24,35 @@ export interface BeeSlotClaude {
   email: string | null;
   /** Chuỗi trạng thái slayer trả về: active · idle · reauth… */
   state: string;
-  dangBat: boolean;
-  namGio: BeeMucDung | null;
-  bayNgay: BeeMucDung | null;
+  enabled: boolean;
+  namGio: BeeToolUse | null;
+  bayNgay: BeeToolUse | null;
   /** Token của slot đã hết hạn — slot còn đó nhưng đăng nhập lại mới dùng được. */
   hetHan: boolean;
 }
 
 export interface BeeClaudePool {
   /** Tên slot đang bật, hoặc null khi chưa slot nào được chọn. */
-  dangBat: string | null;
+  enabled: string | null;
   slots: BeeSlotClaude[];
 }
 
-function so(v: unknown): number | null {
+function count(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
-function chuoi(v: unknown): string | null {
+function str(v: unknown): string | null {
   return typeof v === "string" && v !== "" ? v : null;
 }
 
-function mucDung(v: unknown): BeeMucDung | null {
+function toolUse(v: unknown): BeeToolUse | null {
   if (typeof v !== "object" || v === null) return null;
   const o = v as Record<string, unknown>;
-  const pt = so(o.utilization);
+  const pt = count(o.utilization);
   if (pt === null) return null;
   // Kẹp lại: thanh 130% vẽ ra khỏi khung, và một con số vô lý đọc như lỗi
   // hiển thị chứ không như cảnh báo.
-  return { percentOf: Math.max(0, Math.min(100, pt)), resetLuc: so(o.resets_at) };
+  return { percentOf: Math.max(0, Math.min(100, pt)), resetLuc: count(o.resets_at) };
 }
 
 /**
@@ -76,25 +76,25 @@ export function readSlayerPool(json: string): BeeClaudePool | null {
   for (const raw of o.accounts) {
     if (typeof raw !== "object" || raw === null) continue;
     const a = raw as Record<string, unknown>;
-    const name = chuoi(a.name);
+    const name = str(a.name);
     if (name === null) continue;
     const usage = (typeof a.usage === "object" && a.usage !== null ? a.usage : {}) as Record<
       string,
       unknown
     >;
     slots.push({
-      index: so(a.index) ?? slots.length + 1,
+      index: count(a.index) ?? slots.length + 1,
       name,
-      alias: chuoi(a.alias),
-      email: chuoi(a.email),
-      state: chuoi(a.state) ?? "unknown",
-      dangBat: a.active === true,
-      namGio: mucDung(usage.five_hour),
-      bayNgay: mucDung(usage.seven_day),
+      alias: str(a.alias),
+      email: str(a.email),
+      state: str(a.state) ?? "unknown",
+      enabled: a.active === true,
+      namGio: toolUse(usage.five_hour),
+      bayNgay: toolUse(usage.seven_day),
       hetHan: usage.token_expired === true,
     });
   }
-  return { dangBat: chuoi(o.active), slots };
+  return { enabled: str(o.active), slots };
 }
 
 /**

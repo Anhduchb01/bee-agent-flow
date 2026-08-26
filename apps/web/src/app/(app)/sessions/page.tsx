@@ -7,14 +7,14 @@ export default async function SessionsPage() {
   if (!actor) return null;
 
   const [nhom, repos] = await Promise.all([loadSessions(), loadRepos()]);
-  const tongPhien = nhom.reduce((n, g) => n + g.phien.length, 0);
+  const totalSessions = nhom.reduce((n, g) => n + g.session.length, 0);
 
   return (
     <>
       <PageHeader
         title="Sessions"
         meta={
-          <span className="font-mono text-xs text-muted-foreground">{tongPhien} sessions</span>
+          <span className="font-mono text-xs text-muted-foreground">{totalSessions} sessions</span>
         }
       />
       <div className="flex flex-col gap-6 p-4 sm:p-6">

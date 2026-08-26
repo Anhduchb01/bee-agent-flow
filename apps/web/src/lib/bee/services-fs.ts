@@ -104,13 +104,13 @@ function parseSliceItem(raw: unknown): BeeSliceItem | null {
  * cannot leak through a screenshot.
  */
 export async function readSessionSliceFrom(
-  goc: string,
+  baseDir: string,
   id: string,
 ): Promise<BeeSlice | null> {
   if (!isSessionId(id)) return null;
   let raw: unknown;
   try {
-    raw = JSON.parse(await fs.readFile(path.join(goc, "sessions", id, "services.json"), "utf8"));
+    raw = JSON.parse(await fs.readFile(path.join(baseDir, "sessions", id, "services.json"), "utf8"));
   } catch {
     return null;
   }
@@ -145,16 +145,16 @@ export async function readSessionSlice(id: string): Promise<BeeSlice | null> {
 }
 
 /** Every slice currently held, newest first. */
-export async function readSlicesFrom(goc: string): Promise<BeeSlice[]> {
+export async function readSlicesFrom(baseDir: string): Promise<BeeSlice[]> {
   let ids: string[];
   try {
-    ids = await fs.readdir(path.join(goc, "sessions"));
+    ids = await fs.readdir(path.join(baseDir, "sessions"));
   } catch {
     return [];
   }
   const ra: BeeSlice[] = [];
   for (const id of ids) {
-    const lat = await readSessionSliceFrom(goc, id);
+    const lat = await readSessionSliceFrom(baseDir, id);
     if (lat !== null) ra.push(lat);
   }
   return ra.sort((a, b) => b.at.localeCompare(a.at));

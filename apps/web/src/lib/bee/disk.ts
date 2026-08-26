@@ -14,7 +14,7 @@ import {
   duongDanRunTrong,
   listSessionsIn,
   listReposIn,
-  timEvidenceChoArtifact,
+  findEvidenceForArtifact,
 } from "./sessions-fs";
 import { parseClaudeRateLimit, parseRecentLine, parseStatus } from "./parse";
 import type { BeeClaudeRateLimit, BeeRecentRun, BeeSource, StatusRead } from "./types";
@@ -110,7 +110,7 @@ export function createDiskBeeSource(): BeeSource {
     sessionArtifacts: (id) => readArtifactsIn(root(), id),
     listSessionEvidence: (id) => readEvidenceIn(root(), id),
     findArtifactEvidence: (repo, kind, number) =>
-      timEvidenceChoArtifact(root(), repo, kind, number),
+      findEvidenceForArtifact(root(), repo, kind, number),
     sessionPreview: (id) => readLastLineIn(root(), id),
     sessionRunPath: (id) => duongDanRunTrong(root(), id),
   };

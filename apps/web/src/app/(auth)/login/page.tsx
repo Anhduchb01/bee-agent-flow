@@ -60,7 +60,7 @@ function MeshGradient() {
   );
 }
 
-export default async function DangNhapPage({
+export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -80,7 +80,7 @@ export default async function DangNhapPage({
   // trang trong lại ném ngược ra đây, lặp mãi. Chỉ có đăng xuất mới xoá được nó.
   if (session?.login && !hetHan) redirect(target);
 
-  async function vaoBangGithub() {
+  async function signInWithGithub() {
     "use server";
     await signIn("github", { redirectTo: target });
   }
@@ -90,7 +90,7 @@ export default async function DangNhapPage({
     await signOut({ redirectTo: "/login" });
   }
 
-  async function vaoBangTenThu(formData: FormData) {
+  async function signInAsTester(formData: FormData) {
     "use server";
     await signIn("dev", { login: String(formData.get("login") ?? ""), redirectTo: target });
   }
@@ -146,14 +146,14 @@ export default async function DangNhapPage({
             </p>
           </div>
         ) : isLive ? (
-          <form action={vaoBangGithub}>
+          <form action={signInWithGithub}>
             <Button type="submit" className="w-full">
               Continue with GitHub
             </Button>
           </form>
         ) : (
           <form
-            action={vaoBangTenThu}
+            action={signInAsTester}
             className="flex flex-col gap-3 rounded-card border border-border bg-card p-5"
           >
             <Label htmlFor="login" className="eyebrow">

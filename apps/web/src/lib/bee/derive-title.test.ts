@@ -14,13 +14,13 @@ describe("deriveSessionTitle", () => {
   });
 
   it("truncates long messages at a word boundary with an ellipsis", () => {
-    const dai =
+    const span =
       "làm cho tôi một trang landing thật đẹp có dark mode và animation mượt trên mobile";
-    const title = deriveSessionTitle(dai);
+    const title = deriveSessionTitle(span);
     expect(title.length).toBeLessThanOrEqual(61); // 60 + ellipsis char
     expect(title.endsWith("…")).toBe(true);
     // No half-word left hanging before the ellipsis.
-    expect(dai).toContain(title.slice(0, -1).trim());
+    expect(span).toContain(title.slice(0, -1).trim());
   });
 
   it("empty or whitespace-only input falls back to Untitled", () => {

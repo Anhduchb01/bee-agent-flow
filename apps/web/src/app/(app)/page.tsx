@@ -21,7 +21,7 @@ export default async function TongQuanPage() {
   const health = deriveHealth(view.statusRead);
 
   const active = nhom.flatMap((g) =>
-    g.phien
+    g.session
       .filter((p) => p.status === "running" || p.status === "starting")
       .map((p) => ({ ...p, repoLabel: g.repo })),
   );
