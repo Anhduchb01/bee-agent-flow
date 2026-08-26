@@ -13,6 +13,9 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusDot } from "@/components/status-dot";
+import type { BeeSlice } from "@/lib/bee/services-fs";
+
+import { SessionServices } from "./session-services";
 import type { BeeSession, BeeSessionMode, BeeSessionModel } from "@/lib/bee/types";
 
 import {
@@ -236,10 +239,13 @@ function VongNguCanh({
 export function LiveView({
   phien,
   commands = [],
+  lat = null,
 }: {
   phien: BeeSession;
   /** Global slash commands (~/.claude/commands) — the "/" palette. */
   commands?: { name: string; moTa: string }[];
+  /** The service slice this session holds, if any (T15c4). */
+  lat?: BeeSlice | null;
 }) {
   const { suKien, dangGo, dangNghi, trangThai, ketThuc, boQua } = useSessionStream(phien.id);
   const [nhap, setNhap] = useState("");
@@ -410,6 +416,8 @@ export function LiveView({
           {ketThuc === null ? (dangBan ? "working…" : "idle") : ketThuc}
         </span>
         <span className="flex-1" />
+        {/* Left of Stop on purpose: it answers "what am I about to stop". */}
+        <SessionServices lat={lat} />
         {dangChay && (
           <Button size="sm" variant="outline" onClick={() => void dungPhienAction(phien.id)}>
             Stop
