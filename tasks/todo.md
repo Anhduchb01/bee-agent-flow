@@ -677,7 +677,7 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       (`moPhien`, `docTiep`, `ghepThe`, `dungBanTin`, `HangDoi`…). Đổi ồ ạt là
       một quyết định riêng, chạm gần như mọi file.
 
-- [x] 🤖 **T31** ~~Đổi identifier tiếng Việt sang tiếng Anh~~ **XONG 26/08** —
+- [~] 🤖 **T31** Đổi identifier tiếng Việt sang tiếng Anh — **CHƯA XONG** —
       hai đợt. Đợt đầu (120 file) chỉ đổi tên xuất; đợt sau đóng nốt phần cục
       bộ và **phải viết một bộ thay thế hiểu cú pháp** vì regex thô hỏng theo
       hai chiều ngược nhau:
@@ -695,6 +695,26 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       có chủ (kiểu thời reconciler mang `full/enabled/paused/running/wip`).
       Hai thứ khác nhau cùng tên sẽ biên dịch được ở vài chỗ và lệch im lặng
       ở chỗ khác → `BeeRegisteredRepo`.
+      **Đo lại 26/08 sau sự cố canvas:** tôi đã báo "còn 1 chỗ" — sai, vì
+      bảng từ dùng để quét quá hẹp. Quét lại bằng từ điển hệ thống: còn
+      **~110 tên khai báo** thật sự tiếng Việt (`TONE_PHIEN`, `CUA_SO`,
+      `TRANG_THAI`, `NHAN`, `KHONG_QUYEN`, `CAU_HINH`, `ChoChayNode`,
+      `nguCanh`, `tomTatBayNgay`, `ky`/`mau`…). Việc còn dở, không phải xong.
+- [x] 🤖 **T33** ~~Canvas trắng bốc sau khi đổi tên~~ **XONG 26/08** — loại
+      lỗi y hệt `dataKey="nhan"`, chỉ khác nó nằm ở **khoá object không nháy
+      nháy**. `nodeTypes` đăng ký `phien: SessionNode` — khoá trông như
+      identifier nên bị đổi thành `session`, còn `type: "phien"` là chuỗi nên
+      được giữ. React Flow **không cảnh báo** khi gặp type lạ: nó lặng lẽ vẽ
+      node mặc định — hộp rỗng hai chấm. Đúng số node, đúng layout, không lỗi,
+      không nội dung.
+      Sửa bằng cách làm cho **lệch là không build được**, không phải vá lại
+      khoá: `NODE_KIND` trong build-graph là nguồn duy nhất, tên lát đổi sang
+      tiếng Anh ở tầng **giá trị** (`"phien"`→`"session"`,
+      `"cho-chay"`→`"queued"`), và canvas-view khai `Record<NodeKind, …>` nên
+      khoá trôi là TS2353 — đã kiểm bằng cách phá có chủ đích.
+      **Vì sao lọt tới máy thật:** `/canvas` không có e2e nào. Giờ có, và đã
+      kiểm nó đỏ trên bản hỏng (`.react-flow__node-default` phải bằng 0).
+
 - [x] 🤖 **T32** ~~Không ai kiểm giao ước bash↔TS~~ **XONG 26/08** — rename
       bằng regex có một đường hỏng mà **cả 561 test lẫn 35 e2e đều không bắt
       được**: đổi một khoá JSON ở phía TS thì test TS vẫn xanh (nó tự ghi tự
