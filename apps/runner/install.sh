@@ -44,6 +44,40 @@ if [[ ! -f "$BEE_ROOT/machine.env" ]]; then
 # SLAYER_MINIMAL_PAYLOAD=1   # hook token-slayer chỉ gửi usage, bỏ prompt + tool_input
 EOF
 fi
+# Service pool skeleton (T15). Created, never filled: an empty compose file
+# means "no pool", which is the correct state for a machine whose repos do not
+# need shared services. The owner adds services from /setup.
+mkdir -p "$BEE_ROOT/services"
+if [[ ! -f "$BEE_ROOT/services/compose.yml" ]]; then
+  cat > "$BEE_ROOT/services/compose.yml" <<'EOF'
+# Shared service pool. Every session gets its own slice of what is here:
+# a database + role, a vhost + user, a bucket + key — named from its uuid.
+#
+# bee guesses what each service IS from its image, so use ordinary images
+# (postgres, rabbitmq, minio/minio, mysql). An image bee cannot place still
+# works — sessions just run their own copy instead of sharing this one.
+#
+# Bind to 127.0.0.1 only: this pool is bee's, not the machine's.
+services: {}
+#  postgres:
+#    image: postgres:16
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bee}
+#    ports: ["127.0.0.1:55432:5432"]
+#    volumes: ["pgdata:/var/lib/postgresql/data"]
+#volumes:
+#  pgdata:
+EOF
+fi
+# Overrides for the pool compose above. Admin credentials themselves stay
+# inside the containers — this file only carries what compose interpolates.
+if [[ ! -f "$BEE_ROOT/services/admin.env" ]]; then
+  printf '# Values the pool compose interpolates, e.g. POSTGRES_PASSWORD=…\n' \
+    > "$BEE_ROOT/services/admin.env"
+  chmod 600 "$BEE_ROOT/services/admin.env"
+fi
+
 [[ $MOI_CAI -eq 1 ]] && touch "$BEE_ROOT/PAUSE"
 
 # PATH cho unit: systemd --user KHÔNG đọc ~/.profile, nên `claude` và `node`
@@ -71,6 +105,8 @@ for f in "$NGUON"/units/*.service "$NGUON"/units/*.timer; do
   sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g; s|@BINPATH@|$BINPATH|g" "$f" > "$UDIR/$(basename "$f")"
 done
 systemctl --user daemon-reload
+# bee-services is rendered above but deliberately NOT enabled: starting a
+# service pool is a decision, like removing PAUSE. /setup turns it on.
 systemctl --user enable --now bee-reaper.timer bee-heartbeat.timer bee-gc.timer bee-tick.timer
 
 echo "== 3b · Web service =="

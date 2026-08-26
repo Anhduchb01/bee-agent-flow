@@ -1,0 +1,27 @@
+# The shared service pool: one stack, always on, sliced per session (T15).
+#
+# NOT enabled by install.sh on purpose. Starting a pool is a deliberate act,
+# the same way removing PAUSE is — a machine that has never been configured
+# should not silently start pulling postgres images. Turn it on from /setup,
+# or `systemctl --user enable --now bee-services`.
+#
+# The pool file is @BEE_ROOT@/services/compose.yml, which the owner edits from
+# the Settings screen. Admin credentials never leave these containers: every
+# privileged command runs through `docker compose exec` inside the service.
+[Unit]
+Description=bee services — shared pool that sessions take slices of
+After=network-online.target
+
+[Service]
+Environment=PATH=@BINPATH@
+Environment=BEE_ROOT=@BEE_ROOT@
+EnvironmentFile=-@BEE_ROOT@/services/admin.env
+WorkingDirectory=@BEE_ROOT@/services
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/env docker compose -p bee-services up -d --remove-orphans
+ExecStop=/usr/bin/env docker compose -p bee-services stop
+TimeoutStartSec=600
+
+[Install]
+WantedBy=default.target

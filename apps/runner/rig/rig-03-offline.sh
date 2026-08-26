@@ -155,6 +155,19 @@ grep -q "CLAUDE_SOURCE=live" "$IT/srv/web.env" 2>/dev/null \
 # Dừng web CÓ CHỦ ĐÍCH không được để lại unit ở trạng thái `failed` — nếu
 # không, `systemctl --failed` lúc nào cũng có sẵn một dòng và người ta thôi
 # đọc nó. Cùng bài với doctor.sh --exit-zero.
+# T15b6: the pool unit is rendered but must NOT be enabled — starting a
+# service pool is a decision, like removing PAUSE.
+[[ -f "$IT/home/.config/systemd/user/bee-services.service" ]] \
+  && kq ok "bee-services.service rendered" || kq no "thiếu bee-services.service"
+[[ -f "$IT/srv/services/compose.yml" && -f "$IT/srv/services/admin.env" ]] \
+  && kq ok "khung services/ được tạo (compose rỗng = chưa có pool)" \
+  || kq no "thiếu khung services/"
+[[ "$(stat -c %a "$IT/srv/services/admin.env" 2>/dev/null)" == 600 ]] \
+  && kq ok "admin.env là 600" || kq no "admin.env mode $(stat -c %a "$IT/srv/services/admin.env" 2>/dev/null)"
+grep -q "services: {}" "$IT/srv/services/compose.yml" \
+  && kq ok "pool mặc định RỖNG — máy chưa cấu hình không tự kéo image về" \
+  || kq no "pool mặc định không rỗng"
+
 grep -q "^SuccessExitStatus=.*143" "$UNIT" 2>/dev/null \
   && kq ok "stop có chủ đích không bị đọc thành hỏng (SuccessExitStatus)" \
   || kq no "thiếu SuccessExitStatus — mỗi lần stop web sẽ để lại unit failed"
