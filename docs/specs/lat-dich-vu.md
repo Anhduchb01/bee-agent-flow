@@ -298,6 +298,36 @@ Mỗi phiên một dòng: `uuid8 · repo#num · db/vhost/bucket · dung lượng
 trạng thái phiên · lý do giữ`. Cùng khuôn `DiskPanel` đang đọc `gc.json`.
 Nút *Thu hồi ngay* — chỉ bật cho phiên đã kết thúc.
 
+### Panel · Dịch vụ của phiên (trong màn phiên, cạnh nút Stop)
+
+Chốt 26/08. Màn Settings trả lời *"máy đang có gì"*; nhưng lúc đang xem một
+phiên chạy, câu hỏi là *"**phiên NÀY** đang nối vào đâu"* — và hai câu đó
+không trả lời thay nhau được.
+
+Nút nằm ở dải đầu phiên, **bên trái nút Stop**, nhãn là số dịch vụ đang có
+(vd. `⛁ 3`). Bấm mở một Sheet:
+
+| dịch vụ | kiểu | nối vào | trạng thái |
+|---|---|---|---|
+| postgres | postgres | **pool** · `bee_a3f2c1d0` | up · 12MB |
+| rabbitmq | rabbitmq | **pool** · vhost `/bee_a3f2c1d0` | up |
+| redis | redis | **riêng phiên** · `bee-a3f2c1d0` | up · cổng 54003 |
+| storage | không đoán được | **riêng phiên** ⚠ | chưa dựng |
+
+Ba điều Sheet này phải nói, vì không màn nào khác nói được:
+
+1. **Cái nào là lát của pool, cái nào là container riêng của phiên.** Đây là
+   khác biệt đắt nhất trong cả thiết kế: một cái mất đi khi gc chạy, cái kia
+   ảnh hưởng tới mọi phiên.
+2. **Cái nào bee không đoán được kiểu** — cùng cảnh báo ⚠ như §9, nhưng ở
+   đúng lúc người dùng đang nhìn phiên đó chạy.
+3. **Tên lát và cổng thật**, copy được — để dán vào `psql`/`redis-cli` khi cần
+   soi tay.
+
+Nguồn dữ liệu: `sessions/<id>/services.json` (bee ghi lúc mốc 5) ghép với
+`docker compose -p bee-<uuid8> ps` cho phần container. Phiên **không có** dịch
+vụ nào thì **không hiện nút** — một nút mở ra bảng trống là nhiễu.
+
 ### Kỷ luật không được bỏ
 
 Ô nhập image và tên service là **chỗ dễ chèn lệnh nhất trên cả app**. Mọi giá
@@ -320,7 +350,7 @@ Thất bại là **dữ liệu trả về**, không phải exception ném lên U
 |---|---|---|
 | **T15a** | `gc.sh` biết `docker compose down -v` | Vá nợ đã có (§7), không phụ thuộc gì phía sau |
 | **T15b** | `lat-dich-vu.sh` (cấp/thu hồi) + bảng tra image + mở rộng `env.d` + rig | Lõi. Chạy được bằng tay trước khi có UI |
-| **T15c** | Hai tab `/setup` + panel pool + panel lát + doctor `dich-vu` | UI, sau khi lõi đã đúng |
+| **T15c** | Hai tab `/setup` + panel pool + panel lát + **panel dịch vụ trong màn phiên** + doctor `dich-vu` | UI, sau khi lõi đã đúng |
 | **T17** | Trả `native.cgroupdriver=systemd` | **Chỉ khi** muốn đặt trần `--memory`/`--cpus` cho từng phiên. Với thiết kế này (lát chung, container per-phiên nhỏ) thì chưa cần — xem [docker-cho-bee.md §5b](../docker-cho-bee.md) |
 
 ---
