@@ -8,9 +8,10 @@ Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖
 **nghiệm thu trên máy thật**, không chỉ trong rig. Từ đây là *chờ số liệu*:
 Checkpoint 1 bắt đầu đếm 3 ngày từ 26/08.
 
-**Cổng đo trên chính máy bee** (deploy 26/08 10:27, runner `/home/bee/.local/bee`):
-lint sạch · typecheck xanh · **524 test / 72 file** xanh · **13 rig** xanh
-(rig-14: 16/16) · tailnet `/login` → 307 · `bee-web` `NRestarts=0`.
+**Cổng đo** (26/08, sau P5b): lint sạch · typecheck xanh · **527 test / 72
+file** xanh · **13 rig** xanh (rig-14: 16/16) · build hết cảnh báo Turbopack.
+Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestarts=0`.
+*P5b chưa deploy — cần một lượt `deploy.sh` nữa để T24 có tác dụng trên unit.*
 
 ---
 
@@ -217,10 +218,34 @@ lint sạch · typecheck xanh · **524 test / 72 file** xanh · **13 rig** xanh
 - [ ] 🧑 **T13a** `sudo rm -rf ~/.local/opt/bee` — junk root-owned **vẫn còn**.
 - [ ] 🧑 **T13b** PAT "All repositories" → "Only select repositories" (vệ sinh A+ §2).
 - [x] 🧑 **T13c** ~~PAT không đọc được `lifebook-assessment`~~ **HẾT 26/08** —
-      PAT mới dán ở M2 đọc được, `repo:lifebook-assessment` xanh. *Cái nợ thật
-      sự còn lại ở đây không phải quyền mà là hành vi:* bảng dự án **im lặng**
-      bỏ qua repo không đọc được. Lần sau PAT hết hạn sẽ lại im lặng như thế —
-      xem có nên cho nó nói ra không, sau Checkpoint 1.
+      PAT mới dán ở M2 đọc được, `repo:lifebook-assessment` xanh.
+      **Đính chính:** note cũ ở đây viết "bảng dự án im lặng bỏ qua repo không
+      đọc được" — **sai, và sai ngay lúc viết**. `fetchRepoIssues` trả về lý do,
+      `loadBoard` gom, `/projects` in đỏ; có test từ `cab39f7` (24/08). Đường
+      im lặng CÓ THẬT thì hẹp hơn, và đã vá ở **T23** bên dưới.
+
+## P5b · Dọn sau khi máy live (26/08) ✅
+
+Ba thứ nhặt được lúc nghiệm thu T19 trên máy thật. Không cái nào chặn
+Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói dối im lặng**.
+
+- [x] 🤖 **T23** ~~Bảng dự án trống mà không nói vì sao~~ **XONG 26/08** — sau
+      khi kiểm thì repo-không-đọc-được **đã** được báo từ 24/08 (xem T13c). Cái
+      còn hở: `gh` thoát 0 nhưng trả JSON khác dạng → bảng trống, `loi: null`,
+      và **một bảng trống im lặng đọc y hệt "repo này chưa có issue nào"**.
+      Giờ: không phải mảng → nói ra; bỏ n/m dòng hỏng → nói ra số; và `loi`
+      **nằm trong cache** (đọc thiếu mà 60 giây sau im lặng thì cache đang nói
+      dối). 3 test mới.
+- [x] 🤖 **T24** ~~`stop` bình thường để lại unit `failed`~~ **XONG 26/08** —
+      thấy lúc ép doctor đỏ: tắt bee-web xong unit nằm `failed` chứ không
+      `inactive` (Next thoát 143 sau SIGTERM), nên `systemctl --failed` lúc nào
+      cũng có sẵn một dòng. `SuccessExitStatus=143 SIGTERM`. Chết vì SIGKILL
+      hay lỗi thật thì VẪN đỏ. rig-03 khoá dòng đó trong unit.
+- [x] 🤖 **T25** ~~Turbopack trace cả project~~ **XONG 26/08** — gốc không phải
+      chuyện build: `path.join(process.env.HOME ?? "", ".claude", …)` ra đường
+      dẫn **tương đối** khi thiếu HOME, tức lặng lẽ đọc credential của thư mục
+      tiến trình đang đứng. Chặn HOME rỗng + `turbopackIgnore`. Test mới **đã
+      thử đỏ trên code cũ** trước khi nhận là xanh.
 
 ## Treo — có lý do, không phải quên
 

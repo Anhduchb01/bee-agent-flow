@@ -136,7 +136,8 @@ const FIXTURE: Record<string, BeeIssue[]> = {
   ],
 };
 
-const cache = new Map<string, { luc: number; issues: BeeIssue[] }>();
+/** `loi` nằm TRONG cache: đọc thiếu mà lần sau im lặng thì cache đang nói dối. */
+const cache = new Map<string, { luc: number; issues: BeeIssue[]; loi: string | null }>();
 
 /** Test hook — the cache is per-process and bee-web is long-lived. */
 export function resetIssuesCache(): void {
@@ -157,7 +158,7 @@ export async function fetchRepoIssues(
 
   const now = opts?.now ?? Date.now;
   const cu = cache.get(repo);
-  if (cu !== undefined && now() - cu.luc < TTL_MS) return { issues: cu.issues, loi: null };
+  if (cu !== undefined && now() - cu.luc < TTL_MS) return { issues: cu.issues, loi: cu.loi };
 
   if (!(await isRegistered(repo))) {
     return { issues: [], loi: `${repo} is not a registered repo on this machine.` };
@@ -178,12 +179,23 @@ export async function fetchRepoIssues(
       "number,title,state,url,labels,assignees,createdAt,updatedAt",
     ]);
     const raw: unknown = JSON.parse(stdout);
-    const issues = (Array.isArray(raw) ? raw : [])
-      .map(docIssue)
+    // gh exited 0 but did not answer with a list: an empty board here would
+    // look exactly like "this repo has no issues", which is a different fact.
+    if (!Array.isArray(raw)) {
+      return { issues: [], loi: `${repo}: gh answered with something that is not an issue list.` };
+    }
+    const doc = raw.map(docIssue);
+    const issues = doc
       .filter((i): i is BeeIssue => i !== null)
       .sort((a, b) => b.number - a.number);
-    cache.set(repo, { luc: now(), issues });
-    return { issues, loi: null };
+    // Dòng hỏng vẫn BỊ BỎ (không tin dạng dữ liệu của gh) — nhưng bỏ bao
+    // nhiêu thì phải nói ra. Nếu gh đổi JSON, bảng trống là triệu chứng duy
+    // nhất, và một bảng trống im lặng đọc y hệt "repo này chưa có issue nào".
+    const bo = doc.length - issues.length;
+    const loi =
+      bo === 0 ? null : `${repo}: skipped ${bo} of ${doc.length} rows gh returned — they did not look like issues.`;
+    cache.set(repo, { luc: now(), issues, loi });
+    return { issues, loi };
   } catch (e) {
     return { issues: [], loi: `Could not read issues of ${repo}: ${(e as Error).message}` };
   }

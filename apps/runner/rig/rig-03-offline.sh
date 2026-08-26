@@ -152,6 +152,12 @@ grep -q "BEE_SOURCE=disk" "$IT/srv/web.env" 2>/dev/null \
   && kq ok "web.env mặc định chạy disk — không bao giờ demo nhầm" || kq no "web.env thiếu BEE_SOURCE=disk"
 grep -q "CLAUDE_SOURCE=live" "$IT/srv/web.env" 2>/dev/null \
   && kq ok "web.env bật Claude live — panel không hiện số dàn dựng" || kq no "web.env thiếu CLAUDE_SOURCE=live"
+# Dừng web CÓ CHỦ ĐÍCH không được để lại unit ở trạng thái `failed` — nếu
+# không, `systemctl --failed` lúc nào cũng có sẵn một dòng và người ta thôi
+# đọc nó. Cùng bài với doctor.sh --exit-zero.
+grep -q "^SuccessExitStatus=.*143" "$UNIT" 2>/dev/null \
+  && kq ok "stop có chủ đích không bị đọc thành hỏng (SuccessExitStatus)" \
+  || kq no "thiếu SuccessExitStatus — mỗi lần stop web sẽ để lại unit failed"
 
 echo "== 6 · env.d overlay: worktree nhận .env từ kho theo repo, git không thấy =="
 # claude giả: in một result rồi thoát sạch — đủ để session-run đi hết vòng đời.

@@ -74,6 +74,35 @@ describe("account usage — fetch from the oauth endpoint, read back narrowed", 
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("thiếu HOME → không đi đọc `.claude/` TƯƠNG ĐỐI của thư mục làm việc", async () => {
+    // `path.join("", ".claude", …)` ra một đường dẫn tương đối. Trước đây
+    // thiếu HOME là lặng lẽ đọc credential của bất cứ thư mục nào tiến trình
+    // đang đứng — sai file, và không ai biết. (Cũng chính là chỗ Turbopack
+    // cảnh báo "dynamic filesystem access" rồi kéo cả project vào standalone.)
+    await fs.rm(path.join(dir, "claude.env"));
+    const gia = path.join(dir, "cwd-gia");
+    await fs.mkdir(path.join(gia, ".claude"), { recursive: true });
+    await fs.writeFile(
+      path.join(gia, ".claude", ".credentials.json"),
+      JSON.stringify({ claudeAiOauth: { accessToken: "khong-duoc-dung-token-nay" } }),
+    );
+    const cwdCu = process.cwd();
+    const homeCu = process.env.HOME;
+    process.chdir(gia);
+    delete process.env.HOME;
+    try {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const ket = await fetchClaudeAccountUsage();
+      expect(ket.ok).toBe(false);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      process.chdir(cwdCu);
+      if (homeCu === undefined) delete process.env.HOME;
+      else process.env.HOME = homeCu;
+    }
+  });
+
   it("readClaudeUsageFrom: missing or corrupt file → null", async () => {
     expect(await readClaudeUsageFrom(path.join(dir, "khong-co"))).toBeNull();
     await fs.mkdir(path.join(dir, "state"), { recursive: true });

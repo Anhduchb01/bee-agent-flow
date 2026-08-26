@@ -334,10 +334,17 @@ export async function fetchClaudeAccountUsage(opts?: {
   }
   if (token === "") {
     try {
-      const credFile =
-        opts?.credentialsFile ??
-        path.join(process.env.HOME ?? "", ".claude", ".credentials.json");
-      const cred = JSON.parse(await fs.readFile(credFile, "utf8")) as Record<string, unknown>;
+      // HOME phải có THẬT. `path.join("", ".claude", …)` ra một đường dẫn
+      // TƯƠNG ĐỐI, nên thiếu HOME thì chỗ này lặng lẽ đọc `.claude/…` trong
+      // thư mục làm việc của tiến trình — không phải của người dùng. Đó cũng
+      // là lý do Turbopack cảnh báo và kéo cả project vào bản standalone:
+      // nó thấy một đường dẫn có thể là project-relative.
+      const home = process.env.HOME ?? "";
+      const credFile = opts?.credentialsFile ?? (home === "" ? "" : path.join(home, ".claude", ".credentials.json"));
+      if (credFile === "") throw new Error("no HOME");
+      // turbopackIgnore: đây là file runtime của MÁY, không bao giờ là
+      // nguồn của app — không có gì để trace vào bundle.
+      const cred = JSON.parse(await fs.readFile(/* turbopackIgnore: true */ credFile, "utf8")) as Record<string, unknown>;
       const oauth = cred.claudeAiOauth;
       if (typeof oauth === "object" && oauth !== null) {
         const at = (oauth as Record<string, unknown>).accessToken;

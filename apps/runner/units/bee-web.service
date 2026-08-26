@@ -16,6 +16,13 @@ EnvironmentFile=-@BEE_ROOT@/web.env
 ExecStart=@NODE@ @WEBSERVER@
 Restart=on-failure
 RestartSec=3
+# Một lệnh `stop` CÓ CHỦ ĐÍCH không được đọc thành hỏng hóc. Next đóng bằng
+# SIGTERM rồi thoát 143, nên nếu không có dòng này thì mỗi lần dừng web đều
+# để lại unit ở trạng thái `failed` và nằm luôn trong `systemctl --failed`.
+# Cùng một cái giá với `doctor.sh --exit-zero`: cảnh báo nào cũng có sẵn thì
+# chẳng cảnh báo nào được đọc nữa. Chết vì SIGKILL (137) hay lỗi thật thì
+# VẪN đỏ, và Restart=on-failure vẫn nhặt lên.
+SuccessExitStatus=143 SIGTERM
 
 [Install]
 WantedBy=default.target
