@@ -15,7 +15,9 @@ import {
   RepoRegistry,
 } from "@/features/setup";
 import { PageHeader } from "@/features/shell";
+import { tabMacDinh, type SetupTab } from "@/features/setup";
 import { getActor } from "@/lib/auth";
+import Link from "next/link";
 
 /**
  * Onboarding for a fresh machine (S4). Only ONE thing stays on the machine
@@ -58,7 +60,36 @@ function Card({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-col gap-3 rounded-card border border-border bg-card p-4">{children}</div>;
 }
 
-export default async function SetupPage() {
+/**
+ * Two tabs, one page (T15c1). This page had been doing two jobs without
+ * saying so: a first-run wizard (Steps 1→5) AND the place you come back to
+ * for ongoing configuration. Putting the service pool into a wizard would
+ * have made that worse, so the split is now explicit.
+ *
+ * The tab lives in the URL, not in client state — the page stays a server
+ * component and every state is a link you can bookmark.
+ */
+function TabLink({ tab, current, children }: { tab: SetupTab; current: SetupTab; children: React.ReactNode }) {
+  return (
+    <Link
+      href={`/setup?tab=${tab}`}
+      aria-current={tab === current ? "page" : undefined}
+      className={`flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs ${
+        tab === current
+          ? "border-primary bg-primary/10 text-foreground"
+          : "border-border bg-card text-body hover:bg-muted"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+export default async function SetupPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const actor = await getActor();
   if (!actor) return null;
 
@@ -82,6 +113,9 @@ export default async function SetupPage() {
   // already "finished setup" against this page in fixture mode.
   const laFixture = process.env.BEE_SOURCE !== "disk";
 
+  const { tab } = await searchParams;
+  const chon = tabMacDinh(tab, doctor?.ok ?? null);
+
   return (
     <>
       <PageHeader
@@ -99,6 +133,42 @@ export default async function SetupPage() {
         </p>
       )}
       <div className="flex max-w-3xl flex-col gap-8 p-4 sm:p-6">
+        <nav aria-label="Setup section" className="flex gap-1.5">
+          <TabLink tab="install" current={chon}>First run</TabLink>
+          <TabLink tab="config" current={chon}>Configuration</TabLink>
+        </nav>
+
+        {chon === "config" ? (
+          <>
+            <p className="text-sm text-body">
+              Everything the machine keeps between runs. Nothing here needs a shell.
+            </p>
+
+            <Step num={1} title="Verify — the machine checks itself">
+              <DoctorChecklist doctor={doctor} />
+              <DiskPanel gc={gc} />
+            </Step>
+
+            <Step num={2} title="Repos and their env files">
+              <Card>
+                <RepoRegistry repos={repos} protection={protection} envFiles={envFiles} />
+              </Card>
+            </Step>
+
+            <Step num={3} title="Claude accounts on this machine">
+              <Card>
+                <ClaudeAccounts trangThai={slayer} />
+              </Card>
+            </Step>
+
+            <Step num={4} title="Take new work, or stop taking it">
+              <Card>
+                <PauseToggle paused={doctor?.paused ?? true} ready={doctor?.ok === true} />
+              </Card>
+            </Step>
+          </>
+        ) : (
+        <>
         <p className="text-sm text-body">
           bee runs your sessions on one dedicated machine. Install the runner there once;
           configure and verify everything else on this page. The machine stays PAUSED until
@@ -160,6 +230,8 @@ bash apps/runner/install.sh`}</Cmd>
           </p>
           <NewSessionForm repos={repos} />
         </Step>
+        </>
+        )}
       </div>
     </>
   );

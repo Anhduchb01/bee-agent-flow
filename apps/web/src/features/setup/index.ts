@@ -14,3 +14,4 @@ export { NewProjectDialog } from "./components/new-project-dialog";
 export { runDoctorAction } from "./api/actions";
 export { loadClaudeAuth, loadDoctor, loadEnvFiles, loadGc, loadSlayer } from "./api/load";
 export { postLoginTarget } from "./lib/post-login-target";
+export { tabMacDinh, CAC_TAB, type SetupTab } from "./lib/tab";
