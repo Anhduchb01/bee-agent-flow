@@ -188,6 +188,11 @@ export function createFixtureBeeSource(): BeeSource {
           { id: "linger", ok: true, detail: "bật" },
           { id: "reaper", ok: true, detail: "bee-reaper.timer đang chạy" },
           { id: "web", ok: true, detail: "bee-web active · 127.0.0.1:3210 trả 307 · restart 0 lần" },
+          {
+            id: "dich-vu",
+            ok: true,
+            detail: "pool: 2 service(s) up · 3 slice(s) in use",
+          },
           { id: "dia", ok: true, detail: "/srv/bee ghi được" },
         ],
       };

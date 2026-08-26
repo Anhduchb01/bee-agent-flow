@@ -345,5 +345,61 @@ grep -q "not in the pool" "$SD6/run.jsonl" \
   && kq ok "says which services it will NOT be sharing — silence is how guessing goes wrong" \
   || kq no "no word about the services left out of the pool"
 
+# ── 7 · doctor knows about the pool ───────────────────────────────────────
+# The insurance policy on guessing-from-image. An image bee cannot place turns
+# every session into its own copy of that service — RAM leaves and nobody is
+# told. Doctor is where "nobody is told" gets fixed, daily.
+echo
+echo "-- 7 · doctor: dich-vu --"
+
+for c in gh loginctl curl; do printf '#!/bin/sh\nexit 1\n' > "$T/bin/$c"; chmod +x "$T/bin/$c"; done
+cat > "$T/bin/systemctl" <<'EOF'
+#!/bin/sh
+case "$*" in
+  *"is-active"*"bee-services"*) echo "${RIG_POOL_UNIT:-inactive}"
+     [ "${RIG_POOL_UNIT:-inactive}" = active ] && exit 0 || exit 3;;
+  *"cat bee-web"*) exit 1;;
+  *NRestarts*|*MainPID*) echo 0;;
+  *) exit 0;;
+esac
+EOF
+chmod +x "$T/bin/systemctl"
+: > "$BEE_ROOT/gc.json"; echo '{"ts":"x"}' > "$BEE_ROOT/gc.json"
+
+muc_dv() { jq -r '.checks[]|select(.id=="dich-vu")|"\(.ok)|\(.detail)"' "$BEE_ROOT/doctor.json" 2>/dev/null; }
+kham_dv() { bash "$HERE/../bin/doctor.sh" --exit-zero >/dev/null 2>&1 || true; }
+
+# An empty pool is a legitimate state, not a fault: plenty of repos need
+# nothing shared. It must not sit red forever on such a machine.
+printf 'services: {}\n' > "$BEE_ROOT/services/compose.yml"
+kham_dv
+[[ "$(muc_dv)" == true* ]] \
+  && kq ok "no pool configured: green and quiet, not a permanent red" \
+  || kq no "an empty pool reads as broken: $(muc_dv)"
+
+# Pool declared but the unit is down → red. Sessions of a repo that needs it
+# would refuse to start, and you want to know that BEFORE queueing work.
+printf 'services:\n  postgres:\n    image: postgres:16\n' > "$BEE_ROOT/services/compose.yml"
+RIG_POOL_UNIT=inactive kham_dv
+[[ "$(muc_dv)" == false* ]] \
+  && kq ok "pool declared but not running: red ($(muc_dv | cut -d'|' -f2))" \
+  || kq no "pool down and doctor stayed green: $(muc_dv)"
+
+# Pool up, every image recognised → green.
+RIG_POOL_UNIT=active RIG_POOL_UP=1 kham_dv
+[[ "$(muc_dv)" == true* ]] \
+  && kq ok "pool up, all images recognised: green" || kq no "false red: $(muc_dv)"
+
+# The one that matters: an image bee cannot place. Green here would mean
+# every session silently runs its own copy and the RAM goes missing.
+printf 'services:\n  postgres:\n    image: postgres:16\n  blob:\n    image: acme/blob:2\n' \
+  > "$BEE_ROOT/services/compose.yml"
+RIG_POOL_UNIT=active RIG_POOL_UP=1 kham_dv
+case "$(muc_dv)" in
+  false*blob*) kq ok "unrecognised image in the pool: red, and names it";;
+  false*)      kq ok "unrecognised image: red (but does not name it)";;
+  *)           kq no "SILENT: bee cannot place acme/blob yet doctor is green — $(muc_dv)";;
+esac
+
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-15: ALL GREEN"; else echo "RIG-15: RED"; exit 1; fi

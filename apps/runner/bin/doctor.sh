@@ -189,6 +189,45 @@ else
   fi
 fi
 
+# ── 4d · The shared service pool (T15) ────────────────────────────────────
+# Why this check exists at all: the owner chose to have bee GUESS what each
+# pooled service is, from its image. That choice buys convenience and costs
+# one specific failure mode — an image bee cannot place quietly turns every
+# session into its own copy of that service, so RAM leaves and nobody is told.
+# This is where "nobody is told" gets fixed, once a day.
+#
+# An EMPTY pool is a legitimate state, not a fault. Plenty of repos need
+# nothing shared, and a permanent red on such a machine trains people to stop
+# reading the checklist — the same cost §4c and doctor --exit-zero were about.
+POOL_SVC=$(doc_compose "$BEE_ROOT/services" 2>/dev/null || true)
+if [[ -z "$POOL_SVC" ]]; then
+  ghi "dich-vu" true "no shared pool configured — sessions run every service themselves"
+else
+  POOL_N=$(wc -l <<<"$POOL_SVC")
+  LA_MAT=$(awk '$3 == "" { printf "%s(%s) ", $1, $2 }' <<<"$POOL_SVC")
+  POOL_STATE=$(systemctl --user is-active bee-services.service 2>/dev/null || true)
+  if [[ "$POOL_STATE" != "active" ]]; then
+    ghi "dich-vu" false "pool has $POOL_N service(s) but bee-services is $POOL_STATE — any repo that needs one will refuse to open a session; start it from /setup"
+  elif ! (command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1); then
+    ghi "dich-vu" false "pool unit is active but docker is not answering — slices cannot be carved or given back"
+  elif [[ -n "$LA_MAT" ]]; then
+    # Deliberately red: this changes behaviour silently, which is worse than
+    # loudly. Fix is either rename to a known image or accept per-session copies.
+    ghi "dich-vu" false "bee cannot tell what these pooled services are: ${LA_MAT% } — every session will run its own copy instead of sharing"
+  else
+    LAT_KET=0
+    for sd in "$BEE_ROOT"/sessions/*/; do
+      [[ -f "$sd/services.json" ]] || continue
+      [[ "$(jq -r '.needs_human // false' "$sd/meta.json" 2>/dev/null)" == "true" ]] \
+        && LAT_KET=$(( LAT_KET + 1 ))
+    done
+    LAT_N=$(find "$BEE_ROOT/sessions" -maxdepth 2 -name services.json 2>/dev/null | wc -l)
+    # needs_human sessions are never collected, so their slices live forever.
+    # That is on purpose; the number only has to stop being invisible.
+    ghi "dich-vu" true "pool: $POOL_N service(s) up · $LAT_N slice(s) in use$( (( LAT_KET > 0 )) && echo ", $LAT_KET held by needs_human sessions (never collected)")"
+  fi
+fi
+
 # ── 5 · Đĩa + PAUSE (thông tin, không phải lỗi) ────────────────────────────
 if [[ -d "$BEE_ROOT" && -w "$BEE_ROOT" ]]; then
   ghi "dia" true "$BEE_ROOT ghi được"
