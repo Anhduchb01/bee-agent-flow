@@ -3,19 +3,25 @@
 Chi tiết ở [`plan.md`](plan.md). 🧑 = chỉ người làm được · 🤖 = tôi làm được
 
 **Mốc đang làm:** V3 — vận hành bền + tự chạy đêm (PRD Epic 5 + FR-3.3/3.4)
-**Trạng thái 26/08:** **M2 XONG — máy đã LIVE**, và đã dùng thử: T23–T29 là
-những thứ chỉ lộ ra khi mở app lên nhìn. Nhưng **chưa phiên thật nào chạy**,
-nên cả ba Checkpoint đều chưa đo được gì: đồng hồ của Checkpoint 1 bắt đầu từ
-phiên đầu tiên, không phải từ lúc gỡ PAUSE.
+**Trạng thái 26/08 (cuối ngày):** **M2 XONG — máy đã LIVE.** Trong ngày đã
+làm: T18–T20 (nợ cũ) · T23–T25 (ba thứ nói dối im lặng) · T26–T29 (Run now,
+Activity, dọn tiếng Việt UI, theme Dark Modern) · **T15 trọn bộ** (spec →
+b1–b6 → c1–c5) · T30 (dọn ngôn ngữ code).
 
-**Việc kế tiếp, và nó nhỏ:** xếp MỘT issue vào Autopilot rồi bấm **Run now**
-giữa ban ngày. Đó là lần đầu chuỗi clone → worktree → fence → `gh` → PR chạy
-trên user `bee`; chạy nó lúc có người nhìn rẻ hơn nhiều so với lúc 2 giờ sáng.
+**Nhưng vẫn chưa phiên thật nào chạy**, nên cả ba Checkpoint chưa đo được gì —
+đồng hồ Checkpoint 1 tính từ phiên đầu tiên, không phải từ lúc gỡ PAUSE. Và
+T15 chưa nghiệm thu trên pool thật (rig với stub docker chứng minh được luật,
+không chứng minh psql thật chấp nhận đúng câu lệnh đó).
 
-**Cổng đo** (26/08, sau P5b): lint sạch · typecheck xanh · **527 test / 72
-file** xanh · **13 rig** xanh (rig-14: 16/16) · build hết cảnh báo Turbopack.
-Trên máy bee lúc deploy 10:27: tailnet `/login` → 307 · `bee-web` `NRestarts=0`.
-*P5b chưa deploy — cần một lượt `deploy.sh` nữa để T24 có tác dụng trên unit.*
+**Hai việc kế tiếp, cả hai đều nhỏ:**
+1. `deploy.sh` để lấy T15 + theme + Run now lên máy.
+2. Xếp MỘT issue vào Autopilot rồi bấm **Run now** giữa ban ngày — lần đầu
+   chuỗi clone → worktree → fence → `gh` → PR chạy trên user `bee`. Chạy lúc
+   có người nhìn rẻ hơn nhiều so với lúc 2 giờ sáng.
+
+**Cổng đo** (26/08 cuối ngày): lint sạch · typecheck xanh · **561 test / 76
+file** xanh · **35 e2e** · **14 rig** xanh · build hết cảnh báo.
+*Từ `a83b864` trở đi CHƯA deploy — máy bee đang chạy bản cũ hơn.*
 
 ---
 
@@ -670,3 +676,10 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       **Chưa đụng:** identifier tiếng Việt có từ trước và phiên này không sửa
       (`moPhien`, `docTiep`, `ghepThe`, `dungBanTin`, `HangDoi`…). Đổi ồ ạt là
       một quyết định riêng, chạm gần như mọi file.
+
+- [ ] 🤖 **T31** Đổi nốt identifier tiếng Việt **có từ trước** sang tiếng Anh
+      (L) — `moPhien` · `docTiep` · `ghepThe` · `dungBanTin` · `HangDoi` ·
+      `SuKien` · `BanTin` · `MucBang` · `ghi_cong` · `dung_worktree` ·
+      `chep_env_d`… Khảo sát: ~212 chỗ dùng `phien`, 185 `loi`, 83 `suKien`.
+      Chạm gần như mọi file, nên làm thành **một commit riêng**, cổng chạy
+      trước và sau, không kèm thay đổi hành vi nào.
