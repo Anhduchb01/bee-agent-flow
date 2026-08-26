@@ -165,6 +165,17 @@ if [[ "$CO_WORKTREE" == "yes" ]]; then
   PORT_BASE=$(jq -r '.port_base // empty' "$SDIR/session.json")
   ghi_cong "$WT" "$PORT_BASE"
 
+  # Service slice (T15) — BEFORE the env.d overlay, because the templates
+  # there substitute ${BEE_DB_URL} and friends, and AFTER the worktree exists,
+  # because the repo's compose is what tells us which services it wants.
+  # A refusal here ends the session at the door: better than letting the agent
+  # hit connection-refused twenty minutes into a run nobody is watching.
+  if ! cap_lat_dich_vu "$SDIR" "$ID"; then
+    meta_merge "$SDIR" "$(jq -cn --arg t "$(now_iso)" \
+      '{status:"failed", reason:"service-slice", ended_at:$t}')"
+    exit 1
+  fi
+
   ENVD="$BEE_ROOT/env.d/$SLUG"
   if [[ -d "$ENVD" ]]; then
     EXCL="$(git -C "$WT" rev-parse --git-path info/exclude)"

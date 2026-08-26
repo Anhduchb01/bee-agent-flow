@@ -296,5 +296,54 @@ RIG_POOL_UP=0 bash "$LAT" reclaim "$ID_SAU" >/dev/null 2>&1 && rc=0 || rc=$?
   && kq ok "pool down: refuses and KEEPS the record for the next tick" \
   || kq no "dropped the record without reclaiming — the slice becomes an orphan (rc=$rc)"
 
+# ── 5 · env.d templates reach the slice ───────────────────────────────────
+# bee does not know what the repo calls its variables, and must not learn
+# (T14). The owner writes the mapping once per repo in env.d; bee only
+# substitutes. Same discipline as ${BEE_PORT_n}: a bounded list of names, so
+# an unbounded envsubst cannot eat a `$VAR` that belongs to the repo's secret.
+echo
+echo "-- 5 · env.d sees the slice --"
+
+ENVD="$T/envd"; mkdir -p "$ENVD"
+cat > "$ENVD/.env" <<'EOF'
+DATABASE_URL=${BEE_DB_URL}
+CACHE_PORT=${BEE_PORT_1}
+LITERAL=$KEEP_ME_AS_IS
+EOF
+
+WT5="$BEE_ROOT/work/$ID_PG"
+mkdir -p "$WT5/.bee"
+printf 'BEE_DB_URL=postgres://bee_cc000000:pw@127.0.0.1/bee_cc000000
+' > "$WT5/.bee/services.env"
+chep_env_d "$ENVD" "$WT5" 54000
+
+grep -q "^DATABASE_URL=postgres://bee_cc000000:pw@" "$WT5/.env" \
+  && kq ok "\${BEE_DB_URL} reaches the repo's own variable name" \
+  || kq no "slice var not substituted: $(grep '^DATABASE_URL' "$WT5/.env")"
+grep -qx "CACHE_PORT=54001" "$WT5/.env" \
+  && kq ok "port vars still work alongside" || kq no "port substitution broke"
+grep -qx 'LITERAL=$KEEP_ME_AS_IS' "$WT5/.env" \
+  && kq ok "a \$VAR outside the BEE_ family survives untouched" \
+  || kq no "envsubst ate a variable that belongs to the repo: $(grep '^LITERAL' "$WT5/.env")"
+
+# ── 6 · the gate session-run puts in front of the pool ────────────────────
+echo
+echo "-- 6 · session gate --"
+
+SD6="$BEE_ROOT/sessions/$ID_CHET"
+: > "$SD6/run.jsonl"; rm -f "$SD6/meta.json"
+RIG_POOL_UP=0 cap_lat_dich_vu "$SD6" "$ID_CHET" && rc=0 || rc=$?
+[[ $rc -ne 0 ]] && kq ok "pool down: the gate refuses the session" || kq no "gate let it through (rc=$rc)"
+grep -q "bee_lifecycle" "$SD6/run.jsonl" \
+  && kq ok "and writes a lifecycle line — the user reads WHY in the live view" \
+  || kq no "refused in silence: nothing in run.jsonl"
+
+: > "$SD6/run.jsonl"
+RIG_POOL_UP=1 cap_lat_dich_vu "$SD6" "$ID_CHET" && rc=0 || rc=$?
+[[ $rc -eq 0 ]] && kq ok "pool up: the gate opens" || kq no "gate blocked a healthy pool (rc=$rc)"
+grep -q "not in the pool" "$SD6/run.jsonl" \
+  && kq ok "says which services it will NOT be sharing — silence is how guessing goes wrong" \
+  || kq no "no word about the services left out of the pool"
+
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-15: ALL GREEN"; else echo "RIG-15: RED"; exit 1; fi

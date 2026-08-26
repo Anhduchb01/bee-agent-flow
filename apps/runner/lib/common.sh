@@ -89,6 +89,20 @@ chep_env_d() {
     export BEE_PORT_BASE="$base"
     for i in $(seq 0 9); do export "BEE_PORT_$i=$(( base + i ))"; done
   fi
+
+  # The session's service slice (T15), if it has one. bee does not know what
+  # this repo calls its database variable and must not learn (T14) — the owner
+  # writes the mapping once in env.d, we only substitute. The name list stays
+  # BOUNDED for the same reason as the ports above: an unlimited envsubst
+  # would swallow a `$VAR` that belongs to the repo's own secret.
+  if [[ -f "$wt/.bee/services.env" ]]; then
+    local ten
+    while IFS='=' read -r ten _; do
+      [[ "$ten" == BEE_* ]] || continue
+      ds="$ds \${$ten}"
+    done < "$wt/.bee/services.env"
+    set -a; . "$wt/.bee/services.env"; set +a
+  fi
   local f rel
   while IFS= read -r f; do
     rel="${f#./}"
@@ -210,4 +224,42 @@ doc_compose() {
     done
     return 0
   done
+}
+
+# cap_lat_dich_vu <session-dir> <session-id> — the gate session-run puts in
+# front of the pool. Returns non-zero when the session must NOT start.
+#
+# It lives here rather than inline in session-run so it can be tested without
+# the whole session harness, and so the refusal always writes a lifecycle line
+# — a session that dies at this gate must say why in the live view, not just
+# in a journal nobody opens.
+cap_lat_dich_vu() {
+  local sdir="$1" id="$2"
+  local sh_lat
+  sh_lat="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../bin/service-slice.sh"
+  [[ -x "$sh_lat" ]] || return 0
+
+  local out rc=0
+  out=$("$sh_lat" provision "$id" 2>&1) || rc=$?
+  if (( rc != 0 )); then
+    lifecycle "$sdir" "Could not provision the service slice: ${out:-unknown error}"
+    return "$rc"
+  fi
+
+  # Say which services this session will run on its own. Silence here is the
+  # failure mode guessing-from-image is most exposed to: an image bee cannot
+  # place quietly becomes a per-session container, and the RAM goes missing
+  # with nobody told.
+  local rec="$sdir/services.json"
+  if [[ -f "$rec" ]]; then
+    local rieng
+    rieng=$(jq -r '[.items[]? | select(.in_pool==false) | .service] | join(", ")' "$rec" 2>/dev/null || true)
+    [[ -n "$rieng" && "$rieng" != "null" ]] \
+      && lifecycle "$sdir" "Services not in the pool — this session will run its own when needed: $rieng"
+    local chung
+    chung=$(jq -r '[.items[]? | select(.in_pool==true) | .kind] | join(", ")' "$rec" 2>/dev/null || true)
+    [[ -n "$chung" && "$chung" != "null" ]] \
+      && lifecycle "$sdir" "Private service slice ready: $chung (see .bee/services.env)"
+  fi
+  return 0
 }

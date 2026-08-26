@@ -67,12 +67,12 @@ don_docker() {
 
   if ! command -v docker >/dev/null 2>&1; then
     co_compose "$wt" \
-      && { echo "giu:máy không có docker mà worktree khai compose — không hạ nổi container của phiên"; return; }
+      && { echo "giu:no docker on this machine but the worktree declares compose — cannot bring the session's containers down"; return; }
     echo none; return
   fi
   if ! docker info >/dev/null 2>&1; then
     co_compose "$wt" \
-      && { echo "giu:docker không chạy — chưa hạ được container của phiên, giữ worktree để còn lần ra"; return; }
+      && { echo "giu:docker is not running — the session's containers are still up, keeping the worktree so they stay traceable"; return; }
     echo none; return
   fi
 
@@ -84,7 +84,7 @@ don_docker() {
     if docker compose -p "$p" down -v --remove-orphans >/dev/null 2>&1; then
       da+=("$p")
     else
-      echo "giu:hạ compose project $p thất bại — giữ worktree để tick sau thử lại"
+      echo "giu:could not bring compose project $p down — keeping the worktree so the next tick can retry"
       return
     fi
   done
@@ -191,7 +191,7 @@ for wt in "$BEE_ROOT"/work/*/; do
     continue
   fi
   if [[ "$kq_docker" == removed:* ]]; then
-    ly_do="$ly_do; docker: đã hạ ${kq_docker#removed:}"
+    ly_do="$ly_do; docker: brought down ${kq_docker#removed:}"
   fi
 
   # ── Service slice (T15) ───────────────────────────────────────────────
@@ -202,9 +202,9 @@ for wt in "$BEE_ROOT"/work/*/; do
   slice_sh="$(dirname "$(readlink -f "$0")")/service-slice.sh"
   if [[ -x "$slice_sh" && -f "$sdir/services.json" ]]; then
     if "$slice_sh" reclaim "$id" >/dev/null 2>&1; then
-      ly_do="$ly_do; slice: đã trả"
+      ly_do="$ly_do; service slice: given back"
     else
-      ghi "$id" kept "không trả được lát dịch vụ — giữ worktree để tick sau thử lại"
+      ghi "$id" kept "could not give the service slice back — keeping the worktree so the next tick can retry"
       continue
     fi
   fi

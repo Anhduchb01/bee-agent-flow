@@ -283,7 +283,7 @@ jq -cn '{slice:"bee_bbbbbbbb", at:"x",
                  slice:"bee_bbbbbbbb", password:"p"}]}' \
   > "$BEE_ROOT/sessions/$ID_D7/services.json"
 RIG_DOCKER_UP=0 GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || true
-if con "$ID_D7" && [[ "$(ly_do "$ID_D7")" == *lát* ]]; then
+if con "$ID_D7" && [[ "$(ly_do "$ID_D7")" == *"service slice"* ]]; then
   kq ok "không trả được lát: giữ worktree ($(ly_do "$ID_D7"))"
 else
   kq no "xoá worktree khi chưa trả được lát ($(ly_do "$ID_D7"))"
