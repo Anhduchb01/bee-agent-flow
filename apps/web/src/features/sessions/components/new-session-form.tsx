@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
-import type { BeeRepoDangKy, BeeSession, BeeSessionMode } from "@/lib/bee/types";
+import type { BeeRegisteredRepo, BeeSession, BeeSessionMode } from "@/lib/bee/types";
 
-import { batDauPhien } from "../api/actions";
+import { startSessionAction } from "../api/actions";
 import { CHAT_OPTION, RepoCombobox } from "./repo-combobox";
 
 /** Permission modes (V2.5) — same menu as Claude Code in VSCode. */
@@ -34,7 +34,7 @@ export function NewSessionForm({
   repos,
   onCreated,
 }: {
-  repos: BeeRepoDangKy[];
+  repos: BeeRegisteredRepo[];
   onCreated?: (phien: BeeSession) => void;
 }) {
   const router = useRouter();
@@ -48,7 +48,7 @@ export function NewSessionForm({
   function mo() {
     if (dangMo) return;
     batDauMo(async () => {
-      const ket = await batDauPhien({ repoSlug: laChat ? null : chon, mode });
+      const ket = await startSessionAction({ repoSlug: laChat ? null : chon, mode });
       if (!ket.ok) {
         setLoi(ket.message);
         return;

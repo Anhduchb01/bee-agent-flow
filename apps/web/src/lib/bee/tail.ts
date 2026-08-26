@@ -3,7 +3,7 @@ import "server-only";
 import fs from "node:fs/promises";
 
 export interface KhucMoi {
-  dong: string[];
+  line: string[];
   offset: number;
   /** Khúc đuôi CHƯA có `\n` — giữ lại, ghép với lần đọc sau. */
   rest: string;
@@ -21,23 +21,23 @@ export interface KhucMoi {
  * người gọi quyết định đóng stream dựa trên meta.json, không phải dựa trên
  * ENOENT tình cờ.
  */
-export async function docTiep(file: string, offset: number, rest: string): Promise<KhucMoi> {
+export async function readMore(file: string, offset: number, rest: string): Promise<KhucMoi> {
   let fh: fs.FileHandle;
   try {
     fh = await fs.open(file, "r");
   } catch {
-    return { dong: [], offset, rest };
+    return { line: [], offset, rest };
   }
   try {
     const { size } = await fh.stat();
-    if (size <= offset) return { dong: [], offset, rest };
+    if (size <= offset) return { line: [], offset, rest };
 
     const buf = Buffer.allocUnsafe(size - offset);
     await fh.read(buf, 0, buf.length, offset);
 
     const phan = (rest + buf.toString("utf8")).split("\n");
     return {
-      dong: phan.slice(0, -1).filter((d) => d.trim() !== ""),
+      line: phan.slice(0, -1).filter((d) => d.trim() !== ""),
       offset: size,
       rest: phan.at(-1) ?? "",
     };

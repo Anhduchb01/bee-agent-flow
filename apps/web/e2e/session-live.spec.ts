@@ -6,7 +6,7 @@ import { dangNhap } from "./helpers";
  * S7.3 — the whole session slice on the fixture, one pass:
  * create from the repo combobox → live text streams in → interject → stop.
  *
- * On the fixture, "create" lands on the demo running session (PHIEN_DEMO)
+ * On the fixture, "create" lands on the demo running session (DEMO_SESSION_ID)
  * and the SSE route streams a REAL run.jsonl recorded by rig S0 — the
  * "XOAI-XANH" marker below is real CLI output, not an invented string.
  */

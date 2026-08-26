@@ -44,7 +44,7 @@ export interface BeeArtifactDetail {
   } | null;
 }
 
-export type KetQuaArtifact =
+export type ArtifactResult =
   | { ok: true; detail: BeeArtifactDetail }
   | { ok: false; message: string };
 
@@ -64,8 +64,8 @@ async function isRegistered(repo: string): Promise<boolean> {
     const dir = path.join(root(), "repos.d");
     for (const f of await fs.readdir(dir)) {
       if (!f.endsWith(".env")) continue;
-      const noiDung = await fs.readFile(path.join(dir, f), "utf8");
-      if (/^REPO=(.+)$/m.exec(noiDung)?.[1]?.trim() === repo) return true;
+      const content = await fs.readFile(path.join(dir, f), "utf8");
+      if (/^REPO=(.+)$/m.exec(content)?.[1]?.trim() === repo) return true;
     }
   } catch {
     // No repos.d → nothing is registered.
@@ -163,7 +163,7 @@ export async function fetchArtifactDetail(
   kind: "issue" | "pr",
   number: number,
   opts?: { runGh?: RunGh; now?: () => number },
-): Promise<KetQuaArtifact> {
+): Promise<ArtifactResult> {
   if (!REPO_RE.test(repo)) return { ok: false, message: "Invalid repository." };
   if (kind !== "issue" && kind !== "pr") return { ok: false, message: "Invalid kind." };
   if (!Number.isInteger(number) || number <= 0) return { ok: false, message: "Invalid number." };

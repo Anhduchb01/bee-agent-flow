@@ -16,18 +16,18 @@ import { dangNhap } from "./helpers";
  * hai mươi mấy tấm JPEG lẫn vào lịch sử git là cái giá phải trả mãi mãi cho một
  * lần duyệt.
  */
-const THU_MUC = process.env.CHUP_ANH;
+const OUT_DIR = process.env.CHUP_ANH;
 
 /** Ảnh chụp phải tất định: giờ đồng hồ đổi thì mọi tấm đều "khác" lần trước. */
-const NGUOI = "pm-linh";
+const ACTOR = "pm-linh";
 
-type Man = { ten: string; url: string; mo?: (p: Page) => Promise<void> };
+type Screen = { name: string; url: string; open?: (p: Page) => Promise<void> };
 
 /** Các màn mà cảnh dữ liệu thực sự làm đổi nội dung. */
-const MAN_THEO_CANH: Man[] = [
-  { ten: "01-tong-quan", url: "/" },
-  { ten: "03-du-an", url: "/projects" },
-  { ten: "04-du-an-kanban", url: "/projects?view=kanban" },
+const SCENE_SCREENS: Screen[] = [
+  { name: "01-overview", url: "/" },
+  { name: "03-projects", url: "/projects" },
+  { name: "04-projects-kanban", url: "/projects?view=kanban" },
 ];
 
 /**
@@ -35,12 +35,12 @@ const MAN_THEO_CANH: Man[] = [
  * `status.json`. Chụp một lần ở cảnh bình thường thay vì nhân năm lần cùng một
  * tấm ảnh — hai mươi tấm giống hệt nhau làm người duyệt bỏ qua cả bộ.
  */
-const MAN_MOT_LAN: Man[] = [
-  { ten: "06-du-an-loc", url: "/projects?p=myapp" },
-  { ten: "10-setup-config", url: "/setup?tab=config" },
+const ONCE_SCREENS: Screen[] = [
+  { name: "06-projects-filtered", url: "/projects?p=myapp" },
+  { name: "10-setup-config", url: "/setup?tab=config" },
 ];
 
-const CANH = [
+const SCENES = [
   "binh-thuong",
   "day-tai",
   "co-su-co",
@@ -56,66 +56,66 @@ const CANH = [
   "json-hong",
 ] as const;
 
-async function datCanh(page: Page, canh: string) {
+async function setScene(page: Page, scene: string) {
   await page.context().addCookies([
-    { name: "bee-scene", value: canh, url: "http://127.0.0.1:3187" },
+    { name: "bee-scene", value: scene, url: "http://127.0.0.1:3187" },
   ]);
 }
 
-async function chup(page: Page, ten: string) {
+async function shoot(page: Page, name: string) {
   await page.screenshot({
-    path: path.join(THU_MUC!, `${ten}.jpg`),
+    path: path.join(OUT_DIR!, `${name}.jpg`),
     fullPage: true,
     type: "jpeg",
     quality: 82,
   });
 }
 
-test.describe("chụp ảnh duyệt giao diện", () => {
-  test.skip(!THU_MUC, "đặt CHUP_ANH=<thư mục> để bật");
+test.describe("UI review screenshots", () => {
+  test.skip(!OUT_DIR, "set CHUP_ANH=<dir> to enable");
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  for (const canh of CANH) {
-    test(`cảnh ${canh}`, async ({ page }) => {
-      await dangNhap(page, NGUOI);
-      await datCanh(page, canh);
+  for (const scene of SCENES) {
+    test(`scene ${scene}`, async ({ page }) => {
+      await dangNhap(page, ACTOR);
+      await setScene(page, scene);
 
-      for (const man of MAN_THEO_CANH) {
-        await page.goto(man.url);
+      for (const screen of SCENE_SCREENS) {
+        await page.goto(screen.url);
         await page.waitForLoadState("networkidle");
-        await chup(page, `${canh}__${man.ten}`);
+        await shoot(page, `${scene}__${screen.name}`);
       }
     });
   }
 
-  test("màn không phụ thuộc cảnh", async ({ page }) => {
-    await dangNhap(page, NGUOI);
-    await datCanh(page, "binh-thuong");
+  test("screens that do not depend on the scene", async ({ page }) => {
+    await dangNhap(page, ACTOR);
+    await setScene(page, "binh-thuong");
 
-    for (const man of MAN_MOT_LAN) {
-      await page.goto(man.url);
+    for (const screen of ONCE_SCREENS) {
+      await page.goto(screen.url);
       await page.waitForLoadState("networkidle");
-      await man.mo?.(page);
-      await chup(page, `binh-thuong__${man.ten}`);
+      await screen.open?.(page);
+      await shoot(page, `normal__${screen.name}`);
     }
   });
 
-  test("điện thoại", async ({ page }) => {
+  test("phone", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await dangNhap(page, NGUOI);
-    await datCanh(page, "binh-thuong");
+    await dangNhap(page, ACTOR);
+    await setScene(page, "binh-thuong");
 
-    for (const man of MAN_THEO_CANH) {
-      await page.goto(man.url);
+    for (const screen of SCENE_SCREENS) {
+      await page.goto(screen.url);
       await page.waitForLoadState("networkidle");
-      await chup(page, `dien-thoai__${man.ten}`);
+      await shoot(page, `phone__${screen.name}`);
     }
   });
 
-  test("người ngoài allowlist", async ({ page }) => {
+  test("someone outside the allowlist", async ({ page }) => {
     await dangNhap(page, "khach-la");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await chup(page, "quyen__09-nguoi-ngoai");
+    await shoot(page, "quyen__09-nguoi-ngoai");
   });
 });

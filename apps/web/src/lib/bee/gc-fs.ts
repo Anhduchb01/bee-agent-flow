@@ -47,7 +47,7 @@ function docItem(raw: unknown): BeeGcItem | null {
   };
 }
 
-export async function docGcTrong(root: string): Promise<BeeGc | null> {
+export async function readGcIn(root: string): Promise<BeeGc | null> {
   let text: string;
   try {
     text = await fs.readFile(path.join(root, "gc.json"), "utf8");

@@ -2,8 +2,8 @@ import "server-only";
 
 import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
-import { laIdPhien } from "@/lib/bee/session-id";
-import { docTiep } from "@/lib/bee/tail";
+import { isSessionId } from "@/lib/bee/session-id";
+import { readMore } from "@/lib/bee/tail";
 
 /**
  * SSE tail của `run.jsonl` — đường ra của một phiên live.
@@ -25,7 +25,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!actor) return new Response("forbidden", { status: 401 });
 
   const { id } = await params;
-  if (!laIdPhien(id)) return new Response("bad id", { status: 400 });
+  if (!isSessionId(id)) return new Response("bad id", { status: 400 });
 
   const nguon = getBee();
   const file = nguon.sessionRunPath(id);
@@ -42,23 +42,23 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       let rest = "";
       let nhip = 0;
 
-      const phat = (dong: string, tai: number) => {
-        controller.enqueue(encoder.encode(`id: ${tai}\ndata: ${dong}\n\n`));
+      const phat = (line: string, tai: number) => {
+        controller.enqueue(encoder.encode(`id: ${tai}\ndata: ${line}\n\n`));
       };
 
       // Lần gắn đầu (offset 0): replay có kiểm soát.
       if (offset === 0) {
-        const dau = await docTiep(file, 0, "");
-        const dong = dau.dong;
-        if (dong.length > REPLAY_TOI_DA) {
-          phat(JSON.stringify({ type: "bee_replayed", skipped: dong.length - REPLAY_TOI_DA }), 0);
+        const dau = await readMore(file, 0, "");
+        const line = dau.line;
+        if (line.length > REPLAY_TOI_DA) {
+          phat(JSON.stringify({ type: "bee_replayed", skipped: line.length - REPLAY_TOI_DA }), 0);
         }
-        for (const d of dong.slice(-REPLAY_TOI_DA)) phat(d, dau.offset);
+        for (const d of line.slice(-REPLAY_TOI_DA)) phat(d, dau.offset);
         offset = dau.offset;
         rest = dau.rest;
       }
 
-      const dong = () => {
+      const line = () => {
         if (timer) clearInterval(timer);
         timer = null;
         try {
@@ -70,8 +70,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
       timer = setInterval(() => {
         void (async () => {
-          const moi = await docTiep(file, offset, rest);
-          for (const d of moi.dong) phat(d, moi.offset);
+          const moi = await readMore(file, offset, rest);
+          for (const d of moi.line) phat(d, moi.offset);
           offset = moi.offset;
           rest = moi.rest;
 
@@ -81,10 +81,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             // Phiên hết running → phát nốt phần còn lại rồi ĐÓNG. Không để
             // một EventSource treo vĩnh viễn trên một phiên đã xong.
             if (phien && phien.status !== "running" && phien.status !== "starting") {
-              const cuoi = await docTiep(file, offset, rest);
-              for (const d of cuoi.dong) phat(d, cuoi.offset);
+              const cuoi = await readMore(file, offset, rest);
+              for (const d of cuoi.line) phat(d, cuoi.offset);
               phat(JSON.stringify({ type: "bee_done", status: phien.status }), cuoi.offset);
-              dong();
+              line();
             }
           }
         })();

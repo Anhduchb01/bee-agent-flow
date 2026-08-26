@@ -1,4 +1,4 @@
-import type { SuKien } from "./parse-events";
+import type { StreamEvent } from "./parse-events";
 
 /**
  * Sự kiện thô → mục hiển thị kiểu panel Claude Code trong VSCode: mỗi tool
@@ -17,7 +17,7 @@ export type Muc =
   | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null; title: string | null }
   | { loai: "ket-qua"; loi: boolean; luot: number | null }
   | { loai: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
-  | { loai: "da-cat"; boQua: number }
+  | { loai: "da-cat"; skipped: number }
   /** Manual-mode approval card; traLoi được ghép từ bee_approval theo requestId. */
   | { loai: "xin-quyen"; requestId: string; ten: string; thamSo: string; traLoi: "allow" | "deny" | null }
   | {
@@ -29,18 +29,18 @@ export type Muc =
       cu?: string;
       moi?: string;
       thamSo: string;
-      trangThai: "dang-chay" | "xong" | "loi";
+      status: "dang-chay" | "xong" | "loi";
       ketQua: string | null;
     };
 
 type TheTool = Extract<Muc, { loai: "tool-card" }>;
 
-export function ghepThe(suKien: SuKien[]): Muc[] {
+export function pairToolCards(events: StreamEvent[]): Muc[] {
   const muc: Muc[] = [];
   const dangCho = new Map<string, TheTool>(); // id → thẻ chưa có kết quả
   const fifo: TheTool[] = []; // thẻ không id, theo thứ tự
 
-  for (const sk of suKien) {
+  for (const sk of events) {
     switch (sk.loai) {
       case "tool": {
         const the: TheTool = {
@@ -52,7 +52,7 @@ export function ghepThe(suKien: SuKien[]): Muc[] {
           ...(sk.cu !== undefined ? { cu: sk.cu } : {}),
           ...(sk.moi !== undefined ? { moi: sk.moi } : {}),
           thamSo: sk.thamSo,
-          trangThai: "dang-chay",
+          status: "dang-chay",
           ketQua: null,
         };
         muc.push(the);
@@ -65,7 +65,7 @@ export function ghepThe(suKien: SuKien[]): Muc[] {
         // đúng dòng thời gian người dùng đã thấy; chỉ trạng thái đổi.
         const the = (sk.id ? dangCho.get(sk.id) : undefined) ?? fifo.shift();
         if (the) {
-          the.trangThai = sk.loi === true ? "loi" : "xong";
+          the.status = sk.loi === true ? "loi" : "xong";
           the.ketQua = sk.text;
           if (the.id) dangCho.delete(the.id);
         } else {
@@ -76,7 +76,7 @@ export function ghepThe(suKien: SuKien[]): Muc[] {
             ten: "tool",
             id: sk.id ?? null,
             thamSo: "",
-            trangThai: sk.loi === true ? "loi" : "xong",
+            status: sk.loi === true ? "loi" : "xong",
             ketQua: sk.text,
           });
         }
@@ -124,7 +124,7 @@ export function ghepThe(suKien: SuKien[]): Muc[] {
         muc.push({ loai: "compact", trigger: sk.trigger, preTokens: sk.preTokens });
         break;
       case "da-cat":
-        muc.push({ loai: "da-cat", boQua: sk.boQua });
+        muc.push({ loai: "da-cat", skipped: sk.skipped });
         break;
       // delta/nghi-delta gom ở hook, replay hiện thành dải báo — không thành mục
       case "delta":

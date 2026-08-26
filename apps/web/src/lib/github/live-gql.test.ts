@@ -21,8 +21,8 @@ vi.mock("@/lib/auth/token", () => ({
 }));
 vi.mock("./repos-store", async (goc) => ({
   ...(await goc<typeof import("./repos-store")>()),
-  docRepos: vi.fn(async () => REPOS),
-  ghiRepos: vi.fn(async () => {}),
+  readRepos: vi.fn(async () => REPOS),
+  writeRepos: vi.fn(async () => {}),
 }));
 
 const ISSUES = that.repository.issues.nodes as GqlIssue[];

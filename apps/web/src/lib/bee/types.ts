@@ -158,7 +158,7 @@ export interface EvidenceFile {
  * meta.json do session-run.sh và reaper.sh ghi (status/attempt/needs_human).
  */
 
-export type PhaCuaPhien = "interview" | "work";
+export type SessionPhase = "interview" | "work";
 
 /**
  * `starting` không nằm trên đĩa — nó là "session.json đã có mà meta.json
@@ -168,14 +168,14 @@ export type PhaCuaPhien = "interview" | "work";
 export type TrangThaiPhien = "starting" | "running" | "done" | "stopped" | "failed";
 
 /** One evidence file of a session (V2.1), url served by /api/evidence. */
-export interface BeeEvidenceTepTin {
+export interface BeeEvidenceFile {
   name: string;
   url: string;
   loai: "image" | "video" | "khac";
 }
 
-export const CAC_MODE_PHIEN = ["auto", "plan", "edits", "manual"] as const;
-export type BeeSessionMode = (typeof CAC_MODE_PHIEN)[number];
+export const SESSION_MODES = ["auto", "plan", "edits", "manual"] as const;
+export type BeeSessionMode = (typeof SESSION_MODES)[number];
 
 /**
  * Model per session (V2.7) — the aliases `claude --model` accepts, verified
@@ -184,7 +184,7 @@ export type BeeSessionMode = (typeof CAC_MODE_PHIEN)[number];
  * Full model ids (claude-fable-5…) are NOT in this list on purpose — an
  * alias always resolves to the latest, an id rots.
  */
-export const CAC_MODEL_PHIEN = [
+export const SESSION_MODELS = [
   "default",
   "opus",
   "opus[1m]",
@@ -192,7 +192,7 @@ export const CAC_MODEL_PHIEN = [
   "sonnet[1m]",
   "haiku",
 ] as const;
-export type BeeSessionModel = (typeof CAC_MODEL_PHIEN)[number];
+export type BeeSessionModel = (typeof SESSION_MODELS)[number];
 
 export interface BeeSession {
   id: string;
@@ -200,7 +200,7 @@ export interface BeeSession {
   num: number;
   repo: string;
   title: string | null;
-  phase: PhaCuaPhien;
+  phase: SessionPhase;
   /** `false` = phiên chat: không worktree, không branch, không bao giờ có tool. */
   worktree: boolean;
   /**
@@ -232,8 +232,10 @@ export interface BeeArtifact {
   title: string | null;
 }
 
-/** Một repo đã đăng ký — `repos.d/<slug>.env`, trong phạm vi PAT, doctor kiểm được. */
-export interface BeeRepoDangKy {
+/** A registered repo — `repos.d/<slug>.env`, inside the PAT's scope, checked
+ *  by doctor. Distinct from `BeeRepo` above, which is the reconciler-era
+ *  shape and still carries queue/wip state. */
+export interface BeeRegisteredRepo {
   slug: string;
   repo: string;
 }
@@ -288,7 +290,7 @@ export interface BeeDoctor {
 
 export type TrangThaiViec = "waiting" | "running" | "done" | "failed";
 
-export interface ViecTrongHang {
+export interface QueueItem {
   slug: string;
   repo: string;
   issue: number;
@@ -302,8 +304,8 @@ export interface ViecTrongHang {
   added_at: string;
 }
 
-export interface HangDoi {
-  items: ViecTrongHang[];
+export interface Queue {
+  items: QueueItem[];
   /** ⏸ — hàng đợi vẫn nguyên, chỉ ngừng nhặt việc mới. */
   paused: boolean;
 }
@@ -311,20 +313,20 @@ export interface HangDoi {
 /** Toàn bộ đường ra vào `/srv/bee/`. Không module nào khác được chạm đĩa. */
 export interface BeeSource {
   /** Repo đã đăng ký — nguồn DUY NHẤT của dropdown chọn repo. */
-  listRepos(): Promise<BeeRepoDangKy[]>;
+  listRepos(): Promise<BeeRegisteredRepo[]>;
   /** Mọi phiên trên máy, mới nhất trước. */
   listSessions(): Promise<BeeSession[]>;
   readSession(id: string): Promise<BeeSession | null>;
   /** Issue/PR phiên này đã tạo — quét dòng `bee_artifact` trong run.jsonl. */
   sessionArtifacts(id: string): Promise<BeeArtifact[]>;
   /** Evidence dir của MỘT phiên — canvas dùng để mọc node 🎬 demo. */
-  listSessionEvidence(id: string): Promise<BeeEvidenceTepTin[]>;
+  listSessionEvidence(id: string): Promise<BeeEvidenceFile[]>;
   /** Evidence của phiên đã đẻ ra issue/PR này — `null` khi không phiên nào khớp. */
   findArtifactEvidence(
     repo: string,
     kind: "issue" | "pr",
     number: number,
-  ): Promise<{ sessionId: string; files: BeeEvidenceTepTin[] } | null>;
+  ): Promise<{ sessionId: string; files: BeeEvidenceFile[] } | null>;
   /** Câu cuối agent nói — preview một dòng cho node canvas. `null` khi chưa nói gì. */
   sessionPreview(id: string): Promise<string | null>;
   /**

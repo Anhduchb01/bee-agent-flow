@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/chart";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
-import type { NgayChay } from "../lib/seven-days";
+import type { RunDay } from "../lib/seven-days";
 
 /**
  * Màu đặc, không phải sắc nhạt: khối đỏ là tín hiệu duy nhất của biểu đồ này,
@@ -48,7 +48,7 @@ const CAU_HINH = {
  * Cột chồng chứ không phải hai cột cạnh nhau — câu hỏi là "trong tổng số lần
  * chạy, bao nhiêu hỏng", và chiều cao cột trả lời luôn phần "tổng số".
  */
-export function SevenDaysChart({ days, tomTat }: { days: NgayChay[]; tomTat: string | null }) {
+export function SevenDaysChart({ days, tomTat }: { days: RunDay[]; tomTat: string | null }) {
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b bg-muted/30 px-5 py-3.5">

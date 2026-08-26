@@ -32,7 +32,7 @@ msg() {
   printf '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"%s"}]}}\n' "$1" >&3
 }
 
-msg "Hay chay dung mot lenh bash: sleep 8 && echo xong. Sau khi lenh chay xong, tra loi dung mot dong ngan."
+msg "Hay chay dung mot lenh bash: sleep 8 && echo xong. Sau khi lenh chay xong, tra loi dung mot line ngan."
 
 # Chờ tool_use — bằng chứng agent đang ở giữa tool call
 for _ in $(seq 1 240); do
@@ -68,4 +68,4 @@ case "$ket_qua" in
   CLAUDE-THOAT) echo "claude thoat truoc khi co ket luan — xem stderr.log va run.jsonl";;
   TIMEOUT)      echo "het gio — xem tay run.jsonl";;
 esac
-echo "n_result=$(grep -c '"type":"result"' "$OUT" || true) · run.jsonl: $OUT ($(wc -l <"$OUT") dong)"
+echo "n_result=$(grep -c '"type":"result"' "$OUT" || true) · run.jsonl: $OUT ($(wc -l <"$OUT") line)"

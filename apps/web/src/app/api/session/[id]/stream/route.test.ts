@@ -16,7 +16,7 @@ const ID = "de300000-0000-4000-8000-000000000001";
 let dir = "";
 let runFile = "";
 
-/** Wire the mocked BeeSource to a real run.jsonl on disk — docTiep is real. */
+/** Wire the mocked BeeSource to a real run.jsonl on disk — readMore is real. */
 function mockBee(input: { file?: string | null; status?: string }) {
   vi.mocked(getBee).mockReturnValue({
     sessionRunPath: () => (input.file !== undefined ? input.file : runFile),
@@ -113,8 +113,8 @@ describe("GET /api/session/[id]/stream", () => {
   });
 
   it("long history: bee_replayed says how many lines were skipped, then the tail", async () => {
-    const dong = Array.from({ length: 205 }, (_, i) => `{"n":${i}}`);
-    await fs.writeFile(runFile, dong.join("\n") + "\n");
+    const line = Array.from({ length: 205 }, (_, i) => `{"n":${i}}`);
+    await fs.writeFile(runFile, line.join("\n") + "\n");
     const res = await goi(ID);
 
     const frames = await docFrames(res, (f) => f.length >= 201);

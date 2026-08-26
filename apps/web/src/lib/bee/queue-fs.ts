@@ -4,13 +4,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import {
-  CAC_MODE_PHIEN,
-  CAC_MODEL_PHIEN,
+  SESSION_MODES,
+  SESSION_MODELS,
   type BeeSessionMode,
   type BeeSessionModel,
-  type HangDoi,
+  type Queue,
   type TrangThaiViec,
-  type ViecTrongHang,
+  type QueueItem,
 } from "./types";
 
 /**
@@ -22,22 +22,22 @@ import {
  * một `status` lạ không được phép lái vòng lặp đó.
  */
 
-const RONG: HangDoi = { items: [], paused: false };
+const RONG: Queue = { items: [], paused: false };
 const CAC_TRANG_THAI: TrangThaiViec[] = ["waiting", "running", "done", "failed"];
 
 function laObject(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
 }
 
-function docViec(raw: unknown): ViecTrongHang | null {
+function docViec(raw: unknown): QueueItem | null {
   if (!laObject(raw)) return null;
   const { slug, repo, issue } = raw;
   if (typeof slug !== "string" || typeof repo !== "string") return null;
   if (typeof issue !== "number" || !Number.isInteger(issue) || issue <= 0) return null;
-  const mode = CAC_MODE_PHIEN.includes(raw.mode as BeeSessionMode)
+  const mode = SESSION_MODES.includes(raw.mode as BeeSessionMode)
     ? (raw.mode as BeeSessionMode)
     : "auto";
-  const model = CAC_MODEL_PHIEN.includes(raw.model as BeeSessionModel)
+  const model = SESSION_MODELS.includes(raw.model as BeeSessionModel)
     ? (raw.model as BeeSessionModel)
     : "default";
   return {
@@ -55,7 +55,7 @@ function docViec(raw: unknown): ViecTrongHang | null {
   };
 }
 
-export async function docHangDoi(root: string): Promise<HangDoi> {
+export async function readQueue(root: string): Promise<Queue> {
   let raw: unknown;
   try {
     raw = JSON.parse(await fs.readFile(path.join(root, "queue.json"), "utf8"));
@@ -66,13 +66,13 @@ export async function docHangDoi(root: string): Promise<HangDoi> {
   return {
     paused: raw.paused === true,
     items: Array.isArray(raw.items)
-      ? raw.items.map(docViec).filter((v): v is ViecTrongHang => v !== null)
+      ? raw.items.map(docViec).filter((v): v is QueueItem => v !== null)
       : [],
   };
 }
 
 /** tmp + rename: tick và web cùng chạm file này, không ai được thấy nửa file. */
-export async function ghiHangDoi(root: string, q: HangDoi): Promise<void> {
+export async function writeQueue(root: string, q: Queue): Promise<void> {
   await fs.mkdir(root, { recursive: true });
   const file = path.join(root, "queue.json");
   const tmp = path.join(root, ".queue.json.tmp");

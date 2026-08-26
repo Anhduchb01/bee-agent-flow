@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { BeeRepoDangKy } from "@/lib/bee/types";
+import type { BeeRegisteredRepo } from "@/lib/bee/types";
 
 import { matchesQuery } from "../lib/search-filter";
 
@@ -24,7 +24,7 @@ export function RepoCombobox({
   value,
   onChange,
 }: {
-  repos: BeeRepoDangKy[];
+  repos: BeeRegisteredRepo[];
   value: string;
   onChange: (value: string) => void;
 }) {

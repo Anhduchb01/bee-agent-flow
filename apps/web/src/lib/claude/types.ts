@@ -20,12 +20,12 @@
  */
 
 /** Cửa sổ hạn mức. `rateLimitType` của `rate_limit_event`. */
-export type CuaSo = "five_hour" | "weekly";
+export type UsageWindow = "five_hour" | "weekly";
 
 export interface HanMuc {
-  cuaSo: CuaSo;
+  cuaSo: UsageWindow;
   /** `status` của `rate_limit_event`. */
-  trangThai: "allowed" | "warning" | "exceeded";
+  status: "allowed" | "warning" | "exceeded";
   /**
    * Phần trăm đã dùng, `null` khi chưa có nguồn.
    *
@@ -35,12 +35,12 @@ export interface HanMuc {
    * phải hiện đồng hồ đếm ngược thay vì một thanh trống — con số này là chỗ dễ
    * bịa nhất trong cả màn hình.
    */
-  phanTram: number | null;
+  percentOf: number | null;
   /** Unix epoch giây; `null` khi nguồn không kèm giờ reset. */
   resetsAt: number | null;
 }
 
-export interface MucDung {
+export interface ToolCard {
   /** Số lần chạy trong ngày, và bao nhiêu lần thất bại. */
   soLanChay: number;
   soLanLoi: number;
@@ -64,7 +64,7 @@ export interface TrangThaiDichVu {
 
 export interface ClaudeSnapshot {
   hanMuc: HanMuc[];
-  mucDung: MucDung;
+  mucDung: ToolCard;
   dichVu: TrangThaiDichVu;
 }
 

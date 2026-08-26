@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ctl, ctlEnabled, ctlSpawn } from "./ctl";
-import { dungPhien, moPhien, tiepTucPhien } from "./session-ctl";
+import { stopSession, openSession, continueSession } from "./session-ctl";
 import { runDoctor, runGc } from "./machine-ctl";
 
 /**
@@ -50,7 +50,7 @@ describe("ctl — cửa lệnh ngoài", () => {
   });
 
   it("mọi đường mở/nối/dừng phiên đều dừng ở cửa, không đường nào đi vòng", async () => {
-    const kqMo = await moPhien({
+    const kqMo = await openSession({
       slug: "myapp",
       num: 1,
       repo: "you/myapp",
@@ -64,7 +64,7 @@ describe("ctl — cửa lệnh ngoài", () => {
     await fs.mkdir(path.join(dir, "sessions", id), { recursive: true });
     await fs.writeFile(path.join(dir, "sessions", id, "session.json"), JSON.stringify({ id }));
 
-    for (const kq of [await tiepTucPhien(id), await dungPhien(id)]) {
+    for (const kq of [await continueSession(id), await stopSession(id)]) {
       expect(kq.ok).toBe(false);
       if (!kq.ok) expect(kq.message).toMatch(/BEE_CTL=none/);
     }

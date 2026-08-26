@@ -3,8 +3,8 @@ import {
   BoardTable,
   BoardToolbar,
   loadBoard,
-  locTheoDuAn,
-  type ChoXem,
+  filterByProject,
+  type BoardView,
 } from "@/features/board";
 import { NewProjectDialog } from "@/features/setup";
 import { PageHeader } from "@/features/shell";
@@ -31,11 +31,11 @@ export default async function DuAnPage({
 
   const { p, view } = await searchParams;
   const duAn = typeof p === "string" && p !== "" ? p : null;
-  const choXem: ChoXem = view === "kanban" ? "kanban" : "table";
+  const choXem: BoardView = view === "kanban" ? "kanban" : "table";
 
-  const { muc, repos, loi, hangDoi } = await loadBoard();
-  const hienThi = locTheoDuAn(muc, duAn);
-  const dangMo = hienThi.filter((m) => m.issue.state === "OPEN").length;
+  const { muc, repos, loi, queue } = await loadBoard();
+  const shown = filterByProject(muc, duAn);
+  const dangMo = shown.filter((m) => m.issue.state === "OPEN").length;
 
   return (
     <>
@@ -43,7 +43,7 @@ export default async function DuAnPage({
         title="Projects"
         meta={
           <span className="font-mono text-xs text-muted-foreground">
-            {dangMo} open · {hienThi.length} issues
+            {dangMo} open · {shown.length} issues
           </span>
         }
       >
@@ -55,7 +55,7 @@ export default async function DuAnPage({
           repos={repos}
           duAn={duAn}
           view={choXem}
-          queuedCount={hangDoi.items.filter((v) => v.status === "waiting").length}
+          queuedCount={queue.items.filter((v) => v.status === "waiting").length}
         />
 
         {loi.map((l) => (
@@ -64,7 +64,7 @@ export default async function DuAnPage({
           </p>
         ))}
 
-        {hienThi.length === 0 ? (
+        {shown.length === 0 ? (
           <Empty>
             <EmptyHeader>
               <EmptyTitle>No issues here</EmptyTitle>
@@ -78,9 +78,9 @@ export default async function DuAnPage({
             </EmptyHeader>
           </Empty>
         ) : choXem === "kanban" ? (
-          <BoardKanban muc={hienThi} />
+          <BoardKanban muc={shown} />
         ) : (
-          <BoardTable muc={hienThi} />
+          <BoardTable muc={shown} />
         )}
       </div>
     </>

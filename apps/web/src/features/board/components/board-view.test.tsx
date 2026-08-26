@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { BeeIssue } from "@/lib/bee/issues";
 
-import { ghepBang } from "../lib/lanes";
+import { buildBoard } from "../lib/lanes";
 import { BoardKanban } from "./board-kanban";
 
 // Kanban gọi server action (xếp/bỏ hàng đợi) — jsdom không nạp được chuỗi
@@ -11,12 +11,12 @@ import { BoardKanban } from "./board-kanban";
 // hành vi hàng đợi (đã có autopilot-controls.test).
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("../api/queue-actions", () => ({
-  themVaoHangDoiAction: vi.fn(async () => ({ ok: true, message: "" })),
-  boKhoiHangDoiAction: vi.fn(async () => ({ ok: true, message: "" })),
-  doiThuTuAction: vi.fn(async () => ({ ok: true, message: "" })),
+  enqueueAction: vi.fn(async () => ({ ok: true, message: "" })),
+  dequeueAction: vi.fn(async () => ({ ok: true, message: "" })),
+  reorderAction: vi.fn(async () => ({ ok: true, message: "" })),
 }));
 import { BoardTable } from "./board-table";
-import { BoardToolbar, duongDanBang } from "./board-toolbar";
+import { BoardToolbar, boardHref } from "./board-toolbar";
 
 const REPOS = [
   { slug: "myapp", repo: "you/myapp" },
@@ -34,7 +34,7 @@ const ISSUE: BeeIssue = {
   updatedAt: "2026-08-17T10:02:00Z",
 };
 
-const MUC = ghepBang(
+const MUC = buildBoard(
   REPOS,
   { "you/myapp": [ISSUE], "you/blog": [] },
   [
@@ -84,7 +84,7 @@ describe("BoardTable — an issue row says who is working on it", () => {
   });
 
   it("an untouched issue says so instead of showing an empty cell", () => {
-    const trong = ghepBang(REPOS, { "you/myapp": [ISSUE], "you/blog": [] }, [], {});
+    const trong = buildBoard(REPOS, { "you/myapp": [ISSUE], "you/blog": [] }, [], {});
     render(<BoardTable muc={trong} />);
     expect(screen.getByText("no session yet")).toBeInTheDocument();
   });
@@ -109,9 +109,9 @@ describe("BoardKanban — four lanes in lifecycle order", () => {
 
 describe("BoardToolbar — filter and view live in the URL", () => {
   it("builds shareable links and marks the current one", () => {
-    expect(duongDanBang(null, "table")).toBe("/projects");
-    expect(duongDanBang("blog", "table")).toBe("/projects?p=blog");
-    expect(duongDanBang("blog", "kanban")).toBe("/projects?p=blog&view=kanban");
+    expect(boardHref(null, "table")).toBe("/projects");
+    expect(boardHref("blog", "table")).toBe("/projects?p=blog");
+    expect(boardHref("blog", "kanban")).toBe("/projects?p=blog&view=kanban");
 
     render(<BoardToolbar repos={REPOS} duAn="blog" view="kanban" queuedCount={2} />);
     expect(screen.getByRole("link", { name: "blog" })).toHaveAttribute("aria-current", "page");

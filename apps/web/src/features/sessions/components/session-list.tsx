@@ -3,7 +3,7 @@ import Link from "next/link";
 import { StatusDot, type Tone } from "@/components/status-dot";
 import type { BeeSession, TrangThaiPhien } from "@/lib/bee/types";
 
-import type { NhomPhien } from "../api/load";
+import type { SessionGroup } from "../api/load";
 
 /**
  * Danh sách phiên nhóm theo repo — màn hình gốc của app. Mỗi dòng là một
@@ -27,7 +27,7 @@ const NHAN: Record<TrangThaiPhien, string> = {
   failed: "failed",
 };
 
-export function SessionList({ nhom }: { nhom: NhomPhien[] }) {
+export function SessionList({ nhom }: { nhom: SessionGroup[] }) {
   if (nhom.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">

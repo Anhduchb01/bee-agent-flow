@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 vi.mock("../api/actions", () => ({
-  batDauPhien: vi.fn(),
+  startSessionAction: vi.fn(),
 }));
 
 describe("NewSessionForm", () => {

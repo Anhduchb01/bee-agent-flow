@@ -21,18 +21,18 @@ import "@xyflow/react/dist/style.css";
 
 import { StatusDot, type Tone } from "@/components/status-dot";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import type { BeeRepoDangKy, BeeSession, TrangThaiPhien } from "@/lib/bee/types";
-import { khoangThoiGian } from "@/lib/duration";
+import type { BeeRegisteredRepo, BeeSession, TrangThaiPhien } from "@/lib/bee/types";
+import { humanDuration } from "@/lib/duration";
 
 import { loadArtifactDetailAction } from "../api/actions";
-import { bocArtifactUrl, mauArtifact, type ArtifactSong } from "../lib/artifact-live";
+import { unwrapArtifactUrl, artifactColour, type ArtifactSong } from "../lib/artifact-live";
 import type {
   EdgeCanvas,
   NodeArtifact,
   NodeCanvas,
   NodeDemo,
-  NodeNhomRepo,
-  NodePhien,
+  NodeRepoGroup,
+  NodeSession,
 } from "../lib/build-graph";
 import { ArtifactPanel } from "./artifact-panel";
 import { LiveView } from "./live-view";
@@ -55,9 +55,9 @@ const TONE: Record<TrangThaiPhien, Tone> = {
   failed: "down",
 };
 
-type FlowPhien = Node<NodePhien["data"] & Record<string, unknown>, "phien">;
+type FlowPhien = Node<NodeSession["data"] & Record<string, unknown>, "phien">;
 type FlowArtifact = Node<NodeArtifact["data"] & Record<string, unknown>, "artifact">;
-type FlowNhomRepo = Node<NodeNhomRepo["data"] & Record<string, unknown>, "repo-group">;
+type FlowNhomRepo = Node<NodeRepoGroup["data"] & Record<string, unknown>, "repo-group">;
 
 /** "2h ago" từ ISO — tính lúc render, node canvas không cần đồng hồ chạy. */
 function tuoi(ts: string | null): string | null {
@@ -65,7 +65,7 @@ function tuoi(ts: string | null): string | null {
   const giay = Math.floor((Date.now() - Date.parse(ts)) / 1000);
   if (!Number.isFinite(giay) || giay < 0) return null;
   if (giay < 60) return "just now";
-  return `${khoangThoiGian(giay)} ago`;
+  return `${humanDuration(giay)} ago`;
 }
 
 function PhienNode({ data }: NodeProps<FlowPhien>) {
@@ -116,7 +116,7 @@ function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
           React Flow lặng lẽ bỏ edge dù dữ liệu có (bug 21/08). */}
       <Handle type="source" position={Position.Right} className="!bg-muted-foreground" />
       <span className="flex items-center gap-2">
-        <span className={mauArtifact(data.kind, live)} title={live?.state.toLowerCase()}>
+        <span className={artifactColour(data.kind, live)} title={live?.state.toLowerCase()}>
           {data.kind === "pr" ? "⇄" : "◉"}
         </span>
         <span className="font-mono text-xs font-semibold text-body">
@@ -241,7 +241,7 @@ export function CanvasView({
   nodes: NodeCanvas[];
   edges: EdgeCanvas[];
   phien: BeeSession[];
-  repos?: BeeRepoDangKy[];
+  repos?: BeeRegisteredRepo[];
   commands?: { name: string; moTa: string }[];
 }) {
   const router = useRouter();
@@ -291,7 +291,7 @@ export function CanvasView({
       const arts = nodes.filter((n): n is NodeArtifact => n.type === "artifact").slice(0, 12);
       const cap = await Promise.all(
         arts.map(async (n) => {
-          const boc = bocArtifactUrl(n.data.url);
+          const boc = unwrapArtifactUrl(n.data.url);
           if (boc === null) return null;
           const ket = await loadArtifactDetailAction(boc.repo, boc.kind, boc.number);
           if (!ket.ok) return null;
@@ -340,7 +340,7 @@ export function CanvasView({
       return 1152;
     }
   });
-  const dangKeo = useRef<{ batDau: number; rong: number } | null>(null);
+  const dangKeo = useRef<{ start: number; rong: number } | null>(null);
 
   return (
     <div className="h-full w-full">
@@ -363,7 +363,7 @@ export function CanvasView({
           }
           if (node.type === "artifact") {
             const d = node.data as FlowArtifact["data"];
-            const boc = bocArtifactUrl(d.url);
+            const boc = unwrapArtifactUrl(d.url);
             if (boc !== null) {
               setXemArtifact({ ...boc, url: d.url, title: (d.title as string | null) ?? null });
             } else {
@@ -418,12 +418,12 @@ export function CanvasView({
             onPointerDown={(e) => {
               e.preventDefault();
               e.currentTarget.setPointerCapture(e.pointerId);
-              dangKeo.current = { batDau: e.clientX, rong: rongPanel };
+              dangKeo.current = { start: e.clientX, rong: rongPanel };
             }}
             onPointerMove={(e) => {
               if (dangKeo.current === null) return;
               const moi = Math.min(
-                Math.max(dangKeo.current.rong + (dangKeo.current.batDau - e.clientX), 360),
+                Math.max(dangKeo.current.rong + (dangKeo.current.start - e.clientX), 360),
                 window.innerWidth - 120,
               );
               setRongPanel(moi);

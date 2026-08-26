@@ -4,9 +4,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { getBee } from "./index";
-import { docHangDoi, ghiHangDoi } from "./queue-fs";
+import { readQueue, writeQueue } from "./queue-fs";
 import { runOneTick } from "./queue-run";
-import { moPhien } from "./session-ctl";
+import { openSession } from "./session-ctl";
 
 /**
  * One Autopilot tick, wired to disk and systemd.
@@ -34,24 +34,24 @@ function root(): string {
 
 export async function runQueueTick(): Promise<QueueTickResult> {
   const goc = root();
-  const q = await docHangDoi(goc);
+  const q = await readQueue(goc);
   // Empty queue: touch nothing else. A tick with no work should be cheap.
   if (q.items.length === 0) return { opened: null, reason: "the queue is empty" };
 
-  const dangPause = await fs
+  const paused = await fs
     .access(path.join(goc, "PAUSE"))
     .then(() => true)
     .catch(() => false);
   const phien = await getBee().listSessions();
 
   const kq = await runOneTick({
-    hangDoi: q,
-    dangPause,
-    soPhienDangChay: phien.filter((p) => p.status === "running" || p.status === "starting").length,
-    songSongToiDa: Number(process.env.QUEUE_MAX_PARALLEL ?? 1),
-    moPhien: async (v) => {
+    queue: q,
+    paused,
+    runningCount: phien.filter((p) => p.status === "running" || p.status === "starting").length,
+    maxParallel: Number(process.env.QUEUE_MAX_PARALLEL ?? 1),
+    openSession: async (v) => {
       const daCo = phien.filter((p) => p.slug === v.slug).length;
-      return moPhien({
+      return openSession({
         slug: v.slug,
         num: daCo + 1,
         repo: v.repo,
@@ -63,7 +63,7 @@ export async function runQueueTick(): Promise<QueueTickResult> {
         systemPrompt: `You are working on issue #${v.issue} of ${v.repo}. Read the issue with gh, follow its acceptance criteria, then open a PR with the bee-push-pr skill.`,
       });
     },
-    ghi: (moi) => ghiHangDoi(goc, moi),
+    ghi: (moi) => writeQueue(goc, moi),
   });
 
   return { opened: kq.opened === null ? null : `${kq.opened.repo}#${kq.opened.issue}`, reason: kq.reason };

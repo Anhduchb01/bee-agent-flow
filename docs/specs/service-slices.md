@@ -51,7 +51,7 @@ Ba tính chất của khối cấp lát, **mỗi cái một mình đã đủ** l
    session uuid, không phải *nhớ lại*.
 
 Nên `service-slices.sh` là **bash thuần + một bảng tra**, test bằng rig như
-`dung_worktree` / `capPhatDaiCong` / `chayMotNhip`.
+`dung_worktree` / `allocatePortRange` / `chayMotNhip`.
 
 **Chỗ AI thật sự làm việc là mốc 7** (§5): agent chạy trong worktree, bằng
 quyền của phiên, tự `docker compose up` cái mà pool không có. Nó **không** cầm
@@ -134,7 +134,7 @@ là bản sao để repo đọc.
 ## 5. Flow đầy đủ
 
 ```
-1  Mở phiên          web · moPhien                        [đã có]
+1  Mở phiên          web · openSession                        [đã có]
    └─ cấp dải 10 cổng trống → session.json.port_base
    └─ CHƯA đụng dịch vụ: chưa có worktree nên chưa đọc được compose
 
@@ -177,7 +177,7 @@ là bản sao để repo đọc.
    └─ KHÔNG đụng worktree, KHÔNG đụng lát dịch vụ
 ```
 
-**Vì sao không cấp sớm hơn mốc 5:** compose nằm *trong repo*, mà lúc `moPhien`
+**Vì sao không cấp sớm hơn mốc 5:** compose nằm *trong repo*, mà lúc `openSession`
 chạy (phía web) chưa có worktree — runner mới là chỗ clone. Mốc sớm nhất đọc
 được compose là sau `dung_worktree`. Điều này tự loại phương án "cấp cùng lúc
 cấp cổng".

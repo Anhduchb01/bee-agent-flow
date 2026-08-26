@@ -3,15 +3,15 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { laIdPhien } from "./session-id";
-import { CAC_MODEL_PHIEN } from "./types";
+import { isSessionId } from "./session-id";
+import { SESSION_MODELS } from "./types";
 import type {
   BeeArtifact,
-  BeeEvidenceTepTin,
-  BeeRepoDangKy,
+  BeeEvidenceFile,
+  BeeRegisteredRepo,
   BeeSession,
   BeeSessionModel,
-  PhaCuaPhien,
+  SessionPhase,
   TrangThaiPhien,
 } from "./types";
 
@@ -35,8 +35,8 @@ async function docJson(file: string): Promise<unknown | null> {
 
 const TRANG_THAI: readonly TrangThaiPhien[] = ["starting", "running", "done", "stopped", "failed"];
 
-export async function docPhienTrong(root: string, id: string): Promise<BeeSession | null> {
-  if (!laIdPhien(id)) return null;
+export async function readSessionIn(root: string, id: string): Promise<BeeSession | null> {
+  if (!isSessionId(id)) return null;
   const sdir = path.join(root, "sessions", id);
 
   const s = await docJson(path.join(sdir, "session.json"));
@@ -53,7 +53,7 @@ export async function docPhienTrong(root: string, id: string): Promise<BeeSessio
     ? (statusTho as TrangThaiPhien)
     : "starting";
 
-  const phase: PhaCuaPhien = s.phase === "work" ? "work" : "interview";
+  const phase: SessionPhase = s.phase === "work" ? "work" : "interview";
 
   return {
     id,
@@ -69,7 +69,7 @@ export async function docPhienTrong(root: string, id: string): Promise<BeeSessio
     mode: s.mode === "plan" || s.mode === "edits" || s.mode === "manual" ? s.mode : "auto",
     // Same rule for model: anything unknown (or absent) means "the machine's
     // own default", which is also what sending no --model flag does.
-    model: CAC_MODEL_PHIEN.includes(s.model as BeeSessionModel)
+    model: SESSION_MODELS.includes(s.model as BeeSessionModel)
       ? (s.model as BeeSessionModel)
       : "default",
     status,
@@ -85,14 +85,14 @@ export async function docPhienTrong(root: string, id: string): Promise<BeeSessio
  * Repo đã đăng ký = file `repos.d/<slug>.env` có dòng `REPO=owner/name`.
  * Cùng nguồn mà doctor.sh kiểm branch protection — một danh sách, hai người đọc.
  */
-export async function lietKeRepoTrong(root: string): Promise<BeeRepoDangKy[]> {
+export async function listReposIn(root: string): Promise<BeeRegisteredRepo[]> {
   let files: string[];
   try {
     files = await fs.readdir(path.join(root, "repos.d"));
   } catch {
     return [];
   }
-  const ra: BeeRepoDangKy[] = [];
+  const ra: BeeRegisteredRepo[] = [];
   for (const f of files) {
     if (!f.endsWith(".env")) continue;
     const slug = f.slice(0, -4);
@@ -109,21 +109,21 @@ export async function lietKeRepoTrong(root: string): Promise<BeeRepoDangKy[]> {
   return ra.sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
-export async function lietKePhienTrong(root: string): Promise<BeeSession[]> {
+export async function listSessionsIn(root: string): Promise<BeeSession[]> {
   let ids: string[];
   try {
     ids = await fs.readdir(path.join(root, "sessions"));
   } catch {
     return [];
   }
-  const phien = await Promise.all(ids.map((id) => docPhienTrong(root, id)));
+  const phien = await Promise.all(ids.map((id) => readSessionIn(root, id)));
   return phien
     .filter((p): p is BeeSession => p !== null)
     .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
 }
 
 export function duongDanRunTrong(root: string, id: string): string | null {
-  if (!laIdPhien(id)) return null;
+  if (!isSessionId(id)) return null;
   return path.join(root, "sessions", id, "run.jsonl");
 }
 
@@ -133,7 +133,7 @@ export function duongDanRunTrong(root: string, id: string): string | null {
  * File vài MB đọc một lần là chấp nhận được cho n phiên hiện tại; nếu
  * run.jsonl có trần theo byte (spec session-first §11) thì đây cũng có trần.
  */
-export async function docArtifactsTrong(root: string, id: string): Promise<BeeArtifact[]> {
+export async function readArtifactsIn(root: string, id: string): Promise<BeeArtifact[]> {
   const file = duongDanRunTrong(root, id);
   if (!file) return [];
   let text: string;
@@ -143,12 +143,12 @@ export async function docArtifactsTrong(root: string, id: string): Promise<BeeAr
     return [];
   }
   const ra: BeeArtifact[] = [];
-  for (const dong of text.split("\n")) {
+  for (const line of text.split("\n")) {
     // Lọc rẻ trước khi JSON.parse — file dài, dòng artifact hiếm.
-    if (!dong.includes('"bee_artifact"')) continue;
+    if (!line.includes('"bee_artifact"')) continue;
     let raw: unknown;
     try {
-      raw = JSON.parse(dong);
+      raw = JSON.parse(line);
     } catch {
       continue;
     }
@@ -171,7 +171,7 @@ export async function docArtifactsTrong(root: string, id: string): Promise<BeeAr
  * dừng ở message assistant đầu tiên có text: phiên dài không bắt đọc cả file
  * chỉ để lấy một câu.
  */
-export async function docCauCuoiTrong(root: string, id: string): Promise<string | null> {
+export async function readLastLineIn(root: string, id: string): Promise<string | null> {
   const file = duongDanRunTrong(root, id);
   if (!file) return null;
   let text: string;
@@ -194,23 +194,23 @@ export async function docCauCuoiTrong(root: string, id: string): Promise<string 
     if (!Array.isArray(content)) continue;
     for (const block of content) {
       if (laObject(block) && block.type === "text" && typeof block.text === "string") {
-        const gon = block.text.trim().replace(/\s+/g, " ");
-        if (gon !== "") return gon.slice(0, 140);
+        const trimmed = block.text.trim().replace(/\s+/g, " ");
+        if (trimmed !== "") return trimmed.slice(0, 140);
       }
     }
   }
   return null;
 }
 
-function loaiTep(name: string): BeeEvidenceTepTin["loai"] {
+function loaiTep(name: string): BeeEvidenceFile["loai"] {
   if (/\.(png|jpe?g|gif|webp)$/i.test(name)) return "image";
   if (/\.(webm|mp4)$/i.test(name)) return "video";
   return "khac";
 }
 
 /** List one session's evidence dir, typed and url'd for the web. */
-export async function docEvidenceTrong(root: string, id: string): Promise<BeeEvidenceTepTin[]> {
-  if (!laIdPhien(id)) return [];
+export async function readEvidenceIn(root: string, id: string): Promise<BeeEvidenceFile[]> {
+  if (!isSessionId(id)) return [];
   let names: string[];
   try {
     names = await fs.readdir(path.join(root, "sessions", id, "evidence"));
@@ -234,9 +234,9 @@ export async function timEvidenceChoArtifact(
   repo: string,
   kind: "issue" | "pr",
   number: number,
-): Promise<{ sessionId: string; files: BeeEvidenceTepTin[] } | null> {
-  for (const phien of await lietKePhienTrong(root)) {
-    const arts = await docArtifactsTrong(root, phien.id);
+): Promise<{ sessionId: string; files: BeeEvidenceFile[] } | null> {
+  for (const phien of await listSessionsIn(root)) {
+    const arts = await readArtifactsIn(root, phien.id);
     const trung = arts.some(
       (a) =>
         a.kind === kind &&
@@ -244,13 +244,13 @@ export async function timEvidenceChoArtifact(
         a.url.startsWith(`https://github.com/${repo}/`),
     );
     if (!trung) continue;
-    return { sessionId: phien.id, files: await docEvidenceTrong(root, phien.id) };
+    return { sessionId: phien.id, files: await readEvidenceIn(root, phien.id) };
   }
   return null;
 }
 
 /** Last bee_preview line a session logged (V2.3) — the running preview's coords. */
-export interface BeePreviewGhiSo {
+export interface BeePreviewRecord {
   sessionId: string;
   unit: string;
   url: string;
@@ -258,7 +258,7 @@ export interface BeePreviewGhiSo {
   ts: string | null;
 }
 
-export async function docPreviewTrong(root: string, id: string): Promise<BeePreviewGhiSo | null> {
+export async function readPreviewIn(root: string, id: string): Promise<BeePreviewRecord | null> {
   const file = duongDanRunTrong(root, id);
   if (!file) return null;
   let text: string;
@@ -267,12 +267,12 @@ export async function docPreviewTrong(root: string, id: string): Promise<BeePrev
   } catch {
     return null;
   }
-  let cuoi: BeePreviewGhiSo | null = null;
-  for (const dong of text.split("\n")) {
-    if (!dong.includes('"bee_preview"')) continue;
+  let cuoi: BeePreviewRecord | null = null;
+  for (const line of text.split("\n")) {
+    if (!line.includes('"bee_preview"')) continue;
     let raw: unknown;
     try {
-      raw = JSON.parse(dong);
+      raw = JSON.parse(line);
     } catch {
       continue;
     }

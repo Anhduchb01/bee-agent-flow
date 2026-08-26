@@ -16,10 +16,10 @@ import { runDoctorAction } from "../api/actions";
 export function DoctorChecklist({ doctor }: { doctor: BeeDoctor | null }) {
   const router = useRouter();
   const [loi, setLoi] = useState("");
-  const [dangChay, batDauChay] = useTransition();
+  const [running, batDauChay] = useTransition();
 
   function chayLai() {
-    if (dangChay) return;
+    if (running) return;
     batDauChay(async () => {
       const ket = await runDoctorAction();
       setLoi(ket.ok ? "" : ket.message);
@@ -56,8 +56,8 @@ export function DoctorChecklist({ doctor }: { doctor: BeeDoctor | null }) {
         <span className="font-mono text-xs text-muted-foreground">
           checked {doctor.checked_at}
         </span>
-        <Button size="sm" variant="outline" onClick={chayLai} disabled={dangChay}>
-          {dangChay ? "Running…" : "Run doctor again"}
+        <Button size="sm" variant="outline" onClick={chayLai} disabled={running}>
+          {running ? "Running…" : "Run doctor again"}
         </Button>
       </div>
 

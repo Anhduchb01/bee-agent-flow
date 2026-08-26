@@ -12,7 +12,7 @@
 
 export interface BeeMucDung {
   /** Phần trăm đã dùng, 0–100. */
-  phanTram: number;
+  percentOf: number;
   /** Lúc cửa sổ này reset, epoch giây; null = không biết. */
   resetLuc: number | null;
 }
@@ -31,7 +31,7 @@ export interface BeeSlotClaude {
   hetHan: boolean;
 }
 
-export interface BeePoolClaude {
+export interface BeeClaudePool {
   /** Tên slot đang bật, hoặc null khi chưa slot nào được chọn. */
   dangBat: string | null;
   slots: BeeSlotClaude[];
@@ -52,7 +52,7 @@ function mucDung(v: unknown): BeeMucDung | null {
   if (pt === null) return null;
   // Kẹp lại: thanh 130% vẽ ra khỏi khung, và một con số vô lý đọc như lỗi
   // hiển thị chứ không như cảnh báo.
-  return { phanTram: Math.max(0, Math.min(100, pt)), resetLuc: so(o.resets_at) };
+  return { percentOf: Math.max(0, Math.min(100, pt)), resetLuc: so(o.resets_at) };
 }
 
 /**
@@ -60,7 +60,7 @@ function mucDung(v: unknown): BeeMucDung | null {
  * đoán mò cấu trúc của công cụ bên thứ ba là cách êm nhất để hiện sai tài
  * khoản đang bật, mà đó lại đúng thứ người dùng tin để bấm.
  */
-export function docPoolSlayer(json: string): BeePoolClaude | null {
+export function readSlayerPool(json: string): BeeClaudePool | null {
   let tai: unknown;
   try {
     tai = JSON.parse(json);
@@ -102,7 +102,7 @@ export function docPoolSlayer(json: string): BeePoolClaude | null {
  * thẳng vào argv nên chỉ nhận đúng bộ ký tự tên/email hợp lệ — không
  * khoảng trắng, không dấu nháy, không gì shell đọc ra nghĩa khác.
  */
-export function laMucTieuSlot(s: string): boolean {
+export function isSlotTarget(s: string): boolean {
   return /^[A-Za-z0-9][A-Za-z0-9._@+-]{0,127}$/.test(s.trim());
 }
 
@@ -110,7 +110,7 @@ export function laMucTieuSlot(s: string): boolean {
  * Tên slot mới. Hẹp hơn mục tiêu: không nhận `@` để một slot không bao giờ
  * mang tên trông như email của tài khoản khác.
  */
-export function laTenSlot(s: string): boolean {
+export function isSlotName(s: string): boolean {
   return /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(s.trim());
 }
 
@@ -119,6 +119,6 @@ export function laTenSlot(s: string): boolean {
  * một chuỗi dán nhầm không được truyền cho trình cài đặt, chứ không phải
  * để xác thực — chỉ máy chủ của họ mới nói được token đúng hay sai.
  */
-export function laTokenSlayer(s: string): boolean {
+export function isSlayerToken(s: string): boolean {
   return /^[A-Za-z0-9_-]{20,128}$/.test(s.trim());
 }

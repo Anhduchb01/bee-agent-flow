@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { bayNgayQua } from "../lib/seven-days";
+import { lastSevenDays } from "../lib/seven-days";
 import { SevenDaysChart } from "./seven-days-chart";
 
 describe("SevenDaysChart", () => {
@@ -11,7 +11,7 @@ describe("SevenDaysChart", () => {
      * trông y hệt một biểu đồ hỏng — người xem sẽ đi tìm lỗi hiển thị thay vì
      * đọc được điều đang thật sự đúng: chưa có gì chạy cả.
      */
-    render(<SevenDaysChart days={bayNgayQua([])} tomTat={null} />);
+    render(<SevenDaysChart days={lastSevenDays([])} tomTat={null} />);
 
     expect(screen.getByText("No runs yet")).toBeInTheDocument();
   });

@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import {
-  boKhoiHangDoiAction,
+  dequeueAction,
   runNowAction,
-  doiThuTuAction,
-  themVaoHangDoiAction,
+  reorderAction,
+  enqueueAction,
 } from "../api/queue-actions";
-import type { MucBang } from "../lib/lanes";
+import type { BoardRow } from "../lib/lanes";
 
 /**
  * Nút xếp/bỏ hàng và đổi thứ tự.
@@ -22,17 +22,17 @@ import type { MucBang } from "../lib/lanes";
 /** Vùng bấm ≥ 44px (sàn của Apple) — nút 24px với padding thì thumb vẫn trượt. */
 const NUT = "flex size-9 items-center justify-center rounded-control border border-border text-xs text-body hover:bg-accent disabled:opacity-40";
 
-export function NutXepHang({ muc }: { muc: MucBang }) {
+export function QueueButton({ muc }: { muc: BoardRow }) {
   const router = useRouter();
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
   const [loi, setLoi] = useState("");
-  const daXep = muc.hangDoi !== null;
+  const queued = muc.queue !== null;
 
   function bam() {
-    batDau(async () => {
-      const ket = daXep
-        ? await boKhoiHangDoiAction(muc.repo, muc.issue.number)
-        : await themVaoHangDoiAction({
+    start(async () => {
+      const ket = queued
+        ? await dequeueAction(muc.repo, muc.issue.number)
+        : await enqueueAction({
             slug: muc.slug,
             repo: muc.repo,
             issue: muc.issue.number,
@@ -48,24 +48,24 @@ export function NutXepHang({ muc }: { muc: MucBang }) {
         type="button"
         onClick={bam}
         disabled={dang}
-        aria-label={daXep ? `Remove #${muc.issue.number} from Autopilot` : `Queue #${muc.issue.number} for Autopilot`}
+        aria-label={queued ? `Remove #${muc.issue.number} from Autopilot` : `Queue #${muc.issue.number} for Autopilot`}
         className={NUT}
       >
-        {daXep ? "−" : "+"}
+        {queued ? "−" : "+"}
       </button>
       {loi !== "" && <span className="text-xs text-destructive">{loi}</span>}
     </>
   );
 }
 
-export function NutDoiThuTu({ muc }: { muc: MucBang }) {
+export function ReorderButtons({ muc }: { muc: BoardRow }) {
   const router = useRouter();
-  const [dang, batDau] = useTransition();
-  if (muc.hangDoi === null) return null;
+  const [dang, start] = useTransition();
+  if (muc.queue === null) return null;
 
   const di = (buoc: -1 | 1) => () =>
-    batDau(async () => {
-      await doiThuTuAction(muc.repo, muc.issue.number, buoc);
+    start(async () => {
+      await reorderAction(muc.repo, muc.issue.number, buoc);
       router.refresh();
     });
 
@@ -91,11 +91,11 @@ export function NutDoiThuTu({ muc }: { muc: MucBang }) {
  */
 export function RunNowButton({ queued }: { queued: number }) {
   const router = useRouter();
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
   const [says, setSays] = useState("");
 
   function bam() {
-    batDau(async () => {
+    start(async () => {
       const ket = await runNowAction();
       setSays(ket.message);
       router.refresh();

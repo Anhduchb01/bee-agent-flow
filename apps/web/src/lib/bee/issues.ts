@@ -49,8 +49,8 @@ async function isRegistered(repo: string): Promise<boolean> {
     const dir = path.join(root(), "repos.d");
     for (const f of await fs.readdir(dir)) {
       if (!f.endsWith(".env")) continue;
-      const noiDung = await fs.readFile(path.join(dir, f), "utf8");
-      if (/^REPO=(.+)$/m.exec(noiDung)?.[1]?.trim() === repo) return true;
+      const content = await fs.readFile(path.join(dir, f), "utf8");
+      if (/^REPO=(.+)$/m.exec(content)?.[1]?.trim() === repo) return true;
     }
   } catch {
     // No repos.d → nothing is registered.
@@ -70,7 +70,7 @@ function ten(v: unknown, khoa: "name" | "login"): string[] {
 }
 
 /** gh's JSON rows are untrusted input like any other external data. */
-function docIssue(raw: unknown): BeeIssue | null {
+function parseIssue(raw: unknown): BeeIssue | null {
   if (typeof raw !== "object" || raw === null) return null;
   const o = raw as Record<string, unknown>;
   const number = o.number;
@@ -185,7 +185,7 @@ export async function fetchRepoIssues(
     if (!Array.isArray(raw)) {
       return { issues: [], loi: `${repo}: gh answered with something that is not an issue list.` };
     }
-    const doc = raw.map(docIssue);
+    const doc = raw.map(parseIssue);
     const issues = doc
       .filter((i): i is BeeIssue => i !== null)
       .sort((a, b) => b.number - a.number);

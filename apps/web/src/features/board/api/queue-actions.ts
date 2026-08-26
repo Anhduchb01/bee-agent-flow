@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { getActor } from "@/lib/auth";
-import { boQuaViec, doiThuTu, themViec } from "../lib/queue";
-import { docHangDoi, ghiHangDoi } from "@/lib/bee/queue-fs";
+import { removeQueueItem, reorderQueueItem, addQueueItem } from "../lib/queue";
+import { readQueue, writeQueue } from "@/lib/bee/queue-fs";
 import { runQueueTick } from "@/lib/bee/tick";
 import type { BeeSessionMode, BeeSessionModel } from "@/lib/bee/types";
 
@@ -14,63 +14,63 @@ import type { BeeSessionMode, BeeSessionModel } from "@/lib/bee/types";
  * thừa. Ghi vẫn nguyên tử (tmp + rename) ở tầng queue-fs.
  */
 
-export interface KetQua {
+export interface Result {
   ok: boolean;
   message: string;
 }
 
-const KHONG_QUYEN: KetQua = { ok: false, message: "You are not allowed to do this." };
+const KHONG_QUYEN: Result = { ok: false, message: "You are not allowed to do this." };
 
 function root(): string {
   return process.env.BEE_SRV ?? "/srv/bee";
 }
 
-function xong(): KetQua {
+function xong(): Result {
   revalidatePath("/projects");
   revalidatePath("/canvas");
   return { ok: true, message: "" };
 }
 
-export async function themVaoHangDoiAction(input: {
+export async function enqueueAction(input: {
   slug: string;
   repo: string;
   issue: number;
   mode?: BeeSessionMode;
   model?: BeeSessionModel;
-}): Promise<KetQua> {
+}): Promise<Result> {
   if (!(await getActor())) return KHONG_QUYEN;
   if (!Number.isInteger(input.issue) || input.issue <= 0) {
     return { ok: false, message: "Invalid issue number." };
   }
   const goc = root();
-  await ghiHangDoi(goc, themViec(await docHangDoi(goc), input));
+  await writeQueue(goc, addQueueItem(await readQueue(goc), input));
   return xong();
 }
 
-export async function boKhoiHangDoiAction(repo: string, issue: number): Promise<KetQua> {
+export async function dequeueAction(repo: string, issue: number): Promise<Result> {
   if (!(await getActor())) return KHONG_QUYEN;
   const goc = root();
-  await ghiHangDoi(goc, boQuaViec(await docHangDoi(goc), repo, issue));
+  await writeQueue(goc, removeQueueItem(await readQueue(goc), repo, issue));
   return xong();
 }
 
-export async function doiThuTuAction(
+export async function reorderAction(
   repo: string,
   issue: number,
   buoc: -1 | 1,
-): Promise<KetQua> {
+): Promise<Result> {
   if (!(await getActor())) return KHONG_QUYEN;
   if (buoc !== -1 && buoc !== 1) return { ok: false, message: "Invalid step." };
   const goc = root();
-  await ghiHangDoi(goc, doiThuTu(await docHangDoi(goc), repo, issue, buoc));
+  await writeQueue(goc, reorderQueueItem(await readQueue(goc), repo, issue, buoc));
   return xong();
 }
 
 /** ⏸ — hàng đợi giữ nguyên, chỉ ngừng nhặt việc mới. */
-export async function tamDungHangDoiAction(paused: boolean): Promise<KetQua> {
+export async function pauseQueueAction(paused: boolean): Promise<Result> {
   if (!(await getActor())) return KHONG_QUYEN;
   const goc = root();
-  await ghiHangDoi(goc, { ...(await docHangDoi(goc)), paused });
+  await writeQueue(goc, { ...(await readQueue(goc)), paused });
   return xong();
 }
 
@@ -87,7 +87,7 @@ export async function tamDungHangDoiAction(paused: boolean): Promise<KetQua> {
  * still through the quota brake, still respecting PAUSE and ⏸. This button
  * shortens the WAIT; it does not open another door.
  */
-export async function runNowAction(): Promise<KetQua> {
+export async function runNowAction(): Promise<Result> {
   if (!(await getActor())) return KHONG_QUYEN;
   const tick = await runQueueTick();
   revalidatePath("/projects");

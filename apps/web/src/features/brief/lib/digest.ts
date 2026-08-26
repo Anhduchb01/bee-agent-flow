@@ -1,4 +1,4 @@
-import type { BeeArtifact, BeeSession, HangDoi, ViecTrongHang } from "@/lib/bee/types";
+import type { BeeArtifact, BeeSession, Queue, QueueItem } from "@/lib/bee/types";
 
 /**
  * Bản tin buổi sáng (FR-5.3) — thuần, không I/O.
@@ -12,36 +12,36 @@ import type { BeeArtifact, BeeSession, HangDoi, ViecTrongHang } from "@/lib/bee/
  * trường riêng, không bắt màn hình đoán từ mấy mảng rỗng.
  */
 
-export type LoaiDem = "khong-xep-viec" | "xep-ma-khong-chay" | "co-viec";
+export type DigestKind = "khong-xep-viec" | "xep-ma-khong-chay" | "co-viec";
 
-export interface MucChay {
+export interface RanItem {
   phien: BeeSession;
   pr: BeeArtifact | null;
   issue: BeeArtifact | null;
 }
 
-export interface MucKet {
+export interface StuckItem {
   phien: BeeSession;
-  viSao: string;
+  why: string;
 }
 
-export interface MucCho {
-  viec: ViecTrongHang;
-  viSao: string;
+export interface WaitingItem {
+  viec: QueueItem;
+  why: string;
 }
 
-export interface BanTin {
-  loai: LoaiDem;
+export interface Digest {
+  loai: DigestKind;
   tu: string;
   den: string;
-  daChay: MucChay[];
-  choDuyet: MucChay[];
-  ket: MucKet[];
-  conCho: MucCho[];
+  ran: RanItem[];
+  toReview: RanItem[];
+  ket: StuckItem[];
+  stillQueued: WaitingItem[];
 }
 
 /** Không có `reason` thì trạng thái vẫn phải dịch ra được tiếng người. */
-function viSaoKet(p: BeeSession): string {
+function whyStuck(p: BeeSession): string {
   const reason = (p as unknown as Record<string, unknown>).reason;
   if (typeof reason === "string" && reason !== "") return reason;
   if (p.needs_human) return "needs a human — the session failed twice in a row";
@@ -50,23 +50,23 @@ function viSaoKet(p: BeeSession): string {
   return "no reason recorded — open the session and read its event stream";
 }
 
-function trongKhoang(p: BeeSession, tu: Date, den: Date): boolean {
+function inWindow(p: BeeSession, tu: Date, den: Date): boolean {
   const moc = p.ended_at ?? p.started_at ?? p.created_at;
   if (moc === null) return false;
   const t = new Date(moc).getTime();
   return Number.isFinite(t) && t >= tu.getTime() && t <= den.getTime();
 }
 
-export function dungBanTin(input: {
+export function buildDigest(input: {
   phien: BeeSession[];
   artifacts: Record<string, BeeArtifact[]>;
-  hangDoi: HangDoi;
+  queue: Queue;
   tu: Date;
   den: Date;
-}): BanTin {
-  const trong = input.phien.filter((p) => trongKhoang(p, input.tu, input.den));
+}): Digest {
+  const trong = input.phien.filter((p) => inWindow(p, input.tu, input.den));
 
-  const daChay: MucChay[] = trong.map((p) => {
+  const ran: RanItem[] = trong.map((p) => {
     const cua = input.artifacts[p.id] ?? [];
     return {
       phien: p,
@@ -77,23 +77,23 @@ export function dungBanTin(input: {
 
   // "Chờ duyệt" là phiên xong VÀ có PR. Xong-mà-không-PR là chuyện khác hẳn —
   // trộn hai thứ lại là hứa với người dùng một cái PR không tồn tại.
-  const choDuyet = daChay.filter((m) => m.phien.status === "done" && m.pr !== null);
+  const toReview = ran.filter((m) => m.phien.status === "done" && m.pr !== null);
 
-  const ket: MucKet[] = trong
+  const ket: StuckItem[] = trong
     .filter((p) => p.needs_human || p.status === "failed" || p.status === "stopped")
-    .map((p) => ({ phien: p, viSao: viSaoKet(p) }));
+    .map((p) => ({ phien: p, why: whyStuck(p) }));
 
-  const conCho: MucCho[] = input.hangDoi.items
+  const stillQueued: WaitingItem[] = input.queue.items
     .filter((v) => v.status === "waiting")
     .map((v) => ({
       viec: v,
-      viSao: v.reason ?? "not its turn yet",
+      why: v.reason ?? "not its turn yet",
     }));
 
-  const loai: LoaiDem =
+  const loai: DigestKind =
     trong.length > 0
       ? "co-viec"
-      : input.hangDoi.items.length > 0
+      : input.queue.items.length > 0
         ? "xep-ma-khong-chay"
         : "khong-xep-viec";
 
@@ -101,9 +101,9 @@ export function dungBanTin(input: {
     loai,
     tu: input.tu.toISOString(),
     den: input.den.toISOString(),
-    daChay,
-    choDuyet,
+    ran,
+    toReview,
     ket,
-    conCho,
+    stillQueued,
   };
 }

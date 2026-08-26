@@ -9,9 +9,9 @@ import { RunNowButton } from "./autopilot-controls";
  * that is also what the sidebar's project rows link into.
  */
 
-export type ChoXem = "table" | "kanban";
+export type BoardView = "table" | "kanban";
 
-export function duongDanBang(slug: string | null, view: ChoXem): string {
+export function boardHref(slug: string | null, view: BoardView): string {
   const q = new URLSearchParams();
   if (slug !== null) q.set("p", slug);
   if (view !== "table") q.set("view", view);
@@ -52,7 +52,7 @@ export function BoardToolbar({
 }: {
   repos: { slug: string; repo: string }[];
   duAn: string | null;
-  view: ChoXem;
+  view: BoardView;
   /** Items waiting in Autopilot — at 0 "Run now" has nothing to run. */
   queuedCount: number;
 }) {
@@ -62,11 +62,11 @@ export function BoardToolbar({
         aria-label="Filter by project"
         className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <Chip href={duongDanBang(null, view)} dangChon={duAn === null}>
+        <Chip href={boardHref(null, view)} dangChon={duAn === null}>
           All projects
         </Chip>
         {repos.map((r) => (
-          <Chip key={r.slug} href={duongDanBang(r.slug, view)} dangChon={duAn === r.slug}>
+          <Chip key={r.slug} href={boardHref(r.slug, view)} dangChon={duAn === r.slug}>
             {r.slug}
           </Chip>
         ))}
@@ -74,10 +74,10 @@ export function BoardToolbar({
 
       <div className="flex flex-wrap items-center gap-3">
         <nav aria-label="View" className="flex gap-1.5">
-          <Chip href={duongDanBang(duAn, "table")} dangChon={view === "table"}>
+          <Chip href={boardHref(duAn, "table")} dangChon={view === "table"}>
             Table
           </Chip>
-          <Chip href={duongDanBang(duAn, "kanban")} dangChon={view === "kanban"}>
+          <Chip href={boardHref(duAn, "kanban")} dangChon={view === "kanban"}>
             Kanban
           </Chip>
         </nav>

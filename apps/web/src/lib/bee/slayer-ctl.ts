@@ -7,25 +7,25 @@ import { ctl } from "./ctl";
 
 import {
   cho,
-  dongLuong,
-  guiMa,
-  loiOauth,
-  manHinhCuoi,
-  moLuong,
-  nhacEnter,
-  type LuongPty,
+  closeFlow,
+  sendCode,
+  oauthError,
+  lastScreen,
+  openFlow,
+  nudgeEnter,
+  type PtyFlow,
 } from "./pty-flow";
 import {
-  docPoolSlayer,
-  laMucTieuSlot,
-  laTenSlot,
-  laTokenSlayer,
-  type BeePoolClaude,
+  readSlayerPool,
+  isSlotTarget,
+  isSlotName,
+  isSlayerToken,
+  type BeeClaudePool,
 } from "./slayer";
 import { extractOauthUrl } from "./claude-token";
 
-export type KetQua = { ok: true } | { ok: false; message: string };
-export type KetQuaLink = { ok: true; url: string } | { ok: false; message: string };
+export type Result = { ok: true } | { ok: false; message: string };
+export type LinkResult = { ok: true; url: string } | { ok: false; message: string };
 
 /**
  * Nhiều tài khoản Claude trên bee, đổi qua lại từ điện thoại.
@@ -35,7 +35,7 @@ export type KetQuaLink = { ok: true; url: string } | { ok: false; message: strin
  *
  *  1. Đổi tài khoản là hành động TOÀN MÁY (nó ghi đè
  *     `~/.claude/.credentials.json`), nên phiên đang chạy sẽ trôi sang tài
- *     khoản mới lúc nó làm mới token. Vì vậy `doiSlot` từ chối khi còn
+ *     khoản mới lúc nó làm mới token. Vì vậy `switchSlot` từ chối khi còn
  *     phiên chạy, thay vì đổi rồi để người dùng tự đoán chuyện gì đã xảy ra.
  *  2. `claude.env` (token dán ở /setup) ĐÈ LÊN mọi lựa chọn ở đây, vì
  *     runner export `CLAUDE_CODE_OAUTH_TOKEN` và biến môi trường thắng file
@@ -54,7 +54,7 @@ function root(): string {
 /** Đường dẫn `tok`. Unit đã có `~/.local/bin` trong PATH; giữ tên trần cho dễ đọc. */
 const TOK = "tok";
 
-const POOL_DEMO: BeePoolClaude = {
+const POOL_DEMO: BeeClaudePool = {
   dangBat: "work",
   slots: [
     {
@@ -64,8 +64,8 @@ const POOL_DEMO: BeePoolClaude = {
       email: "you@company.com",
       state: "active",
       dangBat: true,
-      namGio: { phanTram: 29, resetLuc: null },
-      bayNgay: { phanTram: 36, resetLuc: null },
+      namGio: { percentOf: 29, resetLuc: null },
+      bayNgay: { percentOf: 36, resetLuc: null },
       hetHan: false,
     },
     {
@@ -75,8 +75,8 @@ const POOL_DEMO: BeePoolClaude = {
       email: "you@gmail.com",
       state: "idle",
       dangBat: false,
-      namGio: { phanTram: 4, resetLuc: null },
-      bayNgay: { phanTram: 11, resetLuc: null },
+      namGio: { percentOf: 4, resetLuc: null },
+      bayNgay: { percentOf: 11, resetLuc: null },
       hetHan: false,
     },
   ],
@@ -92,7 +92,7 @@ export interface TrangThaiSlayer {
    * token thì không phải một phiên đăng nhập để chụp lại.
    */
   coLoginMay: boolean;
-  pool: BeePoolClaude | null;
+  pool: BeeClaudePool | null;
   /** claude.env đang ghim một token, đè lên slot đang chọn. */
   tokenGhim: boolean;
   /** Vì sao không đọc được pool, khi `tok` có mà vẫn hỏng. */
@@ -109,7 +109,7 @@ async function coTokenGhim(): Promise<boolean> {
 }
 
 /** Bảng tài khoản cho /setup. Không ném: hỏng chỗ nào thì nói chỗ đó. */
-export async function docTrangThaiSlayer(): Promise<TrangThaiSlayer> {
+export async function readSlayerStatus(): Promise<TrangThaiSlayer> {
   if (isFixture()) {
     return { daCai: true, pool: POOL_DEMO, tokenGhim: false, message: null, coLoginMay: true };
   }
@@ -134,7 +134,7 @@ export async function docTrangThaiSlayer(): Promise<TrangThaiSlayer> {
       message: (loi.stderr ?? loi.message).slice(0, 200),
     };
   }
-  const pool = docPoolSlayer(ra.stdout);
+  const pool = readSlayerPool(ra.stdout);
   return {
     daCai: true,
     pool,
@@ -149,9 +149,9 @@ export async function docTrangThaiSlayer(): Promise<TrangThaiSlayer> {
  * hàm này không tự đi đọc đĩa, để luật "không đổi khi đang chạy" test được
  * mà không cần dựng cả thư mục phiên.
  */
-export async function doiSlot(target: string, phienDangChay: number): Promise<KetQua> {
-  const gon = target.trim();
-  if (!laMucTieuSlot(gon)) return { ok: false, message: "Tên slot không hợp lệ." };
+export async function switchSlot(target: string, phienDangChay: number): Promise<Result> {
+  const trimmed = target.trim();
+  if (!isSlotTarget(trimmed)) return { ok: false, message: "Tên slot không hợp lệ." };
   if (phienDangChay > 0) {
     return {
       ok: false,
@@ -162,7 +162,7 @@ export async function doiSlot(target: string, phienDangChay: number): Promise<Ke
   }
   if (isFixture()) return { ok: true };
   try {
-    await ctl(TOK, ["switch", gon], { timeout: 60_000 });
+    await ctl(TOK, ["switch", trimmed], { timeout: 60_000 });
     return { ok: true };
   } catch (e) {
     const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
@@ -171,14 +171,14 @@ export async function doiSlot(target: string, phienDangChay: number): Promise<Ke
 }
 
 /** Chụp lại tài khoản `claude` đang đăng nhập thành một slot mới. */
-export async function chupSlot(name: string): Promise<KetQua> {
-  const gon = name.trim();
-  if (!laTenSlot(gon)) {
+export async function captureSlot(name: string): Promise<Result> {
+  const trimmed = name.trim();
+  if (!isSlotName(trimmed)) {
     return { ok: false, message: "Tên slot chỉ nhận chữ, số, dấu chấm, gạch ngang và gạch dưới." };
   }
   if (isFixture()) return { ok: true };
   try {
-    await ctl(TOK, ["add", gon], { timeout: 120_000 });
+    await ctl(TOK, ["add", trimmed], { timeout: 120_000 });
     return { ok: true };
   } catch (e) {
     const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
@@ -191,27 +191,27 @@ export async function chupSlot(name: string): Promise<KetQua> {
  * vào — cùng hình dạng với `claude setup-token`, nên cùng một tay lái.
  * Một luồng tại một thời điểm; mở luồng mới là bỏ luồng cũ.
  */
-let luongThem: LuongPty | null = null;
+let luongThem: PtyFlow | null = null;
 
 function dongThem(): void {
-  dongLuong(luongThem);
+  closeFlow(luongThem);
   luongThem = null;
 }
 
-export async function batDauThemSlot(name: string): Promise<KetQuaLink> {
-  const gon = name.trim();
-  if (!laTenSlot(gon)) {
+export async function startAddSlot(name: string): Promise<LinkResult> {
+  const trimmed = name.trim();
+  if (!isSlotName(trimmed)) {
     return { ok: false, message: "Tên slot chỉ nhận chữ, số, dấu chấm, gạch ngang và gạch dưới." };
   }
   if (isFixture()) return { ok: true, url: "https://claude.ai/oauth/authorize?demo=1" };
 
   dongThem();
-  const luong = moLuong(`${TOK} add ${gon} --login`);
+  const luong = openFlow(`${TOK} add ${trimmed} --login`);
   luongThem = luong;
 
   const url = await cho(luong, extractOauthUrl);
   if (url !== null) return { ok: true, url };
-  const thay = manHinhCuoi(luong.out);
+  const thay = lastScreen(luong.out);
   const vi = luong.done ? "luồng thoát trước khi in URL" : "hết giờ chờ URL";
   dongThem();
   return {
@@ -220,9 +220,9 @@ export async function batDauThemSlot(name: string): Promise<KetQuaLink> {
   };
 }
 
-export async function xongThemSlot(code: string): Promise<KetQua> {
-  const gon = code.trim();
-  if (!/^[A-Za-z0-9#_-]+$/.test(gon)) return { ok: false, message: "Đó không giống một mã xác nhận." };
+export async function xongThemSlot(code: string): Promise<Result> {
+  const trimmed = code.trim();
+  if (!/^[A-Za-z0-9#_-]+$/.test(trimmed)) return { ok: false, message: "Đó không giống một mã xác nhận." };
   if (isFixture()) return { ok: true };
 
   const luong = luongThem;
@@ -231,17 +231,17 @@ export async function xongThemSlot(code: string): Promise<KetQua> {
     return { ok: false, message: "Không có luồng đăng nhập nào đang chờ — lấy link mới đã." };
   }
 
-  await guiMa(luong, gon);
+  await sendCode(luong, trimmed);
   // `tok` lưu credential rồi mới thoát: kết thúc sạch = xong.
   for (let i = 0; i < 120; i++) {
-    if (i === 20) nhacEnter(luong);
-    const tuChoi = loiOauth(luong.out);
-    if (tuChoi !== null) {
+    if (i === 20) nudgeEnter(luong);
+    const refused = oauthError(luong.out);
+    if (refused !== null) {
       dongThem();
-      return { ok: false, message: `${tuChoi} — lấy link mới rồi thử lại.` };
+      return { ok: false, message: `${refused} — lấy link mới rồi thử lại.` };
     }
     if (luong.done) {
-      const thay = manHinhCuoi(luong.out);
+      const thay = lastScreen(luong.out);
       const ma = luong.p.exitCode;
       dongThem();
       if (ma === 0) return { ok: true };
@@ -252,7 +252,7 @@ export async function xongThemSlot(code: string): Promise<KetQua> {
     }
     await new Promise((r) => setTimeout(r, 250));
   }
-  const thay = manHinhCuoi(luong.out);
+  const thay = lastScreen(luong.out);
   dongThem();
   return {
     ok: false,
@@ -270,9 +270,9 @@ export async function xongThemSlot(code: string): Promise<KetQua> {
  */
 const URL_CAI = "https://token-slayer.ownego.com/install";
 
-export async function caiSlayer(token: string): Promise<KetQua> {
-  const gon = token.trim();
-  if (!laTokenSlayer(gon)) {
+export async function installSlayer(token: string): Promise<Result> {
+  const trimmed = token.trim();
+  if (!isSlayerToken(trimmed)) {
     return { ok: false, message: "Token không đúng hình dạng (chuỗi ~47 ký tự chữ/số/-/_)." };
   }
   if (isFixture()) return { ok: true };
@@ -281,12 +281,12 @@ export async function caiSlayer(token: string): Promise<KetQua> {
     await ctl(
       "bash",
       ["-o", "pipefail", "-c", `curl -fsSL "${URL_CAI}" | sh`],
-      { timeout: 300_000, env: { ...process.env, TOKEN_SLAYER_TOKEN: gon }, maxBuffer: 4 << 20 },
+      { timeout: 300_000, env: { ...process.env, TOKEN_SLAYER_TOKEN: trimmed }, maxBuffer: 4 << 20 },
     );
     return { ok: true };
   } catch (e) {
     const loi = e as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
-    const noi = (loi.stderr || loi.stdout || loi.message).replaceAll(gon, "…");
+    const noi = (loi.stderr || loi.stdout || loi.message).replaceAll(trimmed, "…");
     return { ok: false, message: noi.slice(-300) };
   }
 }
@@ -299,7 +299,7 @@ export async function caiSlayer(token: string): Promise<KetQua> {
  * Reissue"* chính là câu trả lời cho "sao tôi chưa đăng nhập được", và giấu
  * nó sau một chữ "xong" là lấy mất thứ duy nhất hữu ích.
  */
-export async function nhanTaiKhoanCap(): Promise<KetQua & { noi?: string }> {
+export async function pullGrantedAccounts(): Promise<Result & { noi?: string }> {
   if (isFixture()) {
     return { ok: true, noi: "Nothing to do. (No provisioned accounts to add or remove.)" };
   }
@@ -315,7 +315,7 @@ export async function nhanTaiKhoanCap(): Promise<KetQua & { noi?: string }> {
 }
 
 /** Gỡ token ghim trong claude.env để lựa chọn tài khoản ở đây có hiệu lực. */
-export async function boTokenGhim(): Promise<KetQua> {
+export async function unpinToken(): Promise<Result> {
   if (isFixture()) return { ok: true };
   try {
     await fs.rm(path.join(root(), "claude.env"), { force: true });

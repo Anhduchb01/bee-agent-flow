@@ -27,8 +27,8 @@ describe("saveUploadToSession — chat attachments into the worktree", () => {
     expect(ket.ok).toBe(true);
     if (!ket.ok) return;
     expect(ket.relPath).toMatch(/^\.bee\/uploads\/\d+-bug_screen\.png$/);
-    const noiDung = await fs.readFile(path.join(dir, "work", ID, ket.relPath));
-    expect([...noiDung]).toEqual([1, 2, 3]);
+    const content = await fs.readFile(path.join(dir, "work", ID, ket.relPath));
+    expect([...content]).toEqual([1, 2, 3]);
   });
 
   it("a hostile filename cannot escape the uploads dir", async () => {

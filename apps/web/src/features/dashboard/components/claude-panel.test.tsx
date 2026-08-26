@@ -17,19 +17,19 @@ import { ClaudePanel } from "./claude-panel";
 
 const NOW = Date.UTC(2026, 7, 13, 10, 0, 0);
 
-function snapshot(phanTram: [number | null, number | null]): ClaudeSnapshot {
+function snapshot(percentOf: [number | null, number | null]): ClaudeSnapshot {
   return {
     hanMuc: [
       {
         cuaSo: "five_hour",
-        trangThai: "allowed",
-        phanTram: phanTram[0],
+        status: "allowed",
+        percentOf: percentOf[0],
         resetsAt: Math.floor(NOW / 1000) + 3600,
       },
       {
         cuaSo: "weekly",
-        trangThai: "warning",
-        phanTram: phanTram[1],
+        status: "warning",
+        percentOf: percentOf[1],
         resetsAt: Math.floor(NOW / 1000) + 86_400,
       },
     ],
@@ -69,7 +69,7 @@ describe("ClaudePanel", () => {
     expect(screen.getByLabelText("5-hour limit")).toHaveClass(
       "[&_[data-slot=progress-indicator]]:bg-link",
     );
-    // 97% vượt ngưỡng 95 nên đỏ, dù `trangThai` mới chỉ là "warning": con số
+    // 97% vượt ngưỡng 95 nên đỏ, dù `status` mới chỉ là "warning": con số
     // thật đáng tin hơn nhãn mà nguồn tự dán cho mình.
     expect(screen.getByLabelText("Weekly limit")).toHaveClass(
       "[&_[data-slot=progress-indicator]]:bg-destructive",

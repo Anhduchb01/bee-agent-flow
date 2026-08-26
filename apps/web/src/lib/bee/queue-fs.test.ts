@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { docHangDoi, ghiHangDoi } from "./queue-fs";
+import { readQueue, writeQueue } from "./queue-fs";
 
 let dir = "";
 
@@ -16,7 +16,7 @@ afterEach(async () => {
 
 describe("queue.json — máy tắt không được mất hàng đợi (FR-5.1)", () => {
   it("chưa có file → hàng rỗng, không phải lỗi", async () => {
-    expect(await docHangDoi(dir)).toEqual({ items: [], paused: false });
+    expect(await readQueue(dir)).toEqual({ items: [], paused: false });
   });
 
   it("ghi rồi đọc lại y nguyên", async () => {
@@ -30,19 +30,19 @@ describe("queue.json — máy tắt không được mất hàng đợi (FR-5.1)"
         },
       ],
     };
-    await ghiHangDoi(dir, q);
-    expect(await docHangDoi(dir)).toEqual(q);
+    await writeQueue(dir, q);
+    expect(await readQueue(dir)).toEqual(q);
   });
 
   it("ghi nguyên tử: không để lại file tmp, và không ai đọc trúng nửa file", async () => {
-    await ghiHangDoi(dir, { items: [], paused: false });
+    await writeQueue(dir, { items: [], paused: false });
     const files = await fs.readdir(dir);
     expect(files).toEqual(["queue.json"]);
   });
 
   it("json hỏng (ghi dở lúc mất điện) → hàng rỗng thay vì ném vào server component", async () => {
     await fs.writeFile(path.join(dir, "queue.json"), '{"items":[{"slug"');
-    expect(await docHangDoi(dir)).toEqual({ items: [], paused: false });
+    expect(await readQueue(dir)).toEqual({ items: [], paused: false });
   });
 
   it("mục sai hình dạng bị loại, mục đúng giữ lại", async () => {
@@ -58,7 +58,7 @@ describe("queue.json — máy tắt không được mất hàng đợi (FR-5.1)"
         ],
       }),
     );
-    const q = await docHangDoi(dir);
+    const q = await readQueue(dir);
     expect(q.items).toHaveLength(1);
     expect(q.items[0]?.issue).toBe(41);
   });
@@ -70,6 +70,6 @@ describe("queue.json — máy tắt không được mất hàng đợi (FR-5.1)"
         items: [{ slug: "a", repo: "you/a", issue: 1, mode: "auto", model: "default", status: "HACK", sessionId: null, reason: null, added_at: "t" }],
       }),
     );
-    expect((await docHangDoi(dir)).items[0]?.status).toBe("waiting");
+    expect((await readQueue(dir)).items[0]?.status).toBe("waiting");
   });
 });

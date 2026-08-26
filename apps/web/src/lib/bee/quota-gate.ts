@@ -13,20 +13,20 @@ import type { BeeClaudeAccountUsage, BeeClaudeWindow } from "./types";
  * cũ mà ĐÃ vượt ngưỡng thì vẫn phanh — cũ-và-quá-ngưỡng tệ hơn tươi-và-quá.
  */
 
-export interface KetQuaPhanh {
+export interface BrakeResult {
   moDuoc: boolean;
   /** Câu nói cho người: cửa sổ nào, bao nhiêu %, chờ tới bao giờ. */
-  lyDo: string;
+  reason: string;
 }
 
 const CU_SAU_GIO = 3;
 
-function phanTram(w: BeeClaudeWindow | null): number {
+function percentOf(w: BeeClaudeWindow | null): number {
   return w === null ? 0 : w.percent;
 }
 
 /** "2026-08-24T16:20:00Z" + bây giờ → "reset lúc 16:20 (còn 1h20)". */
-function moTaReset(w: BeeClaudeWindow | null, luc: Date): string {
+function describeReset(w: BeeClaudeWindow | null, luc: Date): string {
   if (w?.resets_at == null) return "";
   const t = new Date(w.resets_at);
   if (Number.isNaN(t.getTime())) return "";
@@ -36,19 +36,19 @@ function moTaReset(w: BeeClaudeWindow | null, luc: Date): string {
   return `, resets at ${t.toISOString().slice(11, 16)} (in ${con})`;
 }
 
-export function xetHanMuc(
+export function checkQuota(
   usage: BeeClaudeAccountUsage | null,
   opts: { nguong: number; luc?: Date },
-): KetQuaPhanh {
+): BrakeResult {
   const luc = opts.luc ?? new Date();
   // Ngưỡng 0 = tắt phanh. Cửa thoát phải tường minh, không phải tác dụng phụ.
-  if (opts.nguong <= 0) return { moDuoc: true, lyDo: "the brake is off (threshold 0)" };
+  if (opts.nguong <= 0) return { moDuoc: true, reason: "the brake is off (threshold 0)" };
   if (usage === null) {
-    return { moDuoc: true, lyDo: "quota has never been measured — opening, but flying blind" };
+    return { moDuoc: true, reason: "quota has never been measured — opening, but flying blind" };
   }
 
-  const nam = phanTram(usage.five_hour);
-  const bay = phanTram(usage.seven_day);
+  const nam = percentOf(usage.five_hour);
+  const bay = percentOf(usage.seven_day);
   const qua =
     nam > opts.nguong
       ? { ten: "5h", pct: nam, w: usage.five_hour }
@@ -62,14 +62,14 @@ export function xetHanMuc(
   if (qua !== null) {
     return {
       moDuoc: false,
-      lyDo: `${qua.ten} quota is at ${qua.pct}% (threshold ${opts.nguong}%)${moTaReset(qua.w, luc)}`,
+      reason: `${qua.ten} quota is at ${qua.pct}% (threshold ${opts.nguong}%)${describeReset(qua.w, luc)}`,
     };
   }
   if (cu) {
     return {
       moDuoc: true,
-      lyDo: `quota numbers are ${Math.round(tuoiGio)}h old — is tick running? Opening, but the brake cannot be trusted`,
+      reason: `quota numbers are ${Math.round(tuoiGio)}h old — is tick running? Opening, but the brake cannot be trusted`,
     };
   }
-  return { moDuoc: true, lyDo: `quota 5h ${nam}% · 7-day ${bay}%` };
+  return { moDuoc: true, reason: `quota 5h ${nam}% · 7-day ${bay}%` };
 }

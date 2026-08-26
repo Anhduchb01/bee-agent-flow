@@ -61,10 +61,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const running = sessions.filter((s) => s.status === "running").length;
 
   const duAn: DuAnTrongSidebar[] = repos.map((r) => {
-    const dangChay = sessions.filter(
+    const running = sessions.filter(
       (s) => s.slug === r.slug && s.status === "running",
     ).length;
-    return { slug: r.slug, dangChay, tone: dangChay > 0 ? "agent" : "ok" };
+    return { slug: r.slug, running, tone: running > 0 ? "agent" : "ok" };
   });
 
   return (

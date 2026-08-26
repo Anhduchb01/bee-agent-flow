@@ -36,9 +36,9 @@ export function NewProjectDialog({ trigger }: { trigger: React.ReactElement }) {
   const [repo, setRepo] = useState("");
   const [slug, setSlug] = useState<string | null>(null);
   const [loi, setLoi] = useState("");
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
-  function dong() {
+  function line() {
     setMo(false);
     // Reset only on the way out — reopening starts clean, but a failed
     // attempt keeps what was typed.
@@ -52,7 +52,7 @@ export function NewProjectDialog({ trigger }: { trigger: React.ReactElement }) {
 
   function them() {
     if (dang || repo.trim() === "") return;
-    batDau(async () => {
+    start(async () => {
       const ket = await registerRepoAction(repo.trim());
       if (ket.ok && ket.slug !== undefined) {
         setSlug(ket.slug);
@@ -65,7 +65,7 @@ export function NewProjectDialog({ trigger }: { trigger: React.ReactElement }) {
   }
 
   return (
-    <Dialog open={mo} onOpenChange={(v: boolean) => (v ? setMo(true) : dong())}>
+    <Dialog open={mo} onOpenChange={(v: boolean) => (v ? setMo(true) : line())}>
       <DialogTrigger render={trigger} />
       <DialogContent className="max-w-lg">
         <DialogHeader>
@@ -109,7 +109,7 @@ export function NewProjectDialog({ trigger }: { trigger: React.ReactElement }) {
               fence that makes the whole model safe. <code>doctor</code> checks it.
             </p>
             <DialogFooter>
-              <Button variant="outline" onClick={dong}>
+              <Button variant="outline" onClick={line}>
                 Done
               </Button>
             </DialogFooter>

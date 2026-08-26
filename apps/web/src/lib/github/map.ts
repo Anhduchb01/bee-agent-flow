@@ -41,7 +41,7 @@ export interface ApiIssue {
   updated_at?: string;
   html_url?: string;
   state?: string;
-  /** Chỉ có mặt khi mục này thực ra là một pull request. Xem `laPullRequest`. */
+  /** Chỉ có mặt khi mục này thực ra là một pull request. Xem `isPullRequest`. */
   pull_request?: unknown;
 }
 
@@ -110,7 +110,7 @@ export function mapLabels(raw: ApiIssue["labels"]): GhLabel[] {
  * không bằng giá trị: nó là một object, và một object rỗng vẫn falsy-an-toàn
  * theo cách khác với `undefined`.
  */
-export function laPullRequest(raw: ApiIssue): boolean {
+export function isPullRequest(raw: ApiIssue): boolean {
   return raw != null && "pull_request" in raw;
 }
 
@@ -253,7 +253,7 @@ export function mapComment(raw: ApiComment, kind: GhComment["kind"]): GhComment 
 //   author      có thể là null   (tài khoản đã xoá)
 //
 // MỘT KHÁC BIỆT ĐÁNG GIÁ: `issues` của GraphQL KHÔNG lẫn pull request. Cái bẫy
-// lớn nhất của `GET /issues` biến mất — nhưng `laPullRequest` vẫn ở lại, vì
+// lớn nhất của `GET /issues` biến mất — nhưng `isPullRequest` vẫn ở lại, vì
 // đường ghi và mọi thứ đọc qua REST vẫn cần nó.
 // ---------------------------------------------------------------------------
 

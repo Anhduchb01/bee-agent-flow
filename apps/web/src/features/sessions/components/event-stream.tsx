@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import { ghepThe, type Muc } from "../lib/ghep-the";
-import type { SuKien } from "../lib/parse-events";
+import { pairToolCards, type Muc } from "../lib/pair-tool-cards";
+import type { StreamEvent } from "../lib/parse-events";
 
 /**
  * Dòng sự kiện theo ngôn ngữ hình ảnh của Claude Code trong VSCode (dark là
  * mặc định của app): mỗi tool là một mục "● Tên  tóm-tắt-mờ" mở ra panel —
  * Bash thành khối IN/OUT, Edit/Write thành khối diff đỏ/xanh, lỗi tự mở.
- * Ghép cặp nằm ở ghep-the.ts; đây chỉ là trình bày.
+ * Ghép cặp nằm ở pair-tool-cards.ts; đây chỉ là trình bày.
  */
 
 /**
@@ -71,38 +71,38 @@ function NhipChay() {
 }
 
 export function EventStream({
-  suKien,
-  dangGo,
-  dangNghi = "",
+  events,
+  typing,
+  idle = "",
   dangCho = false,
   onTraLoiQuyen,
 }: {
-  suKien: SuKien[];
-  dangGo: string;
-  dangNghi?: string;
+  events: StreamEvent[];
+  typing: string;
+  idle?: string;
   /** Busy but nothing streaming yet — show the shimmer line. */
   dangCho?: boolean;
   /** Manual mode (V2.5b): answer an approval card. Absent = read-only view. */
   onTraLoiQuyen?: (requestId: string, choPhep: boolean, inputJson: string) => void;
 }) {
-  const muc = useMemo(() => ghepThe(suKien), [suKien]);
+  const muc = useMemo(() => pairToolCards(events), [events]);
 
   return (
     <div role="log" aria-label="Session events" className="flex flex-col gap-4">
       {muc.map((m, i) => (
         <MotMuc key={i} m={m} onTraLoiQuyen={onTraLoiQuyen} />
       ))}
-      {dangNghi !== "" && (
+      {idle !== "" && (
         <p
           aria-label="Agent is thinking"
           className="whitespace-pre-wrap text-sm text-muted-foreground italic"
         >
-          {dangNghi}
+          {idle}
         </p>
       )}
-      {dangGo !== "" && (
+      {typing !== "" && (
         <div aria-label="Agent is typing">
-          <ChuAgent text={dangGo} />
+          <ChuAgent text={typing} />
           <span className="animate-pulse">▍</span>
         </div>
       )}
@@ -239,7 +239,7 @@ function MotMuc({
       // Dữ liệu đã mất thật, không phải "xem sau sẽ có" — nói thẳng.
       return (
         <p className="rounded-control border border-dashed border-border px-3 py-1.5 font-mono text-xs text-muted-foreground">
-          ✂ {m.boQua} dòng đầu phiên đã bị cắt để giữ trần đĩa — phần đó không còn nữa.
+          ✂ {m.skipped} dòng đầu phiên đã bị cắt để giữ trần đĩa — phần đó không còn nữa.
         </p>
       );
     case "compact":
@@ -261,9 +261,9 @@ function TheTool({ m }: { m: Extract<Muc, { loai: "tool-card" }> }) {
   const soDong = demDong(m);
 
   return (
-    <details className="group" open={m.trangThai === "loi"}>
+    <details className="group" open={m.status === "loi"}>
       <summary className="flex cursor-pointer list-none items-baseline gap-2">
-        <ChamTrangThai trangThai={m.trangThai} />
+        <ChamTrangThai status={m.status} />
         <span className="text-sm font-semibold text-body">{m.ten}</span>
         <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
           {tomTat}
@@ -323,10 +323,10 @@ function KhoiDiff({ dau, text }: { dau: "+" | "-"; text: string }) {
       : "bg-red-950/50 text-red-300";
   return (
     <div className={mau}>
-      {text.split("\n").map((dong, i) => (
+      {text.split("\n").map((line, i) => (
         <div key={i} className="flex">
           <span className="w-6 shrink-0 select-none pl-1.5 opacity-60">{dau}</span>
-          <span className="whitespace-pre-wrap break-all pr-2">{dong}</span>
+          <span className="whitespace-pre-wrap break-all pr-2">{line}</span>
         </div>
       ))}
     </div>
@@ -354,15 +354,15 @@ function demDong(m: Extract<Muc, { loai: "tool-card" }>): string | null {
   return phan.join(" ");
 }
 
-function ChamTrangThai({ trangThai }: { trangThai: "dang-chay" | "xong" | "loi" }) {
-  if (trangThai === "dang-chay") {
+function ChamTrangThai({ status }: { status: "dang-chay" | "xong" | "loi" }) {
+  if (status === "dang-chay") {
     return (
       <span className="animate-pulse text-amber-500" aria-label="running">
         ●
       </span>
     );
   }
-  if (trangThai === "loi") {
+  if (status === "loi") {
     return (
       <span className="text-destructive" aria-label="failed">
         ●

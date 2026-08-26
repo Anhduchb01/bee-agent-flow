@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getActor } from "@/lib/auth";
 import { fetchClaudeAccountUsage, harvestClaudeUsage, stopPreview } from "@/lib/bee/machine-ctl";
 
-export interface KetQua {
+export interface Result {
   ok: boolean;
   message: string;
 }
@@ -16,7 +16,7 @@ export interface KetQua {
  * harvest (tokens/cost of what ran here). A failing endpoint does not
  * block the local half — each reports its own truth.
  */
-export async function refreshUsageAction(): Promise<KetQua> {
+export async function refreshUsageAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: "You are not allowed to do this." };
 
@@ -27,7 +27,7 @@ export async function refreshUsageAction(): Promise<KetQua> {
 }
 
 /** Stop a live preview (V2.3) — validation lives in stopPreview. */
-export async function stopPreviewAction(unit: string, port: number): Promise<KetQua> {
+export async function stopPreviewAction(unit: string, port: number): Promise<Result> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: "You are not allowed to do this." };
   const ket = await stopPreview(unit, port);

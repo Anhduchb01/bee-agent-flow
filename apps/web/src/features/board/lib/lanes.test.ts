@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { BeeIssue } from "@/lib/bee/issues";
 import type { BeeArtifact, BeeSession } from "@/lib/bee/types";
 
-import { ghepBang, locTheoDuAn, nhomTheoLane, xepLane } from "./lanes";
+import { buildBoard, filterByProject, groupByLane, laneOf } from "./lanes";
 
 const REPOS = [
   { slug: "myapp", repo: "you/myapp" },
@@ -57,34 +57,34 @@ const artPr = (n: number): BeeArtifact => ({
   title: null,
 });
 
-describe("xepLane — the lanes are the bee lifecycle", () => {
+describe("laneOf — the lanes are the bee lifecycle", () => {
   it("closed on GitHub wins over everything else", () => {
     const p = [{ id: "a", title: null, branch: "bee/myapp-1", status: "running" as const, needs_human: false }];
-    expect(xepLane(issue(1, "CLOSED"), p, [artPr(9)])).toBe("done");
+    expect(laneOf(issue(1, "CLOSED"), p, [artPr(9)])).toBe("done");
   });
 
   it("a running session means working; a starting one counts too", () => {
     const chay = [{ id: "a", title: null, branch: "bee/myapp-1", status: "running" as const, needs_human: false }];
-    const batDau = [{ id: "a", title: null, branch: "bee/myapp-1", status: "starting" as const, needs_human: false }];
-    expect(xepLane(issue(1), chay, [])).toBe("working");
-    expect(xepLane(issue(1), batDau, [])).toBe("working");
+    const start = [{ id: "a", title: null, branch: "bee/myapp-1", status: "starting" as const, needs_human: false }];
+    expect(laneOf(issue(1), chay, [])).toBe("working");
+    expect(laneOf(issue(1), start, [])).toBe("working");
   });
 
   it("a PR with no running session means the ball is with the owner", () => {
     const xong = [{ id: "a", title: null, branch: "bee/myapp-1", status: "done" as const, needs_human: false }];
-    expect(xepLane(issue(1), xong, [artPr(9)])).toBe("review");
+    expect(laneOf(issue(1), xong, [artPr(9)])).toBe("review");
   });
 
   it("a finished session that produced nothing falls back to backlog", () => {
     const hong = [{ id: "a", title: null, branch: "bee/myapp-1", status: "failed" as const, needs_human: true }];
-    expect(xepLane(issue(1), hong, [])).toBe("backlog");
-    expect(xepLane(issue(1), [], [])).toBe("backlog");
+    expect(laneOf(issue(1), hong, [])).toBe("backlog");
+    expect(laneOf(issue(1), [], [])).toBe("backlog");
   });
 });
 
-describe("ghepBang — the issue↔session link GitHub cannot know", () => {
+describe("buildBoard — the issue↔session link GitHub cannot know", () => {
   it("attaches sessions by the issue number their run.jsonl logged", () => {
-    const muc = ghepBang(
+    const muc = buildBoard(
       REPOS,
       { "you/myapp": [issue(41), issue(39)], "you/blog": [] },
       [phien("s1"), phien("s2", { num: 2, status: "done" })],
@@ -101,7 +101,7 @@ describe("ghepBang — the issue↔session link GitHub cannot know", () => {
   });
 
   it("never attaches a session from another repo, even on the same number", () => {
-    const muc = ghepBang(
+    const muc = buildBoard(
       REPOS,
       { "you/myapp": [issue(7)], "you/blog": [{ ...issue(7), url: "https://github.com/you/blog/issues/7" }] },
       [phien("s1", { repo: "you/blog", slug: "blog" })],
@@ -112,15 +112,15 @@ describe("ghepBang — the issue↔session link GitHub cannot know", () => {
   });
 
   it("an issue nothing touched still appears — that IS the backlog", () => {
-    const muc = ghepBang(REPOS, { "you/myapp": [issue(5)], "you/blog": [] }, [], {});
+    const muc = buildBoard(REPOS, { "you/myapp": [issue(5)], "you/blog": [] }, [], {});
     expect(muc).toHaveLength(1);
     expect(muc[0]?.lane).toBe("backlog");
     expect(muc[0]?.phien).toEqual([]);
   });
 });
 
-describe("locTheoDuAn / nhomTheoLane", () => {
-  const muc = ghepBang(
+describe("filterByProject / groupByLane", () => {
+  const muc = buildBoard(
     REPOS,
     {
       "you/myapp": [issue(41), issue(40, "CLOSED")],
@@ -131,13 +131,13 @@ describe("locTheoDuAn / nhomTheoLane", () => {
   );
 
   it("filters to one project, and an unknown slug shows nothing rather than everything", () => {
-    expect(locTheoDuAn(muc, "blog").map((m) => m.issue.number)).toEqual([7]);
-    expect(locTheoDuAn(muc, null)).toHaveLength(3);
-    expect(locTheoDuAn(muc, "khong-co")).toEqual([]);
+    expect(filterByProject(muc, "blog").map((m) => m.issue.number)).toEqual([7]);
+    expect(filterByProject(muc, null)).toHaveLength(3);
+    expect(filterByProject(muc, "khong-co")).toEqual([]);
   });
 
   it("groups into the five lanes with empty ones kept", () => {
-    const nhom = nhomTheoLane(muc);
+    const nhom = groupByLane(muc);
     expect(nhom.working.map((m) => m.issue.number)).toEqual([41]);
     expect(nhom.done.map((m) => m.issue.number)).toEqual([40]);
     expect(nhom.review).toEqual([]);

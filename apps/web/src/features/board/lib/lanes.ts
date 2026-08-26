@@ -1,5 +1,5 @@
 import type { BeeIssue } from "@/lib/bee/issues";
-import type { BeeArtifact, BeeSession, HangDoi, ViecTrongHang } from "@/lib/bee/types";
+import type { BeeArtifact, BeeSession, Queue, QueueItem } from "@/lib/bee/types";
 
 /**
  * Pure board logic: which session is working on which issue, and which lane
@@ -8,10 +8,10 @@ import type { BeeArtifact, BeeSession, HangDoi, ViecTrongHang } from "@/lib/bee/
  */
 
 /** The four lanes ARE the bee lifecycle, not a generic todo board. */
-export const CAC_LANE = ["backlog", "autopilot", "working", "review", "done"] as const;
-export type Lane = (typeof CAC_LANE)[number];
+export const LANES = ["backlog", "autopilot", "working", "review", "done"] as const;
+export type Lane = (typeof LANES)[number];
 
-export const NHAN_LANE: Record<Lane, string> = {
+export const LANE_LABEL: Record<Lane, string> = {
   backlog: "Backlog",
   autopilot: "Autopilot",
   working: "In session",
@@ -19,7 +19,7 @@ export const NHAN_LANE: Record<Lane, string> = {
   done: "Done",
 };
 
-export const MOTA_LANE: Record<Lane, string> = {
+export const LANE_HINT: Record<Lane, string> = {
   backlog: "No session has picked it up",
   autopilot: "Queued — bee opens these in order",
   working: "A session is running on it",
@@ -28,7 +28,7 @@ export const MOTA_LANE: Record<Lane, string> = {
 };
 
 /** One session that touched an issue — enough to render a row, no more. */
-export interface PhienCuaIssue {
+export interface IssueSession {
   id: string;
   title: string | null;
   branch: string;
@@ -36,21 +36,21 @@ export interface PhienCuaIssue {
   needs_human: boolean;
 }
 
-export interface MucBang {
+export interface BoardRow {
   issue: BeeIssue;
   /** Registered repo the issue belongs to. */
   slug: string;
   repo: string;
   /** Sessions that logged this issue, newest first. */
-  phien: PhienCuaIssue[];
+  phien: IssueSession[];
   /** PRs opened by those sessions — the "in review" signal. */
   pr: BeeArtifact[];
   /** Mục trong hàng đợi Autopilot, `null` = chưa xếp hàng. */
-  hangDoi: ViecTrongHang | null;
+  queue: QueueItem | null;
   lane: Lane;
 }
 
-function laPhien(p: BeeSession): PhienCuaIssue {
+function laPhien(p: BeeSession): IssueSession {
   return {
     id: p.id,
     title: p.title,
@@ -71,9 +71,9 @@ function laPhien(p: BeeSession): PhienCuaIssue {
  * A finished session with no PR deliberately falls back to backlog: nothing
  * came out of it, so the issue really is unstarted work again.
  */
-export function xepLane(
+export function laneOf(
   issue: BeeIssue,
-  phien: PhienCuaIssue[],
+  phien: IssueSession[],
   pr: BeeArtifact[],
   daXepHang = false,
 ): Lane {
@@ -93,10 +93,10 @@ export function xepLane(
  * thả vào "Done" không đóng issue trên GitHub. Cho kéo vào đó là dạy người
  * dùng một lời nói dối, nên thả sai bị từ chối kèm lý do.
  */
-export function laThaHopLe(tu: Lane, den: Lane): { ok: boolean; lyDo: string } {
-  if (tu === den) return { ok: true, lyDo: "" };
+export function isDropAllowed(tu: Lane, den: Lane): { ok: boolean; reason: string } {
+  if (tu === den) return { ok: true, reason: "" };
   const duoc = new Set<Lane>(["backlog", "autopilot"]);
-  if (duoc.has(tu) && duoc.has(den)) return { ok: true, lyDo: "" };
+  if (duoc.has(tu) && duoc.has(den)) return { ok: true, reason: "" };
   const vi: Record<Lane, string> = {
     backlog: "",
     autopilot: "",
@@ -104,7 +104,7 @@ export function laThaHopLe(tu: Lane, den: Lane): { ok: boolean; lyDo: string } {
     review: "this lane is decided by the PR, not by dragging",
     done: "an issue reaches Done by being closed on GitHub",
   };
-  return { ok: false, lyDo: vi[den] !== "" ? vi[den] : vi[tu] };
+  return { ok: false, reason: vi[den] !== "" ? vi[den] : vi[tu] };
 }
 
 /**
@@ -112,14 +112,14 @@ export function laThaHopLe(tu: Lane, den: Lane): { ok: boolean; lyDo: string } {
  * `bee_artifact` lines in run.jsonl — GitHub cannot know it, and it is the
  * one thing this board adds on top of GitHub's own issue list.
  */
-export function ghepBang(
+export function buildBoard(
   repos: { slug: string; repo: string }[],
-  issuesTheoRepo: Record<string, BeeIssue[]>,
+  issuesByRepo: Record<string, BeeIssue[]>,
   phien: BeeSession[],
-  artifactsTheoPhien: Record<string, BeeArtifact[]>,
-  hangDoi: HangDoi = { items: [], paused: false },
-): MucBang[] {
-  const ra: MucBang[] = [];
+  artifactsBySession: Record<string, BeeArtifact[]>,
+  queue: Queue = { items: [], paused: false },
+): BoardRow[] {
+  const ra: BoardRow[] = [];
 
   for (const { slug, repo } of repos) {
     // Sessions of this repo, newest first — the order rows inherit.
@@ -127,17 +127,17 @@ export function ghepBang(
       .filter((p) => p.repo === repo)
       .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
 
-    for (const issue of issuesTheoRepo[repo] ?? []) {
+    for (const issue of issuesByRepo[repo] ?? []) {
       const lienQuan = phienCuaRepo.filter((p) =>
-        (artifactsTheoPhien[p.id] ?? []).some(
+        (artifactsBySession[p.id] ?? []).some(
           (a) => a.kind === "issue" && a.number === issue.number,
         ),
       );
       const pr = lienQuan.flatMap((p) =>
-        (artifactsTheoPhien[p.id] ?? []).filter((a) => a.kind === "pr"),
+        (artifactsBySession[p.id] ?? []).filter((a) => a.kind === "pr"),
       );
       const dsPhien = lienQuan.map(laPhien);
-      const trongHang = hangDoi.items.find(
+      const trongHang = queue.items.find(
         (v) => v.repo === repo && v.issue === issue.number,
       );
       ra.push({
@@ -146,8 +146,8 @@ export function ghepBang(
         repo,
         phien: dsPhien,
         pr,
-        hangDoi: trongHang ?? null,
-        lane: xepLane(issue, dsPhien, pr, trongHang?.status === "waiting"),
+        queue: trongHang ?? null,
+        lane: laneOf(issue, dsPhien, pr, trongHang?.status === "waiting"),
       });
     }
   }
@@ -156,12 +156,12 @@ export function ghepBang(
 }
 
 /** `p` from the URL. An unknown slug filters to nothing — better than lying by showing everything. */
-export function locTheoDuAn(muc: MucBang[], slug: string | null): MucBang[] {
+export function filterByProject(muc: BoardRow[], slug: string | null): BoardRow[] {
   return slug === null ? muc : muc.filter((m) => m.slug === slug);
 }
 
-export function nhomTheoLane(muc: MucBang[]): Record<Lane, MucBang[]> {
-  const ra = { backlog: [], autopilot: [], working: [], review: [], done: [] } as Record<Lane, MucBang[]>;
+export function groupByLane(muc: BoardRow[]): Record<Lane, BoardRow[]> {
+  const ra = { backlog: [], autopilot: [], working: [], review: [], done: [] } as Record<Lane, BoardRow[]>;
   for (const m of muc) ra[m.lane].push(m);
   return ra;
 }

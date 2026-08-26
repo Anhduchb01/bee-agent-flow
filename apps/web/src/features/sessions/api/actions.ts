@@ -6,46 +6,46 @@ import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
 import path from "node:path";
 
-import { fetchArtifactDetail, type KetQuaArtifact } from "@/lib/bee/artifact-detail";
+import { fetchArtifactDetail, type ArtifactResult } from "@/lib/bee/artifact-detail";
 import { expandCommandText } from "@/lib/bee/doctor-fs";
 import {
-  doiModelPhien,
-  doiModePhien,
-  dungPhien,
-  moPhien,
-  noiVaoPhien,
+  changeSessionModel,
+  changeSessionMode,
+  stopSession,
+  openSession,
+  sendToSession,
   saveUploadToSession,
-  tiepTucPhien,
-  traLoiQuyen,
+  continueSession,
+  answerPermission,
 } from "@/lib/bee/session-ctl";
 import type {
-  BeeEvidenceTepTin,
+  BeeEvidenceFile,
   BeeSession,
   BeeSessionMode,
   BeeSessionModel,
 } from "@/lib/bee/types";
 
-export type KetQuaMoPhien =
+export type OpenSessionResult =
   | { ok: true; id: string; phien: BeeSession | null }
   | { ok: false; message: string };
-export interface KetQua {
+export interface Result {
   ok: boolean;
   message: string;
 }
 
-const KHONG_QUYEN: KetQua = { ok: false, message: "You are not allowed to do this." };
+const KHONG_QUYEN: Result = { ok: false, message: "You are not allowed to do this." };
 
 /**
  * "New session" — một nút, không form 5 mục. slug suy từ tên repo, num là
  * số phiên tiếp theo của slug đó (chỉ để đặt tên branch bee/<slug>-<n>,
  * không phải khoá — khoá là UUID).
  */
-export async function batDauPhien(input: {
+export async function startSessionAction(input: {
   /** Slug của repo ĐÃ ĐĂNG KÝ, hoặc `null` = phiên chat không repo. */
   repoSlug: string | null;
   /** Permission mode (V2.5a) — mặc định "auto"; phiên chat bỏ qua. */
   mode?: BeeSessionMode;
-}): Promise<KetQuaMoPhien> {
+}): Promise<OpenSessionResult> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: KHONG_QUYEN.message };
 
@@ -66,7 +66,7 @@ export async function batDauPhien(input: {
   const daCo = await getBee().listSessions();
   const num = daCo.filter((p) => p.slug === slug).length + 1;
 
-  const ket = await moPhien({
+  const ket = await openSession({
     slug,
     num,
     repo,
@@ -85,7 +85,7 @@ export async function batDauPhien(input: {
   return { ok: true, id: ket.id, phien };
 }
 
-export async function guiVaoPhien(id: string, text: string): Promise<KetQua> {
+export async function sendToSessionAction(id: string, text: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   // "/build args" expands to the command file's body REPL-style; the
@@ -94,7 +94,7 @@ export async function guiVaoPhien(id: string, text: string): Promise<KetQua> {
     path.join(process.env.HOME ?? "", ".claude", "commands"),
     text.trim(),
   );
-  const ket = await noiVaoPhien(id, moRong, text);
+  const ket = await sendToSession(id, moRong, text);
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
@@ -106,7 +106,7 @@ export async function guiVaoPhien(id: string, text: string): Promise<KetQua> {
 export async function uploadFileAction(
   id: string,
   formData: FormData,
-): Promise<KetQua & { relPath?: string }> {
+): Promise<Result & { relPath?: string }> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const file = formData.get("file");
@@ -117,56 +117,56 @@ export async function uploadFileAction(
     : { ok: false, message: ket.message };
 }
 
-export async function dungPhienAction(id: string): Promise<KetQua> {
+export async function stopSessionAction(id: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await dungPhien(id);
+  const ket = await stopSession(id);
   revalidatePath("/sessions");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
-/** Answer a manual-mode approval card (V2.5b) — validation in traLoiQuyen. */
+/** Answer a manual-mode approval card (V2.5b) — validation in answerPermission. */
 export async function traLoiQuyenAction(
   id: string,
   requestId: string,
   choPhep: boolean,
   inputJson: string,
-): Promise<KetQua> {
+): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await traLoiQuyen(id, requestId, choPhep, inputJson);
+  const ket = await answerPermission(id, requestId, choPhep, inputJson);
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
 /** Continue a finished/stopped session (V2.6) — start = resume, idempotent. */
-export async function tiepTucAction(id: string): Promise<KetQua> {
+export async function tiepTucAction(id: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await tiepTucPhien(id);
+  const ket = await continueSession(id);
   revalidatePath("/sessions");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
 /**
  * Mode switch mid-session (V2.5a): validation + restart-resume live in
- * doiModePhien; here only the auth guard and cache revalidation.
+ * changeSessionMode; here only the auth guard and cache revalidation.
  */
-export async function doiModeAction(id: string, mode: BeeSessionMode): Promise<KetQua> {
+export async function changeModeAction(id: string, mode: BeeSessionMode): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await doiModePhien(id, mode);
+  const ket = await changeSessionMode(id, mode);
   revalidatePath("/sessions");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
 /**
  * Model switch mid-session (V2.7) — allowlist + restart-resume live in
- * doiModelPhien; here only the auth guard and cache revalidation.
+ * changeSessionModel; here only the auth guard and cache revalidation.
  */
-export async function doiModelAction(id: string, model: BeeSessionModel): Promise<KetQua> {
+export async function changeModelAction(id: string, model: BeeSessionModel): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await doiModelPhien(id, model);
+  const ket = await changeSessionModel(id, model);
   revalidatePath("/sessions");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
@@ -180,7 +180,7 @@ export async function loadArtifactDetailAction(
   repo: string,
   kind: "issue" | "pr",
   number: number,
-): Promise<KetQuaArtifact> {
+): Promise<ArtifactResult> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: KHONG_QUYEN.message };
   return fetchArtifactDetail(repo, kind, number);
@@ -191,7 +191,7 @@ export async function loadArtifactEvidenceAction(
   repo: string,
   kind: "issue" | "pr",
   number: number,
-): Promise<{ sessionId: string; files: BeeEvidenceTepTin[] } | null> {
+): Promise<{ sessionId: string; files: BeeEvidenceFile[] } | null> {
   const actor = await getActor();
   if (!actor) return null;
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return null;

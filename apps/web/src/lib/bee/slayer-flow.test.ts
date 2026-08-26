@@ -85,9 +85,9 @@ async function coScript(): Promise<boolean> {
 describe("thêm tài khoản Claude qua tok add --login", () => {
   it("trả link duyệt nguyên vẹn, rồi mã dài vẫn gửi đi được", async () => {
     if (!(await coScript())) return;
-    const { batDauThemSlot, xongThemSlot } = await import("./slayer-ctl");
+    const { startAddSlot, xongThemSlot } = await import("./slayer-ctl");
 
-    const link = await batDauThemSlot("personal");
+    const link = await startAddSlot("personal");
     expect(link.ok).toBe(true);
     if (!link.ok) return;
     expect(link.url).toMatch(/^https:\/\/claude\.com\/cai\/oauth\/authorize\?code=true&client_id=9d1c250a&state=s+$/);
@@ -97,17 +97,17 @@ describe("thêm tài khoản Claude qua tok add --login", () => {
 
   it("mã bị từ chối → chính lời của tok, không phải 'hết giờ'", async () => {
     if (!(await coScript())) return;
-    const { batDauThemSlot, xongThemSlot } = await import("./slayer-ctl");
+    const { startAddSlot, xongThemSlot } = await import("./slayer-ctl");
 
-    expect((await batDauThemSlot("personal")).ok).toBe(true);
+    expect((await startAddSlot("personal")).ok).toBe(true);
     const ket = await xongThemSlot(`MASAI${MA_THAT}`);
     expect(ket.ok).toBe(false);
     if (!ket.ok) expect(ket.message).toMatch(/OAuth error: Request failed with status code 400/);
   }, 30_000);
 
   it("tên slot bậy bị chặn TRƯỚC khi có tiến trình nào được sinh ra", async () => {
-    const { batDauThemSlot } = await import("./slayer-ctl");
-    const ket = await batDauThemSlot("personal; rm -rf /");
+    const { startAddSlot } = await import("./slayer-ctl");
+    const ket = await startAddSlot("personal; rm -rf /");
     expect(ket.ok).toBe(false);
     if (!ket.ok) expect(ket.message).toMatch(/Tên slot/);
   });
@@ -122,8 +122,8 @@ describe("thêm tài khoản Claude qua tok add --login", () => {
 
 describe("đổi tài khoản — luật 'không đổi khi đang chạy' nằm ở lớp dưới", () => {
   it("còn phiên chạy thì từ chối, và nói RÕ vì sao", async () => {
-    const { doiSlot } = await import("./slayer-ctl");
-    const ket = await doiSlot("work", 2);
+    const { switchSlot } = await import("./slayer-ctl");
+    const ket = await switchSlot("work", 2);
     expect(ket.ok).toBe(false);
     if (!ket.ok) {
       expect(ket.message).toMatch(/Còn 2 phiên đang chạy/);
@@ -132,9 +132,9 @@ describe("đổi tài khoản — luật 'không đổi khi đang chạy' nằm 
   });
 
   it("không phiên nào chạy thì đổi, và mục tiêu bậy vẫn bị chặn", async () => {
-    const { doiSlot } = await import("./slayer-ctl");
-    expect(await doiSlot("work", 0)).toEqual({ ok: true });
-    const xau = await doiSlot("$(id)", 0);
+    const { switchSlot } = await import("./slayer-ctl");
+    expect(await switchSlot("work", 0)).toEqual({ ok: true });
+    const xau = await switchSlot("$(id)", 0);
     expect(xau.ok).toBe(false);
   });
 });

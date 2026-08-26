@@ -17,7 +17,7 @@ import {
   type GqlIssue,
   type GqlPull,
 } from "./map";
-import { chuanHoa, docRepos, ghiRepos } from "./repos-store";
+import { normalise, readRepos, writeRepos } from "./repos-store";
 import type { Actor, GhComment, GhLabel, GhRepo, GhTask, GithubSource, NewTaskInput } from "./types";
 
 /**
@@ -68,7 +68,7 @@ function neuTokenHong(e: unknown): never {
 const docTatCa = cache(async (): Promise<GhTask[]> => {
   try {
     const token = await tokenCuaNguoiXem();
-    const repos = await docRepos();
+    const repos = await readRepos();
     const theoRepo = await Promise.all(repos.map((r) => docRepo(token, r)));
     return theoRepo.flat();
   } catch (e) {
@@ -182,12 +182,12 @@ async function docLai(slug: string, num: number): Promise<GhTask> {
 export function createLiveGithubSource(): GithubSource {
   return {
     async listRepos(): Promise<GhRepo[]> {
-      return docRepos();
+      return readRepos();
     },
 
     async addRepo(full: string, actor: Actor): Promise<GhRepo> {
-      const { full: sach, slug } = chuanHoa(full);
-      const repos = await docRepos();
+      const { full: sach, slug } = normalise(full);
+      const repos = await readRepos();
       if (repos.some((r) => r.slug === slug)) {
         throw new Error(`A project named ${slug} already exists.`);
       }
@@ -198,7 +198,7 @@ export function createLiveGithubSource(): GithubSource {
       await ghGet<unknown>(actor.token, `/repos/${sach}`);
 
       const repo: GhRepo = { slug, full: sach };
-      await ghiRepos([...repos, repo].sort((a, b) => a.slug.localeCompare(b.slug)));
+      await writeRepos([...repos, repo].sort((a, b) => a.slug.localeCompare(b.slug)));
       return repo;
     },
 
@@ -210,7 +210,7 @@ export function createLiveGithubSource(): GithubSource {
 
     async listTimeline(slug, num): Promise<GhComment[]> {
       const token = await tokenCuaNguoiXem();
-      const repo = repoCua(await docRepos(), slug);
+      const repo = repoCua(await readRepos(), slug);
       const task = await this.getTask(slug, num);
 
       const [issueCmts, reviewCmts] = await Promise.all([
@@ -232,7 +232,7 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async createTask(input: NewTaskInput, actor: Actor): Promise<GhTask> {
-      const repo = repoCua(await docRepos(), input.slug);
+      const repo = repoCua(await readRepos(), input.slug);
       const body = [
         "### Goal",
         "",
@@ -266,7 +266,7 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async addComment(slug, num, body, actor): Promise<GhComment> {
-      const repo = repoCua(await docRepos(), slug);
+      const repo = repoCua(await readRepos(), slug);
       const c = await ghSend<ApiComment>(
         actor.token,
         "POST",
@@ -277,7 +277,7 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async addLabel(slug, num, label: GhLabel, actor): Promise<GhTask> {
-      const repo = repoCua(await docRepos(), slug);
+      const repo = repoCua(await readRepos(), slug);
       await ghSend<unknown>(actor.token, "POST", `/repos/${repo.full}/issues/${num}/labels`, {
         labels: [label],
       });
@@ -285,7 +285,7 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async removeLabel(slug, num, label: GhLabel, actor): Promise<GhTask> {
-      const repo = repoCua(await docRepos(), slug);
+      const repo = repoCua(await readRepos(), slug);
       try {
         await ghSend<unknown>(
           actor.token,
@@ -303,7 +303,7 @@ export function createLiveGithubSource(): GithubSource {
 
     /** Approve PR. **Không có merge** — merge chỉ xảy ra trên GitHub, do người làm. */
     async approve(slug, num, actor): Promise<GhTask> {
-      const repo = repoCua(await docRepos(), slug);
+      const repo = repoCua(await readRepos(), slug);
       const task = await this.getTask(slug, num);
       if (!task?.pull) throw new Error(`${slug}#${num} has no PR to approve.`);
 

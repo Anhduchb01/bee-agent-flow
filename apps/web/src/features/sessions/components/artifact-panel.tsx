@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 import { loadArtifactDetailAction, loadArtifactEvidenceAction } from "../api/actions";
 import type { BeeArtifactDetail } from "@/lib/bee/artifact-detail";
-import type { BeeEvidenceTepTin } from "@/lib/bee/types";
+import type { BeeEvidenceFile } from "@/lib/bee/types";
 
 /**
  * Issue/PR detail WITHOUT leaving the app — body, labels, comments, PR
@@ -62,7 +62,7 @@ export function ArtifactPanel({
 }) {
   const [detail, setDetail] = useState<BeeArtifactDetail | null>(null);
   const [loi, setLoi] = useState("");
-  const [evidence, setEvidence] = useState<BeeEvidenceTepTin[]>([]);
+  const [evidence, setEvidence] = useState<BeeEvidenceFile[]>([]);
   const [acIssue, setAcIssue] = useState<BeeArtifactDetail | null>(null);
 
   // No sync reset here: the caller keys this component by repo+kind+number,

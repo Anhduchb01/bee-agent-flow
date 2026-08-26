@@ -1,13 +1,13 @@
 import type {
   BeeSessionMode,
   BeeSessionModel,
-  HangDoi,
+  Queue,
   TrangThaiViec,
-  ViecTrongHang,
+  QueueItem,
 } from "@/lib/bee/types";
 
-export type { HangDoi, TrangThaiViec, ViecTrongHang };
-export { viecKeTiep } from "@/lib/bee/queue-next";
+export type { Queue, TrangThaiViec, QueueItem };
+export { nextQueueItem } from "@/lib/bee/queue-next";
 
 /**
  * Hàng đợi Autopilot — thuần, không I/O.
@@ -35,7 +35,7 @@ function trung(a: { repo: string; issue: number }, repo: string, issue: number):
   return a.repo === repo && a.issue === issue;
 }
 
-export function themViec(q: HangDoi, v: ViecMoi, luc = new Date()): HangDoi {
+export function addQueueItem(q: Queue, v: ViecMoi, luc = new Date()): Queue {
   if (q.items.some((i) => trung(i, v.repo, v.issue))) return q;
   return {
     ...q,
@@ -56,12 +56,12 @@ export function themViec(q: HangDoi, v: ViecMoi, luc = new Date()): HangDoi {
   };
 }
 
-export function boQuaViec(q: HangDoi, repo: string, issue: number): HangDoi {
+export function removeQueueItem(q: Queue, repo: string, issue: number): Queue {
   return { ...q, items: q.items.filter((i) => !trung(i, repo, issue)) };
 }
 
 /** Đổi thứ tự một bậc. Ở đầu/cuối rồi thì không đi đâu cả — không quay vòng. */
-export function doiThuTu(q: HangDoi, repo: string, issue: number, buoc: -1 | 1): HangDoi {
+export function reorderQueueItem(q: Queue, repo: string, issue: number, buoc: -1 | 1): Queue {
   const i = q.items.findIndex((x) => trung(x, repo, issue));
   if (i === -1) return q;
   const j = i + buoc;

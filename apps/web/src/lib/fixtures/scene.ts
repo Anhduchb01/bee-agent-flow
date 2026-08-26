@@ -28,6 +28,6 @@ export async function currentScene(): Promise<string> {
 }
 
 /** Cảnh mô tả một máy chưa từng chạy rule nào: chưa có repo, hoặc chưa có file. */
-export function chuaChayLanNao(canh: string): boolean {
+export function neverRan(canh: string): boolean {
   return canh === "vua-cai" || canh === "chua-co-file";
 }

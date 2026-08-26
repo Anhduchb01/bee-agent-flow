@@ -24,8 +24,8 @@ describe("machine-ctl file operations (disk mode)", () => {
     it("writes repos.d/<slug>.env with the slug derived from the repo name", async () => {
       const ket = await registerRepo("You/My-App");
       expect(ket).toEqual({ ok: true, slug: "my-app" });
-      const noiDung = await fs.readFile(path.join(dir, "repos.d", "my-app.env"), "utf8");
-      expect(noiDung).toBe("REPO=You/My-App\n");
+      const content = await fs.readFile(path.join(dir, "repos.d", "my-app.env"), "utf8");
+      expect(content).toBe("REPO=You/My-App\n");
     });
 
     it("rejects anything that is not owner/name — the allowlist regex is the door", async () => {

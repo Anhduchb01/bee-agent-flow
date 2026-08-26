@@ -2,17 +2,17 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { EventStream } from "./event-stream";
-import type { SuKien } from "../lib/parse-events";
+import type { StreamEvent } from "../lib/parse-events";
 
 describe("EventStream", () => {
   it("vẽ đủ bốn loại chính: lifecycle, lời người, lời agent, thẻ tool", () => {
-    const suKien: SuKien[] = [
+    const events: StreamEvent[] = [
       { loai: "lifecycle", text: "Đang dựng worktree…" },
       { loai: "nguoi-noi", text: "làm gọn thôi" },
       { loai: "agent-noi", text: "Đã hiểu, tôi bắt đầu." },
       { loai: "tool", ten: "Bash", thamSo: '{"command":"pnpm test"}', id: "toolu_1", lenh: "pnpm test" },
     ];
-    render(<EventStream suKien={suKien} dangGo="" />);
+    render(<EventStream events={events} typing="" />);
 
     const log = screen.getByRole("log", { name: "Session events" });
     expect(log).toHaveTextContent("Đang dựng worktree…");
@@ -23,11 +23,11 @@ describe("EventStream", () => {
   });
 
   it("tool đã xong là MỘT thẻ: ✓ + tên + kết quả gập trong thẻ — không phải hai dòng rời", () => {
-    const suKien: SuKien[] = [
+    const events: StreamEvent[] = [
       { loai: "tool", ten: "Bash", thamSo: "{}", id: "toolu_1", lenh: "pnpm test" },
       { loai: "tool-xong", text: "24 tests passed", id: "toolu_1", loi: false },
     ];
-    render(<EventStream suKien={suKien} dangGo="" />);
+    render(<EventStream events={events} typing="" />);
 
     expect(screen.getByLabelText("done")).toBeInTheDocument();
     expect(screen.getByText("24 tests passed")).toBeInTheDocument();
@@ -35,17 +35,17 @@ describe("EventStream", () => {
 
   it("tool chưa xong hiện trạng thái đang chạy", () => {
     render(
-      <EventStream suKien={[{ loai: "tool", ten: "Grep", thamSo: "{}", id: "toolu_2" }]} dangGo="" />,
+      <EventStream events={[{ loai: "tool", ten: "Grep", thamSo: "{}", id: "toolu_2" }]} typing="" />,
     );
     expect(screen.getByLabelText("running")).toBeInTheDocument();
   });
 
   it("tool lỗi: dấu ✗ và thẻ TỰ MỞ — lỗi không được gập lại chờ người tò mò", () => {
-    const suKien: SuKien[] = [
+    const events: StreamEvent[] = [
       { loai: "tool", ten: "Bash", thamSo: "{}", id: "toolu_3" },
       { loai: "tool-xong", text: "command not found", id: "toolu_3", loi: true },
     ];
-    const { container } = render(<EventStream suKien={suKien} dangGo="" />);
+    const { container } = render(<EventStream events={events} typing="" />);
     expect(screen.getByLabelText("failed")).toBeInTheDocument();
     expect(container.querySelector("details[open]")).not.toBeNull();
     expect(screen.getByText("command not found")).toBeVisible();
@@ -54,9 +54,9 @@ describe("EventStream", () => {
   it("thinking gập mặc định; thinking đang chảy có nhãn riêng", () => {
     render(
       <EventStream
-        suKien={[{ loai: "nghi", text: "cần đọc file cấu hình trước" }]}
-        dangGo=""
-        dangNghi="đang cân nhắc"
+        events={[{ loai: "nghi", text: "cần đọc file cấu hình trước" }]}
+        typing=""
+        idle="đang cân nhắc"
       />,
     );
     expect(screen.getByText("Thinking")).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe("EventStream", () => {
   });
 
   it("thẻ Edit vẽ diff: dòng cũ mang dấu −, dòng mới mang dấu +, đếm dòng ở summary", () => {
-    const suKien: SuKien[] = [
+    const events: StreamEvent[] = [
       {
         loai: "tool",
         ten: "Edit",
@@ -76,7 +76,7 @@ describe("EventStream", () => {
       },
       { loai: "tool-xong", text: "ok", id: "toolu_d", loi: false },
     ];
-    render(<EventStream suKien={suKien} dangGo="" />);
+    render(<EventStream events={events} typing="" />);
 
     expect(screen.getByText("src/a.ts")).toBeInTheDocument();
     expect(screen.getByText("+2 −1")).toBeInTheDocument();
@@ -85,24 +85,24 @@ describe("EventStream", () => {
   });
 
   it("thẻ Bash vẽ khối IN/OUT như panel VSCode", () => {
-    const suKien: SuKien[] = [
+    const events: StreamEvent[] = [
       { loai: "tool", ten: "Bash", thamSo: "{}", id: "toolu_e", lenh: "pnpm test" },
       { loai: "tool-xong", text: "24 passed", id: "toolu_e", loi: false },
     ];
-    render(<EventStream suKien={suKien} dangGo="" />);
+    render(<EventStream events={events} typing="" />);
     expect(screen.getByText("IN")).toBeInTheDocument();
     expect(screen.getByText("OUT")).toBeInTheDocument();
     expect(screen.getByText("24 passed")).toBeInTheDocument();
   });
 
   it("chữ đang gõ dở của agent hiện với nhãn riêng", () => {
-    render(<EventStream suKien={[]} dangGo="Đang nghĩ về" />);
+    render(<EventStream events={[]} typing="Đang nghĩ về" />);
     expect(screen.getByLabelText("Agent is typing")).toHaveTextContent("Đang nghĩ về");
   });
 
   it("đầu ra agent là plain text — thẻ HTML trong nội dung không được render", () => {
     render(
-      <EventStream suKien={[{ loai: "agent-noi", text: '<img src=x onerror="alert(1)">' }]} dangGo="" />,
+      <EventStream events={[{ loai: "agent-noi", text: '<img src=x onerror="alert(1)">' }]} typing="" />,
     );
     expect(screen.getByText('<img src=x onerror="alert(1)">')).toBeInTheDocument();
     expect(document.querySelector("img")).toBeNull();
@@ -113,8 +113,8 @@ describe("markdown trong lời agent", () => {
   it("bold / inline code / list render thành phần tử thật, như VSCode", () => {
     render(
       <EventStream
-        suKien={[{ loai: "agent-noi", text: "Đã xong **hai việc**: chạy `pnpm test`\n\n- một\n- hai" }]}
-        dangGo=""
+        events={[{ loai: "agent-noi", text: "Đã xong **hai việc**: chạy `pnpm test`\n\n- một\n- hai" }]}
+        typing=""
       />,
     );
     expect(screen.getByText("hai việc").tagName).toBe("STRONG");
@@ -124,7 +124,7 @@ describe("markdown trong lời agent", () => {
 
   it("HTML thô trong nội dung KHÔNG được render — chống injection như bản plain", () => {
     const { container } = render(
-      <EventStream suKien={[{ loai: "agent-noi", text: 'xin chào <img src=x onerror="alert(1)">' }]} dangGo="" />,
+      <EventStream events={[{ loai: "agent-noi", text: 'xin chào <img src=x onerror="alert(1)">' }]} typing="" />,
     );
     expect(container.querySelector("img")).toBeNull();
   });
@@ -136,7 +136,7 @@ describe("approval card (V2.5b)", () => {
     const onTraLoi = vi.fn();
     render(
       <EventStream
-        suKien={[
+        events={[
           {
             loai: "xin-quyen",
             requestId: "r1",
@@ -144,7 +144,7 @@ describe("approval card (V2.5b)", () => {
             thamSo: '{"command":"pnpm test"}',
           },
         ]}
-        dangGo=""
+        typing=""
         onTraLoiQuyen={onTraLoi}
       />,
     );
@@ -157,11 +157,11 @@ describe("approval card (V2.5b)", () => {
   it("answered card shows the verdict and drops the buttons", () => {
     render(
       <EventStream
-        suKien={[
+        events={[
           { loai: "xin-quyen", requestId: "r1", ten: "Bash", thamSo: "{}" },
           { loai: "quyen-da-tra-loi", requestId: "r1", choPhep: false },
         ]}
-        dangGo=""
+        typing=""
         onTraLoiQuyen={vi.fn()}
       />,
     );
@@ -172,18 +172,18 @@ describe("approval card (V2.5b)", () => {
 
 describe("compact seam — the visible reason the ring just dropped", () => {
   it("renders the compacted line with trigger and pre-compact size", () => {
-    const suKien: SuKien[] = [
+    const events: StreamEvent[] = [
       { loai: "agent-noi", text: "still here" },
       { loai: "compact", trigger: "auto", preTokens: 165_000 },
     ];
-    render(<EventStream suKien={suKien} dangGo="" />);
+    render(<EventStream events={events} typing="" />);
     const log = screen.getByRole("log", { name: "Session events" });
     expect(log).toHaveTextContent("Conversation compacted (auto) · was 165k tokens");
   });
 
   it("manual /compact says so; no pre_tokens → no size shown", () => {
     render(
-      <EventStream suKien={[{ loai: "compact", trigger: "manual", preTokens: null }]} dangGo="" />,
+      <EventStream events={[{ loai: "compact", trigger: "manual", preTokens: null }]} typing="" />,
     );
     const log = screen.getByRole("log", { name: "Session events" });
     expect(log).toHaveTextContent("Conversation compacted (/compact)");

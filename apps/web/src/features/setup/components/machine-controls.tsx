@@ -38,7 +38,7 @@ export function CheckMark({ ok }: { ok: boolean | null }) {
 export function LingerButton({ done }: { done: boolean | null }) {
   const router = useRouter();
   const [loi, setLoi] = useState("");
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
   return (
     <div className="flex items-center gap-2">
@@ -51,7 +51,7 @@ export function LingerButton({ done }: { done: boolean | null }) {
           variant="outline"
           disabled={dang}
           onClick={() =>
-            batDau(async () => {
+            start(async () => {
               const ket = await enableLingerAction();
               setLoi(ket.ok ? "" : ket.message);
               router.refresh();
@@ -76,7 +76,7 @@ export function PatForm({ done }: { done: boolean | null }) {
   const [token, setToken] = useState("");
   const [loi, setLoi] = useState("");
   const [xong, setXong] = useState(false);
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
   function luu() {
     if (dang) return;
@@ -84,7 +84,7 @@ export function PatForm({ done }: { done: boolean | null }) {
       setLoi("Not a fine-grained PAT (github_pat_…). Classic tokens are refused on purpose.");
       return;
     }
-    batDau(async () => {
+    start(async () => {
       const ket = await savePatAction(token);
       if (ket.ok) {
         setToken("");
@@ -141,7 +141,7 @@ export function ClaudeTokenForm({ done }: { done: boolean | null }) {
   const [token, setToken] = useState("");
   const [loi, setLoi] = useState("");
   const [xong, setXong] = useState(false);
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
   function luu() {
     if (dang) return;
@@ -149,7 +149,7 @@ export function ClaudeTokenForm({ done }: { done: boolean | null }) {
       setLoi("Not a setup-token token (sk-ant-oat01-…). Run `claude setup-token` and paste its output.");
       return;
     }
-    batDau(async () => {
+    start(async () => {
       const ket = await saveClaudeTokenAction(token);
       if (ket.ok) {
         setToken("");
@@ -205,10 +205,10 @@ export function ClaudeTokenForm({ done }: { done: boolean | null }) {
 export function PauseToggle({ paused, ready }: { paused: boolean; ready: boolean }) {
   const router = useRouter();
   const [loi, setLoi] = useState("");
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
   function doi(next: boolean) {
-    batDau(async () => {
+    start(async () => {
       const ket = await setPausedAction(next);
       setLoi(ket.ok ? "" : ket.message);
       router.refresh();

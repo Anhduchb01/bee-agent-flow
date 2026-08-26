@@ -1,6 +1,6 @@
 import "server-only";
 
-import { chuaChayLanNao, currentScene } from "@/lib/fixtures/scene";
+import { neverRan, currentScene } from "@/lib/fixtures/scene";
 
 import type { ClaudeSnapshot, ClaudeSource } from "./types";
 
@@ -14,27 +14,27 @@ export function createFixtureClaudeSource(): ClaudeSource {
       const now = Date.now();
       /*
        * Máy chưa chạy lần nào thì chưa tiêu token nào, và `rate_limit_event`
-       * cũng chưa từng xuất hiện nên chưa biết hạn mức — `phanTram: null`.
+       * cũng chưa từng xuất hiện nên chưa biết hạn mức — `percentOf: null`.
        *
        * Đây cũng là cảnh duy nhất dựng được đường `null`, mà `null` lại chính
        * là thứ dữ liệu thật sẽ trả về: chưa nguồn nào đã kiểm chứng phát ra
        * phần trăm (xem `types.ts`). Không có cảnh này thì nhánh đó chưa từng
        * được ai nhìn thấy trước khi lên máy thật.
        */
-      const trong = chuaChayLanNao(await currentScene());
+      const trong = neverRan(await currentScene());
 
       return {
         hanMuc: [
           {
             cuaSo: "five_hour",
-            trangThai: "allowed",
-            phanTram: trong ? null : 38,
+            status: "allowed",
+            percentOf: trong ? null : 38,
             resetsAt: Math.floor(now / 1000) + 2 * 3600 + 14 * 60,
           },
           {
             cuaSo: "weekly",
-            trangThai: trong ? "allowed" : "warning",
-            phanTram: trong ? null : 81,
+            status: trong ? "allowed" : "warning",
+            percentOf: trong ? null : 81,
             resetsAt: Math.floor(now / 1000) + 3 * 24 * 3600,
           },
         ],

@@ -3,46 +3,46 @@ import Link from "next/link";
 import { StatusDot } from "@/components/status-dot";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
-import type { BanTin } from "../lib/tom-tat";
+import type { Digest } from "../lib/digest";
 
 /**
  * Activity. Thứ tự cố ý: **chờ bạn duyệt** trước (việc của người), rồi **kẹt**
  * (cần can thiệp), rồi phần còn lại. Mở điện thoại ra thì hai mục đầu là tất
  * cả những gì cần đọc.
  */
-export function BriefView({ banTin }: { banTin: BanTin }) {
-  if (banTin.loai !== "co-viec") {
+export function DigestView({ digest }: { digest: Digest }) {
+  if (digest.loai !== "co-viec") {
     // Rỗng-vì-không-xếp-việc ≠ rỗng-vì-không-chạy-được (PRD §4.1).
     return (
       <Empty>
         <EmptyHeader>
           <EmptyTitle>
-            {banTin.loai === "khong-xep-viec"
+            {digest.loai === "khong-xep-viec"
               ? "Nothing has been queued"
               : "Work is queued but nothing could run"}
           </EmptyTitle>
           <EmptyDescription>
-            {banTin.loai === "khong-xep-viec" ? (
+            {digest.loai === "khong-xep-viec" ? (
               <>Queue an issue into the Autopilot lane on the{" "}<Link href="/projects?view=kanban" className="underline">project board</Link>, then hit Run now — or leave it for the next tick.</>
             ) : (
               <>The reason is on each item below — usually the quota brake or PAUSE.</>
             )}
           </EmptyDescription>
         </EmptyHeader>
-        {banTin.conCho.length > 0 && <DanhSachCho banTin={banTin} />}
+        {digest.stillQueued.length > 0 && <WaitingList digest={digest} />}
       </Empty>
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {banTin.choDuyet.length > 0 && (
+      {digest.toReview.length > 0 && (
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-foreground">
-            Waiting for you ({banTin.choDuyet.length})
+            Waiting for you ({digest.toReview.length})
           </h2>
           <ul className="flex flex-col gap-2">
-            {banTin.choDuyet.map((m) => (
+            {digest.toReview.map((m) => (
               <li key={m.phien.id} className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-card p-3">
                 <StatusDot tone="ok" />
                 <span className="min-w-0 flex-1 truncate text-sm text-foreground">
@@ -59,11 +59,11 @@ export function BriefView({ banTin }: { banTin: BanTin }) {
         </section>
       )}
 
-      {banTin.ket.length > 0 && (
+      {digest.ket.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-foreground">Stuck ({banTin.ket.length})</h2>
+          <h2 className="text-sm font-semibold text-foreground">Stuck ({digest.ket.length})</h2>
           <ul className="flex flex-col gap-2">
-            {banTin.ket.map((m) => (
+            {digest.ket.map((m) => (
               <li key={m.phien.id} className="flex flex-col gap-1 rounded-card border border-border bg-card p-3">
                 <span className="flex items-center gap-2">
                   <StatusDot tone={m.phien.needs_human ? "down" : "warn"} />
@@ -72,7 +72,7 @@ export function BriefView({ banTin }: { banTin: BanTin }) {
                   </Link>
                 </span>
                 {/* Câu vì-sao là lý do bản tin này tồn tại. */}
-                <span className="text-xs text-body">{m.viSao}</span>
+                <span className="text-xs text-body">{m.why}</span>
               </li>
             ))}
           </ul>
@@ -80,9 +80,9 @@ export function BriefView({ banTin }: { banTin: BanTin }) {
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold text-foreground">Ran ({banTin.daChay.length})</h2>
+        <h2 className="text-sm font-semibold text-foreground">Ran ({digest.ran.length})</h2>
         <ul className="flex flex-col gap-1">
-          {banTin.daChay.map((m) => (
+          {digest.ran.map((m) => (
             <li key={m.phien.id} className="flex items-center gap-3 px-1 text-xs">
               <span className="font-mono text-muted-foreground">{m.phien.status}</span>
               <Link href={`/sessions/${m.phien.id}`} className="min-w-0 flex-1 truncate text-body hover:underline">
@@ -93,22 +93,22 @@ export function BriefView({ banTin }: { banTin: BanTin }) {
         </ul>
       </section>
 
-      {banTin.conCho.length > 0 && <DanhSachCho banTin={banTin} />}
+      {digest.stillQueued.length > 0 && <WaitingList digest={digest} />}
     </div>
   );
 }
 
-function DanhSachCho({ banTin }: { banTin: BanTin }) {
+function WaitingList({ digest }: { digest: Digest }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold text-foreground">Still queued ({banTin.conCho.length})</h2>
+      <h2 className="text-sm font-semibold text-foreground">Still queued ({digest.stillQueued.length})</h2>
       <ul className="flex flex-col gap-1">
-        {banTin.conCho.map((m) => (
+        {digest.stillQueued.map((m) => (
           <li key={`${m.viec.repo}#${m.viec.issue}`} className="flex flex-wrap items-center gap-2 px-1 text-xs">
             <span className="font-mono text-muted-foreground">
               {m.viec.slug}#{m.viec.issue}
             </span>
-            <span className="text-body">{m.viSao}</span>
+            <span className="text-body">{m.why}</span>
           </li>
         ))}
       </ul>

@@ -28,11 +28,11 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
   const [code, setCode] = useState("");
   const [loi, setLoi] = useState("");
   const [xong, setXong] = useState(false);
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
   function layLink() {
     if (dang) return;
-    batDau(async () => {
+    start(async () => {
       const ket = await startClaudeSetupAction();
       if (ket.ok) {
         setUrl(ket.url);
@@ -46,7 +46,7 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
 
   function guiCode() {
     if (dang || code.trim() === "") return;
-    batDau(async () => {
+    start(async () => {
       const ket = await submitClaudeCodeAction(code);
       if (ket.ok) {
         setUrl("");

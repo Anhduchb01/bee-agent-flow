@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { moPhien, tiepTucPhien } from "./session-ctl";
+import { openSession, continueSession } from "./session-ctl";
 
 let dir = "";
 
@@ -19,7 +19,7 @@ async function datHanMuc(fiveHour: number, fetchedAt = new Date().toISOString())
   );
 }
 
-describe("moPhien — the brake sits at the door every new session goes through", () => {
+describe("openSession — the brake sits at the door every new session goes through", () => {
   beforeEach(async () => {
     dir = await fs.mkdtemp(path.join(os.tmpdir(), "bee-brake-"));
     process.env.BEE_SRV = dir;
@@ -35,7 +35,7 @@ describe("moPhien — the brake sits at the door every new session goes through"
 
   it("over the threshold: refuses BEFORE writing anything to disk", async () => {
     await datHanMuc(93);
-    const ket = await moPhien({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
+    const ket = await openSession({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
 
     expect(ket.ok).toBe(false);
     if (ket.ok) return;
@@ -46,7 +46,7 @@ describe("moPhien — the brake sits at the door every new session goes through"
 
   it("under the threshold: the brake does not get in the way", async () => {
     await datHanMuc(20);
-    const ket = await moPhien({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
+    const ket = await openSession({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
     // The outside-command door is shut (BEE_CTL=none) → the failure is at
     // start, NOT at the brake, and session.json was written before it.
     //
@@ -62,7 +62,7 @@ describe("moPhien — the brake sits at the door every new session goes through"
   it("QUOTA_BRAKE_PCT tunes the line", async () => {
     await datHanMuc(50);
     process.env.QUOTA_BRAKE_PCT = "40";
-    const ket = await moPhien({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
+    const ket = await openSession({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
     expect(ket.ok).toBe(false);
     if (!ket.ok) expect(ket.message).toMatch(/50%/);
   });
@@ -73,7 +73,7 @@ describe("moPhien — the brake sits at the door every new session goes through"
     await fs.mkdir(path.join(dir, "sessions", id), { recursive: true });
     await fs.writeFile(path.join(dir, "sessions", id, "session.json"), JSON.stringify({ id }));
 
-    const ket = await tiepTucPhien(id);
+    const ket = await continueSession(id);
     // It gets all the way to start and stops at the OUTSIDE-COMMAND DOOR —
     // which is the point: the brake never got in the way.
     //
@@ -87,7 +87,7 @@ describe("moPhien — the brake sits at the door every new session goes through"
   });
 
   it("no usage file at all → opens (flying blind beats being unusable)", async () => {
-    const ket = await moPhien({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
+    const ket = await openSession({ slug: "myapp", num: 1, repo: "you/myapp", title: null, worktree: true });
     if (!ket.ok) expect(ket.message).not.toMatch(/hạn mức/);
   });
 });

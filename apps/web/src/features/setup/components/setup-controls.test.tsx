@@ -127,7 +127,7 @@ describe("EnvEditor", () => {
       <RepoRegistry
         repos={[{ slug: "myapp", repo: "you/myapp" }]}
         protection={{}}
-        envFiles={{ myapp: [{ duongDan: ".env", noiDung: "API_KEY=abc\n" }] }}
+        envFiles={{ myapp: [{ path: ".env", content: "API_KEY=abc\n" }] }}
       />,
     );
 

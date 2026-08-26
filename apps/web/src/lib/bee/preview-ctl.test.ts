@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listPreviews, stopPreview } from "./machine-ctl";
-import { docPreviewTrong } from "./sessions-fs";
+import { readPreviewIn } from "./sessions-fs";
 
 const ID = "aa110000-0000-4000-8000-000000000001";
 
@@ -17,11 +17,11 @@ async function seedSession(previewLine: string | null) {
     path.join(sdir, "session.json"),
     JSON.stringify({ id: ID, slug: "myapp", num: 5, repo: "you/myapp", worktree: true }),
   );
-  const dong = [
+  const line = [
     JSON.stringify({ type: "bee_lifecycle", text: "started" }),
     ...(previewLine === null ? [] : [previewLine]),
   ];
-  await fs.writeFile(path.join(sdir, "run.jsonl"), dong.join("\n"));
+  await fs.writeFile(path.join(sdir, "run.jsonl"), line.join("\n"));
 }
 
 const PREVIEW_LINE = JSON.stringify({
@@ -43,10 +43,10 @@ afterEach(async () => {
   await fs.rm(dir, { recursive: true, force: true });
 });
 
-describe("docPreviewTrong", () => {
+describe("readPreviewIn", () => {
   it("reads the LAST bee_preview line; dirty unit names are dropped", async () => {
     await seedSession(PREVIEW_LINE);
-    const p = await docPreviewTrong(dir, ID);
+    const p = await readPreviewIn(dir, ID);
     expect(p).toEqual({
       sessionId: ID,
       unit: "bee-preview-myapp-5",
@@ -58,7 +58,7 @@ describe("docPreviewTrong", () => {
     await seedSession(
       JSON.stringify({ type: "bee_preview", unit: "evil; rm -rf /", url: "https://x", port: 1 }),
     );
-    expect(await docPreviewTrong(dir, ID)).toBeNull();
+    expect(await readPreviewIn(dir, ID)).toBeNull();
   });
 });
 

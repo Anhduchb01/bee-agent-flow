@@ -19,7 +19,7 @@ echo "[rig] pha 1 — phong van, khong tool · session $SID"
     --allowedTools "" \
     --session-id "$SID" \
     --max-turns 2 \
-    "Day la pha phong van, ban KHONG co tool. Hop dong chot nhu sau: khi toi noi lam, hay tao file ten hopdong-rig.txt co noi dung chua dung ma hieu DUA-HAU-77. Xac nhan hop dong trong mot cau, dung lam gi ca."
+    "Day la pha phong van, ban KHONG co tool. Hop line chot nhu sau: khi toi noi lam, hay tao file ten hopdong-rig.txt co noi dung chua dung ma hieu DUA-HAU-77. Xac nhan hop line trong mot cau, dung lam gi ca."
 ) >"$RIG_DIR/phase1.jsonl" 2>"$RIG_DIR/phase1.err"
 
 echo "[rig] pha 2 — resume voi tool, chi noi 'ok lam di'"
@@ -29,7 +29,7 @@ echo "[rig] pha 2 — resume voi tool, chi noi 'ok lam di'"
     --allowedTools "Write Bash" \
     --resume "$SID" \
     --max-turns 6 \
-    "Ok lam di — thuc hien dung hop dong da chot, trong thu muc hien tai."
+    "Ok lam di — thuc hien dung hop line da chot, trong thu muc hien tai."
 ) >"$RIG_DIR/phase2.jsonl" 2>"$RIG_DIR/phase2.err"
 
 echo "== KET QUA S0.2 =="

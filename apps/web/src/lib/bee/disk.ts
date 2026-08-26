@@ -4,16 +4,16 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { readClaudeAuthFrom, readClaudeUsageFrom, readCommandsFrom, readDoctorFrom } from "./doctor-fs";
-import { docGcTrong } from "./gc-fs";
+import { readGcIn } from "./gc-fs";
 import { readEvidenceFileIn } from "./evidence-fs";
 import {
-  docArtifactsTrong,
-  docCauCuoiTrong,
-  docEvidenceTrong,
-  docPhienTrong,
+  readArtifactsIn,
+  readLastLineIn,
+  readEvidenceIn,
+  readSessionIn,
   duongDanRunTrong,
-  lietKePhienTrong,
-  lietKeRepoTrong,
+  listSessionsIn,
+  listReposIn,
   timEvidenceChoArtifact,
 } from "./sessions-fs";
 import { parseClaudeRateLimit, parseRecentLine, parseStatus } from "./parse";
@@ -99,19 +99,19 @@ export function createDiskBeeSource(): BeeSource {
 
     readDoctor: () => readDoctorFrom(root()),
 
-    readGc: () => docGcTrong(root()),
+    readGc: () => readGcIn(root()),
     readClaudeAuth: () => readClaudeAuthFrom(root()),
     readClaudeUsage: () => readClaudeUsageFrom(root()),
     listCommands: () =>
       readCommandsFrom(path.join(process.env.HOME ?? "", ".claude", "commands")),
-    listRepos: () => lietKeRepoTrong(root()),
-    listSessions: () => lietKePhienTrong(root()),
-    readSession: (id) => docPhienTrong(root(), id),
-    sessionArtifacts: (id) => docArtifactsTrong(root(), id),
-    listSessionEvidence: (id) => docEvidenceTrong(root(), id),
+    listRepos: () => listReposIn(root()),
+    listSessions: () => listSessionsIn(root()),
+    readSession: (id) => readSessionIn(root(), id),
+    sessionArtifacts: (id) => readArtifactsIn(root(), id),
+    listSessionEvidence: (id) => readEvidenceIn(root(), id),
     findArtifactEvidence: (repo, kind, number) =>
       timEvidenceChoArtifact(root(), repo, kind, number),
-    sessionPreview: (id) => docCauCuoiTrong(root(), id),
+    sessionPreview: (id) => readLastLineIn(root(), id),
     sessionRunPath: (id) => duongDanRunTrong(root(), id),
   };
 }

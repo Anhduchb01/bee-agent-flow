@@ -4,7 +4,7 @@
  * Cùng cách rút gọn với `human_dur()` của reconciler và `dur()` của dashboard
  * tĩnh, để cùng một con số không hiện ra hai kiểu ở hai chỗ.
  */
-export function khoangThoiGian(seconds: number): string {
+export function humanDuration(seconds: number): string {
   const s = Math.max(0, Math.round(seconds));
   if (s < 60) return `${s}s`;
   if (s < 3600) return `${Math.floor(s / 60)}m${String(s % 60).padStart(2, "0")}s`;
@@ -17,6 +17,6 @@ export function khoangThoiGian(seconds: number): string {
 }
 
 /** Dạng "waited 3h20m" — cụm dùng nhiều nhất trong hộp thư. */
-export function daCho(seconds: number): string {
-  return `waited ${khoangThoiGian(seconds)}`;
+export function waitedFor(seconds: number): string {
+  return `waited ${humanDuration(seconds)}`;
 }

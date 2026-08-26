@@ -3,7 +3,7 @@ import "server-only";
 import { getBee } from "@/lib/bee";
 import type { BeeArtifact, BeeSession } from "@/lib/bee/types";
 
-export interface NhomPhien {
+export interface SessionGroup {
   repo: string;
   phien: BeeSession[];
 }
@@ -13,7 +13,7 @@ export interface NhomPhien {
  * phiên mới nhất của nhóm; phiên `needs_human` không cần xếp riêng ở đây,
  * component tô đỏ và người dùng thấy ngay vì nhóm nào cũng chỉ vài dòng.
  */
-export async function loadSessions(): Promise<NhomPhien[]> {
+export async function loadSessions(): Promise<SessionGroup[]> {
   const tatCa = await getBee().listSessions();
   const nhom = new Map<string, BeeSession[]>();
   for (const p of tatCa) {
@@ -40,7 +40,7 @@ export async function loadSession(id: string): Promise<BeeSession | null> {
 
 /** Dữ liệu cho trang canvas: nhóm phiên + artifact + preview câu cuối + demo. */
 export async function loadCanvas(): Promise<{
-  nhom: NhomPhien[];
+  nhom: SessionGroup[];
   artifacts: Record<string, BeeArtifact[]>;
   xemTruoc: Record<string, string | null>;
   videos: Record<string, { name: string; url: string }[]>;

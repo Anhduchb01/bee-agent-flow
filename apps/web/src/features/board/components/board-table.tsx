@@ -1,6 +1,6 @@
-import { NHAN_LANE, type MucBang } from "../lib/lanes";
-import { NutXepHang } from "./autopilot-controls";
-import { LinkPR, PhienGan, SoIssue } from "./issue-bits";
+import { LANE_LABEL, type BoardRow } from "../lib/lanes";
+import { QueueButton } from "./autopilot-controls";
+import { LinkPR, AttachedSession, SoIssue } from "./issue-bits";
 
 /**
  * Table view. Not a <table>: on a phone a real table means horizontal
@@ -8,7 +8,7 @@ import { LinkPR, PhienGan, SoIssue } from "./issue-bits";
  * stacked block that becomes a column layout from `sm` up, so the same
  * markup reads as a list on a thumb and as a table on a desk.
  */
-export function BoardTable({ muc }: { muc: MucBang[] }) {
+export function BoardTable({ muc }: { muc: BoardRow[] }) {
   return (
     <div className="overflow-hidden rounded-card border border-border bg-card">
       <div className="hidden border-b border-border px-4 py-2 text-xs text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1fr)_180px_200px_110px_44px] sm:gap-4">
@@ -43,7 +43,7 @@ export function BoardTable({ muc }: { muc: MucBang[] }) {
               )}
             </span>
 
-            <PhienGan phien={m.phien} />
+            <AttachedSession phien={m.phien} />
 
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="font-mono text-xs text-muted-foreground">{m.slug}</span>
@@ -51,14 +51,14 @@ export function BoardTable({ muc }: { muc: MucBang[] }) {
             </span>
 
             <span className="text-xs text-body">
-              {NHAN_LANE[m.lane]}
-              {m.hangDoi?.status === "waiting" && (
+              {LANE_LABEL[m.lane]}
+              {m.queue?.status === "waiting" && (
                 <span className="ml-1 font-mono text-muted-foreground">
                   #{muc.indexOf(m) + 1}
                 </span>
               )}
             </span>
-            <NutXepHang muc={m} />
+            <QueueButton muc={m} />
           </li>
         ))}
       </ul>

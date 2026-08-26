@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { daCho, khoangThoiGian } from "./duration";
+import { waitedFor, humanDuration } from "./duration";
 
-describe("khoangThoiGian", () => {
+describe("humanDuration", () => {
   it.each([
     [0, "0s"],
     [7, "7s"],
@@ -16,14 +16,14 @@ describe("khoangThoiGian", () => {
     [86_400, "1d 0h"],
     [280_800, "3d 6h"],
   ])("%is → %s", (s, want) => {
-    expect(khoangThoiGian(s)).toBe(want);
+    expect(humanDuration(s)).toBe(want);
   });
 
   it("số âm không làm ra chuỗi vô nghĩa", () => {
-    expect(khoangThoiGian(-5)).toBe("0s");
+    expect(humanDuration(-5)).toBe("0s");
   });
 
-  it("daCho ghép đúng cụm", () => {
-    expect(daCho(12_000)).toBe("waited 3h20m");
+  it("waitedFor ghép đúng cụm", () => {
+    expect(waitedFor(12_000)).toBe("waited 3h20m");
   });
 });

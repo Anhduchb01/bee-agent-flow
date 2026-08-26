@@ -3,11 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 
-import type { BeeRepoDangKy } from "@/lib/bee/types";
+import type { BeeRegisteredRepo } from "@/lib/bee/types";
 
 import { CHAT_OPTION, RepoCombobox } from "./repo-combobox";
 
-const REPOS: BeeRepoDangKy[] = [
+const REPOS: BeeRegisteredRepo[] = [
   { slug: "myapp", repo: "you/myapp" },
   { slug: "site", repo: "acme/site" },
 ];

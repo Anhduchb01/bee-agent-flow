@@ -29,7 +29,7 @@ function boNho(): GhRepo[] {
 
 const FILE = () => path.join(DIR!, "repos.json");
 
-export async function docRepos(): Promise<GhRepo[]> {
+export async function readRepos(): Promise<GhRepo[]> {
   if (!DIR) return [...boNho()];
   try {
     const raw: unknown = JSON.parse(await fs.readFile(FILE(), "utf8"));
@@ -43,7 +43,7 @@ export async function docRepos(): Promise<GhRepo[]> {
   }
 }
 
-export async function ghiRepos(repos: GhRepo[]): Promise<void> {
+export async function writeRepos(repos: GhRepo[]): Promise<void> {
   if (!DIR) {
     const b = boNho();
     b.length = 0;
@@ -59,7 +59,7 @@ export async function ghiRepos(repos: GhRepo[]): Promise<void> {
 }
 
 /** Chuẩn hoá thứ người dùng dán vào ô nhập thành `org/repo`. */
-export function chuanHoa(input: string): { full: string; slug: string } {
+export function normalise(input: string): { full: string; slug: string } {
   const sach = input
     .trim()
     .replace(/^git@github\.com:/, "")

@@ -20,7 +20,7 @@ skill bee-*      →  SAU khi gh thành công, append một dòng vào run.jsonl
                     {"type":"bee_artifact","kind":"issue"|"pr",
                      "url":"https://github.com/…","number":41,"ts":"…",
                      "title":"…"}                       ← title thêm 17/08
-parse-events.ts  →  whitelist thêm bee_artifact → SuKien loai:"artifact"
+parse-events.ts  →  whitelist thêm bee_artifact → StreamEvent loai:"artifact"
 BeeSource        →  sessionArtifacts(id) — disk: quét run.jsonl lọc dòng
                     bee_artifact (unknown-narrowing); fixture: dữ liệu mẫu
                  →  sessionPreview(id) — câu text CUỐI của assistant, đi từ

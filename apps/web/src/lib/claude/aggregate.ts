@@ -7,7 +7,7 @@
  */
 import type { BeeClaudeAccountUsage, BeeClaudeRateLimit, BeeClaudeWindow, BeeRecentRun } from "@/lib/bee/types";
 
-import type { CuaSo, HanMuc, MucDung } from "./types";
+import type { UsageWindow, HanMuc, ToolCard } from "./types";
 
 const NGAY = 24 * 60 * 60 * 1000;
 
@@ -45,7 +45,7 @@ function cungNgay(a: Date, b: Date): boolean {
   );
 }
 
-export function tongHopMucDung(runs: BeeRecentRun[], now: Date = new Date()): MucDung {
+export function tongHopMucDung(runs: BeeRecentRun[], now: Date = new Date()): ToolCard {
   let soLanChay = 0;
   let soLanLoi = 0;
   let token = 0;
@@ -83,7 +83,7 @@ export function tongHopMucDung(runs: BeeRecentRun[], now: Date = new Date()): Mu
   };
 }
 
-function laCuaSo(v: string): v is CuaSo {
+function laCuaSo(v: string): v is UsageWindow {
   return v === "five_hour" || v === "weekly";
 }
 
@@ -95,7 +95,7 @@ function laCuaSo(v: string): v is CuaSo {
  * chỉ có một, và UI phải chịu được điều đó — đó là một trong bốn thứ fixture
  * không chứng minh được.
  *
- * `phanTram` luôn `null`. Không nguồn nào đã kiểm chứng phát ra con số này;
+ * `percentOf` luôn `null`. Không nguồn nào đã kiểm chứng phát ra con số này;
  * `total_cost_usd` là giá quy đổi theo API chứ không phải mức tiêu thụ hạn mức
  * của gói thuê bao. Đây là chỗ dễ bịa nhất trong cả màn hình.
  */
@@ -106,13 +106,13 @@ export function hanMucTu(rl: BeeClaudeRateLimit | null): HanMuc[] {
   if (!laCuaSo(rl.rateLimitType)) return [];
 
   const s = rl.status.toLowerCase();
-  const trangThai: HanMuc["trangThai"] = /reject|exceed|block/.test(s)
+  const status: HanMuc["status"] = /reject|exceed|block/.test(s)
     ? "exceeded"
     : /warn/.test(s)
       ? "warning"
       : "allowed";
 
-  return [{ cuaSo: rl.rateLimitType, trangThai, phanTram: null, resetsAt: rl.resetsAt }];
+  return [{ cuaSo: rl.rateLimitType, status, percentOf: null, resetsAt: rl.resetsAt }];
 }
 
 /**
@@ -121,16 +121,16 @@ export function hanMucTu(rl: BeeClaudeRateLimit | null): HanMuc[] {
  * rate_limit_event this covers the whole account, other machines included.
  */
 export function hanMucTuTaiKhoan(acc: BeeClaudeAccountUsage): HanMuc[] {
-  const mot = (cuaSo: CuaSo, w: BeeClaudeWindow | null): HanMuc[] => {
+  const mot = (cuaSo: UsageWindow, w: BeeClaudeWindow | null): HanMuc[] => {
     if (w === null) return [];
-    const trangThai: HanMuc["trangThai"] =
+    const status: HanMuc["status"] =
       w.percent >= 100 ? "exceeded" : w.percent >= 80 ? "warning" : "allowed";
     const epoch = w.resets_at !== null ? Math.floor(Date.parse(w.resets_at) / 1000) : NaN;
     return [
       {
         cuaSo,
-        trangThai,
-        phanTram: w.percent,
+        status,
+        percentOf: w.percent,
         resetsAt: Number.isFinite(epoch) ? epoch : null,
       },
     ];

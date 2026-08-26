@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { docGcTrong } from "./gc-fs";
+import { readGcIn } from "./gc-fs";
 
 let dir = "";
 
@@ -18,7 +18,7 @@ const GC = {
   ],
 };
 
-describe("docGcTrong — gc.json is disk state the UI must render honestly", () => {
+describe("readGcIn — gc.json is disk state the UI must render honestly", () => {
   beforeEach(async () => {
     dir = await fs.mkdtemp(path.join(os.tmpdir(), "bee-gc-"));
   });
@@ -28,7 +28,7 @@ describe("docGcTrong — gc.json is disk state the UI must render honestly", () 
 
   it("reads the last run: what went, what stayed, and why", async () => {
     await fs.writeFile(path.join(dir, "gc.json"), JSON.stringify(GC));
-    const gc = await docGcTrong(dir);
+    const gc = await readGcIn(dir);
 
     expect(gc).not.toBeNull();
     expect(gc?.removed).toBe(5);
@@ -39,12 +39,12 @@ describe("docGcTrong — gc.json is disk state the UI must render honestly", () 
   });
 
   it("never ran → null, which is a state the UI shows, not an error", async () => {
-    expect(await docGcTrong(dir)).toBeNull();
+    expect(await readGcIn(dir)).toBeNull();
   });
 
   it("malformed json → null instead of throwing into a server component", async () => {
     await fs.writeFile(path.join(dir, "gc.json"), "{ this is not json");
-    expect(await docGcTrong(dir)).toBeNull();
+    expect(await readGcIn(dir)).toBeNull();
   });
 
   it("drops items that do not have the shape, keeps the rest", async () => {
@@ -52,13 +52,13 @@ describe("docGcTrong — gc.json is disk state the UI must render honestly", () 
       path.join(dir, "gc.json"),
       JSON.stringify({ ...GC, items: [...GC.items, { id: 1 }, null, { action: "removed" }] }),
     );
-    const gc = await docGcTrong(dir);
+    const gc = await readGcIn(dir);
     expect(gc?.items).toHaveLength(2);
   });
 
   it("missing numbers degrade to 0 rather than rendering NaN", async () => {
     await fs.writeFile(path.join(dir, "gc.json"), JSON.stringify({ ts: "t", items: [] }));
-    const gc = await docGcTrong(dir);
+    const gc = await readGcIn(dir);
     expect(gc).toMatchObject({ removed: 0, freed_bytes: 0 });
   });
 });

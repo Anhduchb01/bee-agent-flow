@@ -19,10 +19,10 @@ import { SessionServices } from "./session-services";
 import type { BeeSession, BeeSessionMode, BeeSessionModel } from "@/lib/bee/types";
 
 import {
-  doiModeAction,
-  doiModelAction,
-  dungPhienAction,
-  guiVaoPhien,
+  changeModeAction,
+  changeModelAction,
+  stopSessionAction,
+  sendToSessionAction,
   tiepTucAction,
   traLoiQuyenAction,
   uploadFileAction,
@@ -187,11 +187,11 @@ function tomTatToken(n: number): string {
  * the window is 1M and the system prompt + skills already cost ~100k.
  */
 function VongNguCanh({
-  phanTram,
+  percentOf,
   dung = null,
   cua = null,
 }: {
-  phanTram: number;
+  percentOf: number;
   dung?: number | null;
   cua?: number | null;
 }) {
@@ -200,8 +200,8 @@ function VongNguCanh({
   const soLieu = dung !== null && cua !== null ? `${tomTatToken(dung)}/${tomTatToken(cua)}` : null;
   const nhan =
     soLieu === null
-      ? `Context ${phanTram}% full`
-      : `Context ${phanTram}% full — ${soLieu} tokens`;
+      ? `Context ${percentOf}% full`
+      : `Context ${percentOf}% full — ${soLieu} tokens`;
   return (
     <span className="inline-flex items-center gap-1" title={nhan} aria-label={nhan}>
       <svg width="16" height="16" viewBox="0 0 16 16" className="-rotate-90">
@@ -214,12 +214,12 @@ function VongNguCanh({
           stroke="currentColor"
           strokeWidth="2.5"
           strokeDasharray={chuVi}
-          strokeDashoffset={chuVi * (1 - Math.min(phanTram, 100) / 100)}
-          className={phanTram >= 80 ? "text-destructive" : "text-muted-foreground"}
+          strokeDashoffset={chuVi * (1 - Math.min(percentOf, 100) / 100)}
+          className={percentOf >= 80 ? "text-destructive" : "text-muted-foreground"}
         />
       </svg>
       <span className="font-mono text-xs text-muted-foreground">
-        {phanTram}%{soLieu !== null && <span className="hidden sm:inline"> · {soLieu}</span>}
+        {percentOf}%{soLieu !== null && <span className="hidden sm:inline"> · {soLieu}</span>}
       </span>
     </span>
   );
@@ -247,7 +247,7 @@ export function LiveView({
   /** The service slice this session holds, if any (T15c4). */
   slice?: BeeSlice | null;
 }) {
-  const { suKien, dangGo, dangNghi, trangThai, ketThuc, boQua } = useSessionStream(phien.id);
+  const { events, typing, idle, status, ended, skipped } = useSessionStream(phien.id);
   const [nhap, setNhap] = useState("");
   const [loi, setLoi] = useState("");
   const [dangGui, batDauGui] = useTransition();
@@ -261,7 +261,7 @@ export function LiveView({
     batDauDoiMode(async () => {
       const truoc = mode;
       setMode(moi);
-      const ket = await doiModeAction(phien.id, moi);
+      const ket = await changeModeAction(phien.id, moi);
       if (!ket.ok) {
         setMode(truoc);
         setLoi(ket.message);
@@ -275,7 +275,7 @@ export function LiveView({
     batDauDoiMode(async () => {
       const truoc = model;
       setModel(moi);
-      const ket = await doiModelAction(phien.id, moi);
+      const ket = await changeModelAction(phien.id, moi);
       if (!ket.ok) {
         setModel(truoc);
         setLoi(ket.message);
@@ -283,23 +283,23 @@ export function LiveView({
     });
   }
 
-  const dangChay = ketThuc === null;
+  const running = ended === null;
 
   // Busy = the agent owes an answer: the last user message sits after the
   // last result, or text/thinking is streaming right now.
   const sauCung = { noi: -1, ketQua: -1 };
-  suKien.forEach((s, i) => {
+  events.forEach((s, i) => {
     if (s.loai === "nguoi-noi") sauCung.noi = i;
     if (s.loai === "ket-qua") sauCung.ketQua = i;
   });
-  const dangBan = dangChay && (sauCung.noi > sauCung.ketQua || dangGo !== "" || dangNghi !== "");
+  const busy = running && (sauCung.noi > sauCung.ketQua || typing !== "" || idle !== "");
 
   // Latest context fill — from the newest result that carried numbers.
   let nguCanh: number | null = null;
   let nguCanhDung: number | null = null;
   let nguCanhCua: number | null = null;
-  for (let i = suKien.length - 1; i >= 0; i--) {
-    const s = suKien[i]!;
+  for (let i = events.length - 1; i >= 0; i--) {
+    const s = events[i]!;
     if (s.loai === "ket-qua" && typeof s.nguCanh === "number") {
       nguCanh = s.nguCanh;
       nguCanhDung = typeof s.dungToken === "number" ? s.dungToken : null;
@@ -312,7 +312,7 @@ export function LiveView({
     const text = nhap.trim();
     if (text === "" || dangGui) return;
     batDauGui(async () => {
-      const ket = await guiVaoPhien(phien.id, text);
+      const ket = await sendToSessionAction(phien.id, text);
       if (ket.ok) {
         setNhap("");
         setLoi("");
@@ -344,7 +344,7 @@ export function LiveView({
   function sendDirect(text: string) {
     if (dangGui) return;
     batDauGui(async () => {
-      const ket = await guiVaoPhien(phien.id, text);
+      const ket = await sendToSessionAction(phien.id, text);
       setLoi(ket.ok ? "" : ket.message);
     });
   }
@@ -390,15 +390,15 @@ export function LiveView({
   // PR → Build; PR open → Preview. Read from the artifact events the
   // session itself logged (replay-truncated history may miss old ones —
   // a wrong glow is a nudge, not a gate).
-  const coIssue = suKien.some((s) => s.loai === "artifact" && s.kind === "issue");
-  const coPR = suKien.some((s) => s.loai === "artifact" && s.kind === "pr");
+  const coIssue = events.some((s) => s.loai === "artifact" && s.kind === "issue");
+  const coPR = events.some((s) => s.loai === "artifact" && s.kind === "pr");
   const goiY = !coIssue ? "issue" : !coPR ? "build" : "preview";
 
   // An approval card without an answer = the ball is in the OWNER's court.
   const daTraLoi = new Set(
-    suKien.filter((s) => s.loai === "quyen-da-tra-loi").map((s) => s.requestId),
+    events.filter((s) => s.loai === "quyen-da-tra-loi").map((s) => s.requestId),
   );
-  const dangChoQuyen = suKien.some(
+  const dangChoQuyen = events.some(
     (s) => s.loai === "xin-quyen" && !daTraLoi.has(s.requestId),
   );
 
@@ -406,31 +406,31 @@ export function LiveView({
     <div className="flex min-h-0 flex-1 flex-col bg-background text-body" style={VSCODE_SKIN}>
       {/* thanh trạng thái */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-2 sm:px-6">
-        <StatusDot tone={ketThuc === null ? "agent" : ketThuc === "done" ? "ok" : "down"} />
+        <StatusDot tone={ended === null ? "agent" : ended === "done" ? "ok" : "down"} />
         {/* min-w-0 + truncate: repo · branch is the longest string on the
             bar — on a phone it must give way, never push Stop off-screen. */}
         <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">
           {phien.repo} · {phien.worktree ? `bee/${phien.slug}-${phien.num}` : "chat"}
         </span>
         <span className="shrink-0 font-mono text-xs text-muted-foreground">
-          {ketThuc === null ? (dangBan ? "working…" : "idle") : ketThuc}
+          {ended === null ? (busy ? "working…" : "idle") : ended}
         </span>
         <span className="flex-1" />
         {/* Left of Stop on purpose: it answers "what am I about to stop". */}
         <SessionServices slice={slice} />
-        {dangChay && (
-          <Button size="sm" variant="outline" onClick={() => void dungPhienAction(phien.id)}>
+        {running && (
+          <Button size="sm" variant="outline" onClick={() => void stopSessionAction(phien.id)}>
             Stop
           </Button>
         )}
       </div>
 
-      {boQua > 0 && (
+      {skipped > 0 && (
         <p className="border-b border-border px-4 py-1.5 font-mono text-xs text-muted-foreground sm:px-6">
-          Skipped {boQua} earlier events — showing the most recent.
+          Skipped {skipped} earlier events — showing the most recent.
         </p>
       )}
-      {trangThai === "mat-ket-noi" && dangChay && (
+      {status === "mat-ket-noi" && running && (
         <p className="border-b border-border px-4 py-1.5 font-mono text-xs text-destructive sm:px-6">
           Connection lost — retrying…
         </p>
@@ -438,18 +438,18 @@ export function LiveView({
 
       {/* dòng sự kiện */}
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-        {suKien.length === 0 && dangGo === "" && dangNghi === "" ? (
+        {events.length === 0 && typing === "" && idle === "" ? (
           <p className="text-sm text-muted-foreground">
-            {trangThai === "dang-noi" ? "Connecting…" : "Waiting for the session to speak…"}
+            {status === "dang-noi" ? "Connecting…" : "Waiting for the session to speak…"}
           </p>
         ) : (
           <EventStream
-            suKien={suKien}
-            dangGo={dangGo}
-            dangNghi={dangNghi}
+            events={events}
+            typing={typing}
+            idle={idle}
             // Shimmer says "the AGENT is working" — while an approval card
             // waits for the OWNER, showing it would be a lie.
-            dangCho={dangBan && dangGo === "" && dangNghi === "" && !dangChoQuyen}
+            dangCho={busy && typing === "" && idle === "" && !dangChoQuyen}
             onTraLoiQuyen={(requestId, choPhep, inputJson) =>
               batDauGui(async () => {
                 const ket = await traLoiQuyenAction(phien.id, requestId, choPhep, inputJson);
@@ -464,7 +464,7 @@ export function LiveView({
       <div className="p-3 sm:p-4">
         {/* Action chips: the whole flow tappable — no "/" typing on a phone.
             One scrollable row so six chips never wrap the input area taller. */}
-        {dangChay && chips.length > 0 && (
+        {running && chips.length > 0 && (
           <div
             role="toolbar"
             aria-label="Session actions"
@@ -491,7 +491,7 @@ export function LiveView({
             ))}
           </div>
         )}
-        {dangChay ? (
+        {running ? (
           <form
             className="relative rounded-panel border border-border bg-card px-3 py-2 focus-within:border-muted-foreground/40"
             onSubmit={(e) => {
@@ -548,7 +548,7 @@ export function LiveView({
                 model={model}
                 onInsertCommand={insertCommand}
                 onCompact={() => sendDirect("/compact")}
-                onStop={() => void dungPhienAction(phien.id)}
+                onStop={() => void stopSessionAction(phien.id)}
                 onPickMode={doiMode}
                 onPickModel={doiModel}
               />
@@ -558,7 +558,7 @@ export function LiveView({
                 </span>
               )}
               {nguCanh !== null && (
-                <VongNguCanh phanTram={nguCanh} dung={nguCanhDung} cua={nguCanhCua} />
+                <VongNguCanh percentOf={nguCanh} dung={nguCanhDung} cua={nguCanhCua} />
               )}
               {nguCanh !== null && nguCanh >= 90 && (
                 <span className="text-xs text-destructive">
@@ -569,14 +569,14 @@ export function LiveView({
               {phien.worktree && (
                 <ModeMenu mode={mode} disabled={dangDoiMode} onPick={doiMode} />
               )}
-              {dangBan && !coChuMoi ? (
+              {busy && !coChuMoi ? (
                 // Running and nothing new typed → the button is Stop, like
                 // VSCode. Typing flips it back to send (the message queues).
                 <Button
                   type="button"
                   size="icon"
                   aria-label="Stop session"
-                  onClick={() => void dungPhienAction(phien.id)}
+                  onClick={() => void stopSessionAction(phien.id)}
                   className="size-7 rounded-full bg-destructive text-white hover:bg-destructive/80"
                 >
                   <SquareIcon className="size-3" fill="currentColor" />
@@ -597,7 +597,7 @@ export function LiveView({
         ) : (
           // V2.6: continuing IS possible — start = resume, same conversation.
           <div className="flex items-center gap-3">
-            <p className="text-sm text-muted-foreground">Session ended ({ketThuc}).</p>
+            <p className="text-sm text-muted-foreground">Session ended ({ended}).</p>
             <Button
               size="sm"
               variant="outline"

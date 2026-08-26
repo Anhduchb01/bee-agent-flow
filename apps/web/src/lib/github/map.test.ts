@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import that from "./__real__/github-api.json";
 import {
   issueCuaPr,
-  laPullRequest,
+  isPullRequest,
   mapChecks,
   mapComment,
   mapLabels,
@@ -34,8 +34,8 @@ describe("payload thật", () => {
    * Dòng dưới chứng minh cái bẫy có thật, không phải tôi nhớ nhầm.
    */
   it("danh sách issue thật có lẫn pull request", () => {
-    expect(laPullRequest(issue)).toBe(false);
-    expect(laPullRequest(prAsIssue)).toBe(true);
+    expect(isPullRequest(issue)).toBe(false);
+    expect(isPullRequest(prAsIssue)).toBe(true);
   });
 
   it("issue thật ánh xạ đủ trường màn hình cần", () => {

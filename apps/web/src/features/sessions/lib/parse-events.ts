@@ -10,7 +10,7 @@
  * JSON mới là rác thật.
  */
 
-export type SuKien =
+export type StreamEvent =
   | { loai: "lifecycle"; text: string; ts?: string }
   | { loai: "nguoi-noi"; text: string; ts?: string }
   | { loai: "agent-noi"; text: string }
@@ -46,13 +46,13 @@ export type SuKien =
       dungToken?: number | null;
       cuaSoToken?: number | null;
     }
-  | { loai: "replay"; boQua: number }
+  | { loai: "replay"; skipped: number }
   /**
    * `bee_truncated` — log ĐÃ BỊ CẮT vĩnh viễn để giữ trần đĩa (spec §11).
    * Khác hẳn `replay` (chỉ là người xem vào muộn): dữ liệu này không còn nữa,
    * và người đọc phải biết trước khi kết luận agent đã làm gì.
    */
-  | { loai: "da-cat"; boQua: number }
+  | { loai: "da-cat"; skipped: number }
   /**
    * system/compact_boundary — the CLI compacted the conversation (auto near
    * the window limit, or a sent /compact). Without a visible seam the ring
@@ -94,9 +94,9 @@ function textCuaToolResult(content: unknown): string {
   return "";
 }
 
-function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): SuKien[] {
+function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): StreamEvent[] {
   if (!Array.isArray(content)) return [];
-  const ra: SuKien[] = [];
+  const ra: StreamEvent[] = [];
   for (const block of content) {
     if (!laObject(block)) continue;
     if (nguon === "assistant" && block.type === "text" && typeof block.text === "string") {
@@ -144,10 +144,10 @@ function tuContentBlocks(content: unknown, nguon: "assistant" | "user"): SuKien[
  * `null` = dòng không phải JSON (rác thật). `[]` = JSON hợp lệ nhưng không có
  * gì để hiển thị — hai chuyện khác nhau, người gọi chỉ đếm loại đầu.
  */
-export function phanTichDong(dong: string): SuKien[] | null {
+export function parseLine(line: string): StreamEvent[] | null {
   let raw: unknown;
   try {
-    raw = JSON.parse(dong);
+    raw = JSON.parse(line);
   } catch {
     return null;
   }
@@ -163,9 +163,9 @@ export function phanTichDong(dong: string): SuKien[] | null {
         ? [{ loai: "nguoi-noi", text: raw.text, ...(typeof raw.ts === "string" ? { ts: raw.ts } : {}) }]
         : [];
     case "bee_replayed":
-      return [{ loai: "replay", boQua: typeof raw.skipped === "number" ? raw.skipped : 0 }];
+      return [{ loai: "replay", skipped: typeof raw.skipped === "number" ? raw.skipped : 0 }];
     case "bee_truncated":
-      return [{ loai: "da-cat", boQua: typeof raw.skipped === "number" ? raw.skipped : 0 }];
+      return [{ loai: "da-cat", skipped: typeof raw.skipped === "number" ? raw.skipped : 0 }];
     case "system": {
       // Whitelist: only compact_boundary becomes UI; init, api_retry,
       // thinking_tokens… stay silent (see the file header's principle).
@@ -284,13 +284,13 @@ export function phanTichDong(dong: string): SuKien[] | null {
 }
 
 /** Cả file (hoặc một khúc) → sự kiện + số dòng rác. */
-export function gopSuKien(dongs: string[]): { suKien: SuKien[]; dongRac: number } {
-  const suKien: SuKien[] = [];
+export function gopSuKien(dongs: string[]): { events: StreamEvent[]; dongRac: number } {
+  const events: StreamEvent[] = [];
   let dongRac = 0;
-  for (const dong of dongs) {
-    const ket = phanTichDong(dong);
+  for (const line of dongs) {
+    const ket = parseLine(line);
     if (ket === null) dongRac += 1;
-    else suKien.push(...ket);
+    else events.push(...ket);
   }
-  return { suKien, dongRac };
+  return { events, dongRac };
 }

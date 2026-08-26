@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { ClaudeSnapshot, HanMuc } from "@/lib/claude";
-import { khoangThoiGian } from "@/lib/duration";
+import { humanDuration } from "@/lib/duration";
 import { cn } from "@/lib/utils";
 
 import { RefreshUsageButton } from "./refresh-usage-button";
@@ -18,7 +18,7 @@ const CUA_SO: Record<HanMuc["cuaSo"], string> = {
   weekly: "Weekly limit",
 };
 
-const TRANG_THAI: Record<HanMuc["trangThai"], Tone> = {
+const TRANG_THAI: Record<HanMuc["status"], Tone> = {
   allowed: "ok",
   warning: "warn",
   exceeded: "down",
@@ -34,9 +34,9 @@ const TRANG_THAI: Record<HanMuc["trangThai"], Tone> = {
  * hai không ai giải thích được.
  */
 function mauThanh(h: HanMuc): string {
-  if (h.trangThai === "exceeded" || (h.phanTram ?? 0) >= 95)
+  if (h.status === "exceeded" || (h.percentOf ?? 0) >= 95)
     return "[&_[data-slot=progress-indicator]]:bg-destructive";
-  if (h.trangThai === "warning" || (h.phanTram ?? 0) >= 75)
+  if (h.status === "warning" || (h.percentOf ?? 0) >= 75)
     return "[&_[data-slot=progress-indicator]]:bg-warning";
   return "[&_[data-slot=progress-indicator]]:bg-link";
 }
@@ -65,19 +65,19 @@ function ThanhHanMuc({ hanMuc, now }: { hanMuc: HanMuc; now: number }) {
   return (
     <>
       <div className="flex items-baseline gap-2">
-        <StatusDot tone={TRANG_THAI[hanMuc.trangThai]} />
+        <StatusDot tone={TRANG_THAI[hanMuc.status]} />
         <span className="font-mono text-2xl leading-none tabular-nums tracking-title text-foreground">
-          {hanMuc.phanTram === null ? "—" : `${hanMuc.phanTram}%`}
+          {hanMuc.percentOf === null ? "—" : `${hanMuc.percentOf}%`}
         </span>
         {conLai !== null && (
           <span className="text-xs text-muted-foreground">
-            new window in {khoangThoiGian(conLai)}
+            new window in {humanDuration(conLai)}
           </span>
         )}
       </div>
 
       <Progress
-        value={hanMuc.phanTram ?? 0}
+        value={hanMuc.percentOf ?? 0}
         aria-label={CUA_SO[hanMuc.cuaSo]}
         className={cn("[&_[data-slot=progress-track]]:h-2", mauThanh(hanMuc))}
       />

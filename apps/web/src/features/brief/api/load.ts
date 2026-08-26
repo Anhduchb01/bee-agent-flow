@@ -1,10 +1,10 @@
 import "server-only";
 
 import { getBee } from "@/lib/bee";
-import { docHangDoi } from "@/lib/bee/queue-fs";
+import { readQueue } from "@/lib/bee/queue-fs";
 import type { BeeArtifact } from "@/lib/bee/types";
 
-import { dungBanTin, type BanTin } from "../lib/tom-tat";
+import { buildDigest, type Digest } from "../lib/digest";
 
 /**
  * Cửa sổ của trang Activity: **24 giờ trượt**, không phải "từ 18:00 hôm qua".
@@ -20,12 +20,12 @@ export function recentWindow(luc = new Date(), soGio = 24): { tu: Date; den: Dat
   return { tu: new Date(luc.getTime() - soGio * 3_600_000), den: luc };
 }
 
-export async function loadBanTin(luc = new Date()): Promise<BanTin> {
+export async function loadDigest(luc = new Date()): Promise<Digest> {
   const bee = getBee();
   const { tu, den } = recentWindow(luc);
-  const [phien, hangDoi] = await Promise.all([
+  const [phien, queue] = await Promise.all([
     bee.listSessions(),
-    docHangDoi(process.env.BEE_SRV ?? "/srv/bee"),
+    readQueue(process.env.BEE_SRV ?? "/srv/bee"),
   ]);
 
   // Chỉ lấy artifact của phiên trong khoảng — n phiên cũ không đáng một lượt
@@ -38,5 +38,5 @@ export async function loadBanTin(luc = new Date()): Promise<BanTin> {
     await Promise.all(trong.map(async (p) => [p.id, await bee.sessionArtifacts(p.id)] as const)),
   );
 
-  return dungBanTin({ phien, artifacts, hangDoi, tu, den });
+  return buildDigest({ phien, artifacts, queue, tu, den });
 }

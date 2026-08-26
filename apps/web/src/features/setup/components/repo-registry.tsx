@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { BeeRepoDangKy } from "@/lib/bee/types";
+import type { BeeRegisteredRepo } from "@/lib/bee/types";
 
 import { registerRepoAction, unregisterRepoAction } from "../api/actions";
 import { EnvEditor } from "./env-editor";
@@ -22,20 +22,20 @@ export function RepoRegistry({
   protection,
   envFiles = {},
 }: {
-  repos: BeeRepoDangKy[];
+  repos: BeeRegisteredRepo[];
   /** `repo:<slug>` doctor result per slug; undefined = doctor has not seen it. */
   protection: Record<string, boolean | undefined>;
   /** env.d store per slug — edited inline, overlaid onto every worktree. */
-  envFiles?: Record<string, { duongDan: string; noiDung: string }[]>;
+  envFiles?: Record<string, { path: string; content: string }[]>;
 }) {
   const router = useRouter();
   const [repo, setRepo] = useState("");
   const [loi, setLoi] = useState("");
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
   function them() {
     if (dang || repo.trim() === "") return;
-    batDau(async () => {
+    start(async () => {
       const ket = await registerRepoAction(repo);
       if (ket.ok) {
         setRepo("");
@@ -48,7 +48,7 @@ export function RepoRegistry({
   }
 
   function go(slug: string) {
-    batDau(async () => {
+    start(async () => {
       const ket = await unregisterRepoAction(slug);
       setLoi(ket.ok ? "" : ket.message);
       router.refresh();

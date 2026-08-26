@@ -2,21 +2,21 @@
 
 import { useEffect, useState } from "react";
 
-import { phanTichDong, type SuKien } from "../lib/parse-events";
+import { parseLine, type StreamEvent } from "../lib/parse-events";
 
 export type TrangThaiKetNoi = "dang-noi" | "mo" | "mat-ket-noi" | "xong";
 
-export interface LuongPhien {
-  suKien: SuKien[];
+export interface SessionStream {
+  events: StreamEvent[];
   /** Chữ đang gõ dở của agent — từ text_delta, để màn hình chạy mượt. */
-  dangGo: string;
+  typing: string;
   /** Thinking đang chảy — buffer riêng, khối trọn vẹn trong message thay thế. */
-  dangNghi: string;
-  trangThai: TrangThaiKetNoi;
+  idle: string;
+  status: TrangThaiKetNoi;
   /** Trạng thái cuối khi phiên đóng (done/stopped/failed) — null khi còn chạy. */
-  ketThuc: string | null;
+  ended: string | null;
   /** Số sự kiện cũ đã bị bỏ qua khi gắn vào phiên chạy lâu (bee_replayed). */
-  boQua: number;
+  skipped: number;
 }
 
 /**
@@ -25,13 +25,13 @@ export interface LuongPhien {
  * mạng điện thoại không mất khúc giữa mà không cần code gì thêm ở đây.
  * Mất kết nối KHÔNG xoá những gì đã hiện — chỉ đổi trạng thái dải báo.
  */
-export function useSessionStream(id: string): LuongPhien {
-  const [suKien, setSuKien] = useState<SuKien[]>([]);
-  const [dangGo, setDangGo] = useState("");
-  const [dangNghi, setDangNghi] = useState("");
-  const [trangThai, setTrangThai] = useState<TrangThaiKetNoi>("dang-noi");
-  const [ketThuc, setKetThuc] = useState<string | null>(null);
-  const [boQua, setBoQua] = useState(0);
+export function useSessionStream(id: string): SessionStream {
+  const [events, setSuKien] = useState<StreamEvent[]>([]);
+  const [typing, setDangGo] = useState("");
+  const [idle, setDangNghi] = useState("");
+  const [status, setTrangThai] = useState<TrangThaiKetNoi>("dang-noi");
+  const [ended, setKetThuc] = useState<string | null>(null);
+  const [skipped, setBoQua] = useState(0);
 
   useEffect(() => {
     const es = new EventSource(`/api/session/${id}/stream`);
@@ -48,10 +48,10 @@ export function useSessionStream(id: string): LuongPhien {
           return;
         }
       } catch {
-        // không phải JSON — phanTichDong bên dưới xử lý như rác
+        // không phải JSON — parseLine bên dưới xử lý như rác
       }
 
-      const ket = phanTichDong(e.data);
+      const ket = parseLine(e.data);
       if (ket === null) return;
       for (const sk of ket) {
         if (sk.loai === "delta") {
@@ -64,7 +64,7 @@ export function useSessionStream(id: string): LuongPhien {
           setDangNghi("");
           setSuKien((s) => [...s, sk]);
         } else if (sk.loai === "replay") {
-          setBoQua(sk.boQua);
+          setBoQua(sk.skipped);
         } else {
           setSuKien((s) => [...s, sk]);
         }
@@ -73,5 +73,5 @@ export function useSessionStream(id: string): LuongPhien {
     return () => es.close();
   }, [id]);
 
-  return { suKien, dangGo, dangNghi, trangThai, ketThuc, boQua };
+  return { events, typing, idle, status, ended, skipped };
 }

@@ -1,20 +1,20 @@
-import { CanvasView, dungDoThi, loadCanvas, loadRepos } from "@/features/sessions";
+import { CanvasView, buildGraph, loadCanvas, loadRepos } from "@/features/sessions";
 import { PageHeader } from "@/features/shell";
 import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
-import { docHangDoi } from "@/lib/bee/queue-fs";
+import { readQueue } from "@/lib/bee/queue-fs";
 
 export default async function CanvasPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [{ nhom, artifacts, xemTruoc, videos }, repos, skills, hangDoi] = await Promise.all([
+  const [{ nhom, artifacts, xemTruoc, videos }, repos, skills, queue] = await Promise.all([
     loadCanvas(),
     loadRepos(),
     getBee().listCommands(),
-    docHangDoi(process.env.BEE_SRV ?? "/srv/bee"),
+    readQueue(process.env.BEE_SRV ?? "/srv/bee"),
   ]);
-  const { nodes, edges } = dungDoThi(nhom, artifacts, xemTruoc, videos, hangDoi);
+  const { nodes, edges } = buildGraph(nhom, artifacts, xemTruoc, videos, queue);
 
   return (
     <div className="flex h-dvh flex-col">

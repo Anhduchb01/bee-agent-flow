@@ -19,7 +19,7 @@ import { ctlSpawn, type ChildProcess } from "./ctl";
  *    giống hệt nhau — mã nằm trong ô, không có gì xảy ra.
  */
 
-export interface LuongPty {
+export interface PtyFlow {
   p: ChildProcess;
   out: string;
   done: boolean;
@@ -30,17 +30,17 @@ const ANSI_RE = /\x1b\[[0-9;?]*[A-Za-z]/g;
 const OSC_RE = /\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)?/g;
 
 /** Mở luồng. `song` = số phút giữ tiến trình trước khi tự dọn. */
-export function moLuong(lenh: string, song = 10): LuongPty {
+export function openFlow(lenh: string, song = 10): PtyFlow {
   const p = ctlSpawn("script", ["-qec", `stty cols 400 rows 100; ${lenh}`, "/dev/null"], {
     stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, TERM: "xterm-256color" },
   });
-  const luong: LuongPty = {
+  const luong: PtyFlow = {
     p,
     out: "",
     done: false,
     // Một luồng bị bỏ giữa chừng không được nằm lại ôm nửa cái đăng nhập.
-    timeout: setTimeout(() => dongLuong(luong), song * 60 * 1000),
+    timeout: setTimeout(() => closeFlow(luong), song * 60 * 1000),
   };
   p.stdout?.on("data", (d: Buffer) => (luong.out += d.toString()));
   p.stderr?.on("data", (d: Buffer) => (luong.out += d.toString()));
@@ -48,7 +48,7 @@ export function moLuong(lenh: string, song = 10): LuongPty {
   return luong;
 }
 
-export function dongLuong(luong: LuongPty | null): void {
+export function closeFlow(luong: PtyFlow | null): void {
   if (luong === null) return;
   clearTimeout(luong.timeout);
   try {
@@ -60,7 +60,7 @@ export function dongLuong(luong: LuongPty | null): void {
 
 /** Chờ tới khi `tim` bắt được thứ cần trên màn hình, tối đa `giay` giây. */
 export async function cho<T>(
-  luong: LuongPty,
+  luong: PtyFlow,
   tim: (out: string) => T | null,
   giay = 15,
 ): Promise<T | null> {
@@ -74,14 +74,14 @@ export async function cho<T>(
 }
 
 /** Dán mã vào: nội dung một lần ghi, Enter một lần ghi khác. */
-export async function guiMa(luong: LuongPty, ma: string): Promise<void> {
+export async function sendCode(luong: PtyFlow, ma: string): Promise<void> {
   luong.p.stdin?.write(ma);
   await new Promise((r) => setTimeout(r, 500));
   luong.p.stdin?.write("\r");
 }
 
 /** Enter nhắc lại — rẻ, vô hại khi ô trống, đỡ cho máy chậm. */
-export function nhacEnter(luong: LuongPty): void {
+export function nudgeEnter(luong: PtyFlow): void {
   if (!luong.done) luong.p.stdin?.write("\r");
 }
 
@@ -90,20 +90,20 @@ export function nhacEnter(luong: LuongPty): void {
  * phần đệm của UI; token chỉ xuất hiện sau khi gửi mã, nhưng che sẵn — chuỗi
  * này đi ra màn hình người dùng.
  */
-export function manHinhCuoi(out: string): string | null {
-  const dong = out
+export function lastScreen(out: string): string | null {
+  const line = out
     .replace(ANSI_RE, "")
     .replace(OSC_RE, "")
     .replace(/sk-ant-oat01-[A-Za-z0-9_-]+/g, "sk-ant-oat01-…")
     .split(/[\r\n]+/)
     .map((d) => d.trim())
     .filter((d) => d !== "" && !/^\.+$/.test(d));
-  const cuoi = dong.at(-1);
+  const cuoi = line.at(-1);
   return cuoi === undefined ? null : cuoi.slice(0, 160);
 }
 
 /** Chính lời của luồng khi nó từ chối mã, ví dụ "OAuth error: …". */
-export function loiOauth(out: string): string | null {
+export function oauthError(out: string): string | null {
   const sach = out.replace(ANSI_RE, "");
   return /(?:OAuth error|Login failed|Invalid code)[^\r\n]{0,120}/.exec(sach)?.[0].trim() ?? null;
 }

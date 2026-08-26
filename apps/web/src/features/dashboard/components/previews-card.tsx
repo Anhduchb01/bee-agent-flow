@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { Eyebrow } from "@/components/eyebrow";
 import { StatusDot } from "@/components/status-dot";
 import { Button } from "@/components/ui/button";
-import type { BeePreviewSong } from "@/lib/bee/machine-ctl";
+import type { BeePreviewLive } from "@/lib/bee/machine-ctl";
 
 import { stopPreviewAction } from "../api/actions";
 
@@ -16,10 +16,10 @@ import { stopPreviewAction } from "../api/actions";
  * unit AND releases the tailscale serve port. Rendered only when
  * something is actually running — an empty card is noise.
  */
-export function PreviewsCard({ previews }: { previews: BeePreviewSong[] }) {
+export function PreviewsCard({ previews }: { previews: BeePreviewLive[] }) {
   const router = useRouter();
   const [loi, setLoi] = useState("");
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
   if (previews.length === 0) return null;
 
@@ -48,7 +48,7 @@ export function PreviewsCard({ previews }: { previews: BeePreviewSong[] }) {
               variant="outline"
               disabled={dang}
               onClick={() =>
-                batDau(async () => {
+                start(async () => {
                   const ket = await stopPreviewAction(p.unit, p.port);
                   setLoi(ket.ok ? "" : ket.message);
                   router.refresh();

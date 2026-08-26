@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { docArtifactsTrong, docCauCuoiTrong, lietKePhienTrong, lietKeRepoTrong } from "./sessions-fs";
+import { readArtifactsIn, readLastLineIn, listSessionsIn, listReposIn } from "./sessions-fs";
 
 const ID_A = "aaaaaaaa-1111-4222-8333-444444444444";
 const ID_B = "bbbbbbbb-1111-4222-8333-444444444444";
@@ -45,28 +45,28 @@ function dungSan(): string {
   return root;
 }
 
-describe("lietKePhienTrong", () => {
+describe("listSessionsIn", () => {
   it("đọc đủ ba phiên, mới nhất trước, tên thư mục bẩn bị bỏ qua", async () => {
-    const ds = await lietKePhienTrong(dungSan());
+    const ds = await listSessionsIn(dungSan());
     expect(ds.map((p) => p.id)).toEqual([ID_B, ID_A, ID_C]);
   });
 
   it("chưa có meta.json là 'starting' — trạng thái thật, không phải lỗi", async () => {
-    const ds = await lietKePhienTrong(dungSan());
+    const ds = await listSessionsIn(dungSan());
     expect(ds.find((p) => p.id === ID_B)?.status).toBe("starting");
   });
 
   it("meta.json hỏng thì phiên vẫn hiện, rơi về 'starting'", async () => {
-    const ds = await lietKePhienTrong(dungSan());
+    const ds = await listSessionsIn(dungSan());
     expect(ds.find((p) => p.id === ID_C)?.status).toBe("starting");
   });
 
   it("thư mục sessions chưa tồn tại trả danh sách rỗng", async () => {
-    expect(await lietKePhienTrong("/khong/co/that")).toEqual([]);
+    expect(await listSessionsIn("/khong/co/that")).toEqual([]);
   });
 });
 
-describe("docArtifactsTrong", () => {
+describe("readArtifactsIn", () => {
   it("nhặt đúng dòng bee_artifact hợp lệ giữa stream hỗn tạp, loại url lạ", async () => {
     const root = dungSan();
     const runFile = path.join(root, "sessions", ID_A, "run.jsonl");
@@ -81,7 +81,7 @@ describe("docArtifactsTrong", () => {
         '{"type":"bee_artifact","kind":"pr","url":"https://github.com/you/myapp/pull/123","number":123}',
       ].join("\n"),
     );
-    const ds = await docArtifactsTrong(root, ID_A);
+    const ds = await readArtifactsIn(root, ID_A);
     expect(ds).toEqual([
       {
         kind: "issue",
@@ -95,11 +95,11 @@ describe("docArtifactsTrong", () => {
   });
 
   it("chưa có run.jsonl là danh sách rỗng, không phải lỗi", async () => {
-    expect(await docArtifactsTrong(dungSan(), ID_B)).toEqual([]);
+    expect(await readArtifactsIn(dungSan(), ID_B)).toEqual([]);
   });
 });
 
-describe("lietKeRepoTrong", () => {
+describe("listReposIn", () => {
   it("đọc repos.d — chỉ file .env có dòng REPO=owner/name hợp lệ", async () => {
     const root = dungSan();
     const rd = path.join(root, "repos.d");
@@ -108,18 +108,18 @@ describe("lietKeRepoTrong", () => {
     writeFileSync(path.join(rd, "blog.env"), 'REPO="you/blog"\n');
     writeFileSync(path.join(rd, "hong.env"), "KHONG_CO_REPO=1\n");
     writeFileSync(path.join(rd, "ghi-chu.txt"), "REPO=you/khong-phai-env\n");
-    expect(await lietKeRepoTrong(root)).toEqual([
+    expect(await listReposIn(root)).toEqual([
       { slug: "blog", repo: "you/blog" },
       { slug: "myapp", repo: "you/myapp" },
     ]);
   });
 
   it("chưa có repos.d là danh sách rỗng, không phải lỗi", async () => {
-    expect(await lietKeRepoTrong(dungSan())).toEqual([]);
+    expect(await listReposIn(dungSan())).toEqual([]);
   });
 });
 
-describe("docCauCuoiTrong", () => {
+describe("readLastLineIn", () => {
   it("lấy câu text CUỐI của assistant, gọn một dòng — bỏ qua tool_result phía sau", async () => {
     const root = dungSan();
     writeFileSync(
@@ -130,10 +130,10 @@ describe("docCauCuoiTrong", () => {
         '{"type":"user","message":{"content":[{"type":"tool_result","content":"24 passed"}]}}',
       ].join("\n"),
     );
-    expect(await docCauCuoiTrong(root, ID_A)).toBe("đang chạy test suite rồi");
+    expect(await readLastLineIn(root, ID_A)).toBe("đang chạy test suite rồi");
   });
 
   it("chưa nói gì thì null — node vẽ trạng thái trống, không vẽ chuỗi rỗng", async () => {
-    expect(await docCauCuoiTrong(dungSan(), ID_B)).toBeNull();
+    expect(await readLastLineIn(dungSan(), ID_B)).toBeNull();
   });
 });

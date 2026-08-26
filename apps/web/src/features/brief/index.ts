@@ -1,3 +1,3 @@
-export { loadBanTin, recentWindow } from "./api/load";
-export { BriefView } from "./components/brief-view";
-export { dungBanTin, type BanTin } from "./lib/tom-tat";
+export { loadDigest, recentWindow } from "./api/load";
+export { DigestView } from "./components/digest-view";
+export { buildDigest, type Digest } from "./lib/digest";

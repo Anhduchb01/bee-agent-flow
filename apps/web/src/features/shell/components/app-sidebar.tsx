@@ -54,7 +54,7 @@ export function SidebarNewProjectTrigger(props: React.ComponentProps<"button">) 
 
 export interface DuAnTrongSidebar {
   slug: string;
-  dangChay: number;
+  running: number;
   tone: Tone;
 }
 
@@ -229,8 +229,8 @@ export function AppSidebar({
                     <StatusDot tone={d.tone} />
                     <span>{d.slug}</span>
                   </SidebarMenuButton>
-                  {d.dangChay > 0 ? (
-                    <SidebarMenuBadge>{d.dangChay}</SidebarMenuBadge>
+                  {d.running > 0 ? (
+                    <SidebarMenuBadge>{d.running}</SidebarMenuBadge>
                   ) : null}
                 </SidebarMenuItem>
               ))}

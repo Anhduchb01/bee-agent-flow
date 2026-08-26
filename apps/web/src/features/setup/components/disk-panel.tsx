@@ -27,11 +27,11 @@ function doc(bytes: number): string {
 export function DiskPanel({ gc }: { gc: BeeGc | null }) {
   const router = useRouter();
   const [loi, setLoi] = useState("");
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
   function don() {
     if (dang) return;
-    batDau(async () => {
+    start(async () => {
       const ket = await runGcAction();
       setLoi(ket.ok ? "" : ket.message);
       router.refresh();

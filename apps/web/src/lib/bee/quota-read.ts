@@ -23,7 +23,7 @@ function cuaSo(v: unknown): BeeClaudeWindow | null {
   };
 }
 
-export async function docUsageTaiKhoan(root: string): Promise<BeeClaudeAccountUsage | null> {
+export async function readAccountUsage(root: string): Promise<BeeClaudeAccountUsage | null> {
   let raw: unknown;
   try {
     raw = JSON.parse(await fs.readFile(path.join(root, "state", "claude-usage.json"), "utf8"));

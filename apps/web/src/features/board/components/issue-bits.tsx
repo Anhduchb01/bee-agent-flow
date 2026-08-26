@@ -3,7 +3,7 @@ import Link from "next/link";
 import { StatusDot, type Tone } from "@/components/status-dot";
 import type { BeeSession } from "@/lib/bee/types";
 
-import type { MucBang, PhienCuaIssue } from "../lib/lanes";
+import type { BoardRow, IssueSession } from "../lib/lanes";
 
 /** Shared row pieces — the table and the kanban must speak the same language. */
 
@@ -20,7 +20,7 @@ const TONE_PHIEN: Record<BeeSession["status"], Tone> = {
  * Rendered as real links so a thumb can hit them; "—" when nothing picked
  * the issue up, which is information, not an empty cell.
  */
-export function PhienGan({ phien }: { phien: PhienCuaIssue[] }) {
+export function AttachedSession({ phien }: { phien: IssueSession[] }) {
   if (phien.length === 0) {
     return <span className="text-xs text-muted-foreground">no session yet</span>;
   }
@@ -41,7 +41,7 @@ export function PhienGan({ phien }: { phien: PhienCuaIssue[] }) {
   );
 }
 
-export function SoIssue({ muc }: { muc: MucBang }) {
+export function SoIssue({ muc }: { muc: BoardRow }) {
   return (
     <a
       href={muc.issue.url}
@@ -54,7 +54,7 @@ export function SoIssue({ muc }: { muc: MucBang }) {
   );
 }
 
-export function LinkPR({ muc }: { muc: MucBang }) {
+export function LinkPR({ muc }: { muc: BoardRow }) {
   if (muc.pr.length === 0) return null;
   return (
     <span className="flex flex-wrap gap-2">

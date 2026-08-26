@@ -11,10 +11,10 @@ vi.mock("@/lib/bee/machine-ctl", () => ({
 // Hàng đợi có test riêng (queue-run.test); ở đây chỉ cần biết tick CÓ gọi nó
 // và trả lý do ra ngoài, không nuốt.
 vi.mock("@/lib/bee/queue-fs", () => ({
-  docHangDoi: vi.fn(async () => ({ items: [], paused: false })),
-  ghiHangDoi: vi.fn(async () => {}),
+  readQueue: vi.fn(async () => ({ items: [], paused: false })),
+  writeQueue: vi.fn(async () => {}),
 }));
-vi.mock("@/lib/bee/session-ctl", () => ({ moPhien: vi.fn() }));
+vi.mock("@/lib/bee/session-ctl", () => ({ openSession: vi.fn() }));
 vi.mock("@/lib/bee", () => ({ getBee: () => ({ listSessions: async () => [] }) }));
 
 const TOKEN = "a".repeat(32);
@@ -96,13 +96,13 @@ describe("POST /api/tick — nhịp hàng đợi", () => {
   });
 
   it("refresh hạn mức chạy TRƯỚC hàng đợi — phanh phải đọc số vừa lấy", async () => {
-    const { docHangDoi } = await import("@/lib/bee/queue-fs");
+    const { readQueue } = await import("@/lib/bee/queue-fs");
     const thuTu: string[] = [];
     vi.mocked(fetchClaudeAccountUsage).mockImplementationOnce(async () => {
       thuTu.push("quota");
       return { ok: true };
     });
-    vi.mocked(docHangDoi).mockImplementationOnce(async () => {
+    vi.mocked(readQueue).mockImplementationOnce(async () => {
       thuTu.push("queue");
       return { items: [], paused: false };
     });

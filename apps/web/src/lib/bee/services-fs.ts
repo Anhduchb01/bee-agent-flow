@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { ctl } from "./ctl";
-import { laIdPhien } from "./session-id";
+import { isSessionId } from "./session-id";
 
 /**
  * Reading the service pool and the slices carved out of it (T15).
@@ -107,7 +107,7 @@ export async function readSessionSliceFrom(
   goc: string,
   id: string,
 ): Promise<BeeSlice | null> {
-  if (!laIdPhien(id)) return null;
+  if (!isSessionId(id)) return null;
   let raw: unknown;
   try {
     raw = JSON.parse(await fs.readFile(path.join(goc, "sessions", id, "services.json"), "utf8"));

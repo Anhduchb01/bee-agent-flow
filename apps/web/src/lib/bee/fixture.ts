@@ -3,7 +3,7 @@ import "server-only";
 import path from "node:path";
 
 import { isSceneId, recentRunsJson, sceneJson, type SceneId } from "@/lib/fixtures/bee";
-import { chuaChayLanNao, currentScene } from "@/lib/fixtures/scene";
+import { neverRan, currentScene } from "@/lib/fixtures/scene";
 
 import { readEvidenceFileIn } from "./evidence-fs";
 import { parseRecentLine, parseStatus } from "./parse";
@@ -48,7 +48,7 @@ export function createFixtureBeeSource(): BeeSource {
       // (`chua-co-file`) thì cũng chưa chạy lần nào. Cứ trả lịch sử ra ở đó là
       // dựng một cảnh tự mâu thuẫn — và một cảnh tự mâu thuẫn thì không duyệt
       // được, vì không biết phần nào mới là phần đang sai.
-      if (chuaChayLanNao(want)) return [];
+      if (neverRan(want)) return [];
 
       // Bảy ngày lịch sử, không phải vài dòng trong `repos[].recent` của
       // status.json — biểu đồ xu hướng cần một cửa sổ thật để có gì mà nói.
@@ -61,9 +61,9 @@ export function createFixtureBeeSource(): BeeSource {
 
     async readClaudeRateLimit(): Promise<BeeClaudeRateLimit | null> {
       // Chưa chạy lần nào thì chưa có `rate_limit_event` nào — cùng một cảnh
-      // với `phanTram: null` ở `lib/claude/fixture.ts`, và phải khớp nhau, nếu
+      // với `percentOf: null` ở `lib/claude/fixture.ts`, và phải khớp nhau, nếu
       // không thì cảnh `vua-cai` lại tự mâu thuẫn một lần nữa.
-      if (chuaChayLanNao(await currentScene())) return null;
+      if (neverRan(await currentScene())) return null;
       return {
         status: "allowed",
         resetsAt: Math.floor(Date.now() / 1000) + 2 * 3600 + 14 * 60,
@@ -77,7 +77,7 @@ export function createFixtureBeeSource(): BeeSource {
     readEvidenceFile: (segments) => readEvidenceFileIn(EVIDENCE_ROOT, segments),
 
     async readGc() {
-      if (chuaChayLanNao(await currentScene())) return null;  // máy vừa cài: gc chưa chạy
+      if (neverRan(await currentScene())) return null;  // máy vừa cài: gc chưa chạy
       return {
         ts: "2026-08-24T15:00:00Z",
         removed: 2,
@@ -103,7 +103,7 @@ export function createFixtureBeeSource(): BeeSource {
     /*
      * Ba phiên mẫu phủ ba trạng thái màn danh sách phải vẽ khác nhau: đang
      * chạy (mở được live), đã xong, và chết cần người. Phiên đang chạy dùng
-     * đúng id PHIEN_DEMO mà session-ctl trả về ở fixture mode — bấm "New
+     * đúng id DEMO_SESSION_ID mà session-ctl trả về ở fixture mode — bấm "New
      * session" trên fixture là rơi vào trang live có chữ thật để xem.
      */
     async listRepos() {
@@ -130,7 +130,7 @@ export function createFixtureBeeSource(): BeeSource {
 
     /** Số tài khoản dàn dựng — khớp các % mà fixture ClaudeSource vẫn vẽ. */
     async readClaudeUsage() {
-      if (chuaChayLanNao(await currentScene())) return null;
+      if (neverRan(await currentScene())) return null;
       return {
         five_hour: { percent: 38, resets_at: "2026-08-17T12:14:00Z" },
         seven_day: { percent: 81, resets_at: "2026-08-20T10:00:00Z" },
@@ -141,13 +141,13 @@ export function createFixtureBeeSource(): BeeSource {
     /** Cùng câu chuyện với readDoctor: cảnh xanh đã có token, cảnh khác chưa. */
     async readClaudeAuth() {
       const canh = await currentScene();
-      if (chuaChayLanNao(canh) || canh === "co-su-co") return "none";
+      if (neverRan(canh) || canh === "co-su-co") return "none";
       return "token";
     },
 
     async readDoctor() {
       const canh = await currentScene();
-      if (chuaChayLanNao(canh)) return null;
+      if (neverRan(canh)) return null;
       if (canh === "co-su-co") {
         return {
           checked_at: "2026-08-18T09:30:00Z",
@@ -199,8 +199,8 @@ export function createFixtureBeeSource(): BeeSource {
     },
 
     async listSessions(): Promise<BeeSession[]> {
-      if (chuaChayLanNao(await currentScene())) return [];
-      return [phienDemoDangChay(), phienDemoXong(), phienDemoChet()];
+      if (neverRan(await currentScene())) return [];
+      return [demoSessionRunning(), demoSessionDone(), demoSessionDead()];
     },
 
     async readSession(id): Promise<BeeSession | null> {
@@ -236,7 +236,7 @@ export function createFixtureBeeSource(): BeeSource {
     },
 
     async sessionArtifacts(id): Promise<BeeArtifact[]> {
-      if (chuaChayLanNao(await currentScene())) return [];
+      if (neverRan(await currentScene())) return [];
       // Phiên đang chạy mới có issue; phiên xong có đủ issue + PR — canvas
       // trên fixture phải cho thấy cả hai hình dạng.
       if (id === "de300000-0000-4000-8000-000000000001") {
@@ -293,7 +293,7 @@ export function createFixtureBeeSource(): BeeSource {
   };
 }
 
-function phienDemoDangChay(): BeeSession {
+function demoSessionRunning(): BeeSession {
   return {
     id: "de300000-0000-4000-8000-000000000001",
     slug: "myapp",
@@ -311,7 +311,7 @@ function phienDemoDangChay(): BeeSession {
   };
 }
 
-function phienDemoXong(): BeeSession {
+function demoSessionDone(): BeeSession {
   return {
     id: "de300000-0000-4000-8000-000000000002",
     slug: "myapp",
@@ -329,7 +329,7 @@ function phienDemoXong(): BeeSession {
   };
 }
 
-function phienDemoChet(): BeeSession {
+function demoSessionDead(): BeeSession {
   return {
     id: "de300000-0000-4000-8000-000000000003",
     slug: "blog",

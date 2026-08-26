@@ -1,6 +1,6 @@
-import type { BeeArtifact, BeeSession, HangDoi } from "@/lib/bee/types";
+import type { BeeArtifact, BeeSession, Queue } from "@/lib/bee/types";
 
-import type { NhomPhien } from "../api/load";
+import type { SessionGroup } from "../api/load";
 
 /**
  * Dựng đồ thị canvas từ dữ liệu phiên — THUẦN, không import React Flow, để
@@ -12,7 +12,7 @@ import type { NhomPhien } from "../api/load";
  * kéo tay — reload (hoặc nút Tidy) về auto-layout (spec canvas §2).
  */
 
-export interface NodePhien {
+export interface NodeSession {
   id: string;
   type: "phien";
   position: { x: number; y: number };
@@ -46,7 +46,7 @@ export interface NodeArtifact {
 }
 
 /** Container một repo — group node, style mang kích thước tính sẵn. */
-export interface NodeNhomRepo {
+export interface NodeRepoGroup {
   id: string;
   type: "repo-group";
   position: { x: number; y: number };
@@ -56,7 +56,7 @@ export interface NodeNhomRepo {
 
 /** 🎬 demo video node: attached to the PR its session made. */
 /** Node cho việc CHƯA xảy ra — vẽ mờ, nhãn nói rõ nó là dự định. */
-export interface NodeChoChay {
+export interface NodeQueued {
   id: string;
   type: "cho-chay";
   position: { x: number; y: number };
@@ -78,7 +78,7 @@ export interface NodeDemo {
   };
 }
 
-export type NodeCanvas = NodePhien | NodeArtifact | NodeNhomRepo | NodeDemo | NodeChoChay;
+export type NodeCanvas = NodeSession | NodeArtifact | NodeRepoGroup | NodeDemo | NodeQueued;
 
 export interface EdgeCanvas {
   id: string;
@@ -99,14 +99,14 @@ const RONG_ARTIFACT = 224; // w-56
 const RONG_DEMO = 208; // w-52
 const KHOANG_CACH_NHOM = 48;
 
-export function dungDoThi(
-  nhom: NhomPhien[],
+export function buildGraph(
+  nhom: SessionGroup[],
   artifacts: Record<string, BeeArtifact[]>,
   xemTruoc: Record<string, string | null> = {},
   /** Demo videos per session (name + authed url) — grows a 🎬 node each. */
   videos: Record<string, { name: string; url: string }[]> = {},
   /** Hàng đợi Autopilot — issue đã xếp mà CHƯA chạy mọc node mờ (V3.D5). */
-  hangDoi: HangDoi = { items: [], paused: false },
+  queue: Queue = { items: [], paused: false },
 ): { nodes: NodeCanvas[]; edges: EdgeCanvas[] } {
   const nodes: NodeCanvas[] = [];
   const edges: EdgeCanvas[] = [];
@@ -123,7 +123,7 @@ export function dungDoThi(
     // quá khứ. Cố ý là node riêng (`cho-chay`) chứ không giả dạng node phiên —
     // vẽ một dự định trông như việc đã xảy ra là nói dối bằng đồ hoạ. Việc đã
     // chạy thì thôi, node phiên thật thay chỗ.
-    for (const v of hangDoi.items) {
+    for (const v of queue.items) {
       if (v.repo !== g.repo || v.status !== "waiting") continue;
       con.push({
         id: `queued-${v.repo}#${v.issue}`,

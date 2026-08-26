@@ -9,30 +9,30 @@ import type { BeeSlotClaude } from "@/lib/bee/slayer";
 import type { TrangThaiSlayer } from "@/lib/bee/slayer-ctl";
 
 import {
-  batDauThemSlotAction,
-  boTokenGhimAction,
-  caiSlayerAction,
-  chupSlotAction,
-  doiSlotAction,
-  nhanTaiKhoanCapAction,
+  startAddSlotAction,
+  unpinTokenAction,
+  installSlayerAction,
+  captureSlotAction,
+  switchSlotAction,
+  pullGrantedAccountsAction,
   xongThemSlotAction,
 } from "../api/actions";
 
 /** Thanh dùng — vẽ được cả khi slayer chưa kịp hỏi usage. */
-function Thanh({ nhan, muc }: { nhan: string; muc: { phanTram: number } | null }) {
+function Thanh({ nhan, muc }: { nhan: string; muc: { percentOf: number } | null }) {
   if (muc === null) return <span className="font-mono text-2xs text-muted-foreground">{nhan} —</span>;
-  const gap = muc.phanTram >= 85;
+  const gap = muc.percentOf >= 85;
   return (
     <span className="flex items-center gap-1.5">
       <span className="font-mono text-2xs text-muted-foreground">{nhan}</span>
       <span className="h-1.5 w-14 overflow-hidden rounded-full bg-muted">
         <span
           className={`block h-full ${gap ? "bg-amber-500" : "bg-emerald-500"}`}
-          style={{ width: `${muc.phanTram}%` }}
+          style={{ width: `${muc.percentOf}%` }}
         />
       </span>
       <span className="font-mono text-2xs tabular-nums text-muted-foreground">
-        {Math.round(muc.phanTram)}%
+        {Math.round(muc.percentOf)}%
       </span>
     </span>
   );
@@ -88,9 +88,9 @@ function Hang({
  *    export `CLAUDE_CODE_OAUTH_TOKEN` và biến môi trường thắng file
  *    credential. Còn nó thì bảng này chỉ là trang trí.
  */
-export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
+export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
   const router = useRouter();
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
   const [loi, setLoi] = useState("");
   const [tokenSlayer, setTokenSlayer] = useState("");
   const [tenMoi, setTenMoi] = useState("");
@@ -100,7 +100,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
 
   function chay(viec: () => Promise<{ ok: boolean; message: string }>) {
     if (dang) return;
-    batDau(async () => {
+    start(async () => {
       const ket = await viec();
       setLoi(ket.ok ? "" : ket.message);
       setTin(ket.ok ? ket.message : "");
@@ -121,7 +121,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
           e.preventDefault();
           if (tokenSlayer.trim() === "") return;
           chay(async () => {
-            const ket = await caiSlayerAction(tokenSlayer);
+            const ket = await installSlayerAction(tokenSlayer);
             if (ket.ok) setTokenSlayer("");
             return ket;
           });
@@ -136,14 +136,14 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
           className="min-w-48 flex-1 font-mono"
         />
         <Button type="submit" disabled={dang || tokenSlayer.trim() === ""}>
-          {dang ? "Installing…" : trangThai.daCai ? "Reinstall / change token" : "Install"}
+          {dang ? "Installing…" : status.daCai ? "Reinstall / change token" : "Install"}
         </Button>
-        {trangThai.daCai && (
+        {status.daCai && (
           <Button
             type="button"
             variant="outline"
             disabled={dang}
-            onClick={() => chay(nhanTaiKhoanCapAction)}
+            onClick={() => chay(pullGrantedAccountsAction)}
           >
             Pull accounts your admin granted
           </Button>
@@ -164,7 +164,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
     </div>
   );
 
-  if (!trangThai.daCai) {
+  if (!status.daCai) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-body">
@@ -177,11 +177,11 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
     );
   }
 
-  const slots = trangThai.pool?.slots ?? [];
+  const slots = status.pool?.slots ?? [];
 
   return (
     <div className="flex flex-col gap-3">
-      {trangThai.tokenGhim && (
+      {status.tokenGhim && (
         <div className="flex flex-wrap items-center gap-2 rounded-control border border-amber-500/40 bg-amber-500/10 p-3">
           <span className="flex-1 text-xs text-body">
             <span className="font-mono">claude.env</span> pins a token — sessions run on that token,
@@ -191,15 +191,15 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
             size="sm"
             variant="outline"
             disabled={dang}
-            onClick={() => chay(boTokenGhimAction)}
+            onClick={() => chay(unpinTokenAction)}
           >
             Remove the pinned token
           </Button>
         </div>
       )}
 
-      {trangThai.message !== null && (
-        <p className="text-xs text-destructive">{trangThai.message}</p>
+      {status.message !== null && (
+        <p className="text-xs text-destructive">{status.message}</p>
       )}
 
       {slots.length === 0 ? (
@@ -210,7 +210,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
       ) : (
         <ul className="flex flex-col rounded-control border border-border bg-muted/20 px-3">
           {slots.map((s) => (
-            <Hang key={s.name} slot={s} dang={dang} doi={(t) => chay(() => doiSlotAction(t))} />
+            <Hang key={s.name} slot={s} dang={dang} doi={(t) => chay(() => switchSlotAction(t))} />
           ))}
         </ul>
       )}
@@ -222,7 +222,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
             e.preventDefault();
             if (tenMoi.trim() === "") return;
             chay(async () => {
-              const ket = await chupSlotAction(tenMoi);
+              const ket = await captureSlotAction(tenMoi);
               if (ket.ok) setTenMoi("");
               return ket;
             });
@@ -239,9 +239,9 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
           <Button
             type="submit"
             variant="outline"
-            disabled={dang || tenMoi.trim() === "" || !trangThai.coLoginMay}
+            disabled={dang || tenMoi.trim() === "" || !status.coLoginMay}
             title={
-              trangThai.coLoginMay
+              status.coLoginMay
                 ? undefined
                 : "No login session on this machine to capture — use the button next to it"
             }
@@ -253,8 +253,8 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
             variant="outline"
             disabled={dang || tenMoi.trim() === ""}
             onClick={() =>
-              batDau(async () => {
-                const ket = await batDauThemSlotAction(tenMoi);
+              start(async () => {
+                const ket = await startAddSlotAction(tenMoi);
                 if (ket.ok) {
                   setUrl(ket.url);
                   setLoi("");
@@ -316,7 +316,7 @@ export function ClaudeAccounts({ trangThai }: { trangThai: TrangThaiSlayer }) {
       </details>
 
       {loi !== "" && <p className="text-xs text-destructive">{loi}</p>}
-      {!trangThai.coLoginMay && (
+      {!status.coLoginMay && (
         <p className="text-xs text-muted-foreground">
           This machine runs on the token pasted above, not on a login session — so there is nothing
           to “save”. Add an account with <strong>Sign in with another account</strong>.

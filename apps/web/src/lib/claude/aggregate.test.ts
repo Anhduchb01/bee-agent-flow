@@ -139,17 +139,17 @@ describe("hanMucTu", () => {
 
   it("một sự kiện cho đúng một cửa sổ", () => {
     expect(hanMucTu(goc)).toEqual([
-      { cuaSo: "five_hour", trangThai: "allowed", phanTram: null, resetsAt: 1_786_000_000 },
+      { cuaSo: "five_hour", status: "allowed", percentOf: null, resetsAt: 1_786_000_000 },
     ]);
   });
 
-  it("phanTram luôn null — không nguồn nào phát ra nó", () => {
-    expect(hanMucTu({ ...goc, status: "allowed_warning" })[0].phanTram).toBeNull();
+  it("percentOf luôn null — không nguồn nào phát ra nó", () => {
+    expect(hanMucTu({ ...goc, status: "allowed_warning" })[0].percentOf).toBeNull();
   });
 
   it("đọc được các biến thể của status", () => {
-    expect(hanMucTu({ ...goc, status: "allowed_warning" })[0].trangThai).toBe("warning");
-    expect(hanMucTu({ ...goc, status: "rejected" })[0].trangThai).toBe("exceeded");
+    expect(hanMucTu({ ...goc, status: "allowed_warning" })[0].status).toBe("warning");
+    expect(hanMucTu({ ...goc, status: "rejected" })[0].status).toBe("exceeded");
   });
 
   // Một thanh dán nhãn sai tệ hơn hẳn một thanh vắng mặt.
@@ -166,9 +166,9 @@ describe("hanMucTuTaiKhoan — account-wide windows from the oauth usage endpoin
       fetched_at: "2026-08-19T07:00:00Z",
     });
     expect(hm).toHaveLength(2);
-    expect(hm[0]).toMatchObject({ cuaSo: "five_hour", phanTram: 9, trangThai: "allowed" });
+    expect(hm[0]).toMatchObject({ cuaSo: "five_hour", percentOf: 9, status: "allowed" });
     expect(hm[0]!.resetsAt).toBe(Math.floor(Date.parse("2026-08-19T11:19:59.906684+00:00") / 1000));
-    expect(hm[1]).toMatchObject({ cuaSo: "weekly", phanTram: 27 });
+    expect(hm[1]).toMatchObject({ cuaSo: "weekly", percentOf: 27 });
   });
 
   it("percent drives the tone: ≥80 warns, ≥100 exceeded", () => {
@@ -177,8 +177,8 @@ describe("hanMucTuTaiKhoan — account-wide windows from the oauth usage endpoin
       seven_day: { percent: 100, resets_at: null },
       fetched_at: "2026-08-19T07:00:00Z",
     });
-    expect(hm[0]!.trangThai).toBe("warning");
-    expect(hm[1]!.trangThai).toBe("exceeded");
+    expect(hm[0]!.status).toBe("warning");
+    expect(hm[1]!.status).toBe("exceeded");
     expect(hm[0]!.resetsAt).toBeNull();
   });
 

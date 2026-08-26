@@ -34,7 +34,7 @@ window.matchMedia = ((query: string) => ({
   dispatchEvent: () => false,
 })) as typeof window.matchMedia;
 
-function renderSidebar(duAn: { slug: string; dangChay: number; tone: "ok" | "agent" }[]) {
+function renderSidebar(duAn: { slug: string; running: number; tone: "ok" | "agent" }[]) {
   return render(
     <TooltipProvider>
       <SidebarProvider>
@@ -57,8 +57,8 @@ function renderSidebar(duAn: { slug: string; dangChay: number; tone: "ok" | "age
 describe("AppSidebar — Projects section speaks the session model", () => {
   it("lists registered repos linking to the board FILTERED to that project", () => {
     renderSidebar([
-      { slug: "lifebook-assessment", dangChay: 2, tone: "agent" },
-      { slug: "blog", dangChay: 0, tone: "ok" },
+      { slug: "lifebook-assessment", running: 2, tone: "agent" },
+      { slug: "blog", running: 0, tone: "ok" },
     ]);
 
     const nav = screen.getByRole("navigation", { name: "Main navigation" });
@@ -94,7 +94,7 @@ describe("on a phone the sidebar is a sheet — it must get out of the way", () 
   async function moSheet() {
     dienThoai = true;
     const user = userEvent.setup();
-    renderSidebar([{ slug: "lifebook-assessment", dangChay: 0, tone: "ok" }]);
+    renderSidebar([{ slug: "lifebook-assessment", running: 0, tone: "ok" }]);
     await user.click(screen.getByRole("button", { name: /toggle sidebar/i }));
     return user;
   }
@@ -124,7 +124,7 @@ describe("on a phone the sidebar is a sheet — it must get out of the way", () 
 
   it("on a desktop viewport the same clicks leave the sidebar in place", async () => {
     const user = userEvent.setup();
-    renderSidebar([{ slug: "blog", dangChay: 0, tone: "ok" }]);
+    renderSidebar([{ slug: "blog", running: 0, tone: "ok" }]);
 
     await user.click(screen.getByRole("link", { name: /blog/ }));
     expect(screen.getByRole("link", { name: /blog/ })).toBeInTheDocument();

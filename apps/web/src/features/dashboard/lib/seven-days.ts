@@ -1,6 +1,6 @@
 import type { BeeRecentRun } from "@/lib/bee/types";
 
-export interface NgayChay {
+export interface RunDay {
   /** `YYYY-MM-DD` theo giờ địa phương. */
   ngay: string;
   /** Nhãn ngắn trên trục: Mon…Sun, hoặc "Today". */
@@ -29,7 +29,7 @@ function khoaNgay(d: Date): string {
  * `ok` đều tính là lỗi. Đoán theo danh sách trắng thì một `result` mới xuất
  * hiện sẽ lặng lẽ rơi vào ô "xong".
  */
-export function bayNgayQua(runs: BeeRecentRun[], now: Date = new Date()): NgayChay[] {
+export function lastSevenDays(runs: BeeRecentRun[], now: Date = new Date()): RunDay[] {
   const dem = new Map<string, { xong: number; loi: number }>();
 
   for (const r of runs) {
@@ -42,7 +42,7 @@ export function bayNgayQua(runs: BeeRecentRun[], now: Date = new Date()): NgayCh
     dem.set(key, o);
   }
 
-  const out: NgayChay[] = [];
+  const out: RunDay[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
     const key = khoaNgay(d);
@@ -59,7 +59,7 @@ export function bayNgayQua(runs: BeeRecentRun[], now: Date = new Date()): NgayCh
 }
 
 /** Câu tóm tắt dưới biểu đồ. `null` khi bảy ngày không có lần chạy nào. */
-export function tomTatBayNgay(days: NgayChay[]): string | null {
+export function tomTatBayNgay(days: RunDay[]): string | null {
   const homNay = days.at(-1);
   const truoc = days.slice(0, -1);
   const tongTruoc = truoc.reduce((n, d) => n + d.tong, 0);

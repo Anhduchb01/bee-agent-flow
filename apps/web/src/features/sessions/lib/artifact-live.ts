@@ -1,7 +1,7 @@
 /** Live artifact-node state (V2.2) — pure helpers, no server imports. */
 
 /** github.com URL → what the detail action needs. Anything else: no panel. */
-export function bocArtifactUrl(
+export function unwrapArtifactUrl(
   url: string,
 ): { repo: string; kind: "issue" | "pr"; number: number } | null {
   const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/(issues|pull)\/(\d+)/.exec(url);
@@ -21,7 +21,7 @@ export interface ArtifactSong {
  * merged purple · closed red (PR) / gray (issue). No data yet → the old
  * static colors, so the canvas never flashes.
  */
-export function mauArtifact(kind: "issue" | "pr", live: ArtifactSong | null | undefined): string {
+export function artifactColour(kind: "issue" | "pr", live: ArtifactSong | null | undefined): string {
   if (!live) return kind === "pr" ? "text-purple-400" : "text-green-500";
   if (live.state === "MERGED") return "text-purple-400";
   if (live.state === "CLOSED") return kind === "pr" ? "text-red-400" : "text-muted-foreground";

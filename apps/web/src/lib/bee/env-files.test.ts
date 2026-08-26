@@ -27,8 +27,8 @@ describe("env.d via web — per-repo env files without touching a shell", () => 
     expect(((await fs.stat(file)).mode & 0o777)).toBe(0o600);
 
     const ds = await listEnvFiles("myapp");
-    expect(ds.map((f) => f.duongDan)).toEqual([".env", "apps/web/.env.local"]);
-    expect(ds[0]!.noiDung).toBe("API_KEY=abc\n");
+    expect(ds.map((f) => f.path)).toEqual([".env", "apps/web/.env.local"]);
+    expect(ds[0]!.content).toBe("API_KEY=abc\n");
   });
 
   it("dirty paths never reach the filesystem", async () => {

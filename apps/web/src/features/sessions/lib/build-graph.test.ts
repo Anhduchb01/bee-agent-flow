@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BeeSession } from "@/lib/bee/types";
 
-import { dungDoThi } from "./build-graph";
+import { buildGraph } from "./build-graph";
 
 function phien(id: string, slug: string, num: number, repo: string): BeeSession {
   return {
@@ -16,9 +16,9 @@ function phien(id: string, slug: string, num: number, repo: string): BeeSession 
 const A = "aaaaaaaa-1111-4222-8333-444444444444";
 const B = "bbbbbbbb-1111-4222-8333-444444444444";
 
-describe("dungDoThi", () => {
+describe("buildGraph", () => {
   it("mỗi repo một cột, artifact nối edge về đúng phiên đẻ ra nó", () => {
-    const { nodes, edges } = dungDoThi(
+    const { nodes, edges } = buildGraph(
       [
         { repo: "you/myapp", phien: [phien(A, "myapp", 41, "you/myapp")] },
         { repo: "you/blog", phien: [phien(B, "blog", 7, "you/blog")] },
@@ -57,7 +57,7 @@ describe("dungDoThi", () => {
   });
 
   it("phiên có nhiều artifact chiếm chỗ cao hơn — phiên sau không đè lên", () => {
-    const { nodes } = dungDoThi(
+    const { nodes } = buildGraph(
       [{ repo: "you/myapp", phien: [phien(A, "myapp", 41, "you/myapp"), phien(B, "myapp", 42, "you/myapp")] }],
       {
         [A]: [
@@ -74,12 +74,12 @@ describe("dungDoThi", () => {
   });
 
   it("không phiên nào thì đồ thị rỗng — trạng thái tốt, không phải lỗi", () => {
-    expect(dungDoThi([], {})).toEqual({ nodes: [], edges: [] });
+    expect(buildGraph([], {})).toEqual({ nodes: [], edges: [] });
   });
 
   it("phiên chat (worktree=false) mang nhãn 'chat' thay vì bịa tên nhánh", () => {
     const chat = { ...phien(A, "myapp", 3, "you/myapp"), worktree: false };
-    const { nodes } = dungDoThi([{ repo: "you/myapp", phien: [chat] }], {});
+    const { nodes } = buildGraph([{ repo: "you/myapp", phien: [chat] }], {});
     const node = nodes.find((n) => n.id === A);
     expect(node?.type === "phien" && node.data.nhanh).toBe("chat");
   });
@@ -92,7 +92,7 @@ describe("node 🎬 demo (phương án A)", () => {
       worktree: true, status: "done" as const, created_at: null, started_at: null,
       ended_at: null, attempt: 0, needs_human: false,
     };
-    const coPR = dungDoThi(
+    const coPR = buildGraph(
       [{ repo: "you/myapp", phien: [phien] }],
       { p1: [{ kind: "pr", url: "https://github.com/you/myapp/pull/9", number: 9, ts: null, title: null }] },
       {},
@@ -102,7 +102,7 @@ describe("node 🎬 demo (phương án A)", () => {
     expect(nodeDemo).toMatchObject({ data: { name: "demo.webm" } });
     expect(coPR.edges).toContainEqual({ id: "e-p1-demo-0", source: "p1-pr-9", target: "p1-demo-0" });
 
-    const chuaPR = dungDoThi(
+    const chuaPR = buildGraph(
       [{ repo: "you/myapp", phien: [phien] }],
       { p1: [] },
       {},

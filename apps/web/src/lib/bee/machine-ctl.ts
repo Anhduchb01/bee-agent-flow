@@ -12,7 +12,7 @@ import { ctl, ctlSpawn } from "./ctl";
  * back as data, not exceptions.
  */
 
-export type KetQua = { ok: true } | { ok: false; message: string };
+export type Result = { ok: true } | { ok: false; message: string };
 
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const SLUG_RE = /^[a-z0-9-]+$/;
@@ -29,7 +29,7 @@ function root(): string {
  * Chạy gc theo yêu cầu (nút "Dọn ngay"). Cùng khuôn với runDoctor: unit là
  * oneshot nên `start` chờ chạy xong, và web đọc được gc.json tươi ngay sau đó.
  */
-export async function runGc(): Promise<KetQua> {
+export async function runGc(): Promise<Result> {
   if (isFixture()) return { ok: true };
   try {
     await ctl("systemctl", ["--user", "start", "bee-gc.service"]);
@@ -50,7 +50,7 @@ export async function runGc(): Promise<KetQua> {
  * code update and its next install.sh — would otherwise turn a perfectly
  * good checklist run into a red banner on /setup.
  */
-export async function runDoctor(): Promise<KetQua> {
+export async function runDoctor(): Promise<Result> {
   if (isFixture()) return { ok: true };
   try {
     await ctl("systemctl", ["--user", "start", "bee-doctor.service"]);
@@ -65,7 +65,7 @@ export async function runDoctor(): Promise<KetQua> {
 }
 
 /** Sessions must survive logout — `loginctl enable-linger` for our own user. */
-export async function enableLinger(): Promise<KetQua> {
+export async function enableLinger(): Promise<Result> {
   if (isFixture()) return { ok: true };
   try {
     await ctl("loginctl", ["enable-linger"]);
@@ -78,13 +78,13 @@ export async function enableLinger(): Promise<KetQua> {
 export { validatePat } from "./pat";
 import {
   cho,
-  dongLuong,
-  guiMa,
-  loiOauth,
-  manHinhCuoi,
-  moLuong,
-  nhacEnter,
-  type LuongPty,
+  closeFlow,
+  sendCode,
+  oauthError,
+  lastScreen,
+  openFlow,
+  nudgeEnter,
+  type PtyFlow,
 } from "./pty-flow";
 import {
   extractOauthUrl,
@@ -99,7 +99,7 @@ import { validatePat } from "./pat";
  * over STDIN — argv would leak it to anyone running `ps`, and logs would
  * keep it forever.
  */
-export async function ghAuthLogin(token: string): Promise<KetQua> {
+export async function ghAuthLogin(token: string): Promise<Result> {
   if (!validatePat(token)) {
     return {
       ok: false,
@@ -108,7 +108,7 @@ export async function ghAuthLogin(token: string): Promise<KetQua> {
   }
   if (isFixture()) return { ok: true };
 
-  const login = await new Promise<KetQua>((resolve) => {
+  const login = await new Promise<Result>((resolve) => {
     let p;
     try {
       p = ctlSpawn("gh", ["auth", "login", "--hostname", "github.com", "--with-token"], {
@@ -150,9 +150,9 @@ export async function ghAuthLogin(token: string): Promise<KetQua> {
  * mode is set on the tmp file BEFORE the rename so the token is never
  * world-readable, not even for a moment.
  */
-export async function saveClaudeToken(token: string): Promise<KetQua> {
-  const gon = token.trim();
-  if (!validateClaudeToken(gon)) {
+export async function saveClaudeToken(token: string): Promise<Result> {
+  const trimmed = token.trim();
+  if (!validateClaudeToken(trimmed)) {
     return {
       ok: false,
       message:
@@ -165,7 +165,7 @@ export async function saveClaudeToken(token: string): Promise<KetQua> {
   try {
     await fs.mkdir(root(), { recursive: true });
     const tmp = `${file}.tmp`;
-    await fs.writeFile(tmp, `CLAUDE_CODE_OAUTH_TOKEN=${gon}\n`, { mode: 0o600 });
+    await fs.writeFile(tmp, `CLAUDE_CODE_OAUTH_TOKEN=${trimmed}\n`, { mode: 0o600 });
     await fs.chmod(tmp, 0o600);
     await fs.rename(tmp, file);
     return { ok: true };
@@ -184,27 +184,27 @@ export async function saveClaudeToken(token: string): Promise<KetQua> {
  * machine, and a second concurrent login would just steal the first one's
  * stdin. A fresh start kills the previous attempt.
  */
-let setupFlow: LuongPty | null = null;
+let setupFlow: PtyFlow | null = null;
 
 function killSetupFlow(): void {
-  dongLuong(setupFlow);
+  closeFlow(setupFlow);
   setupFlow = null;
 }
 
-export type KetQuaLink = { ok: true; url: string } | { ok: false; message: string };
+export type LinkResult = { ok: true; url: string } | { ok: false; message: string };
 
 /** Start the login flow and return the URL for the user to open. */
-export async function startClaudeSetup(): Promise<KetQuaLink> {
+export async function startClaudeSetup(): Promise<LinkResult> {
   if (isFixture()) return { ok: true, url: "https://claude.ai/oauth/authorize?demo=1" };
 
   killSetupFlow();
-  const flow = moLuong("claude setup-token");
+  const flow = openFlow("claude setup-token");
   setupFlow = flow;
 
   const url = await cho(flow, extractOauthUrl);
   if (url !== null) return { ok: true, url };
   const loi = flow.done ? "The flow exited before printing a URL." : "Timed out waiting for the URL.";
-  const thay = manHinhCuoi(flow.out);
+  const thay = lastScreen(flow.out);
   killSetupFlow();
   // "Is claude installed?" sent us hunting for a missing binary on 25/08
   // when claude was installed twice and the unit's PATH picked the stale
@@ -217,9 +217,9 @@ export async function startClaudeSetup(): Promise<KetQuaLink> {
 }
 
 /** Feed the pasted confirmation code in; on success the token lands in claude.env. */
-export async function submitClaudeCode(code: string): Promise<KetQua> {
-  const gon = code.trim();
-  if (!validateSetupCode(gon)) return { ok: false, message: "That does not look like a confirmation code." };
+export async function submitClaudeCode(code: string): Promise<Result> {
+  const trimmed = code.trim();
+  if (!validateSetupCode(trimmed)) return { ok: false, message: "That does not look like a confirmation code." };
   if (isFixture()) return { ok: true };
 
   const flow = setupFlow;
@@ -228,10 +228,10 @@ export async function submitClaudeCode(code: string): Promise<KetQua> {
     return { ok: false, message: "No login flow is waiting — get a new link first." };
   }
 
-  await guiMa(flow, gon);
+  await sendCode(flow, trimmed);
   // setup-token verifies the code and prints the token — give it up to 30s.
   for (let i = 0; i < 120; i++) {
-    if (i === 20) nhacEnter(flow);
+    if (i === 20) nudgeEnter(flow);
     const token = extractSetupToken(flow.out);
     if (token !== null) {
       killSetupFlow();
@@ -239,16 +239,16 @@ export async function submitClaudeCode(code: string): Promise<KetQua> {
     }
     // A rejected code says so on screen and offers a retry — that is an
     // answer, not something to keep waiting for.
-    const tuChoi = loiOauth(flow.out);
-    if (tuChoi !== null) {
+    const refused = oauthError(flow.out);
+    if (refused !== null) {
       killSetupFlow();
-      return { ok: false, message: `${tuChoi} — get a new link and try again.` };
+      return { ok: false, message: `${refused} — get a new link and try again.` };
     }
     if (flow.done) break;
     await new Promise((r) => setTimeout(r, 250));
   }
   const daXong = flow.done;
-  const thay = manHinhCuoi(flow.out);
+  const thay = lastScreen(flow.out);
   killSetupFlow();
   return {
     ok: false,
@@ -260,18 +260,18 @@ export async function submitClaudeCode(code: string): Promise<KetQua> {
   };
 }
 
-export type KetQuaDangKy = { ok: true; slug: string } | { ok: false; message: string };
+export type RegisterResult = { ok: true; slug: string } | { ok: false; message: string };
 
 /**
  * Register a repo: write repos.d/<slug>.env (tmp + rename), slug derived
  * from the repo name. Same file the runner and doctor read — one source.
  */
-export async function registerRepo(repo: string): Promise<KetQuaDangKy> {
-  const gon = repo.trim();
-  if (!REPO_RE.test(gon)) {
+export async function registerRepo(repo: string): Promise<RegisterResult> {
+  const trimmed = repo.trim();
+  if (!REPO_RE.test(trimmed)) {
     return { ok: false, message: "Repository must be owner/name (letters, digits, ., _, -)." };
   }
-  const name = gon.split("/")[1]!;
+  const name = trimmed.split("/")[1]!;
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   if (!SLUG_RE.test(slug)) return { ok: false, message: "Could not derive a slug from that name." };
 
@@ -286,14 +286,14 @@ export async function registerRepo(repo: string): Promise<KetQuaDangKy> {
     try {
       const cu = await fs.readFile(file, "utf8");
       const repoCu = /^REPO=(.+)$/m.exec(cu)?.[1]?.trim();
-      if (repoCu !== undefined && repoCu !== gon) {
+      if (repoCu !== undefined && repoCu !== trimmed) {
         return { ok: false, message: `Slug "${slug}" is already used by ${repoCu}.` };
       }
     } catch {
       // No existing file — free to create.
     }
     const tmp = `${file}.tmp`;
-    await fs.writeFile(tmp, `REPO=${gon}\n`);
+    await fs.writeFile(tmp, `REPO=${trimmed}\n`);
     await fs.rename(tmp, file);
     return { ok: true, slug };
   } catch (e) {
@@ -301,7 +301,7 @@ export async function registerRepo(repo: string): Promise<KetQuaDangKy> {
   }
 }
 
-export async function unregisterRepo(slug: string): Promise<KetQua> {
+export async function unregisterRepo(slug: string): Promise<Result> {
   if (!SLUG_RE.test(slug)) return { ok: false, message: "Invalid slug." };
   if (isFixture()) return { ok: true };
   try {
@@ -322,7 +322,7 @@ export async function unregisterRepo(slug: string): Promise<KetQua> {
  */
 export async function fetchClaudeAccountUsage(opts?: {
   credentialsFile?: string;
-}): Promise<KetQua> {
+}): Promise<Result> {
   if (isFixture()) return { ok: true };
 
   let token = "";
@@ -420,7 +420,7 @@ export async function fetchClaudeAccountUsage(opts?: {
  * state/recent.jsonl from those, in the exact shapes the old parsers
  * (and thus the Overview panel) already accept.
  */
-export async function harvestClaudeUsage(): Promise<KetQua> {
+export async function harvestClaudeUsage(): Promise<Result> {
   if (isFixture()) return { ok: true };
 
   const sessionsDir = path.join(root(), "sessions");
@@ -533,8 +533,8 @@ const ENV_PATH_RE = /^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/;
 const ENV_MAX_BYTES = 64 * 1024;
 
 export interface BeeEnvFile {
-  duongDan: string;
-  noiDung: string;
+  path: string;
+  content: string;
 }
 
 function envDirOf(slug: string): string | null {
@@ -556,36 +556,36 @@ export async function listEnvFiles(slug: string): Promise<BeeEnvFile[]> {
   const dir = envDirOf(slug);
   if (dir === null || isFixture()) return [];
   const ra: BeeEnvFile[] = [];
-  async function quet(thuMuc: string, goc: string): Promise<void> {
+  async function quet(dir: string, goc: string): Promise<void> {
     let muc: string[] = [];
     try {
-      muc = await fs.readdir(thuMuc);
+      muc = await fs.readdir(dir);
     } catch {
       return;
     }
     for (const m of muc) {
-      const day = path.join(thuMuc, m);
+      const day = path.join(dir, m);
       const st = await fs.stat(day).catch(() => null);
       if (st === null) continue;
       if (st.isDirectory()) await quet(day, goc);
-      else ra.push({ duongDan: path.relative(goc, day), noiDung: await fs.readFile(day, "utf8") });
+      else ra.push({ path: path.relative(goc, day), content: await fs.readFile(day, "utf8") });
     }
   }
   await quet(dir, dir);
-  return ra.sort((a, b) => a.duongDan.localeCompare(b.duongDan));
+  return ra.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-export async function saveEnvFile(slug: string, relPath: string, noiDung: string): Promise<KetQua> {
+export async function saveEnvFile(slug: string, relPath: string, content: string): Promise<Result> {
   const file = envFileOf(slug, relPath);
   if (file === null) return { ok: false, message: "Invalid path — relative, no '..', no leading slash." };
-  if (Buffer.byteLength(noiDung) > ENV_MAX_BYTES) {
+  if (Buffer.byteLength(content) > ENV_MAX_BYTES) {
     return { ok: false, message: "Too large — env files carry keys, not data (max 64KB)." };
   }
   if (isFixture()) return { ok: true };
   try {
     await fs.mkdir(path.dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;
-    await fs.writeFile(tmp, noiDung, { mode: 0o600 });
+    await fs.writeFile(tmp, content, { mode: 0o600 });
     await fs.chmod(tmp, 0o600);
     await fs.rename(tmp, file);
     return { ok: true };
@@ -594,7 +594,7 @@ export async function saveEnvFile(slug: string, relPath: string, noiDung: string
   }
 }
 
-export async function deleteEnvFile(slug: string, relPath: string): Promise<KetQua> {
+export async function deleteEnvFile(slug: string, relPath: string): Promise<Result> {
   const file = envFileOf(slug, relPath);
   if (file === null) return { ok: false, message: "Invalid path." };
   if (isFixture()) return { ok: true };
@@ -607,7 +607,7 @@ export async function deleteEnvFile(slug: string, relPath: string): Promise<KetQ
 }
 
 /** PAUSE file toggle — pausing is create, resuming is remove; both idempotent. */
-export async function setPaused(paused: boolean): Promise<KetQua> {
+export async function setPaused(paused: boolean): Promise<Result> {
   if (isFixture()) return { ok: true };
   const file = path.join(root(), "PAUSE");
   try {
@@ -624,13 +624,13 @@ export async function setPaused(paused: boolean): Promise<KetQua> {
 
 /* ── V2.3 · Live previews — list what bee-preview started, stop it ──────── */
 
-import { docPreviewTrong } from "./sessions-fs";
-import { laIdPhien } from "./session-id";
-import type { BeePreviewGhiSo } from "./sessions-fs";
+import { readPreviewIn } from "./sessions-fs";
+import { isSessionId } from "./session-id";
+import type { BeePreviewRecord } from "./sessions-fs";
 
 const PREVIEW_UNIT_RE = /^bee-preview-[a-z0-9][a-z0-9-]*$/;
 
-export interface BeePreviewSong extends BeePreviewGhiSo {
+export interface BeePreviewLive extends BeePreviewRecord {
   slug: string;
 }
 
@@ -642,7 +642,7 @@ type RunCtl = (cmd: string, args: string[]) => Promise<{ stdout: string }>;
  * The unit name from run.jsonl passes the allowlist regex before it ever
  * reaches systemctl's argv — run.jsonl content is agent-written.
  */
-export async function listPreviews(opts?: { runCtl?: RunCtl }): Promise<BeePreviewSong[]> {
+export async function listPreviews(opts?: { runCtl?: RunCtl }): Promise<BeePreviewLive[]> {
   if (isFixture()) {
     return [
       {
@@ -662,14 +662,14 @@ export async function listPreviews(opts?: { runCtl?: RunCtl }): Promise<BeePrevi
   } catch {
     return [];
   }
-  const ra: BeePreviewSong[] = [];
-  const daThay = new Set<string>();
+  const ra: BeePreviewLive[] = [];
+  const seen = new Set<string>();
   for (const id of ids) {
-    if (!laIdPhien(id)) continue;
-    const p = await docPreviewTrong(root(), id);
-    if (p === null || daThay.has(p.unit)) continue;
+    if (!isSessionId(id)) continue;
+    const p = await readPreviewIn(root(), id);
+    if (p === null || seen.has(p.unit)) continue;
     if (!PREVIEW_UNIT_RE.test(p.unit)) continue;
-    daThay.add(p.unit);
+    seen.add(p.unit);
     try {
       await runCtl("systemctl", ["--user", "is-active", `${p.unit}.service`]);
     } catch {
@@ -687,7 +687,7 @@ export async function stopPreview(
   unit: string,
   port: number,
   opts?: { runCtl?: RunCtl },
-): Promise<KetQua> {
+): Promise<Result> {
   if (!PREVIEW_UNIT_RE.test(unit)) return { ok: false, message: "Invalid preview unit." };
   if (!Number.isInteger(port) || port < 1024 || port > 65535) {
     return { ok: false, message: "Invalid port." };

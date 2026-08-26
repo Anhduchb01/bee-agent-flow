@@ -23,7 +23,7 @@ function conTrong(port: number): Promise<boolean> {
   });
 }
 
-export async function capPhatDaiCong(opts: {
+export async function allocatePortRange(opts: {
   tu?: number;
   den?: number;
   so?: number;

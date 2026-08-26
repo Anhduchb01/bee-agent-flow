@@ -31,8 +31,8 @@ export function extractOauthUrl(output: string): string | null {
   const sach = output.replace(ANSI_RE, "");
   const url = OAUTH_RE.exec(sach)?.[0];
   if (url === undefined) return null;
-  const keo = url.indexOf("https://", "https://".length);
-  return keo === -1 ? url : url.slice(0, keo);
+  const dragging = url.indexOf("https://", "https://".length);
+  return dragging === -1 ? url : url.slice(0, dragging);
 }
 
 /** The token the flow prints once the pasted code is accepted. */

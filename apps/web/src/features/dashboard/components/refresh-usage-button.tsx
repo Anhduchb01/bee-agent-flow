@@ -16,7 +16,7 @@ import { refreshUsageAction } from "../api/actions";
 export function RefreshUsageButton() {
   const router = useRouter();
   const [loi, setLoi] = useState("");
-  const [dang, batDau] = useTransition();
+  const [dang, start] = useTransition();
 
   return (
     <span className="flex items-center gap-2">
@@ -26,7 +26,7 @@ export function RefreshUsageButton() {
         aria-label="Refresh usage"
         disabled={dang}
         onClick={() =>
-          batDau(async () => {
+          start(async () => {
             const ket = await refreshUsageAction();
             setLoi(ket.ok ? "" : ket.message);
             router.refresh();

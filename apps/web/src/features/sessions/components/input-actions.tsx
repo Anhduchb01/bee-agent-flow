@@ -15,7 +15,7 @@ import { MODE_OPTIONS } from "./new-session-form";
 
 /**
  * The model picker's rows, VSCode's "Select a model" order. Values are the
- * aliases `claude --model` takes (CAC_MODEL_PHIEN); "default" sends no flag
+ * aliases `claude --model` takes (SESSION_MODELS); "default" sends no flag
  * at all, so whatever the machine is set to answers.
  */
 export const MODEL_OPTIONS: { value: BeeSessionModel; label: string; moTa: string }[] = [

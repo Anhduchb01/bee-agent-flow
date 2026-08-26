@@ -372,7 +372,7 @@ dễ sai nhất của spec này — đọc thêm từ một offset mà không ba
  * giữa hai lần đọc — phát nửa dòng đó ra SSE thì client `JSON.parse` hỏng và
  * mất luôn sự kiện. Giữ lại, ghép với lần đọc sau.
  */
-async function docTiep(file: string, offset: number, rest: string) {
+async function readMore(file: string, offset: number, rest: string) {
   const fh = await fs.open(file, "r");
   try {
     const { size } = await fh.stat();
@@ -399,7 +399,7 @@ hẹp trong `parse-events.ts`.
 
 | Tầng | Công cụ | Phủ cái gì |
 |---|---|---|
-| Thuần | Vitest | `parse-events.ts` với stream-json thật ghi lại từ một phiên · `docTiep` với dòng bị cắt đôi |
+| Thuần | Vitest | `parse-events.ts` với stream-json thật ghi lại từ một phiên · `readMore` với dòng bị cắt đôi |
 | Component | Vitest + Testing Library | Màn live: đang chạy / đã xong / mất kết nối / phiên rỗng. Query theo role và label |
 | Route | Vitest + MSW | SSE nối lại theo `Last-Event-ID` · từ chối khi không có session · từ chối path traversal |
 | E2E | Playwright | Ok làm đi → thấy chữ chạy → gõ chen → dừng. Chạy trên một `run.jsonl` giả được ghi dần |

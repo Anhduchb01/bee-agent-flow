@@ -7,13 +7,13 @@ import path from "node:path";
 
 import { ctl } from "./ctl";
 import { deriveSessionTitle } from "./derive-title";
-import { capPhatDaiCong } from "./ports";
-import { docUsageTaiKhoan } from "./quota-read";
-import { xetHanMuc } from "./quota-gate";
-import { laIdPhien } from "./session-id";
+import { allocatePortRange } from "./ports";
+import { readAccountUsage } from "./quota-read";
+import { checkQuota } from "./quota-gate";
+import { isSessionId } from "./session-id";
 import {
-  CAC_MODE_PHIEN,
-  CAC_MODEL_PHIEN,
+  SESSION_MODES,
+  SESSION_MODELS,
   type BeeSessionMode,
   type BeeSessionModel,
 } from "./types";
@@ -28,8 +28,8 @@ import {
  * phải exception ném lên UI.
  */
 
-export type KetQuaPhien = { ok: true; id: string } | { ok: false; message: string };
-export type KetQua = { ok: true } | { ok: false; message: string };
+export type SessionResult = { ok: true; id: string } | { ok: false; message: string };
+export type Result = { ok: true } | { ok: false; message: string };
 
 function root(): string {
   return process.env.BEE_SRV ?? "/srv/bee";
@@ -45,14 +45,14 @@ function laFixture(): boolean {
 }
 
 /** Id phiên demo của fixture — trang live có cái để stream mà không cần máy thật. */
-export const PHIEN_DEMO = "de300000-0000-4000-8000-000000000001";
+export const DEMO_SESSION_ID = "de300000-0000-4000-8000-000000000001";
 
 /** Dải cổng các phiên KHÁC đang giữ — kể cả khi compose của chúng chưa lên. */
-async function daiCongDangGiu(): Promise<number[]> {
-  const thuMuc = path.join(root(), "sessions");
+async function portRangesInUse(): Promise<number[]> {
+  const dir = path.join(root(), "sessions");
   let ids: string[] = [];
   try {
-    ids = await fs.readdir(thuMuc);
+    ids = await fs.readdir(dir);
   } catch {
     return [];
   }
@@ -61,7 +61,7 @@ async function daiCongDangGiu(): Promise<number[]> {
     ids.map(async (id) => {
       try {
         const raw = JSON.parse(
-          await fs.readFile(path.join(thuMuc, id, "session.json"), "utf8"),
+          await fs.readFile(path.join(dir, id, "session.json"), "utf8"),
         ) as Record<string, unknown>;
         if (typeof raw.port_base === "number") ra.push(raw.port_base);
       } catch {
@@ -75,7 +75,7 @@ async function daiCongDangGiu(): Promise<number[]> {
 const SLUG_RE = /^[a-z0-9-]+$/;
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
-export async function moPhien(input: {
+export async function openSession(input: {
   slug: string;
   num: number;
   repo: string;
@@ -86,7 +86,7 @@ export async function moPhien(input: {
   /** Permission mode (V2.5a) — mặc định "auto". Phiên chat bỏ qua (không tool). */
   mode?: BeeSessionMode;
   systemPrompt?: string;
-}): Promise<KetQuaPhien> {
+}): Promise<SessionResult> {
   if (!SLUG_RE.test(input.slug)) return { ok: false, message: "Invalid project slug." };
   // Phiên chat không repo: repo rỗng là hợp lệ. Phiên có worktree thì repo
   // bắt buộc đúng dạng — và action đã kiểm nó thuộc danh sách đã đăng ký.
@@ -95,20 +95,20 @@ export async function moPhien(input: {
   }
   if (!Number.isInteger(input.num) || input.num < 1) return { ok: false, message: "Invalid number." };
   const mode: BeeSessionMode = input.mode ?? "auto";
-  if (!CAC_MODE_PHIEN.includes(mode)) return { ok: false, message: "Invalid session mode." };
+  if (!SESSION_MODES.includes(mode)) return { ok: false, message: "Invalid session mode." };
 
-  if (laFixture()) return { ok: true, id: PHIEN_DEMO };
+  if (laFixture()) return { ok: true, id: DEMO_SESSION_ID };
 
   // ── Phanh hạn mức (FR-3.3) ────────────────────────────────────────────
   // MỘT chỗ duy nhất, và cố ý đặt ở đây chứ không ở action: hàng đợi đêm
-  // (V3.T8) cũng đi qua moPhien, nên đặt ở tầng action là để hở đúng cái
+  // (V3.T8) cũng đi qua openSession, nên đặt ở tầng action là để hở đúng cái
   // đường mà không ai ngồi canh. `Continue` phiên cũ KHÔNG đi qua đây —
   // PRD nói "không mở phiên MỚI", nối lại một hội thoại đang dở thì không.
-  const phanh = xetHanMuc(await docUsageTaiKhoan(root()), {
+  const phanh = checkQuota(await readAccountUsage(root()), {
     nguong: Number(process.env.QUOTA_BRAKE_PCT ?? 85),
   });
   if (!phanh.moDuoc) {
-    return { ok: false, message: `Not opening a new session: ${phanh.lyDo}` };
+    return { ok: false, message: `Not opening a new session: ${phanh.reason}` };
   }
 
   // ── Dải cổng riêng cho phiên (V3.T14) ─────────────────────────────────
@@ -116,7 +116,7 @@ export async function moPhien(input: {
   // phiên cùng repo — hoặc một phiên và stack của chính chủ máy — sẽ đụng nhau
   // nếu không cấp dải riêng. Cấp một lần lúc mở; resume dùng lại số đã ghi.
   const cong = input.worktree
-    ? await capPhatDaiCong({ daDung: await daiCongDangGiu() })
+    ? await allocatePortRange({ daDung: await portRangesInUse() })
     : null;
 
   const id = randomUUID();
@@ -152,28 +152,28 @@ export async function moPhien(input: {
 }
 
 /**
- * `hienThi` là bản ghi sổ (mặc định = text): khi "/build args" được expand
+ * `shown` là bản ghi sổ (mặc định = text): khi "/build args" được expand
  * thành cả trang prompt, lịch sử vẫn hiện đúng cái người dùng GÕ — như
  * REPL của VSCode — còn FIFO nhận bản đầy đủ.
  */
-export async function noiVaoPhien(id: string, text: string, hienThi?: string): Promise<KetQua> {
-  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
-  const gon = text.trim();
-  if (gon === "") return { ok: false, message: "Empty message." };
-  if (gon.length > 64_000) return { ok: false, message: "Message too long (max 64KB)." };
+export async function sendToSession(id: string, text: string, shown?: string): Promise<Result> {
+  if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
+  const trimmed = text.trim();
+  if (trimmed === "") return { ok: false, message: "Empty message." };
+  if (trimmed.length > 64_000) return { ok: false, message: "Message too long (max 64KB)." };
 
   if (laFixture()) return { ok: true };
 
   // Thứ tự cố ý: FIFO trước, ghi sổ sau — bee_user_say chỉ được ghi khi
   // message THẬT SỰ đã vào phiên, không thì lịch sử nói dối.
-  const dong =
-    JSON.stringify({ type: "user", message: { role: "user", content: [{ type: "text", text: gon }] } }) + "\n";
+  const line =
+    JSON.stringify({ type: "user", message: { role: "user", content: [{ type: "text", text: trimmed }] } }) + "\n";
   try {
     // O_NONBLOCK: FIFO không có người đọc (phiên chết) thì ENXIO ngay lập tức
     // thay vì treo server action vô hạn.
     const fd = await fs.open(fifoCua(id), fsc.constants.O_WRONLY | fsc.constants.O_NONBLOCK);
     try {
-      await fd.write(dong);
+      await fd.write(line);
     } finally {
       await fd.close();
     }
@@ -184,13 +184,13 @@ export async function noiVaoPhien(id: string, text: string, hienThi?: string): P
   // Phát hiện rig S0.1: CLI không echo input ra stream, nên nếu không tự ghi
   // sổ thì mở lại trang là mất sạch những câu đã gõ. Dòng ngắn + O_APPEND
   // là append nguyên tử — an toàn cạnh dòng runner đang ghi.
-  const suKien =
-    JSON.stringify({ type: "bee_user_say", text: (hienThi ?? text).trim(), ts: new Date().toISOString() }) + "\n";
-  await fs.appendFile(path.join(root(), "sessions", id, "run.jsonl"), suKien).catch(() => {});
+  const events =
+    JSON.stringify({ type: "bee_user_say", text: (shown ?? text).trim(), ts: new Date().toISOString() }) + "\n";
+  await fs.appendFile(path.join(root(), "sessions", id, "run.jsonl"), events).catch(() => {});
 
   // First message names the session, like Claude Code. Best-effort: a
   // naming failure must never fail the send that already went through.
-  await autoTitleSession(id, (hienThi ?? text).trim());
+  await autoTitleSession(id, (shown ?? text).trim());
   return { ok: true };
 }
 
@@ -199,7 +199,7 @@ export async function noiVaoPhien(id: string, text: string, hienThi?: string): P
  * message. No-op when a title already exists or the meta file is unreadable.
  */
 export async function autoTitleSession(id: string, text: string): Promise<void> {
-  if (!laIdPhien(id)) return;
+  if (!isSessionId(id)) return;
   const file = path.join(root(), "sessions", id, "session.json");
   try {
     const raw = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, unknown>;
@@ -222,9 +222,9 @@ export async function autoTitleSession(id: string, text: string): Promise<void> 
  * stopped session just gets the new mode for its next start; restart on
  * a dead unit would resurrect it, which is not what a mode change means.
  */
-export async function doiModePhien(id: string, mode: BeeSessionMode): Promise<KetQua> {
-  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
-  if (!CAC_MODE_PHIEN.includes(mode)) return { ok: false, message: "Invalid session mode." };
+export async function changeSessionMode(id: string, mode: BeeSessionMode): Promise<Result> {
+  if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
+  if (!SESSION_MODES.includes(mode)) return { ok: false, message: "Invalid session mode." };
   if (laFixture()) return { ok: true };
 
   const file = path.join(root(), "sessions", id, "session.json");
@@ -256,14 +256,14 @@ export async function doiModePhien(id: string, mode: BeeSessionMode): Promise<Ke
 }
 
 /**
- * Model switch mid-session (V2.7) — same shape as doiModePhien: the value
+ * Model switch mid-session (V2.7) — same shape as changeSessionMode: the value
  * goes into session.json, then the unit restarts and the --resume branch in
  * session-run.sh reattaches the SAME conversation under the new model.
  * Unlike mode, chat sessions may switch too — a model is not a tool.
  */
-export async function doiModelPhien(id: string, model: BeeSessionModel): Promise<KetQua> {
-  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
-  if (!CAC_MODEL_PHIEN.includes(model)) return { ok: false, message: "Invalid model." };
+export async function changeSessionModel(id: string, model: BeeSessionModel): Promise<Result> {
+  if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
+  if (!SESSION_MODELS.includes(model)) return { ok: false, message: "Invalid model." };
   if (laFixture()) return { ok: true };
 
   const file = path.join(root(), "sessions", id, "session.json");
@@ -302,14 +302,14 @@ const REQUEST_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
  * accepted the response, so replay never shows an answer that never
  * reached the agent.
  */
-export async function traLoiQuyen(
+export async function answerPermission(
   id: string,
   requestId: string,
   choPhep: boolean,
   /** Original tool input JSON (from the can_use_tool event) — echoed back on allow. */
   inputJson: string,
-): Promise<KetQua> {
-  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
+): Promise<Result> {
+  if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
   if (!REQUEST_ID_RE.test(requestId)) return { ok: false, message: "Invalid request id." };
   if (inputJson.length > 64_000) return { ok: false, message: "Tool input too large." };
   let input: unknown = {};
@@ -325,7 +325,7 @@ export async function traLoiQuyen(
   const response = choPhep
     ? { behavior: "allow", updatedInput: input }
     : { behavior: "deny", message: "Denied by the owner from the bee approval card." };
-  const dong =
+  const line =
     JSON.stringify({
       type: "control_response",
       response: { subtype: "success", request_id: requestId, response },
@@ -333,7 +333,7 @@ export async function traLoiQuyen(
   try {
     const fd = await fs.open(fifoCua(id), fsc.constants.O_WRONLY | fsc.constants.O_NONBLOCK);
     try {
-      await fd.write(dong);
+      await fd.write(line);
     } finally {
       await fd.close();
     }
@@ -341,14 +341,14 @@ export async function traLoiQuyen(
     return { ok: false, message: "Session is not accepting input — it may have ended." };
   }
 
-  const suKien =
+  const events =
     JSON.stringify({
       type: "bee_approval",
       request_id: requestId,
       behavior: choPhep ? "allow" : "deny",
       ts: new Date().toISOString(),
     }) + "\n";
-  await fs.appendFile(path.join(root(), "sessions", id, "run.jsonl"), suKien).catch(() => {});
+  await fs.appendFile(path.join(root(), "sessions", id, "run.jsonl"), events).catch(() => {});
   return { ok: true };
 }
 
@@ -358,8 +358,8 @@ export async function traLoiQuyen(
  * idempotent (already-running = no-op), so no state check beyond the
  * session actually existing.
  */
-export async function tiepTucPhien(id: string): Promise<KetQua> {
-  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
+export async function continueSession(id: string): Promise<Result> {
+  if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
   if (laFixture()) return { ok: true };
   try {
     await fs.access(path.join(root(), "sessions", id, "session.json"));
@@ -374,8 +374,8 @@ export async function tiepTucPhien(id: string): Promise<KetQua> {
   }
 }
 
-export async function dungPhien(id: string): Promise<KetQua> {
-  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
+export async function stopSession(id: string): Promise<Result> {
+  if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
   if (laFixture()) return { ok: true };
   try {
     await ctl("systemctl", ["--user", "stop", `bee-session@${id}.service`]);
@@ -398,7 +398,7 @@ export async function saveUploadToSession(
   name: string,
   data: Uint8Array,
 ): Promise<{ ok: true; relPath: string } | { ok: false; message: string }> {
-  if (!laIdPhien(id)) return { ok: false, message: "Invalid session id." };
+  if (!isSessionId(id)) return { ok: false, message: "Invalid session id." };
   if (data.byteLength === 0) return { ok: false, message: "Empty file." };
   if (data.byteLength > MAX_UPLOAD_BYTES) {
     return { ok: false, message: "File too large (max 20MB)." };

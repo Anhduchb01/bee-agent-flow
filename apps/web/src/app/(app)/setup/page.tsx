@@ -164,7 +164,7 @@ export default async function SetupPage({
 
             <Step num={4} title="Claude accounts on this machine">
               <Card>
-                <ClaudeAccounts trangThai={slayer} />
+                <ClaudeAccounts status={slayer} />
               </Card>
             </Step>
 
@@ -202,7 +202,7 @@ bash apps/runner/install.sh`}</Cmd>
           </Card>
           <Card>
             <h3 className="text-sm font-medium text-foreground">Claude accounts on this machine</h3>
-            <ClaudeAccounts trangThai={slayer} />
+            <ClaudeAccounts status={slayer} />
           </Card>
           <Card>
             <PatForm done={check("pat")} />

@@ -5,12 +5,12 @@ import { revalidatePath } from "next/cache";
 import { getActor } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
 import {
-  batDauThemSlot,
-  boTokenGhim,
-  caiSlayer,
-  chupSlot,
-  doiSlot,
-  nhanTaiKhoanCap,
+  startAddSlot,
+  unpinToken,
+  installSlayer,
+  captureSlot,
+  switchSlot,
+  pullGrantedAccounts,
   xongThemSlot,
 } from "@/lib/bee/slayer-ctl";
 import {
@@ -28,12 +28,12 @@ import {
   runGc,
 } from "@/lib/bee/machine-ctl";
 
-export interface KetQua {
+export interface Result {
   ok: boolean;
   message: string;
 }
 
-const KHONG_QUYEN: KetQua = { ok: false, message: "You are not allowed to do this." };
+const KHONG_QUYEN: Result = { ok: false, message: "You are not allowed to do this." };
 
 /** Every mutating step ends with a fresh doctor run — the page shows truth, not hope. */
 async function refresh(): Promise<void> {
@@ -42,7 +42,7 @@ async function refresh(): Promise<void> {
 }
 
 /** Re-run the machine's A+ checklist and refresh the setup page. */
-export async function runDoctorAction(): Promise<KetQua> {
+export async function runDoctorAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
 
@@ -52,7 +52,7 @@ export async function runDoctorAction(): Promise<KetQua> {
 }
 
 /** "Dọn ngay" — gc oneshot, xong mới trả về nên UI đọc được kết quả tươi. */
-export async function runGcAction(): Promise<KetQua> {
+export async function runGcAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await runGc();
@@ -60,7 +60,7 @@ export async function runGcAction(): Promise<KetQua> {
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
-export async function enableLingerAction(): Promise<KetQua> {
+export async function enableLingerAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await enableLinger();
@@ -68,7 +68,7 @@ export async function enableLingerAction(): Promise<KetQua> {
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
-export async function savePatAction(token: string): Promise<KetQua> {
+export async function savePatAction(token: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await ghAuthLogin(token);
@@ -76,17 +76,17 @@ export async function savePatAction(token: string): Promise<KetQua> {
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
-export type KetQuaLink = { ok: true; url: string } | { ok: false; message: string };
+export type LinkResult = { ok: true; url: string } | { ok: false; message: string };
 
 /** Spawn `claude setup-token` on the machine and hand back the login URL. */
-export async function startClaudeSetupAction(): Promise<KetQuaLink> {
+export async function startClaudeSetupAction(): Promise<LinkResult> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: KHONG_QUYEN.message };
   return startClaudeSetup();
 }
 
 /** Feed the code the browser showed back into the waiting flow. */
-export async function submitClaudeCodeAction(code: string): Promise<KetQua> {
+export async function submitClaudeCodeAction(code: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await submitClaudeCode(code);
@@ -94,7 +94,7 @@ export async function submitClaudeCodeAction(code: string): Promise<KetQua> {
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
-export async function saveClaudeTokenAction(token: string): Promise<KetQua> {
+export async function saveClaudeTokenAction(token: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await saveClaudeToken(token);
@@ -106,7 +106,7 @@ export async function saveClaudeTokenAction(token: string): Promise<KetQua> {
  * Returns the derived slug on success: the new-project dialog needs it to
  * offer the env step right away (env.d is keyed by slug, not by repo).
  */
-export async function registerRepoAction(repo: string): Promise<KetQua & { slug?: string }> {
+export async function registerRepoAction(repo: string): Promise<Result & { slug?: string }> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await registerRepo(repo);
@@ -118,7 +118,7 @@ export async function registerRepoAction(repo: string): Promise<KetQua & { slug?
   return ket.ok ? { ok: true, message: "", slug: ket.slug } : { ok: false, message: ket.message };
 }
 
-export async function unregisterRepoAction(slug: string): Promise<KetQua> {
+export async function unregisterRepoAction(slug: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await unregisterRepo(slug);
@@ -131,25 +131,25 @@ export async function unregisterRepoAction(slug: string): Promise<KetQua> {
 /** Env files land in env.d/<slug> — session-run overlays them per worktree. */
 export async function saveEnvFileAction(
   slug: string,
-  duongDan: string,
-  noiDung: string,
-): Promise<KetQua> {
+  path: string,
+  content: string,
+): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await saveEnvFile(slug, duongDan, noiDung);
+  const ket = await saveEnvFile(slug, path, content);
   revalidatePath("/setup");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
-export async function deleteEnvFileAction(slug: string, duongDan: string): Promise<KetQua> {
+export async function deleteEnvFileAction(slug: string, path: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await deleteEnvFile(slug, duongDan);
+  const ket = await deleteEnvFile(slug, path);
   revalidatePath("/setup");
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
-export async function setPausedAction(paused: boolean): Promise<KetQua> {
+export async function setPausedAction(paused: boolean): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await setPaused(paused);
@@ -159,7 +159,7 @@ export async function setPausedAction(paused: boolean): Promise<KetQua> {
 
 /*
  * Nhiều tài khoản Claude (token-slayer). Đổi tài khoản là đổi cho CẢ MÁY,
- * nên `doiSlotAction` đếm phiên đang chạy trước — luật nằm ở lớp dưới, chỗ
+ * nên `switchSlotAction` đếm phiên đang chạy trước — luật nằm ở lớp dưới, chỗ
  * này chỉ cung cấp con số nó cần.
  */
 
@@ -168,31 +168,31 @@ async function demPhienDangChay(): Promise<number> {
   return phien.filter((p) => p.status === "running").length;
 }
 
-export async function doiSlotAction(target: string): Promise<KetQua> {
+export async function switchSlotAction(target: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await doiSlot(target, await demPhienDangChay());
+  const ket = await switchSlot(target, await demPhienDangChay());
   await refresh();
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
 /** Chụp tài khoản `claude` đang đăng nhập thành một slot mới. */
-export async function chupSlotAction(name: string): Promise<KetQua> {
+export async function captureSlotAction(name: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await chupSlot(name);
+  const ket = await captureSlot(name);
   await refresh();
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
 /** Thêm tài khoản KHÁC: mở `tok add <tên> --login`, trả link duyệt. */
-export async function batDauThemSlotAction(name: string): Promise<KetQuaLink> {
+export async function startAddSlotAction(name: string): Promise<LinkResult> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: KHONG_QUYEN.message };
-  return batDauThemSlot(name);
+  return startAddSlot(name);
 }
 
-export async function xongThemSlotAction(code: string): Promise<KetQua> {
+export async function xongThemSlotAction(code: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const ket = await xongThemSlot(code);
@@ -201,28 +201,28 @@ export async function xongThemSlotAction(code: string): Promise<KetQua> {
 }
 
 /** Dán token token-slayer → chạy trình cài đặt của họ trên máy. */
-export async function caiSlayerAction(token: string): Promise<KetQua> {
+export async function installSlayerAction(token: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await caiSlayer(token);
+  const ket = await installSlayer(token);
   await refresh();
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
 
 /** `tok setup` — nhận tài khoản admin cấp; trả nguyên lời của nó. */
-export async function nhanTaiKhoanCapAction(): Promise<KetQua> {
+export async function pullGrantedAccountsAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await nhanTaiKhoanCap();
+  const ket = await pullGrantedAccounts();
   await refresh();
   return ket.ok ? { ok: true, message: ket.noi ?? "" } : { ok: false, message: ket.message };
 }
 
 /** Gỡ token ghim trong claude.env để lựa chọn tài khoản có hiệu lực. */
-export async function boTokenGhimAction(): Promise<KetQua> {
+export async function unpinTokenAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await boTokenGhim();
+  const ket = await unpinToken();
   await refresh();
   return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
 }
