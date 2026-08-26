@@ -7,6 +7,10 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
  * Tiêu đề ở đây là 20px chứ không phải 32px như trước. Khi điều hướng đã nằm ở
  * sidebar thì tiêu đề không còn phải gánh việc "cho biết mình đang ở đâu" nữa —
  * nó chỉ cần đặt tên cho trang.
+ *
+ * Nền là `chrome`, không phải `background`: dải này là khung của app chứ không
+ * phải nội dung, nên nó đứng cùng phe với sidebar. Đó cũng là cấu trúc của
+ * Dark Modern — titleBar và sideBar cùng #181818 ôm lấy editor #1F1F1F.
  */
 export function PageHeader({
   title,
@@ -18,7 +22,7 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4 sm:px-6">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-sidebar-border bg-chrome px-4 sm:px-6">
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-4" />
       {/* Auto-titled sessions can be a whole sentence — truncate on phones. */}

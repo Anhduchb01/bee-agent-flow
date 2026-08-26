@@ -87,16 +87,35 @@ của Vercel thay vì màu tuỳ tiện:
 
 ### Thang mực và nền
 
-| Vai trò | Sáng | Tối | Token Tailwind |
+> **Cột "Tối" đã thay bằng VS Code Dark Modern (26/08).** Hình dạng, thang
+> kích thước, bán kính và thang chữ bốn bậc bên dưới vẫn là Geist và vẫn đúng —
+> chỉ bảng màu dark đổi. Lý do và giá trị gốc: `apps/web/src/app/globals.css`.
+> Cột "Sáng" giữ nguyên Geist, nhưng hôm nay `<html>` ghim class `dark` cố định
+> nên nhánh sáng không ai nhìn thấy.
+
+| Vai trò | Sáng (Geist) | Tối (Dark Modern) | Token Tailwind |
 |---|---|---|---|
-| Canvas | `#fafafa` | `#000000` | `bg-background` |
-| Bề mặt nổi | `#ffffff` | `#0a0a0a` | `bg-card` |
-| Nền chìm | `#f2f2f2` | `#1a1a1a` | `bg-muted` |
-| Mực (heading, CTA) | `#171717` | `#ededed` | `text-foreground` |
-| Chữ thường | `#4d4d4d` | `#a1a1a1` | `text-body` |
-| Chữ mờ | `#8f8f8f` | `#8f8f8f` | `text-muted-foreground` |
-| Chữ mờ nhất | `#a1a1a1` | `#666666` | `text-faint` |
-| Đường tóc | `#ebebeb` | `#2e2e2e` | `border-border` |
+| Chrome (sidebar, header) | `#ffffff` | `#181818` | `bg-chrome` · `bg-sidebar` |
+| Canvas | `#fafafa` | `#1f1f1f` | `bg-background` |
+| Bề mặt nổi (popover) | `#ffffff` | `#222222` | `bg-popover` |
+| Thẻ | `#ffffff` | `#2b2b2b` | `bg-card` |
+| Nền chìm | `#f2f2f2` | `#2b2b2b` | `bg-muted` |
+| Nền ô nhập | — | `#313131` | `bg-field` |
+| Mực (heading, CTA) | `#171717` | `#ffffff` | `text-foreground` |
+| Chữ thường | `#4d4d4d` | `#cccccc` | `text-body` |
+| Chữ mờ | `#8f8f8f` | `#9d9d9d` | `text-muted-foreground` |
+| Chữ mờ nhất | `#a1a1a1` | `#6e7681` | `text-faint` |
+| Đường tóc | `#ebebeb` | `#ffffff17` | `border-border` |
+| Nhấn / focus | `#171717` | `#0078d4` | `bg-primary` · `ring-ring` |
+
+**Trong dark, viền là TRẮNG MỜ chứ không phải một màu xám đục.** `#ffffff17`
+tự chỉnh theo bề mặt bên dưới — trên sidebar `#181818` nó ra ~`#2d2d2d`, trên
+thẻ `#2b2b2b` ra ~`#3e3e3e`. Một hằng số xám không làm được việc đó, và đây là
+cách VS Code tách vùng (`editorGroup.border`).
+
+**Chrome tối HƠN nội dung.** Sidebar và dải đầu trang `#181818` ôm lấy vùng làm
+việc `#1f1f1f`, giống hệt sideBar/titleBar ôm editor trong VS Code. Đảo chiều
+là mất ngay cấu trúc đó.
 
 **Bốn bậc chữ là bốn bậc, không phải ba.** `text-body` (#4d4d4d) là bậc riêng
 giữa mực và xám mờ; đây là chỗ Tailwind mặc định không có và là chỗ dễ làm mất
