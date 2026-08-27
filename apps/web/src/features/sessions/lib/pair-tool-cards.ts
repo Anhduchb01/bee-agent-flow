@@ -11,15 +11,15 @@ import type { StreamEvent } from "./parse-events";
 
 export type Card =
   | { kind: "lifecycle"; text: string }
-  | { kind: "nguoi-noi"; text: string }
-  | { kind: "agent-noi"; text: string }
-  | { kind: "nghi"; text: string }
+  | { kind: "user-said"; text: string }
+  | { kind: "agent-said"; text: string }
+  | { kind: "thinking"; text: string }
   | { kind: "artifact"; artifactKind: "issue" | "pr"; url: string; number: number | null; title: string | null }
-  | { kind: "ket-qua"; err: boolean; turns: number | null }
+  | { kind: "result"; err: boolean; turns: number | null }
   | { kind: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
-  | { kind: "da-cat"; skipped: number }
+  | { kind: "truncated"; skipped: number }
   /** Manual-mode approval card; answer được ghép từ bee_approval theo requestId. */
-  | { kind: "xin-quyen"; requestId: string; name: string; args: string; answer: "allow" | "deny" | null }
+  | { kind: "permission-asked"; requestId: string; name: string; args: string; answer: "allow" | "deny" | null }
   | {
       kind: "tool-card";
       name: string;
@@ -29,7 +29,7 @@ export type Card =
       cu?: string;
       latest?: string;
       args: string;
-      status: "dang-chay" | "xong" | "loi";
+      status: "running" | "done" | "error";
       result: string | null;
     };
 
@@ -43,7 +43,7 @@ export function pairToolCards(events: StreamEvent[]): Card[] {
   for (const sk of events) {
     switch (sk.kind) {
       case "tool": {
-        const the: TheTool = {
+        const card: TheTool = {
           kind: "tool-card",
           name: sk.name,
           id: sk.id ?? null,
@@ -52,22 +52,22 @@ export function pairToolCards(events: StreamEvent[]): Card[] {
           ...(sk.cu !== undefined ? { cu: sk.cu } : {}),
           ...(sk.latest !== undefined ? { latest: sk.latest } : {}),
           args: sk.args,
-          status: "dang-chay",
+          status: "running",
           result: null,
         };
-        row.push(the);
-        if (the.id) waiting.set(the.id, the);
-        else fifo.push(the);
+        row.push(card);
+        if (card.id) waiting.set(card.id, card);
+        else fifo.push(card);
         break;
       }
-      case "tool-xong": {
+      case "tool-done": {
         // Mutate thẻ đã nằm trong `muc` — vị trí của thẻ là lúc tool BẮT ĐẦU,
         // đúng dòng thời gian người dùng đã thấy; chỉ trạng thái đổi.
-        const the = (sk.id ? waiting.get(sk.id) : undefined) ?? fifo.shift();
-        if (the) {
-          the.status = sk.err === true ? "loi" : "xong";
-          the.result = sk.text;
-          if (the.id) waiting.delete(the.id);
+        const card = (sk.id ? waiting.get(sk.id) : undefined) ?? fifo.shift();
+        if (card) {
+          card.status = sk.err === true ? "error" : "done";
+          card.result = sk.text;
+          if (card.id) waiting.delete(card.id);
         } else {
           // Kết quả mồ côi — tool_use nằm trong khúc bee_replayed đã cắt.
           // Vẫn phải hiện: mất kết quả tệ hơn mất tiêu đề.
@@ -76,7 +76,7 @@ export function pairToolCards(events: StreamEvent[]): Card[] {
             name: "tool",
             id: sk.id ?? null,
             args: "",
-            status: sk.err === true ? "loi" : "xong",
+            status: sk.err === true ? "error" : "done",
             result: sk.text,
           });
         }
@@ -85,50 +85,50 @@ export function pairToolCards(events: StreamEvent[]): Card[] {
       case "lifecycle":
         row.push({ kind: "lifecycle", text: sk.text });
         break;
-      case "nguoi-noi":
-        row.push({ kind: "nguoi-noi", text: sk.text });
+      case "user-said":
+        row.push({ kind: "user-said", text: sk.text });
         break;
-      case "agent-noi":
-        row.push({ kind: "agent-noi", text: sk.text });
+      case "agent-said":
+        row.push({ kind: "agent-said", text: sk.text });
         break;
-      case "nghi":
-        row.push({ kind: "nghi", text: sk.text });
+      case "thinking":
+        row.push({ kind: "thinking", text: sk.text });
         break;
       case "artifact":
         row.push({ kind: "artifact", artifactKind: sk.artifactKind, url: sk.url, number: sk.number, title: sk.title });
         break;
-      case "xin-quyen":
+      case "permission-asked":
         row.push({
-          kind: "xin-quyen",
+          kind: "permission-asked",
           requestId: sk.requestId,
           name: sk.name,
           args: sk.args,
           answer: null,
         });
         break;
-      case "quyen-da-tra-loi": {
+      case "permission-answered": {
         // Ghép ngược vào thẻ đã hỏi — thẻ đổi trạng thái, không thêm dòng mới.
         for (let i = row.length - 1; i >= 0; i -= 1) {
           const m = row[i]!;
-          if (m.kind === "xin-quyen" && m.requestId === sk.requestId) {
+          if (m.kind === "permission-asked" && m.requestId === sk.requestId) {
             m.answer = sk.allow ? "allow" : "deny";
             break;
           }
         }
         break;
       }
-      case "ket-qua":
-        row.push({ kind: "ket-qua", err: sk.err, turns: sk.turns ?? null });
+      case "result":
+        row.push({ kind: "result", err: sk.err, turns: sk.turns ?? null });
         break;
       case "compact":
         row.push({ kind: "compact", trigger: sk.trigger, preTokens: sk.preTokens });
         break;
-      case "da-cat":
-        row.push({ kind: "da-cat", skipped: sk.skipped });
+      case "truncated":
+        row.push({ kind: "truncated", skipped: sk.skipped });
         break;
       // delta/nghi-delta gom ở hook, replay hiện thành dải báo — không thành mục
       case "delta":
-      case "nghi-delta":
+      case "thinking-delta":
       case "replay":
         break;
     }

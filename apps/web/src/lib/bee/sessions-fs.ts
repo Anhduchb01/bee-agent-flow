@@ -205,7 +205,7 @@ export async function readLastLineIn(root: string, id: string): Promise<string |
 function fileKind(name: string): BeeEvidenceFile["kind"] {
   if (/\.(png|jpe?g|gif|webp)$/i.test(name)) return "image";
   if (/\.(webm|mp4)$/i.test(name)) return "video";
-  return "khac";
+  return "other";
 }
 
 /** List one session's evidence dir, typed and url'd for the web. */

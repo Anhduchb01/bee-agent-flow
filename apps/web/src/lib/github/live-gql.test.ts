@@ -122,7 +122,7 @@ describe("ánh xạ payload GraphQL thật", () => {
                   nodes: [
                     { __typename: "StatusContext", context: "bee/test", state: "SUCCESS" },
                     { __typename: "StatusContext", context: "bee/approvals", state: "PENDING" },
-                    { __typename: "StatusContext", context: "khac", state: "ERROR" },
+                    { __typename: "StatusContext", context: "other", state: "ERROR" },
                   ],
                 },
               },
@@ -133,7 +133,7 @@ describe("ánh xạ payload GraphQL thật", () => {
     ).toEqual([
       { name: "bee/test", conclusion: "success" },
       { name: "bee/approvals", conclusion: "pending" },
-      { name: "khac", conclusion: "failure" },
+      { name: "other", conclusion: "failure" },
     ]);
   });
 

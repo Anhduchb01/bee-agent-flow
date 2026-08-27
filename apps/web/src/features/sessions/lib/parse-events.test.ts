@@ -28,7 +28,7 @@ describe("parseLine", () => {
 
   it("bee_user_say thành lời của người — CLI không echo input nên đây là nguồn duy nhất", () => {
     const outcome = parseLine('{"type":"bee_user_say","text":"làm gọn thôi","ts":"2026-08-17T10:01:00Z"}');
-    expect(outcome).toEqual([{ kind: "nguoi-noi", text: "làm gọn thôi", ts: "2026-08-17T10:01:00Z" }]);
+    expect(outcome).toEqual([{ kind: "user-said", text: "làm gọn thôi", ts: "2026-08-17T10:01:00Z" }]);
   });
 
   it("bee_replayed nói rõ đã bỏ qua bao nhiêu", () => {
@@ -99,8 +99,8 @@ describe("mergeEvents trên fixture thật", () => {
     const tool = events.filter((s) => s.kind === "tool");
     expect(tool.some((t) => t.kind === "tool" && t.name === "Bash")).toBe(true);
 
-    expect(events.some((s) => s.kind === "tool-xong" && s.text.includes("xong"))).toBe(true);
-    expect(events.some((s) => s.kind === "agent-noi" && s.text.includes("XOAI-XANH"))).toBe(true);
+    expect(events.some((s) => s.kind === "tool-done" && s.text.includes("xong"))).toBe(true);
+    expect(events.some((s) => s.kind === "agent-said" && s.text.includes("XOAI-XANH"))).toBe(true);
   });
 
   it("fixture gõ-chen: có delta chữ để màn hình chạy mượt", () => {
@@ -112,11 +112,11 @@ describe("mergeEvents trên fixture thật", () => {
     const { events, junkLines } = mergeEvents(readFixture("fixture-resume-work.jsonl"));
     expect(junkLines).toBe(0);
     expect(events.some((s) => s.kind === "tool" && s.name === "Write")).toBe(true);
-    expect(events.filter((s) => s.kind === "ket-qua")).toEqual([
+    expect(events.filter((s) => s.kind === "result")).toEqual([
       // nguCanh 4%: real modelUsage from the recorded stream — the number
       // behind the context ring, plus the raw tokens it derives from.
       {
-        kind: "ket-qua",
+        kind: "result",
         err: false,
         turns: 2,
         contextTokens: 4,
@@ -141,7 +141,7 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
     const { events } = mergeEvents([line]);
     expect(events).toEqual([
       {
-        kind: "xin-quyen",
+        kind: "permission-asked",
         requestId: "d72b0535-401f-4f41-92e3-78a8bfe6ceac",
         name: "Bash",
         args: JSON.stringify({ command: "cat /proc/sys/kernel/random/uuid" }),
@@ -164,7 +164,7 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
       ts: "t",
     });
     expect(mergeEvents([line]).events).toEqual([
-      { kind: "quyen-da-tra-loi", requestId: "abc-1", allow: false },
+      { kind: "permission-answered", requestId: "abc-1", allow: false },
     ]);
   });
 });
@@ -203,7 +203,7 @@ describe("system/compact_boundary — the CLI compacted the conversation", () =>
 describe("bee_truncated — log bị cắt là chuyện KHÁC replay", () => {
   it("thành sự kiện riêng, mang số dòng đã mất", () => {
     expect(parseLine('{"type":"bee_truncated","skipped":1200,"ts":"t"}')).toEqual([
-      { kind: "da-cat", skipped: 1200 },
+      { kind: "truncated", skipped: 1200 },
     ]);
   });
 

@@ -76,7 +76,7 @@ export function ArtifactPanel({
     });
     // Evidence loads in parallel — the panel must not wait for a disk scan.
     void loadArtifactEvidenceAction(repo, kind, number).then((outcome) => {
-      if (song && outcome !== null) setEvidence(outcome.files.filter((f) => f.kind !== "khac"));
+      if (song && outcome !== null) setEvidence(outcome.files.filter((f) => f.kind !== "other"));
     });
     return () => {
       song = false;

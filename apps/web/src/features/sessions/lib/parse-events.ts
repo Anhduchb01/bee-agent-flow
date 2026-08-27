@@ -12,13 +12,13 @@
 
 export type StreamEvent =
   | { kind: "lifecycle"; text: string; ts?: string }
-  | { kind: "nguoi-noi"; text: string; ts?: string }
-  | { kind: "agent-noi"; text: string }
+  | { kind: "user-said"; text: string; ts?: string }
+  | { kind: "agent-said"; text: string }
   | { kind: "delta"; text: string }
   /** Khối thinking trọn vẹn trong message — UI gập mặc định. */
-  | { kind: "nghi"; text: string }
+  | { kind: "thinking"; text: string }
   /** Thinking đang chảy — hook gom buffer riêng, message trọn vẹn thay thế. */
-  | { kind: "nghi-delta"; text: string }
+  | { kind: "thinking-delta"; text: string }
   /**
    * `id` là tool_use id của CLI — chìa khoá để ghép cặp với `tool-xong` thành
    * MỘT thẻ có trạng thái (spinner → ✓), thay vì hai dòng rời. `file`/`lenh`
@@ -35,9 +35,9 @@ export type StreamEvent =
       cu?: string;
       latest?: string;
     }
-  | { kind: "tool-xong"; text: string; id?: string | null; err?: boolean }
+  | { kind: "tool-done"; text: string; id?: string | null; err?: boolean }
   | {
-      kind: "ket-qua";
+      kind: "result";
       err: boolean;
       turns?: number | null;
       contextTokens?: number | null;
@@ -52,7 +52,7 @@ export type StreamEvent =
    * Khác hẳn `replay` (chỉ là người xem vào muộn): dữ liệu này không còn nữa,
    * và người đọc phải biết trước khi kết luận agent đã làm gì.
    */
-  | { kind: "da-cat"; skipped: number }
+  | { kind: "truncated"; skipped: number }
   /**
    * system/compact_boundary — the CLI compacted the conversation (auto near
    * the window limit, or a sent /compact). Without a visible seam the ring
@@ -60,9 +60,9 @@ export type StreamEvent =
    */
   | { kind: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
   /** Manual mode (V2.5b): the agent asks permission for one tool call. */
-  | { kind: "xin-quyen"; requestId: string; name: string; args: string }
+  | { kind: "permission-asked"; requestId: string; name: string; args: string }
   /** The owner's recorded answer (bee_approval) — pairs by requestId. */
-  | { kind: "quyen-da-tra-loi"; requestId: string; allow: boolean }
+  | { kind: "permission-answered"; requestId: string; allow: boolean }
   | {
       kind: "artifact";
       artifactKind: "issue" | "pr";
@@ -100,10 +100,10 @@ function fromContentBlocks(content: unknown, source: "assistant" | "user"): Stre
   for (const block of content) {
     if (!isObject(block)) continue;
     if (source === "assistant" && block.type === "text" && typeof block.text === "string") {
-      if (block.text.trim() !== "") ra.push({ kind: "agent-noi", text: block.text });
+      if (block.text.trim() !== "") ra.push({ kind: "agent-said", text: block.text });
     }
     if (source === "assistant" && block.type === "thinking" && typeof block.thinking === "string") {
-      if (block.thinking.trim() !== "") ra.push({ kind: "nghi", text: block.thinking });
+      if (block.thinking.trim() !== "") ra.push({ kind: "thinking", text: block.thinking });
     }
     if (source === "assistant" && block.type === "tool_use") {
       const input = isObject(block.input) ? block.input : {};
@@ -129,7 +129,7 @@ function fromContentBlocks(content: unknown, source: "assistant" | "user"): Stre
     }
     if (source === "user" && block.type === "tool_result") {
       ra.push({
-        kind: "tool-xong",
+        kind: "tool-done",
         text: cat(textOfToolResult(block.content), CAT_KET_QUA),
         id: typeof block.tool_use_id === "string" ? block.tool_use_id : null,
         err: block.is_error === true,
@@ -160,12 +160,12 @@ export function parseLine(line: string): StreamEvent[] | null {
         : [];
     case "bee_user_say":
       return typeof raw.text === "string"
-        ? [{ kind: "nguoi-noi", text: raw.text, ...(typeof raw.ts === "string" ? { ts: raw.ts } : {}) }]
+        ? [{ kind: "user-said", text: raw.text, ...(typeof raw.ts === "string" ? { ts: raw.ts } : {}) }]
         : [];
     case "bee_replayed":
       return [{ kind: "replay", skipped: typeof raw.skipped === "number" ? raw.skipped : 0 }];
     case "bee_truncated":
-      return [{ kind: "da-cat", skipped: typeof raw.skipped === "number" ? raw.skipped : 0 }];
+      return [{ kind: "truncated", skipped: typeof raw.skipped === "number" ? raw.skipped : 0 }];
     case "system": {
       // Whitelist: only compact_boundary becomes UI; init, api_retry,
       // thinking_tokens… stay silent (see the file header's principle).
@@ -193,7 +193,7 @@ export function parseLine(line: string): StreamEvent[] | null {
       }
       return [
         {
-          kind: "xin-quyen",
+          kind: "permission-asked",
           requestId: raw.request_id,
           name: req.tool_name,
           args: cat(args, 64_000),
@@ -206,7 +206,7 @@ export function parseLine(line: string): StreamEvent[] | null {
       if (typeof raw.request_id !== "string") return [];
       return [
         {
-          kind: "quyen-da-tra-loi",
+          kind: "permission-answered",
           requestId: raw.request_id,
           allow: raw.behavior === "allow",
         },
@@ -240,7 +240,7 @@ export function parseLine(line: string): StreamEvent[] | null {
           return [{ kind: "delta", text: ev.delta.text }];
         }
         if (ev.delta.type === "thinking_delta" && typeof ev.delta.thinking === "string") {
-          if (ev.delta.thinking !== "") return [{ kind: "nghi-delta", text: ev.delta.thinking }];
+          if (ev.delta.thinking !== "") return [{ kind: "thinking-delta", text: ev.delta.thinking }];
         }
       }
       return [];
@@ -269,7 +269,7 @@ export function parseLine(line: string): StreamEvent[] | null {
       if (stopIt > 0 && owner > 0) contextTokens = Math.min(100, Math.round((stopIt / owner) * 100));
       return [
         {
-          kind: "ket-qua",
+          kind: "result",
           err: raw.subtype !== "success",
           turns: typeof raw.num_turns === "number" ? raw.num_turns : null,
           contextTokens,

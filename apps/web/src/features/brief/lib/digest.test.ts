@@ -73,7 +73,7 @@ describe("buildDigest — sáng dậy đọc một trang là biết đêm qua ra
 
   it("KHÔNG XẾP VIỆC khác hẳn CÓ XẾP MÀ KHÔNG CHẠY — PRD §4.1", () => {
     const within = buildDigest({ session: [], artifacts: {}, queue: HANG_RONG, since: TU, until: DEN });
-    expect(within.kind).toBe("khong-xep-viec");
+    expect(within.kind).toBe("nothing-queued");
 
     const digestQueued = buildDigest({
       session: [],
@@ -81,12 +81,12 @@ describe("buildDigest — sáng dậy đọc một trang là biết đêm qua ra
       queue: { paused: false, items: [{ slug: "myapp", repo: "you/myapp", issue: 41, mode: "auto", model: "default", status: "waiting", sessionId: null, reason: null, added_at: "t" }] },
       since: TU, until: DEN,
     });
-    expect(digestQueued.kind).toBe("xep-ma-khong-chay");
+    expect(digestQueued.kind).toBe("queued-not-run");
   });
 
   it("có chạy → loại 'có việc', và đếm đúng", () => {
     const b = buildDigest({ session: [session({})], artifacts: {}, queue: HANG_RONG, since: TU, until: DEN });
-    expect(b.kind).toBe("co-viec");
+    expect(b.kind).toBe("worked");
   });
 });
 

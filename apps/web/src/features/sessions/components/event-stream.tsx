@@ -131,7 +131,7 @@ function PermissionCard({
   m,
   onAnswer,
 }: {
-  m: Extract<Card, { kind: "xin-quyen" }>;
+  m: Extract<Card, { kind: "permission-asked" }>;
   onAnswer?: (requestId: string, allow: boolean, inputJson: string) => void;
 }) {
   return (
@@ -182,20 +182,20 @@ function OneCard({
   onAnswerPermission?: (requestId: string, allow: boolean, inputJson: string) => void;
 }) {
   switch (m.kind) {
-    case "xin-quyen":
+    case "permission-asked":
       return <PermissionCard m={m} onAnswer={onAnswerPermission} />;
     case "lifecycle":
       return <p className="font-mono text-xs text-muted-foreground">· {m.text}</p>;
-    case "nguoi-noi":
+    case "user-said":
       // Như VSCode: hộp viền full-width, không phải bubble lệch phải.
       return (
         <div className="rounded-card border border-border bg-input/30 px-3.5 py-2.5">
           <p className="whitespace-pre-wrap text-[0.9375rem] leading-6 text-body">{m.text}</p>
         </div>
       );
-    case "agent-noi":
+    case "agent-said":
       return <AgentProse text={m.text} />;
-    case "nghi":
+    case "thinking":
       return (
         <details className="group">
           <summary className="cursor-pointer list-none font-mono text-xs text-muted-foreground">
@@ -228,14 +228,14 @@ function OneCard({
           <span className="shrink-0 text-muted-foreground">↗</span>
         </p>
       );
-    case "ket-qua":
+    case "result":
       return (
         <p className="border-t border-border pt-2 font-mono text-xs text-muted-foreground">
           {m.err ? "turn ended with an error" : "turn finished"}
           {m.turns !== null ? ` · ${m.turns} turns` : ""}
         </p>
       );
-    case "da-cat":
+    case "truncated":
       // Dữ liệu đã mất thật, không phải "xem sau sẽ có" — nói thẳng.
       return (
         <p className="rounded-control border border-dashed border-border px-3 py-1.5 font-mono text-xs text-muted-foreground">
@@ -261,7 +261,7 @@ function TheTool({ m }: { m: Extract<Card, { kind: "tool-card" }> }) {
   const lineCount = countLines(m);
 
   return (
-    <details className="group" open={m.status === "loi"}>
+    <details className="group" open={m.status === "error"}>
       <summary className="flex cursor-pointer list-none items-baseline gap-2">
         <StatusPip status={m.status} />
         <span className="text-sm font-semibold text-body">{m.name}</span>
@@ -354,15 +354,15 @@ function countLines(m: Extract<Card, { kind: "tool-card" }>): string | null {
   return part.join(" ");
 }
 
-function StatusPip({ status }: { status: "dang-chay" | "xong" | "loi" }) {
-  if (status === "dang-chay") {
+function StatusPip({ status }: { status: "running" | "done" | "error" }) {
+  if (status === "running") {
     return (
       <span className="animate-pulse text-amber-500" aria-label="running">
         ●
       </span>
     );
   }
-  if (status === "loi") {
+  if (status === "error") {
     return (
       <span className="text-destructive" aria-label="failed">
         ●

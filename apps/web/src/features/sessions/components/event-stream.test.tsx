@@ -8,8 +8,8 @@ describe("EventStream", () => {
   it("vẽ đủ bốn loại chính: lifecycle, lời người, lời agent, thẻ tool", () => {
     const events: StreamEvent[] = [
       { kind: "lifecycle", text: "Đang dựng worktree…" },
-      { kind: "nguoi-noi", text: "làm gọn thôi" },
-      { kind: "agent-noi", text: "Đã hiểu, tôi bắt đầu." },
+      { kind: "user-said", text: "làm gọn thôi" },
+      { kind: "agent-said", text: "Đã hiểu, tôi bắt đầu." },
       { kind: "tool", name: "Bash", args: '{"command":"pnpm test"}', id: "toolu_1", command: "pnpm test" },
     ];
     render(<EventStream events={events} typing="" />);
@@ -25,7 +25,7 @@ describe("EventStream", () => {
   it("tool đã xong là MỘT thẻ: ✓ + tên + kết quả gập trong thẻ — không phải hai dòng rời", () => {
     const events: StreamEvent[] = [
       { kind: "tool", name: "Bash", args: "{}", id: "toolu_1", command: "pnpm test" },
-      { kind: "tool-xong", text: "24 tests passed", id: "toolu_1", err: false },
+      { kind: "tool-done", text: "24 tests passed", id: "toolu_1", err: false },
     ];
     render(<EventStream events={events} typing="" />);
 
@@ -43,7 +43,7 @@ describe("EventStream", () => {
   it("tool lỗi: dấu ✗ và thẻ TỰ MỞ — lỗi không được gập lại chờ người tò mò", () => {
     const events: StreamEvent[] = [
       { kind: "tool", name: "Bash", args: "{}", id: "toolu_3" },
-      { kind: "tool-xong", text: "command not found", id: "toolu_3", err: true },
+      { kind: "tool-done", text: "command not found", id: "toolu_3", err: true },
     ];
     const { container } = render(<EventStream events={events} typing="" />);
     expect(screen.getByLabelText("failed")).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe("EventStream", () => {
   it("thinking gập mặc định; thinking đang chảy có nhãn riêng", () => {
     render(
       <EventStream
-        events={[{ kind: "nghi", text: "cần đọc file cấu hình trước" }]}
+        events={[{ kind: "thinking", text: "cần đọc file cấu hình trước" }]}
         typing=""
         idle="đang cân nhắc"
       />,
@@ -74,7 +74,7 @@ describe("EventStream", () => {
         cu: "dòng cũ",
         latest: "dòng mới 1\ndòng mới 2",
       },
-      { kind: "tool-xong", text: "ok", id: "toolu_d", err: false },
+      { kind: "tool-done", text: "ok", id: "toolu_d", err: false },
     ];
     render(<EventStream events={events} typing="" />);
 
@@ -87,7 +87,7 @@ describe("EventStream", () => {
   it("thẻ Bash vẽ khối IN/OUT như panel VSCode", () => {
     const events: StreamEvent[] = [
       { kind: "tool", name: "Bash", args: "{}", id: "toolu_e", command: "pnpm test" },
-      { kind: "tool-xong", text: "24 passed", id: "toolu_e", err: false },
+      { kind: "tool-done", text: "24 passed", id: "toolu_e", err: false },
     ];
     render(<EventStream events={events} typing="" />);
     expect(screen.getByText("IN")).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe("EventStream", () => {
 
   it("đầu ra agent là plain text — thẻ HTML trong nội dung không được render", () => {
     render(
-      <EventStream events={[{ kind: "agent-noi", text: '<img src=x onerror="alert(1)">' }]} typing="" />,
+      <EventStream events={[{ kind: "agent-said", text: '<img src=x onerror="alert(1)">' }]} typing="" />,
     );
     expect(screen.getByText('<img src=x onerror="alert(1)">')).toBeInTheDocument();
     expect(document.querySelector("img")).toBeNull();
@@ -113,7 +113,7 @@ describe("markdown trong lời agent", () => {
   it("bold / inline code / list render thành phần tử thật, như VSCode", () => {
     render(
       <EventStream
-        events={[{ kind: "agent-noi", text: "Đã xong **hai việc**: chạy `pnpm test`\n\n- một\n- hai" }]}
+        events={[{ kind: "agent-said", text: "Đã xong **hai việc**: chạy `pnpm test`\n\n- một\n- hai" }]}
         typing=""
       />,
     );
@@ -124,7 +124,7 @@ describe("markdown trong lời agent", () => {
 
   it("HTML thô trong nội dung KHÔNG được render — chống injection như bản plain", () => {
     const { container } = render(
-      <EventStream events={[{ kind: "agent-noi", text: 'xin chào <img src=x onerror="alert(1)">' }]} typing="" />,
+      <EventStream events={[{ kind: "agent-said", text: 'xin chào <img src=x onerror="alert(1)">' }]} typing="" />,
     );
     expect(container.querySelector("img")).toBeNull();
   });
@@ -138,7 +138,7 @@ describe("approval card (V2.5b)", () => {
       <EventStream
         events={[
           {
-            kind: "xin-quyen",
+            kind: "permission-asked",
             requestId: "r1",
             name: "Bash",
             args: '{"command":"pnpm test"}',
@@ -158,8 +158,8 @@ describe("approval card (V2.5b)", () => {
     render(
       <EventStream
         events={[
-          { kind: "xin-quyen", requestId: "r1", name: "Bash", args: "{}" },
-          { kind: "quyen-da-tra-loi", requestId: "r1", allow: false },
+          { kind: "permission-asked", requestId: "r1", name: "Bash", args: "{}" },
+          { kind: "permission-answered", requestId: "r1", allow: false },
         ]}
         typing=""
         onAnswerPermission={vi.fn()}
@@ -173,7 +173,7 @@ describe("approval card (V2.5b)", () => {
 describe("compact seam — the visible reason the ring just dropped", () => {
   it("renders the compacted line with trigger and pre-compact size", () => {
     const events: StreamEvent[] = [
-      { kind: "agent-noi", text: "still here" },
+      { kind: "agent-said", text: "still here" },
       { kind: "compact", trigger: "auto", preTokens: 165_000 },
     ];
     render(<EventStream events={events} typing="" />);

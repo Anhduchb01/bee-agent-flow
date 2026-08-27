@@ -11,18 +11,18 @@ import type { Digest } from "../lib/digest";
  * cả những gì cần đọc.
  */
 export function DigestView({ digest }: { digest: Digest }) {
-  if (digest.kind !== "co-viec") {
+  if (digest.kind !== "worked") {
     // Rỗng-vì-không-xếp-việc ≠ rỗng-vì-không-chạy-được (PRD §4.1).
     return (
       <Empty>
         <EmptyHeader>
           <EmptyTitle>
-            {digest.kind === "khong-xep-viec"
+            {digest.kind === "nothing-queued"
               ? "Nothing has been queued"
               : "Work is queued but nothing could run"}
           </EmptyTitle>
           <EmptyDescription>
-            {digest.kind === "khong-xep-viec" ? (
+            {digest.kind === "nothing-queued" ? (
               <>Queue an issue into the Autopilot lane on the{" "}<Link href="/projects?view=kanban" className="underline">project board</Link>, then hit Run now — or leave it for the next tick.</>
             ) : (
               <>The reason is on each item below — usually the quota brake or PAUSE.</>

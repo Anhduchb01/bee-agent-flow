@@ -62,7 +62,7 @@ describe("LiveView — one mode, VSCode-style controls", () => {
 
   it("agent busy + nothing typed → the round button is STOP, not send", () => {
     mockStream({
-      events: [{ kind: "nguoi-noi", text: "do the thing" }],
+      events: [{ kind: "user-said", text: "do the thing" }],
       typing: "wor",
     });
     render(<LiveView session={PHIEN} />);
@@ -73,7 +73,7 @@ describe("LiveView — one mode, VSCode-style controls", () => {
   it("typing while busy flips the button back to send — the message queues", async () => {
     const user = userEvent.setup();
     mockStream({
-      events: [{ kind: "nguoi-noi", text: "do the thing" }],
+      events: [{ kind: "user-said", text: "do the thing" }],
       typing: "wor",
     });
     render(<LiveView session={PHIEN} />);
@@ -85,8 +85,8 @@ describe("LiveView — one mode, VSCode-style controls", () => {
   it("turn finished (result after the say) → idle, send button back", () => {
     mockStream({
       events: [
-        { kind: "nguoi-noi", text: "do the thing" },
-        { kind: "ket-qua", err: false, turns: 1, contextTokens: 12 },
+        { kind: "user-said", text: "do the thing" },
+        { kind: "result", err: false, turns: 1, contextTokens: 12 },
       ],
     });
     render(<LiveView session={PHIEN} />);
@@ -97,8 +97,8 @@ describe("LiveView — one mode, VSCode-style controls", () => {
   it("context ring shows the latest result's percentage", () => {
     mockStream({
       events: [
-        { kind: "ket-qua", err: false, turns: 1, contextTokens: 7 },
-        { kind: "ket-qua", err: false, turns: 2, contextTokens: 12 },
+        { kind: "result", err: false, turns: 1, contextTokens: 7 },
+        { kind: "result", err: false, turns: 2, contextTokens: 12 },
       ],
     });
     render(<LiveView session={PHIEN} />);
@@ -110,7 +110,7 @@ describe("LiveView — one mode, VSCode-style controls", () => {
     mockStream({
       events: [
         {
-          kind: "ket-qua",
+          kind: "result",
           err: false,
           turns: 1,
           contextTokens: 10,
@@ -174,14 +174,14 @@ describe("continue a finished session (V2.6)", () => {
 
 describe("working indicator — VSCode-style shimmer while the agent owes an answer", () => {
   it("busy with NOTHING streaming yet → the indicator runs", () => {
-    mockStream({ events: [{ kind: "nguoi-noi", text: "what is this repo?" }] });
+    mockStream({ events: [{ kind: "user-said", text: "what is this repo?" }] });
     render(<LiveView session={PHIEN} />);
     expect(screen.getByLabelText("Agent is working")).toBeInTheDocument();
   });
 
   it("text or thinking streaming → the indicator yields to the real stream", () => {
     mockStream({
-      events: [{ kind: "nguoi-noi", text: "do it" }],
+      events: [{ kind: "user-said", text: "do it" }],
       typing: "Answer star",
     });
     render(<LiveView session={PHIEN} />);
@@ -191,8 +191,8 @@ describe("working indicator — VSCode-style shimmer while the agent owes an ans
   it("idle (result landed) → no indicator", () => {
     mockStream({
       events: [
-        { kind: "nguoi-noi", text: "do it" },
-        { kind: "ket-qua", err: false, turns: 1, contextTokens: 5 },
+        { kind: "user-said", text: "do it" },
+        { kind: "result", err: false, turns: 1, contextTokens: 5 },
       ],
     });
     render(<LiveView session={PHIEN} />);
@@ -375,7 +375,7 @@ describe("context — VSCode-style compaction affordances", () => {
   it("ring at ≥90% shows the almost-full hint", () => {
     mockStream({
       events: [
-        { kind: "ket-qua", err: false, turns: 3, contextTokens: 93, validToken: 186_000, tokenWindow: 200_000 },
+        { kind: "result", err: false, turns: 3, contextTokens: 93, validToken: 186_000, tokenWindow: 200_000 },
       ],
     });
     render(<LiveView session={PHIEN} />);
@@ -383,7 +383,7 @@ describe("context — VSCode-style compaction affordances", () => {
   });
 
   it("below the threshold there is no hint", () => {
-    mockStream({ events: [{ kind: "ket-qua", err: false, turns: 3, contextTokens: 42 }] });
+    mockStream({ events: [{ kind: "result", err: false, turns: 3, contextTokens: 42 }] });
     render(<LiveView session={PHIEN} />);
     expect(screen.queryByText(/almost full/)).not.toBeInTheDocument();
   });

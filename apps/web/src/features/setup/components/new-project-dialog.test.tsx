@@ -8,7 +8,7 @@ import { NewProjectDialog } from "./new-project-dialog";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("../api/actions", () => ({
-  registerRepoAction: vi.fn(async () => ({ ok: true, message: "", slug: "khach-hang" })),
+  registerRepoAction: vi.fn(async () => ({ ok: true, message: "", slug: "customers" })),
   saveEnvFileAction: vi.fn(async () => ({ ok: true, message: "" })),
   deleteEnvFileAction: vi.fn(async () => ({ ok: true, message: "" })),
 }));
@@ -29,16 +29,16 @@ describe("NewProjectDialog — register a repo without leaving the screen", () =
     const { registerRepoAction } = await import("../api/actions");
 
     await user.click(screen.getByRole("button", { name: "New project" }));
-    await user.type(screen.getByLabelText("org/repo"), "org/khach-hang");
+    await user.type(screen.getByLabelText("org/repo"), "org/customers");
     await user.click(screen.getByRole("button", { name: "Add project" }));
 
-    expect(vi.mocked(registerRepoAction)).toHaveBeenCalledWith("org/khach-hang");
+    expect(vi.mocked(registerRepoAction)).toHaveBeenCalledWith("org/customers");
     // Step two names the slug, because env.d is keyed by slug, not by repo.
-    expect(await screen.findByText("khach-hang is registered")).toBeInTheDocument();
+    expect(await screen.findByText("customers is registered")).toBeInTheDocument();
     // toBeVisible, không phải toBeInTheDocument: EnvEditor sống trong một
     // <details>, và bản đầu tiên của dialog render nó ĐANG GẬP — field có
     // trong DOM nhưng người dùng không thấy. e2e bắt được, unit thì không.
-    expect(screen.getByLabelText("New env file path for khach-hang")).toBeVisible();
+    expect(screen.getByLabelText("New env file path for customers")).toBeVisible();
   });
 
   it("env saved from the dialog goes to the same env.d store /setup writes", async () => {
@@ -46,21 +46,21 @@ describe("NewProjectDialog — register a repo without leaving the screen", () =
     const { saveEnvFileAction } = await import("../api/actions");
 
     await user.click(screen.getByRole("button", { name: "New project" }));
-    await user.type(screen.getByLabelText("org/repo"), "org/khach-hang");
+    await user.type(screen.getByLabelText("org/repo"), "org/customers");
     await user.click(screen.getByRole("button", { name: "Add project" }));
 
     await user.type(
-      await screen.findByLabelText("New env file path for khach-hang"),
+      await screen.findByLabelText("New env file path for customers"),
       ".env.local",
     );
     await user.type(
-      screen.getByLabelText("New env file content for khach-hang"),
+      screen.getByLabelText("New env file content for customers"),
       "API_KEY=abc",
     );
     await user.click(screen.getByRole("button", { name: "Add env file" }));
 
     expect(vi.mocked(saveEnvFileAction)).toHaveBeenCalledWith(
-      "khach-hang",
+      "customers",
       ".env.local",
       "API_KEY=abc",
     );

@@ -289,8 +289,8 @@ export function LiveView({
   // last result, or text/thinking is streaming right now.
   const last = { speak: -1, result: -1 };
   events.forEach((s, i) => {
-    if (s.kind === "nguoi-noi") last.speak = i;
-    if (s.kind === "ket-qua") last.result = i;
+    if (s.kind === "user-said") last.speak = i;
+    if (s.kind === "result") last.result = i;
   });
   const busy = running && (last.speak > last.result || typing !== "" || idle !== "");
 
@@ -300,7 +300,7 @@ export function LiveView({
   let contextOf: number | null = null;
   for (let i = events.length - 1; i >= 0; i--) {
     const s = events[i]!;
-    if (s.kind === "ket-qua" && typeof s.contextTokens === "number") {
+    if (s.kind === "result" && typeof s.contextTokens === "number") {
       contextTokens = s.contextTokens;
       contextUsed = typeof s.validToken === "number" ? s.validToken : null;
       contextOf = typeof s.tokenWindow === "number" ? s.tokenWindow : null;
@@ -396,10 +396,10 @@ export function LiveView({
 
   // An approval card without an answer = the ball is in the OWNER's court.
   const answered = new Set(
-    events.filter((s) => s.kind === "quyen-da-tra-loi").map((s) => s.requestId),
+    events.filter((s) => s.kind === "permission-answered").map((s) => s.requestId),
   );
   const awaitingPermission = events.some(
-    (s) => s.kind === "xin-quyen" && !answered.has(s.requestId),
+    (s) => s.kind === "permission-asked" && !answered.has(s.requestId),
   );
 
   return (
@@ -430,7 +430,7 @@ export function LiveView({
           Skipped {skipped} earlier events — showing the most recent.
         </p>
       )}
-      {status === "mat-ket-noi" && running && (
+      {status === "disconnected" && running && (
         <p className="border-b border-border px-4 py-1.5 font-mono text-xs text-destructive sm:px-6">
           Connection lost — retrying…
         </p>
@@ -440,7 +440,7 @@ export function LiveView({
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
         {events.length === 0 && typing === "" && idle === "" ? (
           <p className="text-sm text-muted-foreground">
-            {status === "dang-noi" ? "Connecting…" : "Waiting for the session to speak…"}
+            {status === "connecting" ? "Connecting…" : "Waiting for the session to speak…"}
           </p>
         ) : (
           <EventStream

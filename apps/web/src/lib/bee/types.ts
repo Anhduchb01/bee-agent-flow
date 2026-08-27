@@ -171,7 +171,7 @@ export type SessionStatus = "starting" | "running" | "done" | "stopped" | "faile
 export interface BeeEvidenceFile {
   name: string;
   url: string;
-  kind: "image" | "video" | "khac";
+  kind: "image" | "video" | "other";
 }
 
 export const SESSION_MODES = ["auto", "plan", "edits", "manual"] as const;

@@ -12,7 +12,7 @@ import type { BeeArtifact, BeeSession, Queue, QueueItem } from "@/lib/bee/types"
  * trường riêng, không bắt màn hình đoán từ mấy mảng rỗng.
  */
 
-export type DigestKind = "khong-xep-viec" | "xep-ma-khong-chay" | "co-viec";
+export type DigestKind = "nothing-queued" | "queued-not-run" | "worked";
 
 export interface RanItem {
   session: BeeSession;
@@ -92,10 +92,10 @@ export function buildDigest(input: {
 
   const kind: DigestKind =
     within.length > 0
-      ? "co-viec"
+      ? "worked"
       : input.queue.items.length > 0
-        ? "xep-ma-khong-chay"
-        : "khong-xep-viec";
+        ? "queued-not-run"
+        : "nothing-queued";
 
   return {
     kind,

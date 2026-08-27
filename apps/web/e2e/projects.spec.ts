@@ -57,12 +57,12 @@ test.describe("tạo project ngay tại chỗ (24/08)", () => {
 
   test("thêm xong thì hỏi env luôn, và env đó là env.d của chính slug đó", async ({ page }) => {
     await page.locator("header").getByRole("button", { name: "New project" }).click();
-    await page.getByLabel("org/repo").fill("org/khach-hang");
+    await page.getByLabel("org/repo").fill("org/customers");
     await page.getByRole("dialog").getByRole("button", { name: "Add project" }).click();
 
     // Bước hai gọi đúng slug suy ra được — env.d đánh khoá theo slug.
-    await expect(page.getByText("khach-hang is registered")).toBeVisible();
-    await expect(page.getByLabel("New env file path for khach-hang")).toBeVisible();
+    await expect(page.getByText("customers is registered")).toBeVisible();
+    await expect(page.getByLabel("New env file path for customers")).toBeVisible();
   });
 
   test("nút + ở sidebar mở đúng cửa sổ đó", async ({ page }) => {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { parseLine, type StreamEvent } from "../lib/parse-events";
 
-export type ConnectionState = "dang-noi" | "mo" | "mat-ket-noi" | "xong";
+export type ConnectionState = "connecting" | "open" | "disconnected" | "done";
 
 export interface SessionStream {
   events: StreamEvent[];
@@ -29,21 +29,21 @@ export function useSessionStream(id: string): SessionStream {
   const [events, setSuKien] = useState<StreamEvent[]>([]);
   const [typing, setDangGo] = useState("");
   const [idle, setDangNghi] = useState("");
-  const [status, setTrangThai] = useState<ConnectionState>("dang-noi");
+  const [status, setState] = useState<ConnectionState>("connecting");
   const [ended, setKetThuc] = useState<string | null>(null);
   const [skipped, setBoQua] = useState(0);
 
   useEffect(() => {
     const es = new EventSource(`/api/session/${id}/stream`);
-    es.onopen = () => setTrangThai("mo");
-    es.onerror = () => setTrangThai((t) => (t === "xong" ? t : "mat-ket-noi"));
+    es.onopen = () => setState("open");
+    es.onerror = () => setState((t) => (t === "done" ? t : "disconnected"));
     es.onmessage = (e: MessageEvent<string>) => {
       // bee_done là tín hiệu đóng của route, không phải sự kiện hiển thị.
       try {
         const raw = JSON.parse(e.data) as { type?: unknown; status?: unknown };
         if (raw.type === "bee_done") {
           setKetThuc(typeof raw.status === "string" ? raw.status : "done");
-          setTrangThai("xong");
+          setState("done");
           es.close();
           return;
         }
@@ -56,9 +56,9 @@ export function useSessionStream(id: string): SessionStream {
       for (const sk of outcome) {
         if (sk.kind === "delta") {
           setDangGo((d) => d + sk.text);
-        } else if (sk.kind === "nghi-delta") {
+        } else if (sk.kind === "thinking-delta") {
           setDangNghi((d) => d + sk.text);
-        } else if (sk.kind === "agent-noi" || sk.kind === "nghi") {
+        } else if (sk.kind === "agent-said" || sk.kind === "thinking") {
           // Message trọn vẹn thay thế các delta đã gom — không hiện đúp.
           setDangGo("");
           setDangNghi("");
