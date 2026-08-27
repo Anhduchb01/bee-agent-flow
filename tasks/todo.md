@@ -732,6 +732,39 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       của bài test bỏ dấu — đổi nó là xoá bài test; `xong` là lời agent trong
       fixture; `Thu` là Thursday.
       Quét cuối bằng AST: **0/2511 identifier** còn tiếng Việt.
+- [x] 🤖 **T36** ~~Gỡ `apps/reconciler` và dời writer cuối cùng~~ **XONG 27/08** —
+      **Tôi soát sai một lần trước khi làm đúng.** Lần đầu tôi kết luận ba file
+      web đọc là do reconciler ghi độc quyền — vì chỉ grep `apps/runner` và
+      `apps/reconciler`. Thật ra `harvestClaudeUsage()` trong **chính web** đã
+      sinh lại `state/recent.jsonl` và `state/claude-rate-limit.json` từ phiên
+      trên đĩa, chạy theo `bee-tick.timer` và nút Refresh. Chỉ
+      `public/status.json` là thật sự mồ côi.
+      **Hậu quả của lỗ đó đã nằm ngay trong mọi ảnh chụp tháng này:** góc trái
+      dưới ghi "No data from the runner yet" — vì không ai ghi `status.json`
+      cả. Nay `readStatusIn` dựng trạng thái từ nguồn của chính runner:
+      `heartbeat.json` (reaper mỗi tick) · `PAUSE` · `repos.d`.
+      **`BeeStatus` thu về đúng 4 trường có màn nào đọc.** Hình dạng cũ mang
+      `slots` (bể build/evidence), `queue`/`recent`/`wip` theo repo, và `rule`
+      cho mỗi việc đang chạy — mô hình rule của reconciler. Runner là
+      session-first: không rule, không pool. Giữ lại nghĩa là phải bịa số để
+      lấp, nên bộ parser kiểm chúng cũng đi theo.
+      **Giữ có chủ đích:** `dropped` — một mục `repos.d` đọc không được thì
+      ĐƯỢC ĐẾM, không giấu; một dự án chủ máy đăng ký rồi cứ thế không xuất
+      hiện là đúng thứ im lặng mà hệ này sinh ra để chặn.
+      **Bỏ có chủ đích:** pause theo từng repo (`.agent/PAUSE` trên nhánh mặc
+      định) — khái niệm của reconciler. Runner có MỘT công tắc, đã nằm ở `mode`.
+      **Xoá kèm:** `apps/web/install.sh` (320 dòng) — installer của mô hình C
+      (hai UID `bee` + `bee-web`, /srv/bee thuộc root, `bee-spec-chat.service`
+      không tồn tại ở đâu khác), và nó từ chối chạy nếu thiếu reconciler.
+      `deploy.sh` gọi `apps/runner/install.sh` từ lâu rồi.
+      Cảnh `reconciler-dead` → `runner-dead`: nó vốn không nói về reconciler mà
+      về "heartbeat cũ và không có gì đỏ để nhìn" — nay mang tên thứ thật sự tick.
+      Lịch sử giữ ở nhánh `feat/bee-m3-and-web-spec`.
+- [x] 🧑 **T37** ~~Xoá 5 component web không ai import~~ **XONG 27/08** —
+      `stat-grid`, và `alert`/`badge`/`sonner`/`table` của shadcn thêm vào rồi
+      không dùng. `board-table` cố tình KHÔNG phải `<table>` nên `ui/table`
+      cũng không có ai gọi.
+
 - [x] 🤖 **T35** ~~Đổi tên tiếng Việt trong bash~~ **XONG 27/08** — ba đợt,
       `apps/runner` (bin + lib + 14 rig) và `apps/reconciler`.
       **Lưới phải dựng TRƯỚC, vì bash không có typechecker:** ảnh chụp những gì
