@@ -258,6 +258,68 @@ grep -q -- "--dangerously-skip-permissions" <<<"$ARGS7C" \
   && kq ok "thiếu mode → auto (skip-permissions) — session.json cũ không đổi hành vi" \
   || kq no "thiếu mode sai cờ: $ARGS7C"
 
+echo "== 8 · phiên chết vì auth: phải nói RA lý do, và nói cả token đang ghim =="
+# Gặp thật 27/08: chủ máy thêm account mới, panel hiện "in use", nhưng
+# claude.env vẫn ghim token của account khác — phiên chạy trên token ghim,
+# org của nó chặn Claude Code, và phiên chết sau 1 lượt với đúng một câu của
+# Anthropic. Hệ thống biết CẢ HAI dữ kiện mà không nối chúng lại: người đọc
+# thấy "org disabled" và không có cách nào biết token ghim là nguyên nhân.
+cat > "$T/bin/claude" <<'EOF'
+#!/usr/bin/env bash
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access"}]}}'
+echo '{"type":"result","subtype":"success","num_turns":1}'
+exit 0
+EOF
+chmod +x "$T/bin/claude"
+
+printf 'CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-pinned
+' > "$BEE_ROOT/claude.env"
+ID8=77777777-1111-2222-3333-444444444481
+mkdir -p "$BEE_ROOT/sessions/$ID8"
+printf '{"id":"%s","slug":"demo","num":81,"repo":"owner/demo","phase":"work","worktree":true}
+' \
+  "$ID8" > "$BEE_ROOT/sessions/$ID8/session.json"
+"$RUNNER/bin/session-run.sh" "$ID8" >/dev/null 2>&1 || true
+RJ8="$BEE_ROOT/sessions/$ID8/run.jsonl"
+
+grep -q '"type":"bee_lifecycle"' "$RJ8" 2>/dev/null \
+  && jq -r 'select(.type=="bee_lifecycle") | .msg' "$RJ8" | grep -qi "claude.env" \
+  && kq ok "phiên chết vì auth → lifecycle line gọi tên claude.env" \
+  || kq no "không có lifecycle nói về token ghim: $(jq -r 'select(.type=="bee_lifecycle") | .msg' "$RJ8" 2>/dev/null | tr '\n' ' ')"
+
+jq -r 'select(.type=="bee_lifecycle") | .msg' "$RJ8" 2>/dev/null | grep -qi "organization\|subscription" \
+  && kq ok "và nhắc lại chính lời Anthropic, không diễn giải lại" \
+  || kq no "lifecycle không trích lời gốc"
+
+# Không ghim token thì KHÔNG được đổ cho claude.env — sai hướng còn tệ hơn im.
+rm -f "$BEE_ROOT/claude.env"
+ID8B=77777777-1111-2222-3333-444444444482
+mkdir -p "$BEE_ROOT/sessions/$ID8B"
+printf '{"id":"%s","slug":"demo","num":82,"repo":"owner/demo","phase":"work","worktree":true}\n' \
+  "$ID8B" > "$BEE_ROOT/sessions/$ID8B/session.json"
+"$RUNNER/bin/session-run.sh" "$ID8B" >/dev/null 2>&1 || true
+jq -r 'select(.type=="bee_lifecycle") | .msg' "$BEE_ROOT/sessions/$ID8B/run.jsonl" 2>/dev/null \
+  | grep -qi "claude.env" \
+  && kq no "đổ cho claude.env khi không có token nào ghim" \
+  || kq ok "không ghim token thì không chỉ sai hướng"
+
+# Phiên thành công KHÔNG được mọc lời cảnh báo auth nào.
+cat > "$T/bin/claude" <<'EOF'
+#!/usr/bin/env bash
+echo '{"type":"result","subtype":"success","num_turns":1}'
+exit 0
+EOF
+chmod +x "$T/bin/claude"
+ID8C=77777777-1111-2222-3333-444444444483
+mkdir -p "$BEE_ROOT/sessions/$ID8C"
+printf '{"id":"%s","slug":"demo","num":83,"repo":"owner/demo","phase":"work","worktree":true}\n' \
+  "$ID8C" > "$BEE_ROOT/sessions/$ID8C/session.json"
+"$RUNNER/bin/session-run.sh" "$ID8C" >/dev/null 2>&1 || true
+jq -r 'select(.type=="bee_lifecycle") | .msg' "$BEE_ROOT/sessions/$ID8C/run.jsonl" 2>/dev/null \
+  | grep -qi "organization\|token" \
+  && kq no "phiên chạy tốt vẫn bị dán cảnh báo auth" \
+  || kq ok "phiên chạy tốt: không cảnh báo gì"
+
 rm -rf "$T"
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-03: TẤT CẢ XANH"; else echo "RIG-03: CÓ ĐỎ"; exit 1; fi

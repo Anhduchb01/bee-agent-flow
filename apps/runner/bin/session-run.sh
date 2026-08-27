@@ -255,4 +255,27 @@ CPID=$!
 RC=0; wait "$CPID" 2>/dev/null || RC=$?
 CPID=""
 exec 3>&- 2>/dev/null || true
+
+# ── 6 · Chết vì auth: nối lý do với nguyên nhân ────────────────────────────
+# Gặp thật 27/08: chủ máy thêm account mới, /setup hiện "in use", nhưng
+# claude.env vẫn ghim token của account khác. Phiên chạy trên token ghim, org
+# của nó chặn Claude Code, và phiên chết sau MỘT lượt với đúng một câu của
+# Anthropic. Hệ thống biết cả hai dữ kiện — câu chối, và cái token đang ghim —
+# mà không nối chúng: người đọc thấy "org disabled" và không có đường nào biết
+# token ghim là nguyên nhân.
+#
+# Trích nguyên lời Anthropic, không diễn giải: câu của họ luôn đúng hơn, và
+# một bản diễn giải sẽ lạc hậu ngay lần họ đổi cách nói.
+AUTH_SAID=$(grep -ohiE '[^"]*(organization has disabled|subscription access|Invalid API key|authentication_error|OAuth token has expired|Please run /login)[^"]*' \
+  "$SDIR/run.jsonl" "$SDIR/stderr.log" 2>/dev/null | head -1 || true)
+if [[ -n "$AUTH_SAID" ]]; then
+  WHY="Phiên dừng vì xác thực: ${AUTH_SAID}"
+  if [[ -f "$BEE_ROOT/claude.env" ]] && grep -q '^CLAUDE_CODE_OAUTH_TOKEN=' "$BEE_ROOT/claude.env" 2>/dev/null; then
+    WHY+=" — phiên này chạy trên TOKEN GHIM trong claude.env, KHÔNG phải account đang chọn ở /setup. Gỡ token ghim (nút ở mục Claude accounts) để lựa chọn kia có hiệu lực."
+  else
+    WHY+=" — không có token nào ghim, nên đây là account đang đăng nhập trên máy. Đổi account ở /setup, hoặc dùng ANTHROPIC_API_KEY."
+  fi
+  lifecycle "$SDIR" "$WHY"
+fi
+
 exit "$RC"
