@@ -108,3 +108,28 @@ test("failing checks: login lands on /setup too", async ({ page }) => {
     "NO branch protection on main",
   );
 });
+
+/**
+ * The Configuration tab owns the shared pool now — its compose file and its
+ * unit — so the owner never has to SSH in to change what sessions share.
+ *
+ * These assert the controls REACH the page. A unit test can prove the button
+ * calls the action; only a real render proves the panel is on the tab at all,
+ * which is exactly the class of bug that blanked the canvas.
+ */
+test("the pool's compose file is editable on the Configuration tab", async ({ page }) => {
+  await signIn(page, "pm-linh");
+  await page.goto("/setup?tab=config");
+
+  const box = page.getByLabel("Shared pool compose file");
+  await expect(box).toBeVisible();
+  await expect(box).toHaveValue(/services:/);
+});
+
+test("the pool unit can be turned on and off from the same place", async ({ page }) => {
+  await signIn(page, "pm-linh");
+  await page.goto("/setup?tab=config");
+
+  const panel = page.getByText("bee-services", { exact: true }).locator("..");
+  await expect(panel.getByRole("button", { name: /^(Start|Stop)$/ })).toBeVisible();
+});

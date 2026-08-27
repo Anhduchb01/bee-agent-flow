@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getActor } from "@/lib/auth";
+import { savePoolCompose, setPoolRunning } from "@/lib/bee/services-ctl";
 import { getBee } from "@/lib/bee";
 import {
   startAddSlot,
@@ -145,6 +146,35 @@ export async function deleteEnvFileAction(slug: string, path: string): Promise<R
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
   const outcome = await deleteEnvFile(slug, path);
+  revalidatePath("/setup");
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
+}
+
+/**
+ * The shared pool's compose file, edited from the web.
+ *
+ * Validation lives in savePoolCompose — a file that does not parse takes the
+ * pool down, and every session that needs a pooled service is then refused at
+ * the gate. A rejected save leaves the previous file in place.
+ */
+export async function savePoolComposeAction(text: string): Promise<Result> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const outcome = await savePoolCompose(text);
+  revalidatePath("/setup");
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
+}
+
+/**
+ * Turn the shared pool on or off.
+ *
+ * `force` is the owner overriding the refusal to stop a pool that sessions
+ * still hold slices of — it is deliberately a separate, second press.
+ */
+export async function setPoolRunningAction(on: boolean, force = false): Promise<Result> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  const outcome = await setPoolRunning(on, { force });
   revalidatePath("/setup");
   return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }

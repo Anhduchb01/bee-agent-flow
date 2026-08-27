@@ -15,4 +15,5 @@ export { runDoctorAction } from "./api/actions";
 export { loadClaudeAuth, loadDoctor, loadEnvFiles, loadGc, loadSlayer } from "./api/load";
 export { postLoginTarget } from "./lib/post-login-target";
 export { defaultTab, TABS, type SetupTab } from "./lib/tab";
+export { PoolControls } from "./components/pool-controls";
 export { ServicesPanel } from "./components/services-panel";

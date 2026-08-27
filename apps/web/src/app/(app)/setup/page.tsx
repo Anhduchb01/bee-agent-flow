@@ -13,12 +13,14 @@ import {
   PatForm,
   PauseToggle,
   RepoRegistry,
+  PoolControls,
   ServicesPanel,
 } from "@/features/setup";
 import { PageHeader } from "@/features/shell";
 import { defaultTab, type SetupTab } from "@/features/setup";
 import { getActor } from "@/lib/auth";
 import { readPool, readSlices } from "@/lib/bee/services-fs";
+import { poolRunning, readPoolCompose } from "@/lib/bee/services-ctl";
 import Link from "next/link";
 
 /**
@@ -103,7 +105,12 @@ export default async function SetupPage({
     loadGc(),
   ]);
   const envFiles = await loadEnvFiles(repos.map((r) => r.slug));
-  const [pool, slices] = await Promise.all([readPool(), readSlices()]);
+  const [pool, slices, running, compose] = await Promise.all([
+    readPool(),
+    readSlices(),
+    poolRunning(),
+    readPoolCompose(),
+  ]);
 
   const check = (id: string): boolean | null =>
     doctor?.checks.find((c) => c.id === id)?.ok ?? null;
@@ -159,6 +166,7 @@ export default async function SetupPage({
             </Step>
 
             <Step num={3} title="Shared services, and who is using them">
+              <PoolControls running={running} compose={compose} />
               <ServicesPanel pool={pool} slices={slices} />
             </Step>
 
