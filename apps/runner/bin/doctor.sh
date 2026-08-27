@@ -230,18 +230,19 @@ else
   fi
 fi
 
-# ── Trần tài nguyên: cái gì THẬT SỰ được thi hành (T17) ───────────────────
-# Hai tầng, và chúng độc lập:
-#   1. tiến trình CỦA phiên  → systemd, qua cgroup được delegate cho user@
-#   2. container phiên dựng  → runc, qua cgroup driver của docker
-# Rootless docker ở đây chạy `cgroupfs` (xem docs/docker-cho-bee.md §5b), nên
-# tầng 2 KHÔNG được thi hành. Đó là hạn chế đã biết, không phải sự cố — nhưng
-# nó phải đọc được, chứ không nằm im trong một file tài liệu.
+# ── Resource caps: what is ACTUALLY enforced (T17) ────────────────────────
+# Two layers, and they are independent:
+#   1. the session's own processes → systemd, via the cgroup delegated to user@
+#   2. containers a session starts → runc, via docker's cgroup driver
+# Rootless docker here runs `cgroupfs` (docs/docker-cho-bee.md §5b), so layer 2
+# is NOT enforced. That is a known limitation, not a fault — but it has to be
+# readable, instead of sitting quietly in a document.
+#
+# Do NOT use `systemctl show bee-session@.service`: systemd refuses a TEMPLATE
+# name — "neither a valid invocation ID nor unit name" — so it returns empty
+# and this check reports red on a perfectly healthy machine (hit 27/08).
+# Read the unit instead: `cat` works for a template and pulls in drop-ins.
 DELEGATED=$(cat "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers" 2>/dev/null || echo "")
-# KHONG dung `systemctl show bee-session@.service`: systemd tu choi mot ten
-# TEMPLATE — "neither a valid invocation ID nor unit name" — nen no tra ve
-# rong, va check nay bao do tren mot may hoan toan lanh (gap that 27/08).
-# Doc chinh unit: `cat` chay duoc voi template va keo theo ca drop-in.
 SESSION_UNIT=$(systemctl --user cat "bee-session@.service" 2>/dev/null || true)
 [[ -n "$SESSION_UNIT" ]] || SESSION_UNIT=$(cat "$HOME/.config/systemd/user/bee-session@.service" 2>/dev/null || true)
 SESSION_CAP=$(sed -n 's/^MemoryMax=\(.*\)$/\1/p' <<<"$SESSION_UNIT" | tail -1)
@@ -249,19 +250,20 @@ SESSION_SWAP=$(sed -n 's/^MemorySwapMax=\(.*\)$/\1/p' <<<"$SESSION_UNIT" | tail 
 DOCKER_CG=$(docker info -f '{{.CgroupDriver}}' 2>/dev/null || echo "")
 
 if [[ "$DELEGATED" != *memory* ]]; then
-  record "limits" false "cgroup controller 'memory' chua duoc delegate cho user@$(id -u) — moi tran RAM cua phien la trang tri. Can root: /etc/systemd/system/user@.service.d/delegate.conf voi 'Delegate=cpu cpuset io memory pids'"
+  record "limits" false "cgroup controller 'memory' is not delegated to user@$(id -u) — every session RAM cap is decoration. Needs root: /etc/systemd/system/user@.service.d/delegate.conf with 'Delegate=cpu cpuset io memory pids'"
 elif [[ -z "$SESSION_CAP" || "$SESSION_CAP" == "infinity" ]]; then
-  record "limits" false "bee-session@.service khong co MemoryMax — mot phien chay hong keo duoc ca may xuong. Cai lai runner (install.sh tinh tran tu RAM may)"
+  record "limits" false "bee-session@.service has no MemoryMax — one runaway session can take the whole machine down. Re-install the runner (install.sh sizes the cap from machine RAM)"
 elif [[ "$SESSION_SWAP" != "0" ]]; then
-  # Do that 27/08: chi MemoryMax thi tien trinh vuot tran bi day sang swap va
-  # song nhan. Mot cai tran trong nhu da dat ma khong chan gi thi te hon khong.
-  record "limits" false "bee-session@.service co MemoryMax=$SESSION_CAP nhung thieu MemorySwapMax=0 — tien trinh vuot tran se bi day sang swap va SONG, tran khong chan gi"
+  # Measured 27/08: with MemoryMax alone, a process over the cap is pushed to
+  # SWAP and survives. A cap that looks set and stops nothing is worse than
+  # none, because it is believed.
+  record "limits" false "bee-session@.service has MemoryMax=$SESSION_CAP but no MemorySwapMax=0 — a process over the cap is pushed to swap and SURVIVES, so the cap stops nothing"
 else
   CAP_H=$SESSION_CAP
   if [[ "$DOCKER_CG" == "systemd" ]]; then
-    record "limits" true "tran phien $CAP_H (systemd, swap bi chan) · container: docker cgroup driver systemd — --memory/--cpus co hieu luc"
+    record "limits" true "session cap $CAP_H (systemd, swap blocked) · containers: docker cgroup driver systemd — --memory/--cpus are enforced"
   else
-    record "limits" true "tran phien $CAP_H (systemd, swap bi chan) · CONTAINER thi KHONG: docker cgroup driver = '${DOCKER_CG:-khong hoi duoc}', nen --memory/--cpus mot phien dat cho compose cua no khong ai thi hanh (docs/docker-cho-bee.md §5b)"
+    record "limits" true "session cap $CAP_H (systemd, swap blocked) · CONTAINERS are NOT: docker cgroup driver = '${DOCKER_CG:-could not ask}', so a --memory a session sets for its own compose is enforced by nobody (docs/docker-cho-bee.md §5b)"
   fi
 fi
 

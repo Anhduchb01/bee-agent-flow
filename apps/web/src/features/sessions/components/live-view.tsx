@@ -28,6 +28,7 @@ import {
   uploadFileAction,
 } from "../api/actions";
 import { useSessionStream } from "../hooks/use-session-stream";
+import { CHIP_FLOW } from "./chip-flow";
 import { EventStream } from "./event-stream";
 import { ActionsPanel, MODEL_OPTIONS, PlusMenu } from "./input-actions";
 import { MODE_OPTIONS } from "./new-session-form";
@@ -71,14 +72,6 @@ const VSCODE_SKIN = {
  * (changed 23/08: chips used to send "/name" immediately). A chip only
  * renders when its command actually exists on the machine (~/.claude/commands).
  */
-const CHIP_FLOW = [
-  { command: "issue", label: "Issue" },
-  { command: "build", label: "Build" },
-  { command: "review", label: "Review" },
-  { command: "pr", label: "PR" },
-  { command: "demo", label: "Demo" },
-  { command: "preview", label: "Preview" },
-];
 
 /**
  * Built-ins the CLI itself understands over stream-json input (proven by
@@ -171,60 +164,6 @@ function ModeMenu({
 }
 
 /** 104635 → "105k", 1000000 → "1M" — the ring's numbers must scan fast. */
-function tomTatToken(n: number): string {
-  if (n >= 1_000_000) {
-    const millions = n / 1_000_000;
-    return `${Number.isInteger(millions) ? millions : millions.toFixed(1)}M`;
-  }
-  if (n >= 1000) return `${Math.round(n / 1000)}k`;
-  return String(n);
-}
-
-/**
- * Context-fill ring, VSCode style: a small circle that fills as the
- * window fills. Only rendered once a result carried real numbers.
- * Shows the RAW tokens next to the % — "10%" alone reads as a bug when
- * the window is 1M and the system prompt + skills already cost ~100k.
- */
-function ContextRing({
-  percentOf,
-  stopIt = null,
-  owner = null,
-}: {
-  percentOf: number;
-  stopIt?: number | null;
-  owner?: number | null;
-}) {
-  const r = 6;
-  const circumference = 2 * Math.PI * r;
-  const figures = stopIt !== null && owner !== null ? `${tomTatToken(stopIt)}/${tomTatToken(owner)}` : null;
-  const label =
-    figures === null
-      ? `Context ${percentOf}% full`
-      : `Context ${percentOf}% full — ${figures} tokens`;
-  return (
-    <span className="inline-flex items-center gap-1" title={label} aria-label={label}>
-      <svg width="16" height="16" viewBox="0 0 16 16" className="-rotate-90">
-        <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.5" />
-        <circle
-          cx="8"
-          cy="8"
-          r={r}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - Math.min(percentOf, 100) / 100)}
-          className={percentOf >= 80 ? "text-destructive" : "text-muted-foreground"}
-        />
-      </svg>
-      <span className="font-mono text-xs text-muted-foreground">
-        {percentOf}%{figures !== null && <span className="hidden sm:inline"> · {figures}</span>}
-      </span>
-    </span>
-  );
-}
-
 /**
  * Màn live: dòng sự kiện + ô gõ dính đáy. Mobile-first — đây là màn hình
  * được PRD gọi là quan trọng nhất.
@@ -294,19 +233,22 @@ export function LiveView({
   });
   const busy = running && (last.speak > last.result || typing !== "" || idle !== "");
 
-  // Latest context fill — from the newest result that carried numbers.
-  let contextTokens: number | null = null;
-  let contextUsed: number | null = null;
-  let contextOf: number | null = null;
-  for (let i = events.length - 1; i >= 0; i--) {
-    const s = events[i]!;
-    if (s.kind === "result" && typeof s.contextTokens === "number") {
-      contextTokens = s.contextTokens;
-      contextUsed = typeof s.validToken === "number" ? s.validToken : null;
-      contextOf = typeof s.tokenWindow === "number" ? s.tokenWindow : null;
-      break;
-    }
-  }
+/*
+ * Removed 27/08: the context fill meter.
+ *
+ * It read `usage` off the last `result` line and treated that as "what sits
+ * in the window right now". Measured against a real session, it does not:
+ * the number climbed to 100% of 1M while the owner had been working for
+ * hours and nowhere near full, and it then sat there telling them to run
+ * /compact. Claude Code manages its own window — including auto-compact —
+ * by rules this stream does not expose, so any figure computed here is a
+ * guess dressed up as a measurement.
+ *
+ * A wrong number is worse than no number: it asks for an action that is not
+ * needed, and once you have ignored it twice you would ignore a real warning
+ * too. Not replaced with a better estimate, because there is no honest one to
+ * compute from what the stream carries.
+ */
 
   function send() {
     const text = input.trim();
@@ -478,14 +420,19 @@ export function LiveView({
                 aria-pressed={c.command === pickedCommand}
                 data-suggested={c.command === suggestion || undefined}
                 onClick={() => pickCommand(c.command)}
-                className={`shrink-0 rounded-full border px-3 py-1 text-xs hover:bg-accent ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs hover:bg-accent ${
                   c.command === pickedCommand
                     ? "border-[#C15F3C] bg-[#C15F3C]/25 text-body"
-                    : c.command === suggestion
-                      ? "border-[#C15F3C]/70 bg-[#C15F3C]/10 text-body"
-                      : "border-border bg-secondary text-body"
+                    : "border-border bg-secondary text-body"
                 }`}
               >
+                {/* A suggestion is a nudge, not a selection. It used to wear
+                    the same orange fill as the picked chip, which read as
+                    "already chosen" on an untouched session (27/08). Only the
+                    picked chip is filled now; the next step gets a dot. */}
+                {c.command === suggestion && c.command !== pickedCommand && (
+                  <span aria-hidden className="size-1.5 rounded-full bg-[#C15F3C]" />
+                )}
                 {c.label}
               </button>
             ))}
@@ -555,14 +502,6 @@ export function LiveView({
               {model !== "default" && (
                 <span className="hidden font-mono text-xs text-muted-foreground sm:inline">
                   {MODEL_OPTIONS.find((m) => m.value === model)?.label}
-                </span>
-              )}
-              {contextTokens !== null && (
-                <ContextRing percentOf={contextTokens} stopIt={contextUsed} owner={contextOf} />
-              )}
-              {contextTokens !== null && contextTokens >= 90 && (
-                <span className="text-xs text-destructive">
-                  almost full — auto-compact soon, or send /compact
                 </span>
               )}
               <span className="flex-1" />

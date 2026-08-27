@@ -14,21 +14,21 @@ ExecStart=@PREFIX@/bin/session-run.sh %i
 # Trần cứng cho một phiên — phanh cuối khi mọi thứ khác quên dừng.
 RuntimeMaxSec=6h
 
-# Trần TÀI NGUYÊN (T17). systemd thi hành được vì `user@` của bee đã được
-# delegate `cpu memory pids` — kiểm bằng:
+# RESOURCE caps (T17). systemd can enforce these because bee's `user@` is
+# already delegated `cpu memory pids` — check with:
 #   cat /sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers
 #
-# MemorySwapMax=0 KHÔNG phải chi tiết phụ: đo thật 27/08, chỉ đặt MemoryMax
-# thì tiến trình vượt trần được đẩy sang swap và sống nhăn — 400MB cấp trọn
-# dưới một cái trần 40M. Với swap bị chặn, cùng bài đó bị OOM-kill (137).
-# Một cái trần trông như đã đặt mà không chặn gì thì tệ hơn không có trần.
+# MemorySwapMax=0 is not a detail: measured 27/08, MemoryMax alone lets a
+# process over the cap be pushed to SWAP, where it survives — 400MB handed out
+# under a 40M cap. With swap blocked, the same test is OOM-killed (137). A cap
+# that looks set and stops nothing is worse than no cap, because it is believed.
 MemoryMax=@SESSION_MEM_MAX@
 MemorySwapMax=0
-# Fork bomb: nhiều tiến trình rẻ hơn nhiều RAM, nên trần này phải riêng.
+# A fork bomb is far cheaper than RAM, so it needs its own ceiling.
 TasksMax=4096
-# KHÔNG phải CPUQuota. Một phiên chạy một mình được dùng cả máy — đó là điều
-# mong muốn. Cái phải tránh là phiên bóp chết web và OS lúc tranh chấp, và
-# trọng số làm đúng việc đó: dưới tranh chấp, phiên nhường.
+# NOT CPUQuota. A session running alone SHOULD get the whole machine — that is
+# the point. What must not happen is it starving the web and the OS under
+# contention, and a weight does exactly that job: under contention it yields.
 CPUWeight=50
 # systemctl stop = nút Dừng: TERM cho session-run.sh, trap đóng sổ "stopped";
 # 20 giây sau mới KILL cả nhóm nếu còn sót.

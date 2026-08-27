@@ -258,12 +258,13 @@ grep -q -- "--dangerously-skip-permissions" <<<"$ARGS7C" \
   && kq ok "thiếu mode → auto (skip-permissions) — session.json cũ không đổi hành vi" \
   || kq no "thiếu mode sai cờ: $ARGS7C"
 
-echo "== 8 · phiên chết vì auth: phải nói RA lý do, và nói cả token đang ghim =="
-# Gặp thật 27/08: chủ máy thêm account mới, panel hiện "in use", nhưng
-# claude.env vẫn ghim token của account khác — phiên chạy trên token ghim,
-# org của nó chặn Claude Code, và phiên chết sau 1 lượt với đúng một câu của
-# Anthropic. Hệ thống biết CẢ HAI dữ kiện mà không nối chúng lại: người đọc
-# thấy "org disabled" và không có cách nào biết token ghim là nguyên nhân.
+echo "== 8 · an auth death must name its cause, pinned token included =="
+# Seen for real 27/08: the owner added an account, /setup showed it "in use",
+# but claude.env still pinned a token from a different account. The session ran
+# on the pinned token, its org blocks Claude Code, and the session died after
+# one turn with a single sentence from Anthropic. The machine knew BOTH facts
+# and joined neither: whoever read the session saw "org disabled" with no way
+# to learn the pinned token was the reason.
 cat > "$T/bin/claude" <<'EOF'
 #!/usr/bin/env bash
 echo '{"type":"assistant","message":{"content":[{"type":"text","text":"Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access"}]}}'
@@ -272,26 +273,25 @@ exit 0
 EOF
 chmod +x "$T/bin/claude"
 
-printf 'CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-pinned
-' > "$BEE_ROOT/claude.env"
+printf 'CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-pinned\n' > "$BEE_ROOT/claude.env"
 ID8=77777777-1111-2222-3333-444444444481
 mkdir -p "$BEE_ROOT/sessions/$ID8"
-printf '{"id":"%s","slug":"demo","num":81,"repo":"owner/demo","phase":"work","worktree":true}
-' \
+printf '{"id":"%s","slug":"demo","num":81,"repo":"owner/demo","phase":"work","worktree":true}\n' \
   "$ID8" > "$BEE_ROOT/sessions/$ID8/session.json"
 "$RUNNER/bin/session-run.sh" "$ID8" >/dev/null 2>&1 || true
 RJ8="$BEE_ROOT/sessions/$ID8/run.jsonl"
 
 grep -q '"type":"bee_lifecycle"' "$RJ8" 2>/dev/null \
   && jq -r 'select(.type=="bee_lifecycle") | .msg' "$RJ8" | grep -qi "claude.env" \
-  && kq ok "phiên chết vì auth → lifecycle line gọi tên claude.env" \
-  || kq no "không có lifecycle nói về token ghim: $(jq -r 'select(.type=="bee_lifecycle") | .msg' "$RJ8" 2>/dev/null | tr '\n' ' ')"
+  && kq ok "auth death writes a lifecycle line naming claude.env" \
+  || kq no "no lifecycle mentions the pinned token: $(jq -r 'select(.type=="bee_lifecycle") | .msg' "$RJ8" 2>/dev/null | tr '\n' ' ')"
 
 jq -r 'select(.type=="bee_lifecycle") | .msg' "$RJ8" 2>/dev/null | grep -qi "organization\|subscription" \
-  && kq ok "và nhắc lại chính lời Anthropic, không diễn giải lại" \
-  || kq no "lifecycle không trích lời gốc"
+  && kq ok "and quotes Anthropic verbatim instead of paraphrasing" \
+  || kq no "lifecycle does not carry the original wording"
 
-# Không ghim token thì KHÔNG được đổ cho claude.env — sai hướng còn tệ hơn im.
+# With nothing pinned it must NOT blame claude.env. Pointing the wrong way is
+# worse than silence.
 rm -f "$BEE_ROOT/claude.env"
 ID8B=77777777-1111-2222-3333-444444444482
 mkdir -p "$BEE_ROOT/sessions/$ID8B"
@@ -300,10 +300,11 @@ printf '{"id":"%s","slug":"demo","num":82,"repo":"owner/demo","phase":"work","wo
 "$RUNNER/bin/session-run.sh" "$ID8B" >/dev/null 2>&1 || true
 jq -r 'select(.type=="bee_lifecycle") | .msg' "$BEE_ROOT/sessions/$ID8B/run.jsonl" 2>/dev/null \
   | grep -qi "claude.env" \
-  && kq no "đổ cho claude.env khi không có token nào ghim" \
-  || kq ok "không ghim token thì không chỉ sai hướng"
+  && kq no "blamed claude.env when no token is pinned" \
+  || kq ok "nothing pinned: does not point the wrong way"
 
-# Phiên thành công KHÔNG được mọc lời cảnh báo auth nào.
+# A session that SUCCEEDS must get no auth warning stuck to it — a false alarm
+# on a healthy session teaches the owner to ignore the real one.
 cat > "$T/bin/claude" <<'EOF'
 #!/usr/bin/env bash
 echo '{"type":"result","subtype":"success","num_turns":1}'
@@ -317,8 +318,8 @@ printf '{"id":"%s","slug":"demo","num":83,"repo":"owner/demo","phase":"work","wo
 "$RUNNER/bin/session-run.sh" "$ID8C" >/dev/null 2>&1 || true
 jq -r 'select(.type=="bee_lifecycle") | .msg' "$BEE_ROOT/sessions/$ID8C/run.jsonl" 2>/dev/null \
   | grep -qi "organization\|token" \
-  && kq no "phiên chạy tốt vẫn bị dán cảnh báo auth" \
-  || kq ok "phiên chạy tốt: không cảnh báo gì"
+  && kq no "a healthy session got an auth warning stuck to it" \
+  || kq ok "healthy session: no warning"
 
 rm -rf "$T"
 echo

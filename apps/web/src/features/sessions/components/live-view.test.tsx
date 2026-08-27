@@ -94,37 +94,7 @@ describe("LiveView — one mode, VSCode-style controls", () => {
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
 
-  it("context ring shows the latest result's percentage", () => {
-    mockStream({
-      events: [
-        { kind: "result", err: false, turns: 1, contextTokens: 7 },
-        { kind: "result", err: false, turns: 2, contextTokens: 12 },
-      ],
-    });
-    render(<LiveView session={PHIEN} />);
-    expect(screen.getByLabelText("Context 12% full")).toBeInTheDocument();
-    expect(screen.getByText("12%")).toBeInTheDocument();
-  });
 
-  it("ring spells out the raw tokens — 10% of a 1M window must not read as a bug", () => {
-    mockStream({
-      events: [
-        {
-          kind: "result",
-          err: false,
-          turns: 1,
-          contextTokens: 10,
-          validToken: 104_635,
-          tokenWindow: 1_000_000,
-        },
-      ],
-    });
-    render(<LiveView session={PHIEN} />);
-    expect(
-      screen.getByLabelText("Context 10% full — 105k/1M tokens"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("· 105k/1M")).toBeInTheDocument();
-  });
 });
 
 describe("session mode switch (V2.5a) — the VSCode-style mode menu by the send button", () => {
@@ -333,6 +303,32 @@ describe("action chips — the phone-first flow buttons", () => {
     expect(screen.queryByRole("toolbar", { name: "Session actions" })).not.toBeInTheDocument();
   });
 
+  it("nothing is picked until the owner picks it — a suggestion is not a selection", () => {
+    const chip = (name: string) => screen.getByRole("button", { name: `Use /${name}` });
+
+    mockStream({});
+    render(<LiveView session={PHIEN} commands={FLOW_COMMANDS} />);
+
+    // Reported 27/08: the suggested chip wore the same orange fill as a
+    // selected one, so "Issue" read as already chosen. aria-pressed is the
+    // machine-readable truth, and it must be false for EVERY chip.
+    for (const c of ["issue", "build", "review", "pr", "demo", "preview"]) {
+      expect(chip(c), `/${c} looks pressed with an empty box`).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      // And it must not LOOK pressed either: the picked chip is the only one
+      // that carries the orange fill.
+      expect(chip(c).className, `/${c} wears the picked chip's fill`).not.toMatch(
+        /bg-\[#C15F3C\]\/25/,
+      );
+    }
+
+    // The nudge survives, as a dot rather than a fill.
+    expect(chip("issue").querySelector("span[aria-hidden]")).not.toBeNull();
+    expect(chip("build").querySelector("span[aria-hidden]")).toBeNull();
+  });
+
   it("V2.4: the flow's NEXT step glows — no issue → Issue; issue → Build; PR → Preview", () => {
     const chip = (name: string) => screen.getByRole("button", { name: `Use /${name}` });
 
@@ -372,15 +368,6 @@ describe("context — VSCode-style compaction affordances", () => {
     expect(screen.getByRole("listbox", { name: "Commands" })).toHaveTextContent("/compact");
   });
 
-  it("ring at ≥90% shows the almost-full hint", () => {
-    mockStream({
-      events: [
-        { kind: "result", err: false, turns: 3, contextTokens: 93, validToken: 186_000, tokenWindow: 200_000 },
-      ],
-    });
-    render(<LiveView session={PHIEN} />);
-    expect(screen.getByText(/almost full/)).toBeInTheDocument();
-  });
 
   it("below the threshold there is no hint", () => {
     mockStream({ events: [{ kind: "result", err: false, turns: 3, contextTokens: 42 }] });
