@@ -732,6 +732,37 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       của bài test bỏ dấu — đổi nó là xoá bài test; `xong` là lời agent trong
       fixture; `Thu` là Thursday.
       Quét cuối bằng AST: **0/2511 identifier** còn tiếng Việt.
+- [x] 🤖 **T38** ~~Làm chủ pool dịch vụ từ web (bật/tắt + sửa compose)~~ **XONG 27/08** —
+      panel cũ xem được mà không đổi được, và ô rỗng còn bảo chủ máy "vào máy
+      sửa `services/compose.yml`" — câu lạ trong một sản phẩm sinh ra để khỏi
+      phải làm thế.
+      **Hai chiều KHÔNG đối xứng, vì hậu quả không ngang nhau:**
+      · *Lưu* được kiểm trước khi đè: file compose không parse được thì pool
+        sập, và mọi phiên cần dịch vụ chung bị TỪ CHỐI ngay ở cửa. Kiểm cấu
+        trúc trước (`services:` ở cấp cao nhất), rồi `docker compose config -q`
+        trên một bản chép tạm — phán quyết duy nhất khớp với chương trình sẽ
+        thật sự đọc file. Không có docker (hoặc cửa `ctl` đóng) là "không trả
+        lời được", **không phải** "không hợp lệ". Lưu bị từ chối thì file cũ
+        nguyên vẹn.
+      · *Tắt* thì hỏi trước. Một lát CHÍNH LÀ database của phiên; tắt pool khi
+        còn phiên giữ lát là rút database khỏi tay một agent đang chạy. Lời từ
+        chối đếm rõ bao nhiêu phiên, và "Stop anyway" là **cú bấm thứ hai** chỉ
+        hiện ra SAU khi bị từ chối — không phải ô tick bấm một lần rồi quên.
+        Bật thì không cần xin phép: bật không phá gì. Bật pool RỖNG bị từ chối,
+        vì một unit lên mà không có gì để chạy thì chẳng nói lên điều gì.
+      `poolRunning()` trả `null` khi không hỏi được systemd, và panel ghi
+      "cannot ask systemd" chứ không vẽ "stopped" — một vệt đỏ sai ở đây đẩy
+      người ta đi sửa cái máy đang lành.
+      Không thêm dependency YAML: docker mới là bộ kiểm thật, phần TS chỉ là
+      sàn cho chỗ không có docker.
+- [x] 🤖 **T39** ~~429 khi refresh hạn mức Claude~~ **XONG 27/08** —
+      `api/oauth/usage` bị giới hạn theo TÀI KHOẢN và có hai người gọi:
+      `bee-tick` (30 phút) và nút Refresh. Rơi vào cùng một phút là ăn 429 mà
+      **không ai cần** — câu trả lời đã nằm trên đĩa, mới vài giây. Giới hạn
+      của Anthropic không sửa được; va chạm này thì có: ảnh chụp dưới 60 giây
+      được dùng lại. Nút bấm truyền `force`, vì đưa số cũ cho người vừa bấm
+      nút cũng là một kiểu nói dối.
+
 - [x] 🤖 **T36** ~~Gỡ `apps/reconciler` và dời writer cuối cùng~~ **XONG 27/08** —
       **Tôi soát sai một lần trước khi làm đúng.** Lần đầu tôi kết luận ba file
       web đọc là do reconciler ghi độc quyền — vì chỉ grep `apps/runner` và
