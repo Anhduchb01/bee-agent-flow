@@ -232,7 +232,23 @@ cp "$SRC_DIR"/commands/*.md "$CMD_DIR/"
 # deps once. Best-effort: recording is optional, install must not die here.
 if command -v npm >/dev/null && [[ ! -d "$SKILL_DIR/record-screen/scripts/node_modules" ]]; then
   (cd "$SKILL_DIR/record-screen/scripts" && npm install --no-fund --no-audit --silent) \
-    || echo "  (record-screen: npm install lỗi — quay demo tab Chrome sẽ chưa dùng được)"
+    || echo "  (record-screen: npm install failed — recording a Chrome tab will not work yet)"
+fi
+
+# The demo recorder needs a Chrome that can load an UNPACKED extension.
+# Measured 27/08: Google Chrome 148 stable ignores --load-extension, so
+# recording starts and captures nothing; Chrome for Testing (what Playwright
+# downloads) works. Report it rather than pulling ~150MB inside install — but
+# report it LOUDLY, because the failure it prevents is a demo video that is
+# valid, plays, and shows nothing.
+if compgen -G "$HOME/.cache/ms-playwright/chromium-*/chrome-linux64/chrome" >/dev/null 2>&1 \
+  || compgen -G "$HOME/.cache/ms-playwright/chromium-*/chrome-linux/chrome" >/dev/null 2>&1; then
+  echo "  · demo recording: Chrome for Testing present"
+else
+  echo "  · demo recording: NOT usable yet — no Chrome for Testing."
+  echo "    Stable Chrome cannot load the recorder extension, so a demo would"
+  echo "    produce an empty video. Fix with:"
+  echo "      (cd $(cd "$SRC_DIR/../web" 2>/dev/null && pwd || echo apps/web) && npx playwright install chromium)"
 fi
 
 echo
