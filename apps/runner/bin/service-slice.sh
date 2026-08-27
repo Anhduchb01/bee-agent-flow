@@ -40,11 +40,14 @@ pool_exec() {
   docker compose -p "$POOL_PROJECT" exec -T "$svc" "$@"
 }
 
-# pool_service_for <kind> — which pool service provides this kind, if any.
+# pool_service_for <kind> — prints "<service> <host-port>" for this kind, if
+# the pool carries it. The PORT is half the answer: a pool published on 55432
+# with a session told to dial 5432 fails on every connection, and the reason
+# is nowhere near the failure.
 pool_service_for() {
-  local kind="$1" name img k
-  while read -r name img k; do
-    [[ "$k" == "$kind" ]] && { printf '%s\n' "$name"; return 0; }
+  local kind="$1" name img k port
+  while read -r name img k port; do
+    [[ "$k" == "$kind" ]] && { printf '%s %s\n' "$name" "$port"; return 0; }
   done < <(read_compose "$POOL_DIR")
   return 1
 }
@@ -113,8 +116,8 @@ do_provision() {
 
   # Does anything the repo wants actually live in the pool? Only then does a
   # dead pool block the session.
-  local needs_pool="" name img kind svc
-  while read -r name img kind; do
+  local needs_pool="" name img kind port svc svc_port
+  while read -r name img kind port; do
     [[ -n "$kind" ]] || continue
     pool_service_for "$kind" >/dev/null 2>&1 && needs_pool=1
   done <<<"$wanted"
@@ -129,9 +132,9 @@ do_provision() {
   [[ -f "$prev_file" ]] && prev=$(cat "$prev_file")
 
   local items='[]' env_lines=""
-  while read -r name img kind; do
+  while read -r name img kind port; do
     [[ -n "$name" ]] || continue
-    if [[ -z "$kind" ]] || ! svc=$(pool_service_for "$kind"); then
+    if [[ -z "$kind" ]] || ! read -r svc svc_port <<<"$(pool_service_for "$kind")"; then
       # Unknown image, or a kind the pool does not carry: the session runs it
       # itself later. Recorded, never provisioned — but recorded is the point,
       # because a silent miss is exactly how guessing-from-image goes wrong.
@@ -148,16 +151,20 @@ do_provision() {
 
     case "$kind" in
       postgres) provision_postgres "$svc" "$slice" "$pw"
+                local pg_port="${svc_port:-5432}"
                 env_lines+="BEE_DB_HOST=127.0.0.1"$'\n'
+                env_lines+="BEE_DB_PORT=$pg_port"$'\n'
                 env_lines+="BEE_DB_NAME=$slice"$'\n'
                 env_lines+="BEE_DB_USER=$slice"$'\n'
                 env_lines+="BEE_DB_PASS=$pw"$'\n'
-                env_lines+="BEE_DB_URL=postgres://$slice:$pw@127.0.0.1/$slice"$'\n';;
+                env_lines+="BEE_DB_URL=postgres://$slice:$pw@127.0.0.1:$pg_port/$slice"$'\n';;
       rabbitmq) provision_rabbitmq "$svc" "$slice" "$pw"
+                local mq_port="${svc_port:-5672}"
+                env_lines+="BEE_AMQP_PORT=$mq_port"$'\n'
                 env_lines+="BEE_AMQP_VHOST=/$slice"$'\n'
                 env_lines+="BEE_AMQP_USER=$slice"$'\n'
                 env_lines+="BEE_AMQP_PASS=$pw"$'\n'
-                env_lines+="BEE_AMQP_URL=amqp://$slice:$pw@127.0.0.1/$slice"$'\n';;
+                env_lines+="BEE_AMQP_URL=amqp://$slice:$pw@127.0.0.1:$mq_port/$slice"$'\n';;
       s3)       provision_s3 "$svc" "$slice" "$pw"
                 env_lines+="BEE_S3_ENDPOINT=http://127.0.0.1:9000"$'\n'
                 env_lines+="BEE_S3_BUCKET=${slice//_/-}"$'\n'
@@ -274,8 +281,8 @@ do_reclaim() {
 # TypeScript. Two copies of that table would drift, and the drift would show
 # up as the UI promising a shared slice that the runner never carved.
 do_pool() {
-  local out='[]' name img kind
-  while read -r name img kind; do
+  local out='[]' name img kind port
+  while read -r name img kind port; do
     [[ -n "$name" ]] || continue
     out=$(jq -c --arg s "$name" --arg i "$img" --arg k "$kind" \
       '. + [{service:$s, image:$i, kind:$k}]' <<<"$out")

@@ -57,8 +57,16 @@ if [[ ! -f "$BEE_ROOT/services/compose.yml" ]]; then
 # (postgres, rabbitmq, minio/minio, mysql). An image bee cannot place still
 # works — sessions just run their own copy instead of sharing this one.
 #
-# Bind to 127.0.0.1 only: this pool is bee's, not the machine's.
+# Bind to 127.0.0.1 only: this pool is bee's, not the machine's. The published
+# port is what sessions are told to dial (BEE_DB_PORT, BEE_DB_URL, ...), so any
+# port works — these are offset to leave the machine's own 5432/5672 alone.
+#
+# To share postgres and rabbitmq, REPLACE the `services: {}` line below with
+# the block under it (uncommented) — a file with two `services:` keys is not
+# valid YAML. Admin passwords come from services/admin.env.
 services: {}
+
+#services:
 #  postgres:
 #    image: postgres:16
 #    restart: unless-stopped
@@ -66,8 +74,27 @@ services: {}
 #      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bee}
 #    ports: ["127.0.0.1:55432:5432"]
 #    volumes: ["pgdata:/var/lib/postgresql/data"]
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready -U postgres"]
+#      interval: 10s
+#
+#  rabbitmq:
+#    image: rabbitmq:3-management
+#    restart: unless-stopped
+#    environment:
+#      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-bee}
+#      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-bee}
+#    ports:
+#      - "127.0.0.1:55672:5672"      # AMQP - the one sessions dial
+#      - "127.0.0.1:15672:15672"     # management UI, for you
+#    volumes: ["rabbitdata:/var/lib/rabbitmq"]
+#    healthcheck:
+#      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+#      interval: 15s
+#
 #volumes:
 #  pgdata:
+#  rabbitdata:
 EOF
 fi
 # Overrides for the pool compose above. Admin credentials themselves stay

@@ -198,6 +198,32 @@ guess_kind() {
 # two-space-indented keys under `services:` and their `image:`. A file exotic
 # enough to break that (merge keys, flow mappings) degrades to fewer rows,
 # which lands on "run it per session" — the safe side of §3.
+# host_port_for <kind> <host:container,...> — which published port a session
+# should dial for this kind.
+#
+# NOT "the first one published". rabbitmq:3-management publishes its web
+# console too, and a compose file may list it first; handing a session 15672
+# instead of 5672 makes every publish fail, with the reason nowhere near the
+# failure. So match the CONTAINER port — the one thing that says what the
+# mapping is FOR — and only fall back to the first when nothing matches.
+host_port_for() {
+  local kind="$1" maps="$2" want="" pair host cport
+  case "$kind" in
+    postgres) want=5432;;  mysql) want=3306;;
+    rabbitmq) want=5672;;  redis) want=6379;;
+    s3)       want=9000;;
+  esac
+  local first=""
+  local IFS=,
+  for pair in $maps; do
+    [[ "$pair" == *:* ]] || continue
+    host=${pair%%:*}; cport=${pair##*:}
+    [[ -n "$first" ]] || first="$host"
+    [[ -n "$want" && "$cport" == "$want" ]] && { printf '%s\n' "$host"; return 0; }
+  done
+  printf '%s\n' "$first"
+}
+
 read_compose() {
   local dir="$1" f
   for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
@@ -210,17 +236,44 @@ read_compose() {
       /^[[:space:]]{2}[^[:space:]#][^:]*:[[:space:]]*$/ {
         name = $1; sub(/:$/, "", name); next
       }
-      # image: belonging to the service we are inside.
+      # image: belonging to the service we are inside. Do NOT clear `name`
+      # here — `ports:` may come after it, and the published port is the one
+      # the session has to dial.
       name != "" && /^[[:space:]]+image:[[:space:]]*/ {
         img = $0
         sub(/^[[:space:]]+image:[[:space:]]*/, "", img)
         gsub(/^["\x27]|["\x27][[:space:]]*$/, "", img)
         sub(/[[:space:]]+$/, "", img)
-        if (img != "") print name, img
-        name = ""
+        if (img != "") image[name] = img
+        next
       }
-    ' "$dir/$f" | while read -r name img; do
-      printf '%s %s %s\n' "$name" "$img" "$(guess_kind "$img")"
+      # A published port, inline (`ports: ["127.0.0.1:5432:5432"]`) or as a
+      # list item. Host port = the field before the container port.
+      name != "" && /^[[:space:]]+(ports:|-)/ {
+        line = $0
+        sub(/^[[:space:]]+ports:/, "", line)
+        # Reduce to whitespace-separated specs. Regex-hunting a port here is a
+        # trap: "127.0.0.1:55432:5432" contains "1:55432", so a naive
+        # /[0-9]+:[0-9]+/ reports the host port as 1.
+        gsub(/[][",\x27-]/, " ", line)
+        n = split(line, spec, /[[:space:]]+/)
+        for (i = 1; i <= n; i++) {
+          if (spec[i] == "" || spec[i] !~ /:/) continue
+          f = split(spec[i], part, ":")
+          # ip:host:container or host:container — the host port is the field
+          # BEFORE the container port. A bare "5432" publishes nothing.
+          if (f >= 2 && part[f - 1] ~ /^[0-9]+$/ && part[f] ~ /^[0-9]+$/) {
+            maps[name] = (name in maps ? maps[name] "," : "") part[f - 1] ":" part[f]
+          }
+        }
+        next
+      }
+      END {
+        for (n in image) print n, image[n], (n in maps ? maps[n] : "")
+      }
+    ' "$dir/$f" | while read -r name img maps; do
+      local kind; kind=$(guess_kind "$img")
+      printf '%s %s %s %s\n' "$name" "$img" "$kind" "$(host_port_for "$kind" "$maps")"
     done
     return 0
   done

@@ -74,11 +74,14 @@ EOF
 
 OUT=$(read_compose "$WT_COMPOSE")
 
-grep -qx "db postgres:16 postgres" <<<"$OUT" \
+# Four fields since 27/08: name image kind host-port. The port is empty when
+# the service publishes none, and stays a field so `read -r a b c d` is right
+# for every row.
+grep -qx "db postgres:16 postgres " <<<"$OUT" \
   && kq ok "reads service + image + kind" || kq no "wrong row for db: $(grep '^db ' <<<"$OUT")"
-grep -qx "cache redis:7 redis" <<<"$OUT" \
+grep -qx "cache redis:7 redis " <<<"$OUT" \
   && kq ok "redis recognised as its own kind" || kq no "cache row wrong"
-grep -qx "blob mycompany/blob:2 " <<<"$OUT" \
+grep -qx "blob mycompany/blob:2  " <<<"$OUT" \
   && kq ok "unknown image: listed, kind left EMPTY (not dropped)" \
   || kq no "unknown image must still be listed so the UI can warn: $(grep '^blob ' <<<"$OUT")"
 grep -q "^api " <<<"$OUT" \
@@ -104,7 +107,7 @@ services:
 EOF
 rm -f "$WT_COMPOSE/docker-compose.yml"
 OUT2=$(read_compose "$WT_COMPOSE")
-[[ "$OUT2" == "only rabbitmq:3 rabbitmq" ]] \
+[[ "$OUT2" == "only rabbitmq:3 rabbitmq " ]] \
   && kq ok "ignores image: outside services (x-anchors, volumes)" \
   || kq no "leaked a non-service image: $OUT2"
 
@@ -134,8 +137,12 @@ cat > "$BEE_ROOT/services/compose.yml" <<'EOF'
 services:
   postgres:
     image: postgres:16
+    ports: ["127.0.0.1:55432:5432"]
   rabbitmq:
     image: rabbitmq:3-management
+    ports:
+      - "127.0.0.1:15672:15672"
+      - "127.0.0.1:55672:5672"
 EOF
 
 SLICE_SH="$HERE/../bin/service-slice.sh"
@@ -150,7 +157,7 @@ make_session() {  # make_session <id> <worktree:true|false> <compose-body|"">
   : > "$sd/run.jsonl"
 }
 
-COMPOSE_PG=$'services:\n  db:\n    image: postgres:16\n  cache:\n    image: redis:7\n  blob:\n    image: acme/blob:1'
+COMPOSE_PG=$'services:\n  db:\n    image: postgres:16\n  queue:\n    image: rabbitmq:3-management\n  cache:\n    image: redis:7\n  blob:\n    image: acme/blob:1'
 
 ID_CHAT=cc000000-0000-4000-8000-00000000000a
 ID_PG=cc000000-0000-4000-8000-00000000000b
@@ -190,6 +197,22 @@ ENVF="$BEE_ROOT/work/$ID_PG/.bee/services.env"
 grep -q "^BEE_DB_URL=postgres://bee_cc000000:" "$ENVF" 2>/dev/null \
   && kq ok "BEE_DB_URL points at the session's own role" \
   || kq no "BEE_DB_URL wrong: $(grep '^BEE_DB_URL=' "$ENVF" 2>/dev/null | sed 's/:[^:]*@/:***@/')"
+
+# The port the pool PUBLISHES must be the port the session is told to dial.
+# A pool on 55432 with a URL saying 5432 fails on every connection, and the
+# reason is nowhere near the failure.
+grep -q "^BEE_DB_URL=postgres://bee_cc000000:.*@127\.0\.0\.1:55432/bee_cc000000$" "$ENVF" 2>/dev/null \
+  && kq ok "BEE_DB_URL carries the port compose published (55432)" \
+  || kq no "BEE_DB_URL missing/wrong port: $(grep '^BEE_DB_URL=' "$ENVF" 2>/dev/null | sed 's/:[^:@]*@/:***@/')"
+# rabbitmq publishes its web UI too, and in this pool it is listed FIRST.
+# Choosing "the first published port" would hand every session 15672 — the
+# management console — instead of AMQP, and every publish would fail.
+grep -q "^BEE_AMQP_PORT=55672$" "$ENVF" 2>/dev/null \
+  && kq ok "AMQP port chosen by CONTAINER port, not by listing order" \
+  || kq no "wrong AMQP port: $(grep '^BEE_AMQP_PORT=' "$ENVF" 2>/dev/null)"
+
+grep -q "^BEE_DB_PORT=55432$" "$ENVF" 2>/dev/null \
+  && kq ok "BEE_DB_PORT for repos that build their own URL" || kq no "no BEE_DB_PORT"
 
 grep -q "CREATE ROLE bee_cc000000" "$RIG_DOCKER_LOG" \
   && kq ok "role created before the database (it owns it)" || kq no "no CREATE ROLE in docker log"
