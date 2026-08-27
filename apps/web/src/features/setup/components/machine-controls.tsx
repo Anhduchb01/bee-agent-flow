@@ -52,8 +52,8 @@ export function LingerButton({ done }: { done: boolean | null }) {
           disabled={busy}
           onClick={() =>
             start(async () => {
-              const ket = await enableLingerAction();
-              setErr(ket.ok ? "" : ket.message);
+              const outcome = await enableLingerAction();
+              setErr(outcome.ok ? "" : outcome.message);
               router.refresh();
             })
           }
@@ -78,20 +78,20 @@ export function PatForm({ done }: { done: boolean | null }) {
   const [finished, setXong] = useState(false);
   const [busy, start] = useTransition();
 
-  function luu() {
+  function stored() {
     if (busy) return;
     if (!validatePat(token)) {
       setErr("Not a fine-grained PAT (github_pat_…). Classic tokens are refused on purpose.");
       return;
     }
     start(async () => {
-      const ket = await savePatAction(token);
-      if (ket.ok) {
+      const outcome = await savePatAction(token);
+      if (outcome.ok) {
         setToken("");
         setErr("");
         setXong(true);
       } else {
-        setErr(ket.message);
+        setErr(outcome.message);
       }
       router.refresh();
     });
@@ -102,7 +102,7 @@ export function PatForm({ done }: { done: boolean | null }) {
       className="flex flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        luu();
+        stored();
       }}
     >
       <div className="flex items-center gap-2">
@@ -143,20 +143,20 @@ export function ClaudeTokenForm({ done }: { done: boolean | null }) {
   const [finished, setXong] = useState(false);
   const [busy, start] = useTransition();
 
-  function luu() {
+  function stored() {
     if (busy) return;
     if (!validateClaudeToken(token)) {
       setErr("Not a setup-token token (sk-ant-oat01-…). Run `claude setup-token` and paste its output.");
       return;
     }
     start(async () => {
-      const ket = await saveClaudeTokenAction(token);
-      if (ket.ok) {
+      const outcome = await saveClaudeTokenAction(token);
+      if (outcome.ok) {
         setToken("");
         setErr("");
         setXong(true);
       } else {
-        setErr(ket.message);
+        setErr(outcome.message);
       }
       router.refresh();
     });
@@ -167,7 +167,7 @@ export function ClaudeTokenForm({ done }: { done: boolean | null }) {
       className="flex flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        luu();
+        stored();
       }}
     >
       <div className="flex items-center gap-2">
@@ -209,8 +209,8 @@ export function PauseToggle({ paused, ready }: { paused: boolean; ready: boolean
 
   function swap(next: boolean) {
     start(async () => {
-      const ket = await setPausedAction(next);
-      setErr(ket.ok ? "" : ket.message);
+      const outcome = await setPausedAction(next);
+      setErr(outcome.ok ? "" : outcome.message);
       router.refresh();
     });
   }

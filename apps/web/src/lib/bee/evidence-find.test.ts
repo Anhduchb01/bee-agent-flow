@@ -11,14 +11,14 @@ let dir = "";
 
 beforeEach(async () => {
   dir = await fs.mkdtemp(path.join(os.tmpdir(), "bee-evfind-"));
-  const sdir = path.join(dir, "sessions", ID);
-  await fs.mkdir(path.join(sdir, "evidence"), { recursive: true });
+  const sessionDir = path.join(dir, "sessions", ID);
+  await fs.mkdir(path.join(sessionDir, "evidence"), { recursive: true });
   await fs.writeFile(
-    path.join(sdir, "session.json"),
+    path.join(sessionDir, "session.json"),
     JSON.stringify({ id: ID, slug: "myapp", num: 3, repo: "you/myapp", worktree: true }),
   );
   await fs.writeFile(
-    path.join(sdir, "run.jsonl"),
+    path.join(sessionDir, "run.jsonl"),
     [
       JSON.stringify({
         type: "bee_artifact",
@@ -30,8 +30,8 @@ beforeEach(async () => {
       }),
     ].join("\n"),
   );
-  await fs.writeFile(path.join(sdir, "evidence", "demo-export.webm"), "fake");
-  await fs.writeFile(path.join(sdir, "evidence", "shot-mobile.png"), "fake");
+  await fs.writeFile(path.join(sessionDir, "evidence", "demo-export.webm"), "fake");
+  await fs.writeFile(path.join(sessionDir, "evidence", "shot-mobile.png"), "fake");
 });
 afterEach(async () => {
   await fs.rm(dir, { recursive: true, force: true });
@@ -39,10 +39,10 @@ afterEach(async () => {
 
 describe("findEvidenceForArtifact — the review panel's evidence lookup", () => {
   it("finds the session that logged the PR and types its evidence files", async () => {
-    const ket = await findEvidenceForArtifact(dir, "you/myapp", "pr", 12);
-    expect(ket).not.toBeNull();
-    expect(ket!.sessionId).toBe(ID);
-    expect(ket!.files).toEqual([
+    const outcome = await findEvidenceForArtifact(dir, "you/myapp", "pr", 12);
+    expect(outcome).not.toBeNull();
+    expect(outcome!.sessionId).toBe(ID);
+    expect(outcome!.files).toEqual([
       {
         name: "demo-export.webm",
         url: `/api/evidence/session/${ID}/demo-export.webm`,

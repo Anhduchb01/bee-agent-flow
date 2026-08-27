@@ -9,7 +9,7 @@ import { NewProjectDialog } from "@/features/setup";
 import {
   AppSidebar,
   SidebarNewProjectTrigger,
-  type DuAnTrongSidebar,
+  type SidebarProject,
 } from "@/features/shell";
 import { auth, signOut } from "@/lib/auth";
 import { getBee } from "@/lib/bee";
@@ -25,7 +25,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await auth();
   if (!session?.login) redirect("/login");
 
-  async function raNgoai() {
+  async function signOutAction() {
     "use server";
     await signOut({ redirectTo: "/login" });
   }
@@ -40,7 +40,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <p className="text-sm text-body">
           Ask a PM or Techlead to add your login to <code>ALLOWED_LOGINS</code>.
         </p>
-        <form action={raNgoai}>
+        <form action={signOutAction}>
           <Button type="submit" variant="outline">
             Sign in with a different account
           </Button>
@@ -60,7 +60,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const health = deriveHealth(statusRead);
   const running = sessions.filter((s) => s.status === "running").length;
 
-  const duAn: DuAnTrongSidebar[] = repos.map((r) => {
+  const sidebarProjects: SidebarProject[] = repos.map((r) => {
     const running = sessions.filter(
       (s) => s.slug === r.slug && s.status === "running",
     ).length;
@@ -78,13 +78,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           nutTaoDuAn={<NewProjectDialog trigger={<SidebarNewProjectTrigger />} />}
           displayName={session.displayName}
           login={session.login}
-          duAn={duAn}
+          sidebarProjects={sidebarProjects}
           sucKhoe={{
             tone: health.level === "ok" ? "ok" : health.level === "warn" ? "warn" : "down",
             headline: health.headline,
             detail: `${running} sessions running`,
           }}
-          signingOut={raNgoai}
+          signingOut={signOutAction}
         />
         <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>

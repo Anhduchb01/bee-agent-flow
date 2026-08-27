@@ -82,7 +82,7 @@ const POOL_DEMO: BeeClaudePool = {
   ],
 };
 
-export interface TrangThaiSlayer {
+export interface SlayerStatus {
   /** `tok` có trên máy không. Chưa có thì UI hiện ô dán token để cài. */
   daCai: boolean;
   /**
@@ -99,7 +99,7 @@ export interface TrangThaiSlayer {
   message: string | null;
 }
 
-async function coTokenGhim(): Promise<boolean> {
+async function hasPinnedToken(): Promise<boolean> {
   try {
     const speak = await fs.readFile(path.join(root(), "claude.env"), "utf8");
     return /^CLAUDE_CODE_OAUTH_TOKEN=\S/m.test(speak);
@@ -109,11 +109,11 @@ async function coTokenGhim(): Promise<boolean> {
 }
 
 /** Bảng tài khoản cho /setup. Không ném: hỏng chỗ nào thì nói chỗ đó. */
-export async function readSlayerStatus(): Promise<TrangThaiSlayer> {
+export async function readSlayerStatus(): Promise<SlayerStatus> {
   if (isFixture()) {
     return { daCai: true, pool: POOL_DEMO, tokenGhim: false, message: null, coLoginMay: true };
   }
-  const ghim = await coTokenGhim();
+  const pinned = await hasPinnedToken();
   const coLogin = await fs
     .access(path.join(process.env.HOME ?? "", ".claude", ".credentials.json"))
     .then(() => true)
@@ -124,12 +124,12 @@ export async function readSlayerStatus(): Promise<TrangThaiSlayer> {
   } catch (e) {
     const err = e as NodeJS.ErrnoException & { stderr?: string };
     if (err.code === "ENOENT") {
-      return { daCai: false, pool: null, tokenGhim: ghim, message: null, coLoginMay: coLogin };
+      return { daCai: false, pool: null, tokenGhim: pinned, message: null, coLoginMay: coLogin };
     }
     return {
       daCai: true,
       pool: null,
-      tokenGhim: ghim,
+      tokenGhim: pinned,
       coLoginMay: coLogin,
       message: (err.stderr ?? err.message).slice(0, 200),
     };
@@ -138,7 +138,7 @@ export async function readSlayerStatus(): Promise<TrangThaiSlayer> {
   return {
     daCai: true,
     pool,
-    tokenGhim: ghim,
+    tokenGhim: pinned,
     coLoginMay: coLogin,
     message: pool === null ? "`tok list --json` trả về thứ không đọc được." : null,
   };
@@ -193,7 +193,7 @@ export async function captureSlot(name: string): Promise<Result> {
  */
 let addFlow: PtyFlow | null = null;
 
-function dongThem(): void {
+function appendLine(): void {
   closeFlow(addFlow);
   addFlow = null;
 }
@@ -205,7 +205,7 @@ export async function startAddSlot(name: string): Promise<LinkResult> {
   }
   if (isFixture()) return { ok: true, url: "https://claude.ai/oauth/authorize?demo=1" };
 
-  dongThem();
+  appendLine();
   const flow = openFlow(`${TOK} add ${trimmed} --login`);
   addFlow = flow;
 
@@ -213,7 +213,7 @@ export async function startAddSlot(name: string): Promise<LinkResult> {
   if (url !== null) return { ok: true, url };
   const swapWith = lastScreen(flow.out);
   const vi = flow.done ? "luồng thoát trước khi in URL" : "hết giờ chờ URL";
-  dongThem();
+  appendLine();
   return {
     ok: false,
     message: `Không lấy được link — ${vi}.${swapWith === null ? "" : ` Màn hình vừa in: “${swapWith}”`}`,
@@ -227,7 +227,7 @@ export async function finishAddSlot(code: string): Promise<Result> {
 
   const flow = addFlow;
   if (flow === null || flow.done) {
-    dongThem();
+    appendLine();
     return { ok: false, message: "Không có luồng đăng nhập nào đang chờ — lấy link mới đã." };
   }
 
@@ -237,13 +237,13 @@ export async function finishAddSlot(code: string): Promise<Result> {
     if (i === 20) nudgeEnter(flow);
     const refused = oauthError(flow.out);
     if (refused !== null) {
-      dongThem();
+      appendLine();
       return { ok: false, message: `${refused} — lấy link mới rồi thử lại.` };
     }
     if (flow.done) {
       const swapWith = lastScreen(flow.out);
       const code = flow.p.exitCode;
-      dongThem();
+      appendLine();
       if (code === 0) return { ok: true };
       return {
         ok: false,
@@ -253,7 +253,7 @@ export async function finishAddSlot(code: string): Promise<Result> {
     await new Promise((r) => setTimeout(r, 250));
   }
   const swapWith = lastScreen(flow.out);
-  dongThem();
+  appendLine();
   return {
     ok: false,
     message: `Hết giờ chờ tok add.${swapWith === null ? "" : ` Màn hình vừa in: “${swapWith}”`}`,

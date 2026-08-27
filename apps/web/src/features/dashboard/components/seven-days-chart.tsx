@@ -34,7 +34,7 @@ import type { RunDay } from "../lib/seven-days";
  * Biểu đồ vẫn có trục, có chú giải, chỉ thiếu đúng phần dữ liệu — kiểu hỏng
  * không có lỗi nào báo.
  */
-const CAU_HINH = {
+const CHART_CONFIG = {
   // Xanh nước biển, không phải xanh điện: `--link` (#0070f3) rực và kéo mắt
   // như một cái link bấm được. `--link-deep` (#0761d1) trầm hơn, để khối đỏ
   // giữ nguyên vai trò tín hiệu duy nhất của biểu đồ.
@@ -67,7 +67,7 @@ export function SevenDaysChart({ days, tomTat }: { days: RunDay[]; tomTat: strin
             </EmptyHeader>
           </Empty>
         ) : (
-        <ChartContainer config={CAU_HINH} className="h-56 w-full">
+        <ChartContainer config={CHART_CONFIG} className="h-56 w-full">
           <BarChart accessibilityLayer data={days} maxBarSize={64}>
             <CartesianGrid vertical={false} />
             <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} />

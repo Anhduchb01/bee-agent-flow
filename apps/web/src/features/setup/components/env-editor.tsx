@@ -15,7 +15,7 @@ interface EnvFile {
 }
 
 /** One existing file: editable content, save/delete. */
-function MotFile({ slug, file }: { slug: string; file: EnvFile }) {
+function EnvFileCard({ slug, file }: { slug: string; file: EnvFile }) {
   const router = useRouter();
   const [content, setNoiDung] = useState(file.content);
   const [err, setErr] = useState("");
@@ -32,8 +32,8 @@ function MotFile({ slug, file }: { slug: string; file: EnvFile }) {
           disabled={busy}
           onClick={() =>
             start(async () => {
-              const ket = await deleteEnvFileAction(slug, file.path);
-              setErr(ket.ok ? "" : ket.message);
+              const outcome = await deleteEnvFileAction(slug, file.path);
+              setErr(outcome.ok ? "" : outcome.message);
               router.refresh();
             })
           }
@@ -46,8 +46,8 @@ function MotFile({ slug, file }: { slug: string; file: EnvFile }) {
           disabled={busy || content === file.content}
           onClick={() =>
             start(async () => {
-              const ket = await saveEnvFileAction(slug, file.path, content);
-              setErr(ket.ok ? "" : ket.message);
+              const outcome = await saveEnvFileAction(slug, file.path, content);
+              setErr(outcome.ok ? "" : outcome.message);
               router.refresh();
             })
           }
@@ -97,13 +97,13 @@ export function EnvEditor({
   function added() {
     if (busy || path.trim() === "") return;
     start(async () => {
-      const ket = await saveEnvFileAction(slug, path.trim(), content);
-      if (ket.ok) {
+      const outcome = await saveEnvFileAction(slug, path.trim(), content);
+      if (outcome.ok) {
         setDuongDan("");
         setNoiDung("");
         setErr("");
       } else {
-        setErr(ket.message);
+        setErr(outcome.message);
       }
       router.refresh();
     });
@@ -116,7 +116,7 @@ export function EnvEditor({
       </summary>
       <div className="mt-2 flex flex-col gap-2 pl-2">
         {files.map((f) => (
-          <MotFile key={f.path} slug={slug} file={f} />
+          <EnvFileCard key={f.path} slug={slug} file={f} />
         ))}
         <div className="flex flex-col gap-1.5 rounded-control border border-dashed border-border p-2.5">
           <Input

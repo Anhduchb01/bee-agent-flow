@@ -36,10 +36,10 @@ describe("buildGraph", () => {
 
     // Mỗi repo MỘT container: group đứng TRƯỚC con (React Flow bắt buộc),
     // con mang parentId + extent parent, hai container khác x.
-    const nhomA = nodes.find((n) => n.id === "group-you/myapp");
-    const nhomB = nodes.find((n) => n.id === "group-you/blog");
-    expect(nhomA?.type).toBe("repo-group");
-    expect(nhomA?.position.x).not.toBe(nhomB?.position.x);
+    const groupA = nodes.find((n) => n.id === "group-you/myapp");
+    const groupB = nodes.find((n) => n.id === "group-you/blog");
+    expect(groupA?.type).toBe("repo-group");
+    expect(groupA?.position.x).not.toBe(groupB?.position.x);
     expect(nodes.findIndex((n) => n.id === "group-you/myapp")).toBeLessThan(
       nodes.findIndex((n) => n.id === A),
     );
@@ -102,12 +102,12 @@ describe("node 🎬 demo (phương án A)", () => {
     expect(nodeDemo).toMatchObject({ data: { name: "demo.webm" } });
     expect(coPR.edges).toContainEqual({ id: "e-p1-demo-0", source: "p1-pr-9", target: "p1-demo-0" });
 
-    const chuaPR = buildGraph(
+    const withoutPr = buildGraph(
       [{ repo: "you/myapp", session: [session] }],
       { p1: [] },
       {},
       { p1: [{ name: "demo.webm", url: "/x" }] },
     );
-    expect(chuaPR.edges).toContainEqual({ id: "e-p1-demo-0", source: "p1", target: "p1-demo-0" });
+    expect(withoutPr.edges).toContainEqual({ id: "e-p1-demo-0", source: "p1", target: "p1-demo-0" });
   });
 });

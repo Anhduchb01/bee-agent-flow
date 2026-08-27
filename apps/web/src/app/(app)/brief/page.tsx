@@ -20,7 +20,7 @@ export default async function BriefPage() {
         meta={
           <span className="font-mono text-xs text-muted-foreground">
             last 24h · {digest.ran.length} sessions · {digest.toReview.length} to review ·{" "}
-            {digest.ket.length} stuck
+            {digest.outcome.length} stuck
           </span>
         }
       />

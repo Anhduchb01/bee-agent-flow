@@ -18,25 +18,25 @@ describe("readMore", () => {
     // Lần ghi 1 dừng GIỮA một dòng — đúng điều xảy ra khi tail đuổi kịp writer.
     const f = fileTam('{"type":"a"}\n{"type":"b","x":');
 
-    const lan1 = await readMore(f, 0, "");
-    expect(lan1.line).toEqual(['{"type":"a"}']);
-    expect(lan1.rest).toBe('{"type":"b","x":');
+    const first = await readMore(f, 0, "");
+    expect(first.line).toEqual(['{"type":"a"}']);
+    expect(first.rest).toBe('{"type":"b","x":');
 
     appendFileSync(f, '1}\n');
-    const lan2 = await readMore(f, lan1.offset, lan1.rest);
-    expect(lan2.line).toEqual(['{"type":"b","x":1}']);
-    expect(lan2.rest).toBe("");
+    const second = await readMore(f, first.offset, first.rest);
+    expect(second.line).toEqual(['{"type":"b","x":1}']);
+    expect(second.rest).toBe("");
   });
 
   it("không có gì mới thì trả offset và rest nguyên vẹn", async () => {
     const f = fileTam('{"type":"a"}\n');
-    const lan1 = await readMore(f, 0, "");
-    const lan2 = await readMore(f, lan1.offset, lan1.rest);
-    expect(lan2).toEqual({ line: [], offset: lan1.offset, rest: "" });
+    const first = await readMore(f, 0, "");
+    const second = await readMore(f, first.offset, first.rest);
+    expect(second).toEqual({ line: [], offset: first.offset, rest: "" });
   });
 
   it("file không tồn tại là 'chưa có gì mới', không phải lỗi", async () => {
-    const ket = await readMore("/khong/ton/tai/run.jsonl", 5, "dở");
-    expect(ket).toEqual({ line: [], offset: 5, rest: "dở" });
+    const outcome = await readMore("/khong/ton/tai/run.jsonl", 5, "dở");
+    expect(outcome).toEqual({ line: [], offset: 5, rest: "dở" });
   });
 });

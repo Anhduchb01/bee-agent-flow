@@ -60,14 +60,14 @@ export async function writeRepos(repos: GhRepo[]): Promise<void> {
 
 /** Chuẩn hoá thứ người dùng dán vào ô nhập thành `org/repo`. */
 export function normalise(input: string): { full: string; slug: string } {
-  const sach = input
+  const cleaned = input
     .trim()
     .replace(/^git@github\.com:/, "")
     .replace(/^https?:\/\/github\.com\//, "")
     .replace(/\.git$/, "")
     .replace(/\/+$/, "");
-  if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(sach)) {
+  if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(cleaned)) {
     throw new Error("Repository name must look like org/repo.");
   }
-  return { full: sach, slug: sach.split("/")[1] };
+  return { full: cleaned, slug: cleaned.split("/")[1] };
 }

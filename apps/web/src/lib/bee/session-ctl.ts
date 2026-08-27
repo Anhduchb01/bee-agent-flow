@@ -35,7 +35,7 @@ function root(): string {
   return process.env.BEE_SRV ?? "/srv/bee";
 }
 
-function fifoCua(id: string): string {
+function fifoFor(id: string): string {
   const rt = process.env.BEE_RUNTIME ?? path.join(process.env.XDG_RUNTIME_DIR ?? "/run/user/1000", "bee");
   return path.join(rt, `${id}.in`);
 }
@@ -104,11 +104,11 @@ export async function openSession(input: {
   // (V3.T8) cũng đi qua openSession, nên đặt ở tầng action là để hở đúng cái
   // đường mà không ai ngồi canh. `Continue` phiên cũ KHÔNG đi qua đây —
   // PRD nói "không mở phiên MỚI", nối lại một hội thoại đang dở thì không.
-  const phanh = checkQuota(await readAccountUsage(root()), {
+  const brake = checkQuota(await readAccountUsage(root()), {
     nguong: Number(process.env.QUOTA_BRAKE_PCT ?? 85),
   });
-  if (!phanh.moDuoc) {
-    return { ok: false, message: `Not opening a new session: ${phanh.reason}` };
+  if (!brake.moDuoc) {
+    return { ok: false, message: `Not opening a new session: ${brake.reason}` };
   }
 
   // ── Dải cổng riêng cho phiên (V3.T14) ─────────────────────────────────
@@ -120,9 +120,9 @@ export async function openSession(input: {
     : null;
 
   const id = randomUUID();
-  const sdir = path.join(root(), "sessions", id);
+  const sessionDir = path.join(root(), "sessions", id);
   try {
-    await fs.mkdir(sdir, { recursive: true });
+    await fs.mkdir(sessionDir, { recursive: true });
     const session = {
       id,
       slug: input.slug,
@@ -140,9 +140,9 @@ export async function openSession(input: {
       created_at: new Date().toISOString(),
     };
     // tmp + rename: runner đọc file này — không ai được thấy nửa file.
-    const tmp = path.join(sdir, ".session.json.tmp");
+    const tmp = path.join(sessionDir, ".session.json.tmp");
     await fs.writeFile(tmp, JSON.stringify(session, null, 2));
-    await fs.rename(tmp, path.join(sdir, "session.json"));
+    await fs.rename(tmp, path.join(sessionDir, "session.json"));
 
     await ctl("systemctl", ["--user", "start", `bee-session@${id}.service`]);
     return { ok: true, id };
@@ -171,7 +171,7 @@ export async function sendToSession(id: string, text: string, shown?: string): P
   try {
     // O_NONBLOCK: FIFO không có người đọc (phiên chết) thì ENXIO ngay lập tức
     // thay vì treo server action vô hạn.
-    const fd = await fs.open(fifoCua(id), fsc.constants.O_WRONLY | fsc.constants.O_NONBLOCK);
+    const fd = await fs.open(fifoFor(id), fsc.constants.O_WRONLY | fsc.constants.O_NONBLOCK);
     try {
       await fd.write(line);
     } finally {
@@ -331,7 +331,7 @@ export async function answerPermission(
       response: { subtype: "success", request_id: requestId, response },
     }) + "\n";
   try {
-    const fd = await fs.open(fifoCua(id), fsc.constants.O_WRONLY | fsc.constants.O_NONBLOCK);
+    const fd = await fs.open(fifoFor(id), fsc.constants.O_WRONLY | fsc.constants.O_NONBLOCK);
     try {
       await fd.write(line);
     } finally {

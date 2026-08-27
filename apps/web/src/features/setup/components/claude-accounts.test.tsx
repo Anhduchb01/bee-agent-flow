@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { TrangThaiSlayer } from "@/lib/bee/slayer-ctl";
+import type { SlayerStatus } from "@/lib/bee/slayer-ctl";
 
 import { ClaudeAccounts } from "./claude-accounts";
 import {
@@ -28,7 +28,7 @@ vi.mock("../api/actions", () => ({
   unpinTokenAction: vi.fn(async () => ({ ok: true, message: "" })),
 }));
 
-const HAI_SLOT: TrangThaiSlayer = {
+const HAI_SLOT: SlayerStatus = {
   daCai: true,
   coLoginMay: true,
   tokenGhim: false,

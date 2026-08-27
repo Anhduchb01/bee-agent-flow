@@ -33,7 +33,7 @@ test("đọc được file trong thư mục con", async ({ page }) => {
  * `state/`. Vì vậy nó có test từ trước khi có route.
  */
 test.describe("chặn đường thoát ra ngoài gốc bằng chứng", () => {
-  const duongXau = [
+  const badPaths = [
     "../../etc/bee/orch.env",
     "myapp/../../../etc/bee/orch.env",
     "myapp/45/../../../state/myapp-42/claim.json",
@@ -42,11 +42,11 @@ test.describe("chặn đường thoát ra ngoài gốc bằng chứng", () => {
     "myapp/45/9f3c1ab/../../../../../../etc/passwd",
   ];
 
-  for (const duong of duongXau) {
-    test(`từ chối ${duong}`, async ({ page }) => {
+  for (const badPath of badPaths) {
+    test(`từ chối ${badPath}`, async ({ page }) => {
       await signIn(page, "pm-linh");
 
-      const res = await page.request.get(`${GOC}/${duong}`, { maxRedirects: 0 });
+      const res = await page.request.get(`${GOC}/${badPath}`, { maxRedirects: 0 });
 
       expect(res.status()).toBeGreaterThanOrEqual(400);
       const body = await res.text();

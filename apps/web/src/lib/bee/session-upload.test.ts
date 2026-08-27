@@ -23,21 +23,21 @@ describe("saveUploadToSession — chat attachments into the worktree", () => {
   });
 
   it("writes the file under .bee/uploads/ and returns its worktree-relative path", async () => {
-    const ket = await saveUploadToSession(ID, "bug screen.png", new Uint8Array([1, 2, 3]));
-    expect(ket.ok).toBe(true);
-    if (!ket.ok) return;
-    expect(ket.relPath).toMatch(/^\.bee\/uploads\/\d+-bug_screen\.png$/);
-    const content = await fs.readFile(path.join(dir, "work", ID, ket.relPath));
+    const outcome = await saveUploadToSession(ID, "bug screen.png", new Uint8Array([1, 2, 3]));
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.relPath).toMatch(/^\.bee\/uploads\/\d+-bug_screen\.png$/);
+    const content = await fs.readFile(path.join(dir, "work", ID, outcome.relPath));
     expect([...content]).toEqual([1, 2, 3]);
   });
 
   it("a hostile filename cannot escape the uploads dir", async () => {
-    const ket = await saveUploadToSession(ID, "../../../../etc/passwd", new Uint8Array([1]));
-    expect(ket.ok).toBe(true);
-    if (!ket.ok) return;
+    const outcome = await saveUploadToSession(ID, "../../../../etc/passwd", new Uint8Array([1]));
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
     // Sanitized to underscores and pinned behind the timestamp prefix.
-    expect(ket.relPath).toMatch(/^\.bee\/uploads\/\d+-[A-Za-z0-9._-]+$/);
-    expect(ket.relPath).not.toContain("/../");
+    expect(outcome.relPath).toMatch(/^\.bee\/uploads\/\d+-[A-Za-z0-9._-]+$/);
+    expect(outcome.relPath).not.toContain("/../");
     const files = await fs.readdir(path.join(dir, "work", ID, ".bee", "uploads"));
     expect(files).toHaveLength(1);
   });
@@ -48,15 +48,15 @@ describe("saveUploadToSession — chat attachments into the worktree", () => {
     const past = new Uint8Array(20 * 1024 * 1024 + 1);
     expect((await saveUploadToSession(ID, "a.png", past)).ok).toBe(false);
     await fs.rm(path.join(dir, "work", ID), { recursive: true });
-    const ket = await saveUploadToSession(ID, "a.png", new Uint8Array([1]));
-    expect(ket).toEqual({ ok: false, message: "This session has no worktree to attach files to." });
+    const outcome = await saveUploadToSession(ID, "a.png", new Uint8Array([1]));
+    expect(outcome).toEqual({ ok: false, message: "This session has no worktree to attach files to." });
   });
 
   it("fixture mode pretends success so the UI slice runs without a machine", async () => {
     process.env.BEE_SOURCE = "fixture";
-    const ket = await saveUploadToSession(ID, "a.png", new Uint8Array([1]));
-    expect(ket.ok).toBe(true);
-    if (!ket.ok) return;
-    expect(ket.relPath).toMatch(/^\.bee\/uploads\//);
+    const outcome = await saveUploadToSession(ID, "a.png", new Uint8Array([1]));
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.relPath).toMatch(/^\.bee\/uploads\//);
   });
 });

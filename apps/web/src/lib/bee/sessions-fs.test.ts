@@ -47,18 +47,18 @@ function stubStage(): string {
 
 describe("listSessionsIn", () => {
   it("đọc đủ ba phiên, mới nhất trước, tên thư mục bẩn bị bỏ qua", async () => {
-    const ds = await listSessionsIn(stubStage());
-    expect(ds.map((p) => p.id)).toEqual([ID_B, ID_A, ID_C]);
+    const entries = await listSessionsIn(stubStage());
+    expect(entries.map((p) => p.id)).toEqual([ID_B, ID_A, ID_C]);
   });
 
   it("chưa có meta.json là 'starting' — trạng thái thật, không phải lỗi", async () => {
-    const ds = await listSessionsIn(stubStage());
-    expect(ds.find((p) => p.id === ID_B)?.status).toBe("starting");
+    const entries = await listSessionsIn(stubStage());
+    expect(entries.find((p) => p.id === ID_B)?.status).toBe("starting");
   });
 
   it("meta.json hỏng thì phiên vẫn hiện, rơi về 'starting'", async () => {
-    const ds = await listSessionsIn(stubStage());
-    expect(ds.find((p) => p.id === ID_C)?.status).toBe("starting");
+    const entries = await listSessionsIn(stubStage());
+    expect(entries.find((p) => p.id === ID_C)?.status).toBe("starting");
   });
 
   it("thư mục sessions chưa tồn tại trả danh sách rỗng", async () => {
@@ -81,8 +81,8 @@ describe("readArtifactsIn", () => {
         '{"type":"bee_artifact","kind":"pr","url":"https://github.com/you/myapp/pull/123","number":123}',
       ].join("\n"),
     );
-    const ds = await readArtifactsIn(root, ID_A);
-    expect(ds).toEqual([
+    const entries = await readArtifactsIn(root, ID_A);
+    expect(entries).toEqual([
       {
         kind: "issue",
         url: "https://github.com/you/myapp/issues/41",

@@ -148,13 +148,13 @@ const FIXTURE_DETAIL: BeeArtifactDetail = {
 //   PAT, every later PR fetch skips that call instead of re-failing it.
 // - cache: reopening the same panel within TTL_MS is instant; 60s is
 //   short enough that a merged/closed state never looks stale for long.
-let patKhongDocDuocChecks = false;
+let patCannotReadChecks = false;
 const TTL_MS = 60_000;
 const cache = new Map<string, { at: number; detail: BeeArtifactDetail }>();
 
 /** Test hook — resets the memo and cache between cases. */
 export function resetArtifactDetailCache(): void {
-  patKhongDocDuocChecks = false;
+  patCannotReadChecks = false;
   cache.clear();
 }
 
@@ -192,7 +192,7 @@ export async function fetchArtifactDetail(
           "-R",
           repo,
           "--json",
-          patKhongDocDuocChecks ? prFields : `${prFields},statusCheckRollup`,
+          patCannotReadChecks ? prFields : `${prFields},statusCheckRollup`,
         ];
 
   // Personal fine-grained PATs cannot read GitHub Actions check RUNS
@@ -215,16 +215,16 @@ export async function fetchArtifactDetail(
   }
 
   let baseDir: Record<string, unknown>;
-  let checksThayThe: "pass" | "fail" | "pending" | null | undefined;
+  let checksFallback: "pass" | "fail" | "pending" | null | undefined;
   try {
     const { stdout } = await runGh(args);
     baseDir = JSON.parse(stdout) as Record<string, unknown>;
     // Memoized skip: the rollup field never ran, get the verdict via REST.
-    if (kind === "pr" && patKhongDocDuocChecks) checksThayThe = await readStatusRest(baseDir);
+    if (kind === "pr" && patCannotReadChecks) checksFallback = await readStatusRest(baseDir);
   } catch (e) {
     const msg = (e as Error).message;
     if (kind === "pr" && /not accessible by personal access token/i.test(msg)) {
-      patKhongDocDuocChecks = true; // remember — stop paying for this call
+      patCannotReadChecks = true; // remember — stop paying for this call
       try {
         const { stdout } = await runGh([
           "pr", "view", String(number), "-R", repo, "--json", prFields,
@@ -233,7 +233,7 @@ export async function fetchArtifactDetail(
       } catch (e2) {
         return { ok: false, message: `Could not load pr #${number}: ${(e2 as Error).message}` };
       }
-      checksThayThe = await readStatusRest(baseDir);
+      checksFallback = await readStatusRest(baseDir);
     } else {
       return { ok: false, message: `Could not load ${kind} #${number}: ${msg}` };
     }
@@ -261,7 +261,7 @@ export async function fetchArtifactDetail(
             deletions: count(baseDir.deletions),
             changedFiles: count(baseDir.changedFiles),
             checks:
-              checksThayThe !== undefined ? checksThayThe : readChecks(baseDir.statusCheckRollup),
+              checksFallback !== undefined ? checksFallback : readChecks(baseDir.statusCheckRollup),
           }
         : null,
   };

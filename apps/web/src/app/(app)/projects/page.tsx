@@ -21,7 +21,7 @@ import { getActor } from "@/lib/auth";
  * can link straight into one project's board and a phone needs no client
  * state to switch.
  */
-export default async function DuAnPage({
+export default async function ProjectsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -30,11 +30,11 @@ export default async function DuAnPage({
   if (!actor) return null;
 
   const { p, view } = await searchParams;
-  const duAn = typeof p === "string" && p !== "" ? p : null;
-  const choXem: BoardView = view === "kanban" ? "kanban" : "table";
+  const sidebarProjects = typeof p === "string" && p !== "" ? p : null;
+  const boardView: BoardView = view === "kanban" ? "kanban" : "table";
 
   const { row, repos, err, queue } = await loadBoard();
-  const shown = filterByProject(row, duAn);
+  const shown = filterByProject(row, sidebarProjects);
   const isOpen = shown.filter((m) => m.issue.state === "OPEN").length;
 
   return (
@@ -53,8 +53,8 @@ export default async function DuAnPage({
       <div className="flex flex-col gap-4 p-4 sm:p-6">
         <BoardToolbar
           repos={repos}
-          duAn={duAn}
-          view={choXem}
+          sidebarProjects={sidebarProjects}
+          view={boardView}
           queuedCount={queue.items.filter((v) => v.status === "waiting").length}
         />
 
@@ -71,13 +71,13 @@ export default async function DuAnPage({
               <EmptyDescription>
                 {repos.length === 0
                   ? "No repo is registered yet — add the first one above."
-                  : duAn === null
+                  : sidebarProjects === null
                     ? "Ask a session to open one: say what you want, then tap Issue."
-                    : `${duAn} has no issues yet.`}
+                    : `${sidebarProjects} has no issues yet.`}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
-        ) : choXem === "kanban" ? (
+        ) : boardView === "kanban" ? (
           <BoardKanban row={shown} />
         ) : (
           <BoardTable row={shown} />

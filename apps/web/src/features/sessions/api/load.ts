@@ -15,16 +15,16 @@ export interface SessionGroup {
  */
 export async function loadSessions(): Promise<SessionGroup[]> {
   const everything = await getBee().listSessions();
-  const nhom = new Map<string, BeeSession[]>();
+  const groups = new Map<string, BeeSession[]>();
   for (const p of everything) {
     // Phiên chat không repo gom vào một nhóm riêng — "Chats" là nhãn, không
     // phải tên repo, và ở cuối danh sách cho đỡ lẫn.
     const key = p.repo === "" ? "Chats" : p.repo;
-    const ds = nhom.get(key) ?? [];
-    ds.push(p);
-    nhom.set(key, ds);
+    const bucket = groups.get(key) ?? [];
+    bucket.push(p);
+    groups.set(key, bucket);
   }
-  return [...nhom.entries()]
+  return [...groups.entries()]
     .map(([repo, session]) => ({ repo, session }))
     .sort((a, b) => (a.repo === "Chats" ? 1 : b.repo === "Chats" ? -1 : 0));
 }
@@ -40,18 +40,18 @@ export async function loadSession(id: string): Promise<BeeSession | null> {
 
 /** Dữ liệu cho trang canvas: nhóm phiên + artifact + preview câu cuối + demo. */
 export async function loadCanvas(): Promise<{
-  nhom: SessionGroup[];
+  groups: SessionGroup[];
   artifacts: Record<string, BeeArtifact[]>;
   previewOf: Record<string, string | null>;
   videos: Record<string, { name: string; url: string }[]>;
 }> {
-  const nhom = await loadSessions();
+  const groups = await loadSessions();
   const bee = getBee();
   const artifacts: Record<string, BeeArtifact[]> = {};
   const previewOf: Record<string, string | null> = {};
   const videos: Record<string, { name: string; url: string }[]> = {};
   await Promise.all(
-    nhom.flatMap((g) =>
+    groups.flatMap((g) =>
       g.session.map(async (p) => {
         let evidence;
         [artifacts[p.id], previewOf[p.id], evidence] = await Promise.all([
@@ -66,5 +66,5 @@ export async function loadCanvas(): Promise<{
       }),
     ),
   );
-  return { nhom, artifacts, previewOf, videos };
+  return { groups, artifacts, previewOf, videos };
 }

@@ -62,9 +62,9 @@ export function closeFlow(flow: PtyFlow | null): void {
 export async function waitFor<T>(
   flow: PtyFlow,
   tim: (out: string) => T | null,
-  giay = 15,
+  seconds = 15,
 ): Promise<T | null> {
-  for (let i = 0; i < giay * 4; i++) {
+  for (let i = 0; i < seconds * 4; i++) {
     const swapWith = tim(flow.out);
     if (swapWith !== null) return swapWith;
     if (flow.done) break;
@@ -104,6 +104,6 @@ export function lastScreen(out: string): string | null {
 
 /** Chính lời của luồng khi nó từ chối mã, ví dụ "OAuth error: …". */
 export function oauthError(out: string): string | null {
-  const sach = out.replace(ANSI_RE, "");
-  return /(?:OAuth error|Login failed|Invalid code)[^\r\n]{0,120}/.exec(sach)?.[0].trim() ?? null;
+  const cleaned = out.replace(ANSI_RE, "");
+  return /(?:OAuth error|Login failed|Invalid code)[^\r\n]{0,120}/.exec(cleaned)?.[0].trim() ?? null;
 }

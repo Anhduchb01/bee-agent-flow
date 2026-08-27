@@ -10,10 +10,10 @@ const ID = "ab000000-0000-4000-8000-000000000001";
 let dir = "";
 
 async function writeMeta(title: string | null) {
-  const sdir = path.join(dir, "sessions", ID);
-  await fs.mkdir(sdir, { recursive: true });
+  const sessionDir = path.join(dir, "sessions", ID);
+  await fs.mkdir(sessionDir, { recursive: true });
   await fs.writeFile(
-    path.join(sdir, "session.json"),
+    path.join(sessionDir, "session.json"),
     JSON.stringify({ id: ID, slug: "myapp", num: 1, title, phase: "interview" }),
   );
 }

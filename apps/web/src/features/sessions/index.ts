@@ -7,5 +7,5 @@ export { ArtifactPanel } from "./components/artifact-panel";
 export { LiveView } from "./components/live-view";
 export { NewSessionForm } from "./components/new-session-form";
 export { SessionList } from "./components/session-list";
-export { gopSuKien, parseLine } from "./lib/parse-events";
+export { mergeEvents, parseLine } from "./lib/parse-events";
 export type { StreamEvent } from "./lib/parse-events";

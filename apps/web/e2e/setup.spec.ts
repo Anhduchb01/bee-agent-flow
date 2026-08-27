@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { signIn, datCanh } from "./helpers";
+import { signIn, setScene } from "./helpers";
 
 /**
  * Onboarding screen: everything but install.sh and the interactive claude
@@ -9,7 +9,7 @@ import { signIn, datCanh } from "./helpers";
  */
 test("setup page: interactive steps + live doctor checks", async ({ page }) => {
   await signIn(page, "pm-linh");
-  await datCanh(page, "co-su-co");
+  await setScene(page, "co-su-co");
   await page.goto("/setup");
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Setup");
@@ -58,8 +58,8 @@ test("setup page: interactive steps + live doctor checks", async ({ page }) => {
   await expect(page.getByText(/must be owner\/name/i)).toBeVisible();
 
   // Registered repos show doctor's protection verdict + a settings deep-link.
-  const dsRepo = page.getByRole("list", { name: "Registered repos" });
-  await expect(dsRepo).toContainText("you/myapp");
+  const repoList = page.getByRole("list", { name: "Registered repos" });
+  await expect(repoList).toContainText("you/myapp");
   await expect(page.getByRole("link", { name: /protect main/i }).first()).toHaveAttribute(
     "href",
     /github\.com\/you\/.*\/settings\/branches/,
@@ -92,7 +92,7 @@ test("machine ready: go-live button is armed", async ({ page }) => {
  * machine lands on Overview — that path is covered by smoke.spec.
  */
 test("fresh machine: login lands on /setup", async ({ page }) => {
-  await datCanh(page, "vua-cai");
+  await setScene(page, "vua-cai");
   await signIn(page, "pm-linh");
 
   await expect(page).toHaveURL(/\/setup/);
@@ -100,7 +100,7 @@ test("fresh machine: login lands on /setup", async ({ page }) => {
 });
 
 test("failing checks: login lands on /setup too", async ({ page }) => {
-  await datCanh(page, "co-su-co");
+  await setScene(page, "co-su-co");
   await signIn(page, "pm-linh");
 
   await expect(page).toHaveURL(/\/setup/);

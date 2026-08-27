@@ -84,7 +84,7 @@ function cat(text: string, tran: number): string {
 }
 
 /** Nội dung tool_result có thể là chuỗi hoặc mảng block — quy hết về chuỗi. */
-function textCuaToolResult(content: unknown): string {
+function textOfToolResult(content: unknown): string {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
@@ -94,18 +94,18 @@ function textCuaToolResult(content: unknown): string {
   return "";
 }
 
-function fromContentBlocks(content: unknown, nguon: "assistant" | "user"): StreamEvent[] {
+function fromContentBlocks(content: unknown, source: "assistant" | "user"): StreamEvent[] {
   if (!Array.isArray(content)) return [];
   const ra: StreamEvent[] = [];
   for (const block of content) {
     if (!isObject(block)) continue;
-    if (nguon === "assistant" && block.type === "text" && typeof block.text === "string") {
+    if (source === "assistant" && block.type === "text" && typeof block.text === "string") {
       if (block.text.trim() !== "") ra.push({ loai: "agent-noi", text: block.text });
     }
-    if (nguon === "assistant" && block.type === "thinking" && typeof block.thinking === "string") {
+    if (source === "assistant" && block.type === "thinking" && typeof block.thinking === "string") {
       if (block.thinking.trim() !== "") ra.push({ loai: "nghi", text: block.thinking });
     }
-    if (nguon === "assistant" && block.type === "tool_use") {
+    if (source === "assistant" && block.type === "tool_use") {
       const input = isObject(block.input) ? block.input : {};
       // Edit mang old/new, Write mang content — giữ lại (có trần) để vẽ khối
       // diff đỏ/xanh. Các tool khác chỉ cần thamSo cắt gọn.
@@ -127,10 +127,10 @@ function fromContentBlocks(content: unknown, nguon: "assistant" | "user"): Strea
         ...(latest !== undefined ? { latest: cat(latest, CAT_DIFF) } : {}),
       });
     }
-    if (nguon === "user" && block.type === "tool_result") {
+    if (source === "user" && block.type === "tool_result") {
       ra.push({
         loai: "tool-xong",
-        text: cat(textCuaToolResult(block.content), CAT_KET_QUA),
+        text: cat(textOfToolResult(block.content), CAT_KET_QUA),
         id: typeof block.tool_use_id === "string" ? block.tool_use_id : null,
         err: block.is_error === true,
       });
@@ -284,13 +284,13 @@ export function parseLine(line: string): StreamEvent[] | null {
 }
 
 /** Cả file (hoặc một khúc) → sự kiện + số dòng rác. */
-export function gopSuKien(dongs: string[]): { events: StreamEvent[]; dongRac: number } {
+export function mergeEvents(dongs: string[]): { events: StreamEvent[]; junkLines: number } {
   const events: StreamEvent[] = [];
-  let dongRac = 0;
+  let junkLines = 0;
   for (const line of dongs) {
-    const ket = parseLine(line);
-    if (ket === null) dongRac += 1;
-    else events.push(...ket);
+    const outcome = parseLine(line);
+    if (outcome === null) junkLines += 1;
+    else events.push(...outcome);
   }
-  return { events, dongRac };
+  return { events, junkLines };
 }

@@ -7,15 +7,15 @@ import { signIn } from "./helpers";
  * trong `lib/bee/fixture.ts`, nên không màn hình nào biết mình đang xem fixture
  * và trên máy thật nó không làm gì cả.
  */
-async function datCanh(page: Page, canh: string) {
+async function setScene(page: Page, activeScene: string) {
   await page.context().addCookies([
-    { name: "bee-scene", value: canh, url: "http://127.0.0.1:3187" },
+    { name: "bee-scene", value: activeScene, url: "http://127.0.0.1:3187" },
   ]);
 }
 
 test("heartbeat cũ 35 phút → báo đỏ, và nói rõ các con số là cũ", async ({ page }) => {
   await signIn(page, "pm-linh");
-  await datCanh(page, "reconciler-chet");
+  await setScene(page, "reconciler-chet");
   await page.goto("/");
 
   const health = page.getByRole("region", { name: "System health" });
@@ -29,7 +29,7 @@ test("heartbeat cũ 35 phút → báo đỏ, và nói rõ các con số là cũ"
 
 test("thiếu status.json → báo rõ, không crash", async ({ page }) => {
   await signIn(page, "pm-linh");
-  await datCanh(page, "chua-co-file");
+  await setScene(page, "chua-co-file");
   await page.goto("/");
 
   await expect(page.getByRole("region", { name: "System health" })).toContainText(
@@ -40,7 +40,7 @@ test("thiếu status.json → báo rõ, không crash", async ({ page }) => {
 
 test("status.json hỏng → báo rõ, không crash", async ({ page }) => {
   await signIn(page, "pm-linh");
-  await datCanh(page, "json-hong");
+  await setScene(page, "json-hong");
   await page.goto("/");
 
   await expect(page.getByRole("region", { name: "System health" })).toContainText(
@@ -51,7 +51,7 @@ test("status.json hỏng → báo rõ, không crash", async ({ page }) => {
 
 test("vừa cài xong → nói bước tiếp theo, không hiện trang trống", async ({ page }) => {
   await signIn(page, "pm-linh");
-  await datCanh(page, "vua-cai");
+  await setScene(page, "vua-cai");
   await page.goto("/");
 
   await expect(page.getByRole("region", { name: "System health" })).toContainText(
@@ -61,7 +61,7 @@ test("vừa cài xong → nói bước tiếp theo, không hiện trang trống"
 
 test("có sự cố → gọi tên repo đang bị dừng", async ({ page }) => {
   await signIn(page, "pm-linh");
-  await datCanh(page, "co-su-co");
+  await setScene(page, "co-su-co");
   await page.goto("/");
 
   const health = page.getByRole("region", { name: "System health" });

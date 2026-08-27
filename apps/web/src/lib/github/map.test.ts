@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import that from "./__real__/github-api.json";
 import {
-  issueCuaPr,
+  issueOfPr,
   isPullRequest,
   mapChecks,
   mapComment,
@@ -120,26 +120,26 @@ describe("payload thật", () => {
 describe("issueCuaPr", () => {
   // Câu bee luôn viết khi mở PR — xem `worktree_push_and_report`.
   it("đọc được `Closes #4` của bee", () => {
-    expect(issueCuaPr("Closes #4\n\n<!-- evidence:start -->")).toBe(4);
+    expect(issueOfPr("Closes #4\n\n<!-- evidence:start -->")).toBe(4);
   });
 
   it("đọc được các biến thể từ khoá của GitHub", () => {
-    expect(issueCuaPr("fixes #12")).toBe(12);
-    expect(issueCuaPr("Resolved: #7")).toBe(7);
-    expect(issueCuaPr("FIX #9")).toBe(9);
+    expect(issueOfPr("fixes #12")).toBe(12);
+    expect(issueOfPr("Resolved: #7")).toBe(7);
+    expect(issueOfPr("FIX #9")).toBe(9);
   });
 
   // "#4" trần trụi trong câu văn là một tham chiếu, không phải một lời hứa
   // đóng issue. Nhận nhầm là gắn PR vào một task nó không làm.
   it("không nhận nhầm tham chiếu thường", () => {
-    expect(issueCuaPr("giống #4 nhưng khác chỗ")).toBeNull();
-    expect(issueCuaPr("closes the gap in #4")).toBeNull();
-    expect(issueCuaPr(null)).toBeNull();
-    expect(issueCuaPr(undefined)).toBeNull();
+    expect(issueOfPr("giống #4 nhưng khác chỗ")).toBeNull();
+    expect(issueOfPr("closes the gap in #4")).toBeNull();
+    expect(issueOfPr(null)).toBeNull();
+    expect(issueOfPr(undefined)).toBeNull();
   });
 
   it("nhiều issue thì lấy cái đầu tiên", () => {
-    expect(issueCuaPr("Closes #3, closes #8")).toBe(3);
+    expect(issueOfPr("Closes #3, closes #8")).toBe(3);
   });
 });
 

@@ -11,7 +11,7 @@ import {
   readLastLineIn,
   readEvidenceIn,
   readSessionIn,
-  duongDanRunTrong,
+  runPathIn,
   listSessionsIn,
   listReposIn,
   findEvidenceForArtifact,
@@ -112,6 +112,6 @@ export function createDiskBeeSource(): BeeSource {
     findArtifactEvidence: (repo, kind, number) =>
       findEvidenceForArtifact(root(), repo, kind, number),
     sessionPreview: (id) => readLastLineIn(root(), id),
-    sessionRunPath: (id) => duongDanRunTrong(root(), id),
+    sessionRunPath: (id) => runPathIn(root(), id),
   };
 }

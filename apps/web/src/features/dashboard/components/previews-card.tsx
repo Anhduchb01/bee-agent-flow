@@ -49,8 +49,8 @@ export function PreviewsCard({ previews }: { previews: BeePreviewLive[] }) {
               disabled={busy}
               onClick={() =>
                 start(async () => {
-                  const ket = await stopPreviewAction(p.unit, p.port);
-                  setErr(ket.ok ? "" : ket.message);
+                  const outcome = await stopPreviewAction(p.unit, p.port);
+                  setErr(outcome.ok ? "" : outcome.message);
                   router.refresh();
                 })
               }

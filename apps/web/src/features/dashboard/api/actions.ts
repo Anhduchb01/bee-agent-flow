@@ -30,7 +30,7 @@ export async function refreshUsageAction(): Promise<Result> {
 export async function stopPreviewAction(unit: string, port: number): Promise<Result> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: "You are not allowed to do this." };
-  const ket = await stopPreview(unit, port);
+  const outcome = await stopPreview(unit, port);
   revalidatePath("/");
-  return ket.ok ? { ok: true, message: "" } : ket;
+  return outcome.ok ? { ok: true, message: "" } : outcome;
 }

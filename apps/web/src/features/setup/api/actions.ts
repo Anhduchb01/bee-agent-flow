@@ -46,34 +46,34 @@ export async function runDoctorAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
 
-  const ket = await runDoctor();
+  const outcome = await runDoctor();
   revalidatePath("/setup");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /** "Dọn ngay" — gc oneshot, xong mới trả về nên UI đọc được kết quả tươi. */
 export async function runGcAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await runGc();
+  const outcome = await runGc();
   revalidatePath("/setup");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 export async function enableLingerAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await enableLinger();
+  const outcome = await enableLinger();
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 export async function savePatAction(token: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await ghAuthLogin(token);
+  const outcome = await ghAuthLogin(token);
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 export type LinkResult = { ok: true; url: string } | { ok: false; message: string };
@@ -89,17 +89,17 @@ export async function startClaudeSetupAction(): Promise<LinkResult> {
 export async function submitClaudeCodeAction(code: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await submitClaudeCode(code);
+  const outcome = await submitClaudeCode(code);
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 export async function saveClaudeTokenAction(token: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await saveClaudeToken(token);
+  const outcome = await saveClaudeToken(token);
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /**
@@ -109,23 +109,23 @@ export async function saveClaudeTokenAction(token: string): Promise<Result> {
 export async function registerRepoAction(repo: string): Promise<Result & { slug?: string }> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await registerRepo(repo);
+  const outcome = await registerRepo(repo);
   await refresh();
   // The combobox on /sessions and /canvas reads the same source.
   revalidatePath("/sessions");
   revalidatePath("/canvas");
   revalidatePath("/projects");
-  return ket.ok ? { ok: true, message: "", slug: ket.slug } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "", slug: outcome.slug } : { ok: false, message: outcome.message };
 }
 
 export async function unregisterRepoAction(slug: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await unregisterRepo(slug);
+  const outcome = await unregisterRepo(slug);
   await refresh();
   revalidatePath("/sessions");
   revalidatePath("/canvas");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /** Env files land in env.d/<slug> — session-run overlays them per worktree. */
@@ -136,25 +136,25 @@ export async function saveEnvFileAction(
 ): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await saveEnvFile(slug, path, content);
+  const outcome = await saveEnvFile(slug, path, content);
   revalidatePath("/setup");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 export async function deleteEnvFileAction(slug: string, path: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await deleteEnvFile(slug, path);
+  const outcome = await deleteEnvFile(slug, path);
   revalidatePath("/setup");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 export async function setPausedAction(paused: boolean): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await setPaused(paused);
+  const outcome = await setPaused(paused);
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /*
@@ -171,18 +171,18 @@ async function countRunningSessions(): Promise<number> {
 export async function switchSlotAction(target: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await switchSlot(target, await countRunningSessions());
+  const outcome = await switchSlot(target, await countRunningSessions());
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /** Chụp tài khoản `claude` đang đăng nhập thành một slot mới. */
 export async function captureSlotAction(name: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await captureSlot(name);
+  const outcome = await captureSlot(name);
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /** Thêm tài khoản KHÁC: mở `tok add <tên> --login`, trả link duyệt. */
@@ -195,34 +195,34 @@ export async function startAddSlotAction(name: string): Promise<LinkResult> {
 export async function finishAddSlotAction(code: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await finishAddSlot(code);
+  const outcome = await finishAddSlot(code);
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /** Dán token token-slayer → chạy trình cài đặt của họ trên máy. */
 export async function installSlayerAction(token: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await installSlayer(token);
+  const outcome = await installSlayer(token);
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /** `tok setup` — nhận tài khoản admin cấp; trả nguyên lời của nó. */
 export async function pullGrantedAccountsAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await pullGrantedAccounts();
+  const outcome = await pullGrantedAccounts();
   await refresh();
-  return ket.ok ? { ok: true, message: ket.speak ?? "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: outcome.speak ?? "" } : { ok: false, message: outcome.message };
 }
 
 /** Gỡ token ghim trong claude.env để lựa chọn tài khoản có hiệu lực. */
 export async function unpinTokenAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await unpinToken();
+  const outcome = await unpinToken();
   await refresh();
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }

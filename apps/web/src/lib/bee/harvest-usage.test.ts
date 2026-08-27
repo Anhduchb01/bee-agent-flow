@@ -71,8 +71,8 @@ describe("harvestClaudeUsage — refresh = re-harvest real session data into sta
       },
     });
 
-    const ket = await harvestClaudeUsage();
-    expect(ket.ok).toBe(true);
+    const outcome = await harvestClaudeUsage();
+    expect(outcome.ok).toBe(true);
 
     const rl = parseClaudeRateLimit(
       await fs.readFile(path.join(dir, "state", "claude-rate-limit.json"), "utf8"),
@@ -122,8 +122,8 @@ describe("harvestClaudeUsage — refresh = re-harvest real session data into sta
   });
 
   it("no sessions at all → ok, no rate-limit file, empty recent", async () => {
-    const ket = await harvestClaudeUsage();
-    expect(ket.ok).toBe(true);
+    const outcome = await harvestClaudeUsage();
+    expect(outcome.ok).toBe(true);
     await expect(fs.access(path.join(dir, "state", "claude-rate-limit.json"))).rejects.toThrow();
   });
 });

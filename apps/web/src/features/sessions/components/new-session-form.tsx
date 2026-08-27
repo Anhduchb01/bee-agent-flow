@@ -48,17 +48,17 @@ export function NewSessionForm({
   function opener() {
     if (isOpen) return;
     batDauMo(async () => {
-      const ket = await startSessionAction({ repoSlug: isChat ? null : chosen, mode });
-      if (!ket.ok) {
-        setErr(ket.message);
+      const outcome = await startSessionAction({ repoSlug: isChat ? null : chosen, mode });
+      if (!outcome.ok) {
+        setErr(outcome.message);
         return;
       }
       setErr("");
-      if (onCreated && ket.session !== null) {
-        onCreated(ket.session);
+      if (onCreated && outcome.session !== null) {
+        onCreated(outcome.session);
         router.refresh();
       } else {
-        router.push(`/sessions/${ket.id}`);
+        router.push(`/sessions/${outcome.id}`);
       }
     });
   }

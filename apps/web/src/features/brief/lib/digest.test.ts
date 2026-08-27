@@ -52,10 +52,10 @@ describe("buildDigest — sáng dậy đọc một trang là biết đêm qua ra
       ],
       artifacts: {}, queue: HANG_RONG, since: TU, den: DEN,
     });
-    expect(b.ket).toHaveLength(2);
-    expect(b.ket[0]?.why).toMatch(/trần chi/);
+    expect(b.outcome).toHaveLength(2);
+    expect(b.outcome[0]?.why).toMatch(/trần chi/);
     // Không có reason thì vẫn phải nói được gì đó đọc hiểu, không để trống.
-    expect(b.ket[1]?.why).not.toBe("");
+    expect(b.outcome[1]?.why).not.toBe("");
   });
 
   it("việc trong hàng chưa chạy được mang theo lý do của phanh", () => {
@@ -75,13 +75,13 @@ describe("buildDigest — sáng dậy đọc một trang là biết đêm qua ra
     const within = buildDigest({ session: [], artifacts: {}, queue: HANG_RONG, since: TU, den: DEN });
     expect(within.loai).toBe("khong-xep-viec");
 
-    const coXep = buildDigest({
+    const digestQueued = buildDigest({
       session: [],
       artifacts: {},
       queue: { paused: false, items: [{ slug: "myapp", repo: "you/myapp", issue: 41, mode: "auto", model: "default", status: "waiting", sessionId: null, reason: null, added_at: "t" }] },
       since: TU, den: DEN,
     });
-    expect(coXep.loai).toBe("xep-ma-khong-chay");
+    expect(digestQueued.loai).toBe("xep-ma-khong-chay");
   });
 
   it("có chạy → loại 'có việc', và đếm đúng", () => {
@@ -95,9 +95,9 @@ describe("recentWindow — cửa sổ 24h trượt, không phải mốc 18:00", 
     // Bản cũ cắt từ 18:00 hôm trước, nên mở trang lúc 15:00 là KHÔNG thấy gì
     // chạy trong ngày — trong khi Autopilot chạy suốt ngày. Đó là điểm mù
     // theo giờ trên chính cái trang sinh ra để nói "chuyện gì đã xảy ra".
-    const bayGio = new Date("2026-08-26T15:00:00Z");
-    const { since, den } = recentWindow(bayGio);
-    expect(den).toEqual(bayGio);
+    const now = new Date("2026-08-26T15:00:00Z");
+    const { since, den } = recentWindow(now);
+    expect(den).toEqual(now);
     expect(new Date("2026-08-26T14:00:00Z").getTime()).toBeGreaterThan(since.getTime());
     // Và vẫn phủ trọn đêm hôm trước — không đánh đổi ca dùng cũ lấy ca mới.
     expect(new Date("2026-08-26T02:00:00Z").getTime()).toBeGreaterThan(since.getTime());

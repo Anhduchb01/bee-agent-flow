@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { BeeSlotClaude } from "@/lib/bee/slayer";
-import type { TrangThaiSlayer } from "@/lib/bee/slayer-ctl";
+import type { SlayerStatus } from "@/lib/bee/slayer-ctl";
 
 import {
   startAddSlotAction,
@@ -88,7 +88,7 @@ function Hang({
  *    export `CLAUDE_CODE_OAUTH_TOKEN` và biến môi trường thắng file
  *    credential. Còn nó thì bảng này chỉ là trang trí.
  */
-export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
+export function ClaudeAccounts({ status }: { status: SlayerStatus }) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const [err, setErr] = useState("");
@@ -101,9 +101,9 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
   function runIt(item: () => Promise<{ ok: boolean; message: string }>) {
     if (busy) return;
     start(async () => {
-      const ket = await item();
-      setErr(ket.ok ? "" : ket.message);
-      setTin(ket.ok ? ket.message : "");
+      const outcome = await item();
+      setErr(outcome.ok ? "" : outcome.message);
+      setTin(outcome.ok ? outcome.message : "");
       router.refresh();
     });
   }
@@ -113,7 +113,7 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
    * rồi mà giấu đi thì không còn đường dán token mới, mà đó đúng là việc
    * người dùng cần khi admin vừa cấp lại — hỏi 25/08.
    */
-  const khoiToken = (
+  const tokenBlock = (
     <div className="flex flex-col gap-2">
       <form
         className="flex flex-wrap gap-2"
@@ -121,9 +121,9 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
           e.preventDefault();
           if (tokenSlayer.trim() === "") return;
           runIt(async () => {
-            const ket = await installSlayerAction(tokenSlayer);
-            if (ket.ok) setTokenSlayer("");
-            return ket;
+            const outcome = await installSlayerAction(tokenSlayer);
+            if (outcome.ok) setTokenSlayer("");
+            return outcome;
           });
         }}
       >
@@ -171,7 +171,7 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
           <span className="font-mono">token-slayer</span> is not installed — once it is, bee can
           hold several Claude accounts and switch between added right here.
         </p>
-        {khoiToken}
+        {tokenBlock}
         {err !== "" && <p className="text-xs text-destructive">{err}</p>}
       </div>
     );
@@ -222,9 +222,9 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
             e.preventDefault();
             if (newName.trim() === "") return;
             runIt(async () => {
-              const ket = await captureSlotAction(newName);
-              if (ket.ok) setNewName("");
-              return ket;
+              const outcome = await captureSlotAction(newName);
+              if (outcome.ok) setNewName("");
+              return outcome;
             });
           }}
         >
@@ -254,11 +254,11 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
             disabled={busy || newName.trim() === ""}
             onClick={() =>
               start(async () => {
-                const ket = await startAddSlotAction(newName);
-                if (ket.ok) {
-                  setUrl(ket.url);
+                const outcome = await startAddSlotAction(newName);
+                if (outcome.ok) {
+                  setUrl(outcome.url);
                   setErr("");
-                } else setErr(ket.message);
+                } else setErr(outcome.message);
               })
             }
           >
@@ -282,13 +282,13 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
                 e.preventDefault();
                 if (code.trim() === "") return;
                 runIt(async () => {
-                  const ket = await finishAddSlotAction(code);
-                  if (ket.ok) {
+                  const outcome = await finishAddSlotAction(code);
+                  if (outcome.ok) {
                     setCode("");
                     setUrl("");
                     setNewName("");
                   }
-                  return ket;
+                  return outcome;
                 });
               }}
             >
@@ -312,7 +312,7 @@ export function ClaudeAccounts({ status }: { status: TrangThaiSlayer }) {
         <summary className="cursor-pointer text-xs text-muted-foreground">
           Slayer token · company accounts
         </summary>
-        <div className="mt-3">{khoiToken}</div>
+        <div className="mt-3">{tokenBlock}</div>
       </details>
 
       {err !== "" && <p className="text-xs text-destructive">{err}</p>}

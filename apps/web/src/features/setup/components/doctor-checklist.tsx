@@ -21,8 +21,8 @@ export function DoctorChecklist({ doctor }: { doctor: BeeDoctor | null }) {
   function rerun() {
     if (running) return;
     batDauChay(async () => {
-      const ket = await runDoctorAction();
-      setErr(ket.ok ? "" : ket.message);
+      const outcome = await runDoctorAction();
+      setErr(outcome.ok ? "" : outcome.message);
       router.refresh();
     });
   }

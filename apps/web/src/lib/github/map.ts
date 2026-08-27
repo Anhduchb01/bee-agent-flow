@@ -173,7 +173,7 @@ export function mapChecks(statusRaw: unknown, checkRunsRaw: unknown): GhCheck[] 
 
   const st = statusRaw as { statuses?: Array<{ context?: string; state?: string }> } | null;
   for (const x of st?.statuses ?? []) {
-    out.push({ name: s(x?.context), conclusion: ketLuanStatus(s(x?.state)) });
+    out.push({ name: s(x?.context), conclusion: statusConclusion(s(x?.state)) });
   }
 
   const cr = checkRunsRaw as {
@@ -184,21 +184,21 @@ export function mapChecks(statusRaw: unknown, checkRunsRaw: unknown): GhCheck[] 
       name: s(x?.name),
       // `conclusion` là `null` cho tới khi chạy xong. Đang chạy KHÔNG phải
       // `neutral` — hiện nó màu xám là nói rằng CI đã có kết luận.
-      conclusion: x?.status === "completed" ? ketLuanCheckRun(s(x?.conclusion)) : "pending",
+      conclusion: x?.status === "completed" ? checkRunConclusion(s(x?.conclusion)) : "pending",
     });
   }
 
   return out;
 }
 
-function ketLuanStatus(state: string): CheckConclusion {
+function statusConclusion(state: string): CheckConclusion {
   if (state === "success") return "success";
   if (state === "failure" || state === "error") return "failure";
   if (state === "pending") return "pending";
   return "neutral";
 }
 
-function ketLuanCheckRun(c: string): CheckConclusion {
+function checkRunConclusion(c: string): CheckConclusion {
   if (c === "success") return "success";
   if (c === "failure" || c === "timed_out" || c === "action_required") return "failure";
   return "neutral";
@@ -217,7 +217,7 @@ function ketLuanCheckRun(c: string): CheckConclusion {
  */
 const TU_KHOA = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#(\d+)/i;
 
-export function issueCuaPr(body: string | null | undefined): number | null {
+export function issueOfPr(body: string | null | undefined): number | null {
   const m = TU_KHOA.exec(typeof body === "string" ? body : "");
   if (!m) return null;
   const num = Number(m[1]);
@@ -333,12 +333,12 @@ export function mapGqlChecks(raw: GqlPull["commits"]): GhCheck[] {
   const out: GhCheck[] = [];
   for (const c of nodes) {
     if (c.__typename === "StatusContext") {
-      out.push({ name: s(c.context), conclusion: ketLuanStatus(s(c.state).toLowerCase()) });
+      out.push({ name: s(c.context), conclusion: statusConclusion(s(c.state).toLowerCase()) });
     } else if (c.__typename === "CheckRun") {
       out.push({
         name: s(c.name),
         conclusion:
-          s(c.status) === "COMPLETED" ? ketLuanCheckRun(s(c.conclusion).toLowerCase()) : "pending",
+          s(c.status) === "COMPLETED" ? checkRunConclusion(s(c.conclusion).toLowerCase()) : "pending",
       });
     }
   }

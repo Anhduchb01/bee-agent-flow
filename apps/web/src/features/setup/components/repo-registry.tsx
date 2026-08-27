@@ -36,12 +36,12 @@ export function RepoRegistry({
   function added() {
     if (busy || repo.trim() === "") return;
     start(async () => {
-      const ket = await registerRepoAction(repo);
-      if (ket.ok) {
+      const outcome = await registerRepoAction(repo);
+      if (outcome.ok) {
         setRepo("");
         setErr("");
       } else {
-        setErr(ket.message);
+        setErr(outcome.message);
       }
       router.refresh();
     });
@@ -49,8 +49,8 @@ export function RepoRegistry({
 
   function go(slug: string) {
     start(async () => {
-      const ket = await unregisterRepoAction(slug);
-      setErr(ket.ok ? "" : ket.message);
+      const outcome = await unregisterRepoAction(slug);
+      setErr(outcome.ok ? "" : outcome.message);
       router.refresh();
     });
   }

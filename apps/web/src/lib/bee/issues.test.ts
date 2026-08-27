@@ -63,8 +63,8 @@ describe("fetchRepoIssues — external data crossing into the app", () => {
 
   it("rejects an invalid repo name before it can reach argv", async () => {
     const runGh = vi.fn<RunGh>();
-    for (const xau of ["you/myapp; rm -rf /", "--repo", "../../etc", ""]) {
-      expect((await fetchRepoIssues(xau, { runGh })).err).toBe("Invalid repository.");
+    for (const bad of ["you/myapp; rm -rf /", "--repo", "../../etc", ""]) {
+      expect((await fetchRepoIssues(bad, { runGh })).err).toBe("Invalid repository.");
     }
     expect(runGh).not.toHaveBeenCalled();
   });

@@ -53,16 +53,16 @@ export function createFixtureGithubSource(): GithubSource {
 
     async addRepo(full: string): Promise<GhRepo> {
       const s = store();
-      const sach = full.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "");
-      if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(sach)) {
+      const cleaned = full.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "");
+      if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(cleaned)) {
         throw new Error("Repository name must look like org/repo.");
       }
-      const slug = sach.split("/")[1];
+      const slug = cleaned.split("/")[1];
       if (s.repos.some((r) => r.slug === slug)) {
         throw new Error(`A project named ${slug} already exists.`);
       }
 
-      const repo: GhRepo = { slug, full: sach };
+      const repo: GhRepo = { slug, full: cleaned };
       s.repos = [...s.repos, repo].sort((a, b) => a.slug.localeCompare(b.slug));
       s.nextIssueNumber[slug] ??= 1;
       return clone(repo);

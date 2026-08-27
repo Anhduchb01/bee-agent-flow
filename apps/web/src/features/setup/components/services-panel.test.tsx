@@ -54,11 +54,11 @@ describe("ServicesPanel", () => {
     );
     // Scope to the slices list: "postgres" is also a pool SERVICE name above,
     // and asserting on the page as a whole would pass on the wrong element.
-    const ds = within(screen.getByRole("list", { name: "Slices in use" }));
-    expect(ds.getByText("bee_de300000")).toBeInTheDocument();
-    expect(ds.getByText("postgres")).toBeInTheDocument();
+    const entries = within(screen.getByRole("list", { name: "Slices in use" }));
+    expect(entries.getByText("bee_de300000")).toBeInTheDocument();
+    expect(entries.getByText("postgres")).toBeInTheDocument();
     // redis is NOT shared, so the slice row must not list it as if it were.
-    expect(ds.queryByText(/redis/)).not.toBeInTheDocument();
+    expect(entries.queryByText(/redis/)).not.toBeInTheDocument();
   });
 
   it("says when a slice shares nothing, rather than showing an empty gap", () => {

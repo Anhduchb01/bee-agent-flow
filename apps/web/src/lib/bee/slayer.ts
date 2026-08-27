@@ -61,14 +61,14 @@ function toolUse(v: unknown): BeeToolUse | null {
  * khoản đang bật, mà đó lại đúng thứ người dùng tin để bấm.
  */
 export function readSlayerPool(json: string): BeeClaudePool | null {
-  let tai: unknown;
+  let load: unknown;
   try {
-    tai = JSON.parse(json);
+    load = JSON.parse(json);
   } catch {
     return null;
   }
-  if (typeof tai !== "object" || tai === null) return null;
-  const o = tai as Record<string, unknown>;
+  if (typeof load !== "object" || load === null) return null;
+  const o = load as Record<string, unknown>;
   if (typeof o.schema === "string" && !o.schema.startsWith("accounts@")) return null;
   if (!Array.isArray(o.accounts)) return null;
 

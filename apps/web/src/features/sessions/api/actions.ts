@@ -66,7 +66,7 @@ export async function startSessionAction(input: {
   const daCo = await getBee().listSessions();
   const num = daCo.filter((p) => p.slug === slug).length + 1;
 
-  const ket = await openSession({
+  const outcome = await openSession({
     slug,
     num,
     repo,
@@ -76,13 +76,13 @@ export async function startSessionAction(input: {
     worktree,
     mode: input.mode,
   });
-  if (!ket.ok) return ket;
+  if (!outcome.ok) return outcome;
 
   revalidatePath("/sessions");
   revalidatePath("/canvas");
   // Trả luôn phiên vừa mở — canvas cần nó để mở panel tại chỗ không round-trip.
-  const session = await getBee().readSession(ket.id);
-  return { ok: true, id: ket.id, session };
+  const session = await getBee().readSession(outcome.id);
+  return { ok: true, id: outcome.id, session };
 }
 
 export async function sendToSessionAction(id: string, text: string): Promise<Result> {
@@ -94,8 +94,8 @@ export async function sendToSessionAction(id: string, text: string): Promise<Res
     path.join(process.env.HOME ?? "", ".claude", "commands"),
     text.trim(),
   );
-  const ket = await sendToSession(id, expanded, text);
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  const outcome = await sendToSession(id, expanded, text);
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /**
@@ -111,18 +111,18 @@ export async function uploadFileAction(
   if (!actor) return KHONG_QUYEN;
   const file = formData.get("file");
   if (!(file instanceof File)) return { ok: false, message: "No file in the request." };
-  const ket = await saveUploadToSession(id, file.name, new Uint8Array(await file.arrayBuffer()));
-  return ket.ok
-    ? { ok: true, message: "", relPath: ket.relPath }
-    : { ok: false, message: ket.message };
+  const outcome = await saveUploadToSession(id, file.name, new Uint8Array(await file.arrayBuffer()));
+  return outcome.ok
+    ? { ok: true, message: "", relPath: outcome.relPath }
+    : { ok: false, message: outcome.message };
 }
 
 export async function stopSessionAction(id: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await stopSession(id);
+  const outcome = await stopSession(id);
   revalidatePath("/sessions");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /** Answer a manual-mode approval card (V2.5b) — validation in answerPermission. */
@@ -134,17 +134,17 @@ export async function answerPermissionAction(
 ): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await answerPermission(id, requestId, allow, inputJson);
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  const outcome = await answerPermission(id, requestId, allow, inputJson);
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /** Continue a finished/stopped session (V2.6) — start = resume, idempotent. */
 export async function continueAction(id: string): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await continueSession(id);
+  const outcome = await continueSession(id);
   revalidatePath("/sessions");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /**
@@ -154,9 +154,9 @@ export async function continueAction(id: string): Promise<Result> {
 export async function changeModeAction(id: string, mode: BeeSessionMode): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await changeSessionMode(id, mode);
+  const outcome = await changeSessionMode(id, mode);
   revalidatePath("/sessions");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /**
@@ -166,9 +166,9 @@ export async function changeModeAction(id: string, mode: BeeSessionMode): Promis
 export async function changeModelAction(id: string, model: BeeSessionModel): Promise<Result> {
   const actor = await getActor();
   if (!actor) return KHONG_QUYEN;
-  const ket = await changeSessionModel(id, model);
+  const outcome = await changeSessionModel(id, model);
   revalidatePath("/sessions");
-  return ket.ok ? { ok: true, message: "" } : { ok: false, message: ket.message };
+  return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
 }
 
 /**

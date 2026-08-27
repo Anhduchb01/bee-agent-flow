@@ -30,17 +30,17 @@ describe("fetchArtifactDetail — allowlist before exec", () => {
       ["you/myapp", "issue", 0],
       ["you/myapp", "issue", 1.5],
     ] as const) {
-      const ket = await fetchArtifactDetail(repo, kind as "issue", num, { runGh });
-      expect(ket.ok, `${repo} ${kind} ${num}`).toBe(false);
+      const outcome = await fetchArtifactDetail(repo, kind as "issue", num, { runGh });
+      expect(outcome.ok, `${repo} ${kind} ${num}`).toBe(false);
     }
     expect(runGh).not.toHaveBeenCalled();
   });
 
   it("refuses a repo that is not registered in repos.d", async () => {
     const runGh = vi.fn();
-    const ket = await fetchArtifactDetail("someone/else", "issue", 3, { runGh });
-    expect(ket.ok).toBe(false);
-    if (!ket.ok) expect(ket.message).toContain("not a registered repo");
+    const outcome = await fetchArtifactDetail("someone/else", "issue", 3, { runGh });
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.message).toContain("not a registered repo");
     expect(runGh).not.toHaveBeenCalled();
   });
 });
@@ -60,16 +60,16 @@ describe("fetchArtifactDetail — parsing", () => {
         comments: [{ author: { login: "bee-agent" }, createdAt: "t", body: "On it." }],
       }),
     }));
-    const ket = await fetchArtifactDetail("you/myapp", "issue", 7, { runGh });
-    expect(ket.ok).toBe(true);
-    if (!ket.ok) return;
-    expect(ket.detail.title).toBe("Login breaks on Safari");
-    expect(ket.detail.author).toBe("pm-linh");
-    expect(ket.detail.labels).toEqual(["bug", "p1"]);
-    expect(ket.detail.comments).toEqual([
+    const outcome = await fetchArtifactDetail("you/myapp", "issue", 7, { runGh });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.detail.title).toBe("Login breaks on Safari");
+    expect(outcome.detail.author).toBe("pm-linh");
+    expect(outcome.detail.labels).toEqual(["bug", "p1"]);
+    expect(outcome.detail.comments).toEqual([
       { author: "bee-agent", createdAt: "t", body: "On it." },
     ]);
-    expect(ket.detail.pr).toBeNull();
+    expect(outcome.detail.pr).toBeNull();
     expect(runGh).toHaveBeenCalledWith(expect.arrayContaining(["issue", "7"]));
   });
 
@@ -96,10 +96,10 @@ describe("fetchArtifactDetail — parsing", () => {
         ],
       }),
     }));
-    const ket = await fetchArtifactDetail("you/myapp", "pr", 12, { runGh });
-    expect(ket.ok).toBe(true);
-    if (!ket.ok) return;
-    expect(ket.detail.pr).toEqual({
+    const outcome = await fetchArtifactDetail("you/myapp", "pr", 12, { runGh });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.detail.pr).toEqual({
       draft: true,
       base: "main",
       head: "bee/myapp-41",
@@ -140,11 +140,11 @@ describe("fetchArtifactDetail — parsing", () => {
       .mockResolvedValueOnce({
         stdout: JSON.stringify({ state: "failure", total_count: 1 }),
       });
-    const ket = await fetchArtifactDetail("you/myapp", "pr", 10, { runGh });
-    expect(ket.ok).toBe(true);
-    if (!ket.ok) return;
-    expect(ket.detail.title).toBe("Terms pages");
-    expect(ket.detail.pr?.checks).toBe("fail");
+    const outcome = await fetchArtifactDetail("you/myapp", "pr", 10, { runGh });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.detail.title).toBe("Terms pages");
+    expect(outcome.detail.pr?.checks).toBe("fail");
     // Lượt 2 không được mang statusCheckRollup nữa; lượt 3 là REST status.
     expect(runGh.mock.calls[1]![0].join(",")).not.toContain("statusCheckRollup");
     expect(runGh.mock.calls[2]![0]).toEqual([
@@ -176,22 +176,22 @@ describe("fetchArtifactDetail — parsing", () => {
         }),
       })
       .mockResolvedValueOnce({ stdout: JSON.stringify({ state: "pending", total_count: 0 }) });
-    const ket = await fetchArtifactDetail("you/myapp", "pr", 11, { runGh });
-    expect(ket.ok).toBe(true);
-    if (ket.ok) expect(ket.detail.pr?.checks).toBeNull();
+    const outcome = await fetchArtifactDetail("you/myapp", "pr", 11, { runGh });
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) expect(outcome.detail.pr?.checks).toBeNull();
   });
 
   it("gh failing or spewing non-JSON comes back as data, not a throw", async () => {
-    const chet = vi.fn(async () => {
+    const throws = vi.fn(async () => {
       throw new Error("gh: Not Found (HTTP 404)");
     });
-    const ket1 = await fetchArtifactDetail("you/myapp", "issue", 999, { runGh: chet });
-    expect(ket1.ok).toBe(false);
-    if (!ket1.ok) expect(ket1.message).toContain("404");
+    const outcome1 = await fetchArtifactDetail("you/myapp", "issue", 999, { runGh: throws });
+    expect(outcome1.ok).toBe(false);
+    if (!outcome1.ok) expect(outcome1.message).toContain("404");
 
-    const rac = vi.fn(async () => ({ stdout: "not json" }));
-    const ket2 = await fetchArtifactDetail("you/myapp", "issue", 1, { runGh: rac });
-    expect(ket2.ok).toBe(false);
+    const junk = vi.fn(async () => ({ stdout: "not json" }));
+    const outcome2 = await fetchArtifactDetail("you/myapp", "issue", 1, { runGh: junk });
+    expect(outcome2.ok).toBe(false);
   });
 });
 
@@ -225,9 +225,9 @@ describe("fetchArtifactDetail — speed", () => {
       .mockResolvedValueOnce({ stdout: JSON.stringify({ state: "success", total_count: 1 }) });
 
     await fetchArtifactDetail("you/myapp", "pr", 1, { runGh });
-    const ket = await fetchArtifactDetail("you/myapp", "pr", 2, { runGh });
-    expect(ket.ok).toBe(true);
-    if (ket.ok) expect(ket.detail.pr?.checks).toBe("pass");
+    const outcome = await fetchArtifactDetail("you/myapp", "pr", 2, { runGh });
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) expect(outcome.detail.pr?.checks).toBe("pass");
     expect(runGh).toHaveBeenCalledTimes(5);
     // Call 4 (first of the second fetch) must already omit statusCheckRollup.
     expect(runGh.mock.calls[3]![0].join(",")).not.toContain("statusCheckRollup");
@@ -242,8 +242,8 @@ describe("fetchArtifactDetail — speed", () => {
 
     await fetchArtifactDetail("you/myapp", "pr", 3, { runGh, now });
     const firstRunCount = runGh.mock.calls.length;
-    const ket = await fetchArtifactDetail("you/myapp", "pr", 3, { runGh, now });
-    expect(ket.ok).toBe(true);
+    const outcome = await fetchArtifactDetail("you/myapp", "pr", 3, { runGh, now });
+    expect(outcome.ok).toBe(true);
     expect(runGh.mock.calls.length).toBe(firstRunCount);
 
     t += 61_000; // TTL passed → refetch
@@ -256,11 +256,11 @@ describe("fetchArtifactDetail — fixture mode", () => {
   it("returns staged detail without touching gh or repos.d", async () => {
     process.env.BEE_SOURCE = "fixture";
     const runGh = vi.fn();
-    const ket = await fetchArtifactDetail("you/myapp", "issue", 5, { runGh });
-    expect(ket.ok).toBe(true);
-    if (ket.ok) {
-      expect(ket.detail.kind).toBe("issue");
-      expect(ket.detail.number).toBe(5);
+    const outcome = await fetchArtifactDetail("you/myapp", "issue", 5, { runGh });
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.detail.kind).toBe("issue");
+      expect(outcome.detail.number).toBe(5);
     }
     expect(runGh).not.toHaveBeenCalled();
   });

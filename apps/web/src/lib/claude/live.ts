@@ -3,7 +3,7 @@ import "server-only";
 import { getBee } from "@/lib/bee";
 
 import { quotaFrom, accountQuota, aggregateUsage } from "./aggregate";
-import type { ClaudeSnapshot, ClaudeSource, TrangThaiDichVu } from "./types";
+import type { ClaudeSnapshot, ClaudeSource, ServiceStatus } from "./types";
 
 /**
  * Bản đọc số liệu thật. Hai nửa với hai mức khó rất khác nhau:
@@ -60,13 +60,13 @@ function isIndicator(v: unknown): v is Indicator {
  * Cache 60 giây vì mỗi lần render dashboard sẽ gọi một lần, và trang này được
  * mở suốt ngày.
  */
-let cacheDichVu: { at: number; gia: TrangThaiDichVu } | null = null;
+let serviceCache: { at: number; fakeCwd: ServiceStatus } | null = null;
 
-async function readServices(): Promise<TrangThaiDichVu> {
+async function readServices(): Promise<ServiceStatus> {
   const now = Date.now();
-  if (cacheDichVu && now - cacheDichVu.at < 60_000) return cacheDichVu.gia;
+  if (serviceCache && now - serviceCache.at < 60_000) return serviceCache.fakeCwd;
 
-  let gia: TrangThaiDichVu;
+  let fakeCwd: ServiceStatus;
   try {
     const res = await fetch(STATUS_URL, {
       signal: AbortSignal.timeout(3_000),
@@ -75,7 +75,7 @@ async function readServices(): Promise<TrangThaiDichVu> {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body: unknown = await res.json();
     const status = (body as { status?: { indicator?: unknown; description?: unknown } })?.status;
-    gia = {
+    fakeCwd = {
       // Giá trị lạ về `unknown` chứ không về `none`: "không biết" và "bình
       // thường" là hai chuyện khác nhau, và gộp lại thì một sự cố đang diễn ra
       // sẽ hiện ra màu xanh.
@@ -93,15 +93,15 @@ async function readServices(): Promise<TrangThaiDichVu> {
     } catch {
       /* URL do người cấu hình đặt sai — giữ nguyên chuỗi, nó vẫn nói được vấn đề */
     }
-    gia = {
+    fakeCwd = {
       indicator: "unknown",
       hint: `Could not reach ${host}: ${e instanceof Error ? e.message : String(e)}`,
       kiemLuc: new Date().toISOString(),
     };
   }
 
-  cacheDichVu = { at: now, gia };
-  return gia;
+  serviceCache = { at: now, fakeCwd };
+  return fakeCwd;
 }
 
 export function createLiveClaudeSource(): ClaudeSource {

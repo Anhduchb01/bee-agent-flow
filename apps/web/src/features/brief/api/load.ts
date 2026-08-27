@@ -31,8 +31,8 @@ export async function loadDigest(at = new Date()): Promise<Digest> {
   // Chỉ lấy artifact của phiên trong khoảng — n phiên cũ không đáng một lượt
   // đọc đĩa mỗi lần mở trang.
   const within = session.filter((p) => {
-    const moc = p.ended_at ?? p.started_at ?? p.created_at;
-    return moc !== null && new Date(moc).getTime() >= since.getTime();
+    const stamp = p.ended_at ?? p.started_at ?? p.created_at;
+    return stamp !== null && new Date(stamp).getTime() >= since.getTime();
   });
   const artifacts: Record<string, BeeArtifact[]> = Object.fromEntries(
     await Promise.all(within.map(async (p) => [p.id, await bee.sessionArtifacts(p.id)] as const)),

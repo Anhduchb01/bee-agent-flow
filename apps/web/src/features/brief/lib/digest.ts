@@ -36,7 +36,7 @@ export interface Digest {
   den: string;
   ran: RanItem[];
   toReview: RanItem[];
-  ket: StuckItem[];
+  outcome: StuckItem[];
   stillQueued: WaitingItem[];
 }
 
@@ -51,9 +51,9 @@ function whyStuck(p: BeeSession): string {
 }
 
 function inWindow(p: BeeSession, since: Date, den: Date): boolean {
-  const moc = p.ended_at ?? p.started_at ?? p.created_at;
-  if (moc === null) return false;
-  const t = new Date(moc).getTime();
+  const stamp = p.ended_at ?? p.started_at ?? p.created_at;
+  if (stamp === null) return false;
+  const t = new Date(stamp).getTime();
   return Number.isFinite(t) && t >= since.getTime() && t <= den.getTime();
 }
 
@@ -79,7 +79,7 @@ export function buildDigest(input: {
   // trộn hai thứ lại là hứa với người dùng một cái PR không tồn tại.
   const toReview = ran.filter((m) => m.session.status === "done" && m.pr !== null);
 
-  const ket: StuckItem[] = within
+  const outcome: StuckItem[] = within
     .filter((p) => p.needs_human || p.status === "failed" || p.status === "stopped")
     .map((p) => ({ session: p, why: whyStuck(p) }));
 
@@ -103,7 +103,7 @@ export function buildDigest(input: {
     den: input.den.toISOString(),
     ran,
     toReview,
-    ket,
+    outcome,
     stillQueued,
   };
 }

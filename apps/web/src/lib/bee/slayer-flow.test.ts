@@ -100,41 +100,41 @@ describe("thêm tài khoản Claude qua tok add --login", () => {
     const { startAddSlot, finishAddSlot } = await import("./slayer-ctl");
 
     expect((await startAddSlot("personal")).ok).toBe(true);
-    const ket = await finishAddSlot(`MASAI${MA_THAT}`);
-    expect(ket.ok).toBe(false);
-    if (!ket.ok) expect(ket.message).toMatch(/OAuth error: Request failed with status code 400/);
+    const outcome = await finishAddSlot(`MASAI${MA_THAT}`);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.message).toMatch(/OAuth error: Request failed with status code 400/);
   }, 30_000);
 
   it("tên slot bậy bị chặn TRƯỚC khi có tiến trình nào được sinh ra", async () => {
     const { startAddSlot } = await import("./slayer-ctl");
-    const ket = await startAddSlot("personal; rm -rf /");
-    expect(ket.ok).toBe(false);
-    if (!ket.ok) expect(ket.message).toMatch(/Tên slot/);
+    const outcome = await startAddSlot("personal; rm -rf /");
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.message).toMatch(/Tên slot/);
   });
 
   it("chưa mở luồng mà gửi mã → nói thẳng, không treo", async () => {
     const { finishAddSlot } = await import("./slayer-ctl");
-    const ket = await finishAddSlot("ABC123");
-    expect(ket.ok).toBe(false);
-    if (!ket.ok) expect(ket.message).toMatch(/Không có luồng đăng nhập nào đang chờ/);
+    const outcome = await finishAddSlot("ABC123");
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.message).toMatch(/Không có luồng đăng nhập nào đang chờ/);
   });
 });
 
 describe("đổi tài khoản — luật 'không đổi khi đang chạy' nằm ở lớp dưới", () => {
   it("còn phiên chạy thì từ chối, và nói RÕ vì sao", async () => {
     const { switchSlot } = await import("./slayer-ctl");
-    const ket = await switchSlot("work", 2);
-    expect(ket.ok).toBe(false);
-    if (!ket.ok) {
-      expect(ket.message).toMatch(/Còn 2 phiên đang chạy/);
-      expect(ket.message).toMatch(/CẢ MÁY/);
+    const outcome = await switchSlot("work", 2);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.message).toMatch(/Còn 2 phiên đang chạy/);
+      expect(outcome.message).toMatch(/CẢ MÁY/);
     }
   });
 
   it("không phiên nào chạy thì đổi, và mục tiêu bậy vẫn bị chặn", async () => {
     const { switchSlot } = await import("./slayer-ctl");
     expect(await switchSlot("work", 0)).toEqual({ ok: true });
-    const xau = await switchSlot("$(id)", 0);
-    expect(xau.ok).toBe(false);
+    const bad = await switchSlot("$(id)", 0);
+    expect(bad.ok).toBe(false);
   });
 });

@@ -18,11 +18,11 @@ import { runQueueTick } from "@/lib/bee/tick";
  */
 
 function validToken(req: Request): boolean {
-  const mong = process.env.BEE_TICK_TOKEN ?? "";
-  if (mong === "") return false;
+  const expected = process.env.BEE_TICK_TOKEN ?? "";
+  if (expected === "") return false;
   const send = /^Bearer (.+)$/.exec(req.headers.get("authorization") ?? "")?.[1] ?? "";
   const a = Buffer.from(send);
-  const b = Buffer.from(mong);
+  const b = Buffer.from(expected);
   // Độ dài khác nhau thì timingSafeEqual NÉM, nên phải chặn trước — và trả về
   // false chứ không so tiếp, vì độ dài vốn không phải bí mật.
   if (a.length !== b.length) return false;

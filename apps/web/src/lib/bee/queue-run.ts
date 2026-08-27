@@ -51,16 +51,16 @@ export async function runOneTick(owner: TickPorts): Promise<TickResult> {
   const item = nextQueueItem(owner.queue, { maxParallel: maxCount });
   if (item === null) return { opened: null, reason: "nothing left waiting in the queue" };
 
-  const ket = await owner.openSession(item);
-  if (!ket.ok) {
+  const outcome = await owner.openSession(item);
+  if (!outcome.ok) {
     // Phanh hạn mức (T5) trả lời ở đây. Việc KHÔNG mất và KHÔNG kẹt: nó về lại
     // waiting kèm lý do, nhịp sau thử lại khi hạn mức đã reset.
-    await owner.writer(patch(owner.queue, item, { status: "waiting", reason: ket.message }));
-    return { opened: null, reason: ket.message };
+    await owner.writer(patch(owner.queue, item, { status: "waiting", reason: outcome.message }));
+    return { opened: null, reason: outcome.message };
   }
 
   await owner.writer(
-    patch(owner.queue, item, { status: "running", sessionId: ket.id, reason: null }),
+    patch(owner.queue, item, { status: "running", sessionId: outcome.id, reason: null }),
   );
   return { opened: item, reason: `opened a session for ${item.repo}#${item.issue}` };
 }

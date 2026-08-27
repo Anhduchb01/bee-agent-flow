@@ -108,7 +108,7 @@ const RONG_DEMO = 208; // w-52
 const KHOANG_CACH_NHOM = 48;
 
 export function buildGraph(
-  nhom: SessionGroup[],
+  groups: SessionGroup[],
   artifacts: Record<string, BeeArtifact[]>,
   previewOf: Record<string, string | null> = {},
   /** Demo videos per session (name + authed url) — grows a 🎬 node each. */
@@ -119,9 +119,9 @@ export function buildGraph(
   const nodes: NodeCanvas[] = [];
   const edges: EdgeCanvas[] = [];
 
-  let nhomX = 0;
-  for (const g of nhom) {
-    const idNhom = `group-${g.repo}`;
+  let groupX = 0;
+  for (const g of groups) {
+    const groupId = `group-${g.repo}`;
     const remaining: NodeCanvas[] = [];
     let y = CAO_HEADER;
     let coArtifact = false;
@@ -137,7 +137,7 @@ export function buildGraph(
         id: `queued-${v.repo}#${v.issue}`,
         type: "queued",
         position: { x: X_PHIEN, y },
-        parentId: idNhom,
+        parentId: groupId,
         extent: "parent",
         data: {
           title: `#${v.issue}`,
@@ -153,7 +153,7 @@ export function buildGraph(
         id: p.id,
         type: "session",
         position: { x: X_PHIEN, y },
-        parentId: idNhom,
+        parentId: groupId,
         extent: "parent",
         data: {
           title: p.title ?? `${p.slug}-${p.num}`,
@@ -175,7 +175,7 @@ export function buildGraph(
           id: idA,
           type: "artifact",
           position: { x: X_ARTIFACT, y: y + i * CAO_ARTIFACT },
-          parentId: idNhom,
+          parentId: groupId,
           extent: "parent",
           data: { kind: a.kind, number: a.number, url: a.url, title: a.title, ts: a.ts },
         });
@@ -196,7 +196,7 @@ export function buildGraph(
             x: prIdx >= 0 ? X_DEMO : X_ARTIFACT,
             y: y + (prIdx >= 0 ? prIdx * CAO_ARTIFACT : owner.length * CAO_ARTIFACT) + i * CAO_DEMO,
           },
-          parentId: idNhom,
+          parentId: groupId,
           extent: "parent",
           data: { name: v.name, url: v.url },
         });
@@ -217,18 +217,18 @@ export function buildGraph(
       : coArtifact
         ? X_ARTIFACT + RONG_ARTIFACT + PAD
         : X_PHIEN + RONG_PHIEN + PAD;
-    const cao = Math.max(y, CAO_HEADER + CAO_PHIEN) + PAD - 24;
+    const groupHeight = Math.max(y, CAO_HEADER + CAO_PHIEN) + PAD - 24;
 
     // Group PHẢI đứng trước con trong mảng — React Flow yêu cầu vậy.
     nodes.push({
-      id: idNhom,
+      id: groupId,
       type: "repo-group",
-      position: { x: nhomX, y: 0 },
+      position: { x: groupX, y: 0 },
       data: { repo: g.repo },
-      style: { width: wide, height: cao },
+      style: { width: wide, height: groupHeight },
     });
     nodes.push(...remaining);
-    nhomX += wide + KHOANG_CACH_NHOM;
+    groupX += wide + KHOANG_CACH_NHOM;
   }
 
   return { nodes, edges };

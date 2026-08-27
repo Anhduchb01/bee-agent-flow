@@ -28,7 +28,7 @@ export function BoardKanban({ row }: { row: BoardRow[] }) {
    * thật — thả thẻ vào "In session" không làm phiên chạy — nên thả sai bị từ
    * chối kèm lý do, thay vì im lặng bật lại khiến người dùng tưởng tay mình run.
    */
-  function tha(den: Lane) {
+  function dropInto(den: Lane) {
     return (e: React.DragEvent) => {
       e.preventDefault();
       const m = dragging;
@@ -64,7 +64,7 @@ export function BoardKanban({ row }: { row: BoardRow[] }) {
           key={lane}
           aria-label={LANE_LABEL[lane]}
           onDragOver={(e) => e.preventDefault()}
-          onDrop={tha(lane)}
+          onDrop={dropInto(lane)}
           className="flex w-[85vw] shrink-0 snap-start flex-col gap-2 sm:w-72"
         >
           <header className="flex flex-col gap-0.5">

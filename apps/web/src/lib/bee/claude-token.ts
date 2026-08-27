@@ -28,8 +28,8 @@ const OAUTH_RE = /https:\/\/claude\.(?:ai|com)\/(?:cai\/)?oauth\/[^\s"'\x07\x1b]
  * `https://`.
  */
 export function extractOauthUrl(output: string): string | null {
-  const sach = output.replace(ANSI_RE, "");
-  const url = OAUTH_RE.exec(sach)?.[0];
+  const cleaned = output.replace(ANSI_RE, "");
+  const url = OAUTH_RE.exec(cleaned)?.[0];
   if (url === undefined) return null;
   const dragging = url.indexOf("https://", "https://".length);
   return dragging === -1 ? url : url.slice(0, dragging);

@@ -140,15 +140,15 @@ export function createFixtureBeeSource(): BeeSource {
 
     /** Cùng câu chuyện với readDoctor: cảnh xanh đã có token, cảnh khác chưa. */
     async readClaudeAuth() {
-      const canh = await currentScene();
-      if (neverRan(canh) || canh === "co-su-co") return "none";
+      const activeScene = await currentScene();
+      if (neverRan(activeScene) || activeScene === "co-su-co") return "none";
       return "token";
     },
 
     async readDoctor() {
-      const canh = await currentScene();
-      if (neverRan(canh)) return null;
-      if (canh === "co-su-co") {
+      const activeScene = await currentScene();
+      if (neverRan(activeScene)) return null;
+      if (activeScene === "co-su-co") {
         return {
           checked_at: "2026-08-18T09:30:00Z",
           ok: false,
@@ -204,8 +204,8 @@ export function createFixtureBeeSource(): BeeSource {
     },
 
     async readSession(id): Promise<BeeSession | null> {
-      const ds = await this.listSessions();
-      return ds.find((p) => p.id === id) ?? null;
+      const entries = await this.listSessions();
+      return entries.find((p) => p.id === id) ?? null;
     },
 
     async listSessionEvidence() {

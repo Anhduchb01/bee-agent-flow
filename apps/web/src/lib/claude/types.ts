@@ -48,13 +48,13 @@ export interface ToolCard {
   token: number;
   /** Tỉ lệ token đọc từ cache, 0–1. Quyết định phần lớn chi phí của khối việc này. */
   tiLeCache: number;
-  chiPhiHomNay: number;
-  chiPhiBayNgay: number;
+  costToday: number;
+  costSevenDays: number;
   /** Số lần chạy dừng vì hết hạn mức — từ `stop_reason` / `api_error_status`. */
   stoppedOnQuota: number;
 }
 
-export interface TrangThaiDichVu {
+export interface ServiceStatus {
   /** `indicator` của status.claude.com; `none` là bình thường. */
   indicator: "none" | "minor" | "major" | "critical" | "unknown";
   hint: string;
@@ -65,7 +65,7 @@ export interface TrangThaiDichVu {
 export interface ClaudeSnapshot {
   quota: Quota[];
   toolUse: ToolCard;
-  dichVu: TrangThaiDichVu;
+  dichVu: ServiceStatus;
 }
 
 export interface ClaudeSource {

@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { pairToolCards, type Card } from "./pair-tool-cards";
-import { gopSuKien } from "./parse-events";
+import { mergeEvents } from "./parse-events";
 
 function isToolCard(m: Card): m is Extract<Card, { loai: "tool-card" }> {
   return m.loai === "tool-card";
@@ -19,7 +19,7 @@ function readFixture(name: string): string[] {
 
 describe("pairToolCards", () => {
   it("fixture thật: tool Bash ghép cặp theo tool_use id thành một thẻ đã xong", () => {
-    const { events } = gopSuKien(readFixture("fixture-interject.jsonl"));
+    const { events } = mergeEvents(readFixture("fixture-interject.jsonl"));
     const the = pairToolCards(events).filter(isToolCard);
 
     expect(the).toHaveLength(1);

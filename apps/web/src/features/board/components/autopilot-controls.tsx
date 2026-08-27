@@ -28,16 +28,16 @@ export function QueueButton({ row }: { row: BoardRow }) {
   const [err, setErr] = useState("");
   const queued = row.queue !== null;
 
-  function bam() {
+  function onRunNow() {
     start(async () => {
-      const ket = queued
+      const outcome = queued
         ? await dequeueAction(row.repo, row.issue.number)
         : await enqueueAction({
             slug: row.slug,
             repo: row.repo,
             issue: row.issue.number,
           });
-      setErr(ket.ok ? "" : ket.message);
+      setErr(outcome.ok ? "" : outcome.message);
       router.refresh();
     });
   }
@@ -46,7 +46,7 @@ export function QueueButton({ row }: { row: BoardRow }) {
     <>
       <button
         type="button"
-        onClick={bam}
+        onClick={onRunNow}
         disabled={busy}
         aria-label={queued ? `Remove #${row.issue.number} from Autopilot` : `Queue #${row.issue.number} for Autopilot`}
         className={NUT}
@@ -94,10 +94,10 @@ export function RunNowButton({ queued }: { queued: number }) {
   const [busy, start] = useTransition();
   const [says, setSays] = useState("");
 
-  function bam() {
+  function onRunNow() {
     start(async () => {
-      const ket = await runNowAction();
-      setSays(ket.message);
+      const outcome = await runNowAction();
+      setSays(outcome.message);
       router.refresh();
     });
   }
@@ -106,7 +106,7 @@ export function RunNowButton({ queued }: { queued: number }) {
     <span className="flex flex-wrap items-center gap-2">
       <button
         type="button"
-        onClick={bam}
+        onClick={onRunNow}
         disabled={busy || queued === 0}
         className="flex h-9 items-center rounded-control border border-border px-3 text-xs text-body hover:bg-accent disabled:opacity-40"
       >

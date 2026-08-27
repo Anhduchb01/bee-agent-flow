@@ -173,8 +173,8 @@ function ModeMenu({
 /** 104635 → "105k", 1000000 → "1M" — the ring's numbers must scan fast. */
 function tomTatToken(n: number): string {
   if (n >= 1_000_000) {
-    const trieu = n / 1_000_000;
-    return `${Number.isInteger(trieu) ? trieu : trieu.toFixed(1)}M`;
+    const millions = n / 1_000_000;
+    return `${Number.isInteger(millions) ? millions : millions.toFixed(1)}M`;
   }
   if (n >= 1000) return `${Math.round(n / 1000)}k`;
   return String(n);
@@ -186,7 +186,7 @@ function tomTatToken(n: number): string {
  * Shows the RAW tokens next to the % — "10%" alone reads as a bug when
  * the window is 1M and the system prompt + skills already cost ~100k.
  */
-function VongNguCanh({
+function ContextRing({
   percentOf,
   stopIt = null,
   owner = null,
@@ -196,7 +196,7 @@ function VongNguCanh({
   owner?: number | null;
 }) {
   const r = 6;
-  const chuVi = 2 * Math.PI * r;
+  const circumference = 2 * Math.PI * r;
   const figures = stopIt !== null && owner !== null ? `${tomTatToken(stopIt)}/${tomTatToken(owner)}` : null;
   const label =
     figures === null
@@ -213,8 +213,8 @@ function VongNguCanh({
           fill="none"
           stroke="currentColor"
           strokeWidth="2.5"
-          strokeDasharray={chuVi}
-          strokeDashoffset={chuVi * (1 - Math.min(percentOf, 100) / 100)}
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - Math.min(percentOf, 100) / 100)}
           className={percentOf >= 80 ? "text-destructive" : "text-muted-foreground"}
         />
       </svg>
@@ -261,10 +261,10 @@ export function LiveView({
     batDauDoiMode(async () => {
       const prev = mode;
       setMode(latest);
-      const ket = await changeModeAction(session.id, latest);
-      if (!ket.ok) {
+      const outcome = await changeModeAction(session.id, latest);
+      if (!outcome.ok) {
         setMode(prev);
-        setErr(ket.message);
+        setErr(outcome.message);
       }
     });
   }
@@ -275,10 +275,10 @@ export function LiveView({
     batDauDoiMode(async () => {
       const prev = model;
       setModel(latest);
-      const ket = await changeModelAction(session.id, latest);
-      if (!ket.ok) {
+      const outcome = await changeModelAction(session.id, latest);
+      if (!outcome.ok) {
         setModel(prev);
-        setErr(ket.message);
+        setErr(outcome.message);
       }
     });
   }
@@ -296,14 +296,14 @@ export function LiveView({
 
   // Latest context fill — from the newest result that carried numbers.
   let nguCanh: number | null = null;
-  let nguCanhDung: number | null = null;
-  let nguCanhCua: number | null = null;
+  let contextUsed: number | null = null;
+  let contextOf: number | null = null;
   for (let i = events.length - 1; i >= 0; i--) {
     const s = events[i]!;
     if (s.loai === "ket-qua" && typeof s.nguCanh === "number") {
       nguCanh = s.nguCanh;
-      nguCanhDung = typeof s.validToken === "number" ? s.validToken : null;
-      nguCanhCua = typeof s.cuaSoToken === "number" ? s.cuaSoToken : null;
+      contextUsed = typeof s.validToken === "number" ? s.validToken : null;
+      contextOf = typeof s.cuaSoToken === "number" ? s.cuaSoToken : null;
       break;
     }
   }
@@ -312,12 +312,12 @@ export function LiveView({
     const text = input.trim();
     if (text === "" || sending) return;
     batDauGui(async () => {
-      const ket = await sendToSessionAction(session.id, text);
-      if (ket.ok) {
+      const outcome = await sendToSessionAction(session.id, text);
+      if (outcome.ok) {
         setInput("");
         setErr("");
       } else {
-        setErr(ket.message);
+        setErr(outcome.message);
       }
     });
   }
@@ -344,8 +344,8 @@ export function LiveView({
   function sendDirect(text: string) {
     if (sending) return;
     batDauGui(async () => {
-      const ket = await sendToSessionAction(session.id, text);
-      setErr(ket.ok ? "" : ket.message);
+      const outcome = await sendToSessionAction(session.id, text);
+      setErr(outcome.ok ? "" : outcome.message);
     });
   }
 
@@ -354,18 +354,18 @@ export function LiveView({
     batDauGui(async () => {
       const fd = new FormData();
       fd.append("file", f);
-      const ket = await uploadFileAction(session.id, fd);
-      if (ket.ok && ket.relPath !== undefined) {
+      const outcome = await uploadFileAction(session.id, fd);
+      if (outcome.ok && outcome.relPath !== undefined) {
         setErr("");
-        const writer = `[attached: ${ket.relPath}]`;
+        const writer = `[attached: ${outcome.relPath}]`;
         setInput((v) => (v === "" ? `${writer} ` : `${v}\n${writer}`));
       } else {
-        setErr(ket.message);
+        setErr(outcome.message);
       }
     });
   }
 
-  const coChuMoi = input.trim() !== "";
+  const hasNewText = input.trim() !== "";
 
   // "/..." opens the palette: the machine's global COMMANDS (expanded
   // server-side on send, REPL-style — picking one keeps "/name " in the
@@ -383,8 +383,8 @@ export function LiveView({
       : [];
 
   // Flow chips: only the ones whose command the machine actually has.
-  const coLenh = new Set(commands.map((c) => c.name));
-  const chips = session.worktree ? CHIP_FLOW.filter((c) => coLenh.has(c.lenh)) : [];
+  const knownCommands = new Set(commands.map((c) => c.name));
+  const chips = session.worktree ? CHIP_FLOW.filter((c) => knownCommands.has(c.lenh)) : [];
 
   // V2.4 — the flow's next step glows: no issue yet → Issue; issue but no
   // PR → Build; PR open → Preview. Read from the artifact events the
@@ -392,7 +392,7 @@ export function LiveView({
   // a wrong glow is a nudge, not a gate).
   const coIssue = events.some((s) => s.loai === "artifact" && s.kind === "issue");
   const coPR = events.some((s) => s.loai === "artifact" && s.kind === "pr");
-  const goiY = !coIssue ? "issue" : !coPR ? "build" : "preview";
+  const suggestion = !coIssue ? "issue" : !coPR ? "build" : "preview";
 
   // An approval card without an answer = the ball is in the OWNER's court.
   const answered = new Set(
@@ -452,8 +452,8 @@ export function LiveView({
             waiting={busy && typing === "" && idle === "" && !awaitingPermission}
             onAnswerPermission={(requestId, allow, inputJson) =>
               batDauGui(async () => {
-                const ket = await answerPermissionAction(session.id, requestId, allow, inputJson);
-                if (!ket.ok) setErr(ket.message);
+                const outcome = await answerPermissionAction(session.id, requestId, allow, inputJson);
+                if (!outcome.ok) setErr(outcome.message);
               })
             }
           />
@@ -476,12 +476,12 @@ export function LiveView({
                 type="button"
                 aria-label={`Use /${c.lenh}`}
                 aria-pressed={c.lenh === pickedCommand}
-                data-suggested={c.lenh === goiY || undefined}
+                data-suggested={c.lenh === suggestion || undefined}
                 onClick={() => pickCommand(c.lenh)}
                 className={`shrink-0 rounded-full border px-3 py-1 text-xs hover:bg-accent ${
                   c.lenh === pickedCommand
                     ? "border-[#C15F3C] bg-[#C15F3C]/25 text-body"
-                    : c.lenh === goiY
+                    : c.lenh === suggestion
                       ? "border-[#C15F3C]/70 bg-[#C15F3C]/10 text-body"
                       : "border-border bg-secondary text-body"
                 }`}
@@ -558,7 +558,7 @@ export function LiveView({
                 </span>
               )}
               {nguCanh !== null && (
-                <VongNguCanh percentOf={nguCanh} stopIt={nguCanhDung} owner={nguCanhCua} />
+                <ContextRing percentOf={nguCanh} stopIt={contextUsed} owner={contextOf} />
               )}
               {nguCanh !== null && nguCanh >= 90 && (
                 <span className="text-xs text-destructive">
@@ -569,7 +569,7 @@ export function LiveView({
               {session.worktree && (
                 <ModeMenu mode={mode} disabled={changingMode} onPick={switchMode} />
               )}
-              {busy && !coChuMoi ? (
+              {busy && !hasNewText ? (
                 // Running and nothing new typed → the button is Stop, like
                 // VSCode. Typing flips it back to send (the message queues).
                 <Button
@@ -586,7 +586,7 @@ export function LiveView({
                   type="submit"
                   size="icon"
                   aria-label="Send"
-                  disabled={sending || !coChuMoi}
+                  disabled={sending || !hasNewText}
                   className="size-7 rounded-full bg-[#C15F3C] text-white hover:bg-[#a94f31] disabled:opacity-40"
                 >
                   <ArrowUpIcon className="size-4" />
@@ -604,13 +604,13 @@ export function LiveView({
               disabled={sending}
               onClick={() =>
                 batDauGui(async () => {
-                  const ket = await continueAction(session.id);
-                  if (ket.ok) {
+                  const outcome = await continueAction(session.id);
+                  if (outcome.ok) {
                     // Full reload: the SSE stream closed on bee_done — a
                     // fresh page reattaches it to the resumed session.
                     window.location.reload();
                   } else {
-                    setErr(ket.message);
+                    setErr(outcome.message);
                   }
                 })
               }

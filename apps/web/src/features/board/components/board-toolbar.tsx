@@ -46,12 +46,12 @@ function Chip({
 
 export function BoardToolbar({
   repos,
-  duAn,
+  sidebarProjects,
   view,
   queuedCount,
 }: {
   repos: { slug: string; repo: string }[];
-  duAn: string | null;
+  sidebarProjects: string | null;
   view: BoardView;
   /** Items waiting in Autopilot — at 0 "Run now" has nothing to run. */
   queuedCount: number;
@@ -62,11 +62,11 @@ export function BoardToolbar({
         aria-label="Filter by project"
         className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <Chip href={boardHref(null, view)} selected={duAn === null}>
+        <Chip href={boardHref(null, view)} selected={sidebarProjects === null}>
           All projects
         </Chip>
         {repos.map((r) => (
-          <Chip key={r.slug} href={boardHref(r.slug, view)} selected={duAn === r.slug}>
+          <Chip key={r.slug} href={boardHref(r.slug, view)} selected={sidebarProjects === r.slug}>
             {r.slug}
           </Chip>
         ))}
@@ -74,10 +74,10 @@ export function BoardToolbar({
 
       <div className="flex flex-wrap items-center gap-3">
         <nav aria-label="View" className="flex gap-1.5">
-          <Chip href={boardHref(duAn, "table")} selected={view === "table"}>
+          <Chip href={boardHref(sidebarProjects, "table")} selected={view === "table"}>
             Table
           </Chip>
-          <Chip href={boardHref(duAn, "kanban")} selected={view === "kanban"}>
+          <Chip href={boardHref(sidebarProjects, "kanban")} selected={view === "kanban"}>
             Kanban
           </Chip>
         </nav>

@@ -27,8 +27,8 @@ const NHAN: Record<SessionStatus, string> = {
   failed: "failed",
 };
 
-export function SessionList({ nhom }: { nhom: SessionGroup[] }) {
-  if (nhom.length === 0) {
+export function SessionList({ groups }: { groups: SessionGroup[] }) {
+  if (groups.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         No sessions yet. Start one above and just say what you want done.
@@ -38,12 +38,12 @@ export function SessionList({ nhom }: { nhom: SessionGroup[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {nhom.map(({ repo, session }) => (
+      {groups.map(({ repo, session }) => (
         <section key={repo} className="flex flex-col gap-2">
           <h2 className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{repo}</h2>
           <ul className="rounded-card border border-border bg-card">
             {session.map((p) => (
-              <MotDong key={p.id} p={p} />
+              <SessionRow key={p.id} p={p} />
             ))}
           </ul>
         </section>
@@ -52,7 +52,7 @@ export function SessionList({ nhom }: { nhom: SessionGroup[] }) {
   );
 }
 
-function MotDong({ p }: { p: BeeSession }) {
+function SessionRow({ p }: { p: BeeSession }) {
   return (
     <li className="border-b border-border last:border-b-0">
       <Link

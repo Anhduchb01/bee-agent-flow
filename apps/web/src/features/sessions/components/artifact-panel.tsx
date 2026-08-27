@@ -24,7 +24,7 @@ const STATE_TONE: Record<string, Tone> = {
   CLOSED: "down",
 };
 
-function ChuGithub({ text }: { text: string }) {
+function GithubProse({ text }: { text: string }) {
   return (
     <div
       className="space-y-2 text-sm leading-6 text-body
@@ -69,14 +69,14 @@ export function ArtifactPanel({
   // so switching target remounts with clean state.
   useEffect(() => {
     let song = true;
-    void loadArtifactDetailAction(repo, kind, number).then((ket) => {
+    void loadArtifactDetailAction(repo, kind, number).then((outcome) => {
       if (!song) return;
-      if (ket.ok) setDetail(ket.detail);
-      else setErr(ket.message);
+      if (outcome.ok) setDetail(outcome.detail);
+      else setErr(outcome.message);
     });
     // Evidence loads in parallel — the panel must not wait for a disk scan.
-    void loadArtifactEvidenceAction(repo, kind, number).then((ket) => {
-      if (song && ket !== null) setEvidence(ket.files.filter((f) => f.loai !== "khac"));
+    void loadArtifactEvidenceAction(repo, kind, number).then((outcome) => {
+      if (song && outcome !== null) setEvidence(outcome.files.filter((f) => f.loai !== "khac"));
     });
     return () => {
       song = false;
@@ -90,8 +90,8 @@ export function ArtifactPanel({
     const m = /[Cc]loses #(\d+)/.exec(detail.body);
     if (m === null) return;
     let song = true;
-    void loadArtifactDetailAction(repo, "issue", Number(m[1])).then((ket) => {
-      if (song && ket.ok) setAcIssue(ket.detail);
+    void loadArtifactDetailAction(repo, "issue", Number(m[1])).then((outcome) => {
+      if (song && outcome.ok) setAcIssue(outcome.detail);
     });
     return () => {
       song = false;
@@ -143,7 +143,7 @@ export function ArtifactPanel({
             )}
 
             {detail.body.trim() !== "" ? (
-              <ChuGithub text={detail.body} />
+              <GithubProse text={detail.body} />
             ) : (
               <p className="text-sm text-muted-foreground italic">No description.</p>
             )}
@@ -154,7 +154,7 @@ export function ArtifactPanel({
                   Acceptance criteria — issue #{acIssue.number}: {acIssue.title}
                 </summary>
                 <div className="mt-2">
-                  <ChuGithub text={acIssue.body} />
+                  <GithubProse text={acIssue.body} />
                 </div>
               </details>
             )}
@@ -202,7 +202,7 @@ export function ArtifactPanel({
                     <p className="mb-1.5 font-mono text-xs text-muted-foreground">
                       {c.author} · {c.createdAt}
                     </p>
-                    <ChuGithub text={c.body} />
+                    <GithubProse text={c.body} />
                   </div>
                 ))}
               </div>

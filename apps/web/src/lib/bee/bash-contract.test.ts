@@ -117,18 +117,18 @@ describe("gc.sh → readGcIn", () => {
     // case stay green.)
     const id = "dd000000-0000-4000-8000-000000000004";
     const wt = path.join(dir, "work", id);
-    const sdir = path.join(dir, "sessions", id);
+    const sessionDir = path.join(dir, "sessions", id);
     await fs.mkdir(wt, { recursive: true });
-    await fs.mkdir(sdir, { recursive: true });
+    await fs.mkdir(sessionDir, { recursive: true });
     await fs.writeFile(path.join(wt, "big"), "x".repeat(50_000));
     // A slug whose bare repo does not exist: gc's own rule says there is no
     // branch left to lose, so it reclaims.
     await fs.writeFile(
-      path.join(sdir, "session.json"),
+      path.join(sessionDir, "session.json"),
       JSON.stringify({ id, slug: "gone", num: 1, repo: "you/gone", worktree: true }),
     );
     await fs.writeFile(
-      path.join(sdir, "meta.json"),
+      path.join(sessionDir, "meta.json"),
       JSON.stringify({ status: "done", ended_at: "2020-01-01T00:00:00Z", needs_human: false }),
     );
     await runScript("gc.sh");
@@ -148,10 +148,10 @@ describe("session-run.sh → listSessionsIn / readSessionIn", () => {
     // repo, a clone or claude: let PAUSE stop it at the door. What it writes
     // there is the same meta.json shape every other exit path writes.
     const id = "bb000000-0000-4000-8000-000000000002";
-    const sdir = path.join(dir, "sessions", id);
-    await fs.mkdir(sdir, { recursive: true });
+    const sessionDir = path.join(dir, "sessions", id);
+    await fs.mkdir(sessionDir, { recursive: true });
     await fs.writeFile(
-      path.join(sdir, "session.json"),
+      path.join(sessionDir, "session.json"),
       JSON.stringify({ id, slug: "myapp", num: 7, repo: "you/myapp", title: null, worktree: false }),
     );
     await fs.writeFile(path.join(dir, "PAUSE"), "");

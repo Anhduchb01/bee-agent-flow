@@ -27,8 +27,8 @@ export function RefreshUsageButton() {
         disabled={busy}
         onClick={() =>
           start(async () => {
-            const ket = await refreshUsageAction();
-            setErr(ket.ok ? "" : ket.message);
+            const outcome = await refreshUsageAction();
+            setErr(outcome.ok ? "" : outcome.message);
             router.refresh();
           })
         }

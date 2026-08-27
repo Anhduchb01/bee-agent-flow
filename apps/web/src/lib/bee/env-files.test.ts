@@ -26,15 +26,15 @@ describe("env.d via web — per-repo env files without touching a shell", () => 
     const file = path.join(dir, "env.d", "myapp", "apps", "web", ".env.local");
     expect(((await fs.stat(file)).mode & 0o777)).toBe(0o600);
 
-    const ds = await listEnvFiles("myapp");
-    expect(ds.map((f) => f.path)).toEqual([".env", "apps/web/.env.local"]);
-    expect(ds[0]!.content).toBe("API_KEY=abc\n");
+    const entries = await listEnvFiles("myapp");
+    expect(entries.map((f) => f.path)).toEqual([".env", "apps/web/.env.local"]);
+    expect(entries[0]!.content).toBe("API_KEY=abc\n");
   });
 
   it("dirty paths never reach the filesystem", async () => {
-    for (const xau of ["../../etc/cron.d/x", "/etc/passwd", "a/../../b", "", "a//b", "a/", ".."]) {
-      const ket = await saveEnvFile("myapp", xau, "x");
-      expect(ket.ok, xau).toBe(false);
+    for (const bad of ["../../etc/cron.d/x", "/etc/passwd", "a/../../b", "", "a//b", "a/", ".."]) {
+      const outcome = await saveEnvFile("myapp", bad, "x");
+      expect(outcome.ok, bad).toBe(false);
     }
     expect((await saveEnvFile("../etc", ".env", "x")).ok).toBe(false);
     await expect(fs.access(path.join(dir, "env.d"))).rejects.toThrow();
@@ -49,7 +49,7 @@ describe("env.d via web — per-repo env files without touching a shell", () => 
   });
 
   it("oversized content is refused — env files are keys, not databases", async () => {
-    const ket = await saveEnvFile("myapp", ".env", "x".repeat(70_000));
-    expect(ket.ok).toBe(false);
+    const outcome = await saveEnvFile("myapp", ".env", "x".repeat(70_000));
+    expect(outcome.ok).toBe(false);
   });
 });

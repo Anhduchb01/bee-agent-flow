@@ -5,7 +5,7 @@ import { allocatePortRange } from "./ports";
 
 const isOpen: net.Server[] = [];
 
-async function chiem(port: number): Promise<void> {
+async function occupy(port: number): Promise<void> {
   await new Promise<void>((res, rej) => {
     const s = net.createServer();
     s.once("error", rej);
@@ -27,7 +27,7 @@ describe("allocatePortRange — hai phiên cùng repo không được đụng c�
   });
 
   it("cổng đang bị CHIẾM THẬT thì nhảy sang dải sau", async () => {
-    await chiem(54003); // giữa dải đầu
+    await occupy(54003); // giữa dải đầu
     const base = await allocatePortRange({ since: 54000, count: 10, daDung: [] });
     expect(base).toBe(54010);
   });

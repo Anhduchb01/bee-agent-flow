@@ -22,8 +22,8 @@ describe("global slash commands — list for the palette, expand on send", () =>
   });
 
   it("lists *.md with frontmatter descriptions, sorted; other files skipped", async () => {
-    const ds = await readCommandsFrom(dir);
-    expect(ds).toEqual([
+    const entries = await readCommandsFrom(dir);
+    expect(entries).toEqual([
       { name: "build", hint: "Implement tasks incrementally" },
       { name: "plan", hint: "Break work into tasks" },
     ]);

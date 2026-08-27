@@ -9,18 +9,18 @@ import { loadSessions } from "@/features/sessions";
 import { PageHeader } from "@/features/shell";
 import { getActor } from "@/lib/auth";
 
-export default async function TongQuanPage() {
+export default async function OverviewPage() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const [view, nhom, previews] = await Promise.all([
+  const [view, groups, previews] = await Promise.all([
     loadDashboard(),
     loadSessions(),
     listPreviews(),
   ]);
   const health = deriveHealth(view.statusRead);
 
-  const active = nhom.flatMap((g) =>
+  const active = groups.flatMap((g) =>
     g.session
       .filter((p) => p.status === "running" || p.status === "starting")
       .map((p) => ({ ...p, repoLabel: g.repo })),

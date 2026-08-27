@@ -33,7 +33,7 @@ const TRANG_THAI: Record<Quota["status"], Tone> = {
  * đúng màu và một thanh `bg-primary` đen ngay dưới, trông như một chỉ số thứ
  * hai không ai giải thích được.
  */
-function mauThanh(h: Quota): string {
+function barColour(h: Quota): string {
   if (h.status === "exceeded" || (h.percentOf ?? 0) >= 95)
     return "[&_[data-slot=progress-indicator]]:bg-destructive";
   if (h.status === "warning" || (h.percentOf ?? 0) >= 75)
@@ -79,7 +79,7 @@ function QuotaBar({ quota, now }: { quota: Quota; now: number }) {
       <Progress
         value={quota.percentOf ?? 0}
         aria-label={CUA_SO[quota.usageWindow]}
-        className={cn("[&_[data-slot=progress-track]]:h-2", mauThanh(quota))}
+        className={cn("[&_[data-slot=progress-track]]:h-2", barColour(quota))}
       />
     </>
   );
@@ -94,7 +94,7 @@ function QuotaBar({ quota, now }: { quota: Quota; now: number }) {
  */
 export function ClaudePanel({ snapshot, now }: { snapshot: ClaudeSnapshot; now: number }) {
   const { quota, toolUse, dichVu } = snapshot;
-  const dichVuTone: Tone = dichVu.indicator === "none" ? "ok" : "down";
+  const serviceTone: Tone = dichVu.indicator === "none" ? "ok" : "down";
 
   return (
     <Card className="gap-0 py-0">
@@ -106,7 +106,7 @@ export function ClaudePanel({ snapshot, now }: { snapshot: ClaudeSnapshot; now: 
           </span>
         </CardTitle>
         <CardDescription className="flex items-center gap-1.5">
-          <StatusDot tone={dichVuTone} />
+          <StatusDot tone={serviceTone} />
           {dichVu.hint}
         </CardDescription>
       </CardHeader>
@@ -134,10 +134,10 @@ export function ClaudePanel({ snapshot, now }: { snapshot: ClaudeSnapshot; now: 
 
         <O label="Cost today" className="border-t sm:border-l">
           <span className="font-mono text-2xl leading-none tabular-nums tracking-title text-foreground">
-            ${toolUse.chiPhiHomNay.toFixed(2)}
+            ${toolUse.costToday.toFixed(2)}
           </span>
           <span className="text-xs text-muted-foreground">
-            seven days: ${toolUse.chiPhiBayNgay.toFixed(2)}
+            seven days: ${toolUse.costSevenDays.toFixed(2)}
           </span>
         </O>
       </CardContent>

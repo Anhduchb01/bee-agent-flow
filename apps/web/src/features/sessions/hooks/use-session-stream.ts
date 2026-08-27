@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { parseLine, type StreamEvent } from "../lib/parse-events";
 
-export type TrangThaiKetNoi = "dang-noi" | "mo" | "mat-ket-noi" | "xong";
+export type ConnectionState = "dang-noi" | "mo" | "mat-ket-noi" | "xong";
 
 export interface SessionStream {
   events: StreamEvent[];
@@ -12,7 +12,7 @@ export interface SessionStream {
   typing: string;
   /** Thinking đang chảy — buffer riêng, khối trọn vẹn trong message thay thế. */
   idle: string;
-  status: TrangThaiKetNoi;
+  status: ConnectionState;
   /** Trạng thái cuối khi phiên đóng (done/stopped/failed) — null khi còn chạy. */
   ended: string | null;
   /** Số sự kiện cũ đã bị bỏ qua khi gắn vào phiên chạy lâu (bee_replayed). */
@@ -29,7 +29,7 @@ export function useSessionStream(id: string): SessionStream {
   const [events, setSuKien] = useState<StreamEvent[]>([]);
   const [typing, setDangGo] = useState("");
   const [idle, setDangNghi] = useState("");
-  const [status, setTrangThai] = useState<TrangThaiKetNoi>("dang-noi");
+  const [status, setTrangThai] = useState<ConnectionState>("dang-noi");
   const [ended, setKetThuc] = useState<string | null>(null);
   const [skipped, setBoQua] = useState(0);
 
@@ -51,9 +51,9 @@ export function useSessionStream(id: string): SessionStream {
         // không phải JSON — parseLine bên dưới xử lý như rác
       }
 
-      const ket = parseLine(e.data);
-      if (ket === null) return;
-      for (const sk of ket) {
+      const outcome = parseLine(e.data);
+      if (outcome === null) return;
+      for (const sk of outcome) {
         if (sk.loai === "delta") {
           setDangGo((d) => d + sk.text);
         } else if (sk.loai === "nghi-delta") {

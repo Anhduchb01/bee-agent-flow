@@ -44,8 +44,8 @@ export function createFixtureClaudeSource(): ClaudeSource {
               errorCount: 0,
               token: 0,
               tiLeCache: 0,
-              chiPhiHomNay: 0,
-              chiPhiBayNgay: 0,
+              costToday: 0,
+              costSevenDays: 0,
               stoppedOnQuota: 0,
             }
           : {
@@ -53,8 +53,8 @@ export function createFixtureClaudeSource(): ClaudeSource {
               errorCount: 6,
               token: 1_240_000,
               tiLeCache: 0.89,
-              chiPhiHomNay: 2.41,
-              chiPhiBayNgay: 14.8,
+              costToday: 2.41,
+              costSevenDays: 14.8,
               stoppedOnQuota: 3,
             },
         dichVu: {

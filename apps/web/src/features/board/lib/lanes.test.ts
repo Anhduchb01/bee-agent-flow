@@ -91,13 +91,13 @@ describe("buildBoard — the issue↔session link GitHub cannot know", () => {
       { s1: [artIssue(41)], s2: [artIssue(39), artPr(123)] },
     );
 
-    const m41 = row.find((m) => m.issue.number === 41);
-    expect(m41?.session.map((p) => p.branch)).toEqual(["bee/myapp-1"]);
-    expect(m41?.lane).toBe("working");
+    const issue41 = row.find((m) => m.issue.number === 41);
+    expect(issue41?.session.map((p) => p.branch)).toEqual(["bee/myapp-1"]);
+    expect(issue41?.lane).toBe("working");
 
-    const m39 = row.find((m) => m.issue.number === 39);
-    expect(m39?.pr.map((p) => p.number)).toEqual([123]);
-    expect(m39?.lane).toBe("review");
+    const issue39 = row.find((m) => m.issue.number === 39);
+    expect(issue39?.pr.map((p) => p.number)).toEqual([123]);
+    expect(issue39?.lane).toBe("review");
   });
 
   it("never attaches a session from another repo, even on the same number", () => {
@@ -137,11 +137,11 @@ describe("filterByProject / groupByLane", () => {
   });
 
   it("groups into the five lanes with empty ones kept", () => {
-    const nhom = groupByLane(row);
-    expect(nhom.working.map((m) => m.issue.number)).toEqual([41]);
-    expect(nhom.done.map((m) => m.issue.number)).toEqual([40]);
-    expect(nhom.review).toEqual([]);
+    const byLane = groupByLane(row);
+    expect(byLane.working.map((m) => m.issue.number)).toEqual([41]);
+    expect(byLane.done.map((m) => m.issue.number)).toEqual([40]);
+    expect(byLane.review).toEqual([]);
     // Autopilot chen vào giữa backlog và working (D4) — thứ tự này LÀ vòng đời.
-    expect(Object.keys(nhom)).toEqual(["backlog", "autopilot", "working", "review", "done"]);
+    expect(Object.keys(byLane)).toEqual(["backlog", "autopilot", "working", "review", "done"]);
   });
 });

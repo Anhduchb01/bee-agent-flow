@@ -58,15 +58,15 @@ const TONE: Record<SessionStatus, Tone> = {
 
 type SessionFlow = Node<NodeSession["data"] & Record<string, unknown>, "session">;
 type FlowArtifact = Node<NodeArtifact["data"] & Record<string, unknown>, "artifact">;
-type FlowNhomRepo = Node<NodeRepoGroup["data"] & Record<string, unknown>, "repo-group">;
+type FlowRepoGroup = Node<NodeRepoGroup["data"] & Record<string, unknown>, "repo-group">;
 
 /** "2h ago" từ ISO — tính lúc render, node canvas không cần đồng hồ chạy. */
-function tuoi(ts: string | null): string | null {
+function age(ts: string | null): string | null {
   if (ts === null) return null;
-  const giay = Math.floor((Date.now() - Date.parse(ts)) / 1000);
-  if (!Number.isFinite(giay) || giay < 0) return null;
-  if (giay < 60) return "just now";
-  return `${humanDuration(giay)} ago`;
+  const seconds = Math.floor((Date.now() - Date.parse(ts)) / 1000);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  if (seconds < 60) return "just now";
+  return `${humanDuration(seconds)} ago`;
 }
 
 function SessionNode({ data }: NodeProps<SessionFlow>) {
@@ -96,7 +96,7 @@ function SessionNode({ data }: NodeProps<SessionFlow>) {
       <span className="mt-1.5 flex items-center gap-2 font-mono text-xs text-muted-foreground">
         <span className="min-w-0 truncate">{data.nhanh}</span>
         <span className="flex-1" />
-        {tuoi(data.createdAt) !== null && <span>{tuoi(data.createdAt)}</span>}
+        {age(data.createdAt) !== null && <span>{age(data.createdAt)}</span>}
         <span className={data.needsHuman ? "text-destructive" : ""}>
           {data.needsHuman ? "needs you" : data.status}
         </span>
@@ -135,8 +135,8 @@ function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
           </span>
         )}
         <span className="flex-1" />
-        {tuoi(data.ts) !== null && (
-          <span className="font-mono text-[0.625rem] text-muted-foreground">{tuoi(data.ts)}</span>
+        {age(data.ts) !== null && (
+          <span className="font-mono text-[0.625rem] text-muted-foreground">{age(data.ts)}</span>
         )}
         <a
           href={data.url}
@@ -195,7 +195,7 @@ function DemoNode({ data }: NodeProps<FlowDemo>) {
  * theo, `extent:"parent"` giữ con không lọt ra ngoài. Kích thước do
  * build-graph tính (node.style), div này chỉ việc phủ kín.
  */
-function RepoGroupNode({ data }: NodeProps<FlowNhomRepo>) {
+function RepoGroupNode({ data }: NodeProps<FlowRepoGroup>) {
   return (
     <div className="h-full w-full rounded-card border border-border/70 bg-muted/10">
       <p className="px-4 py-3 font-mono text-xs uppercase tracking-wide text-muted-foreground">
@@ -210,7 +210,7 @@ function RepoGroupNode({ data }: NodeProps<FlowNhomRepo>) {
  * trông giống việc đã xảy ra là nói dối bằng đồ hoạ (D5). Viền đứt để nhìn
  * lướt cũng phân biệt được với node phiên thật.
  */
-function ChoChayNode({ data }: { data: { title: string; hint: string; href: string } }) {
+function QueuedNode({ data }: { data: { title: string; hint: string; href: string } }) {
   return (
     <Link
       href={data.href}
@@ -228,7 +228,7 @@ function ChoChayNode({ data }: { data: { title: string; hint: string; href: stri
 // build-graph emits must fail the build, because React Flow will not — it
 // falls back to a blank default node without a word of warning.
 export const nodeTypes: Record<NodeKind, NodeTypes[string]> = {
-  queued: ChoChayNode,
+  queued: QueuedNode,
   session: SessionNode,
   artifact: ArtifactNode,
   "repo-group": RepoGroupNode,
@@ -291,20 +291,20 @@ export function CanvasView({
   const [songTheo, setSongTheo] = useState<Record<string, ArtifactSong>>({});
   useEffect(() => {
     let song = true;
-    async function tai() {
+    async function load() {
       const arts = nodes.filter((n): n is NodeArtifact => n.type === "artifact").slice(0, 12);
       const granted = await Promise.all(
         arts.map(async (n) => {
-          const boc = unwrapArtifactUrl(n.data.url);
-          if (boc === null) return null;
-          const ket = await loadArtifactDetailAction(boc.repo, boc.kind, boc.number);
-          if (!ket.ok) return null;
+          const unwrapped = unwrapArtifactUrl(n.data.url);
+          if (unwrapped === null) return null;
+          const outcome = await loadArtifactDetailAction(unwrapped.repo, unwrapped.kind, unwrapped.number);
+          if (!outcome.ok) return null;
           return [
             n.data.url,
             {
-              state: ket.detail.state,
-              draft: ket.detail.pr?.draft ?? false,
-              checks: ket.detail.pr?.checks ?? null,
+              state: outcome.detail.state,
+              draft: outcome.detail.pr?.draft ?? false,
+              checks: outcome.detail.pr?.checks ?? null,
             },
           ] as const;
         }),
@@ -313,9 +313,9 @@ export function CanvasView({
         setSongTheo(Object.fromEntries(granted.filter((c): c is NonNullable<typeof c> => c !== null)));
       }
     }
-    void tai();
+    void load();
     const t = setInterval(() => {
-      if (!document.hidden) void tai();
+      if (!document.hidden) void load();
     }, 60_000);
     return () => {
       song = false;
@@ -338,13 +338,13 @@ export function CanvasView({
   const [rongPanel, setRongPanel] = useState(() => {
     if (typeof window === "undefined") return 1152;
     try {
-      const luu = Number(localStorage.getItem("bee-chat-width"));
-      return Number.isFinite(luu) && luu >= 360 ? luu : 1152;
+      const stored = Number(localStorage.getItem("bee-chat-width"));
+      return Number.isFinite(stored) && stored >= 360 ? stored : 1152;
     } catch {
       return 1152;
     }
   });
-  const dangKeo = useRef<{ start: number; wide: number } | null>(null);
+  const dragState = useRef<{ start: number; wide: number } | null>(null);
 
   return (
     <div className="h-full w-full">
@@ -367,9 +367,9 @@ export function CanvasView({
           }
           if (node.type === "artifact") {
             const d = node.data as FlowArtifact["data"];
-            const boc = unwrapArtifactUrl(d.url);
-            if (boc !== null) {
-              setXemArtifact({ ...boc, url: d.url, title: (d.title as string | null) ?? null });
+            const unwrapped = unwrapArtifactUrl(d.url);
+            if (unwrapped !== null) {
+              setXemArtifact({ ...unwrapped, url: d.url, title: (d.title as string | null) ?? null });
             } else {
               // URL lạ (không phải github.com issues/pull) — mở thẳng tab mới.
               window.open(d.url, "_blank", "noopener,noreferrer");
@@ -422,19 +422,19 @@ export function CanvasView({
             onPointerDown={(e) => {
               e.preventDefault();
               e.currentTarget.setPointerCapture(e.pointerId);
-              dangKeo.current = { start: e.clientX, wide: rongPanel };
+              dragState.current = { start: e.clientX, wide: rongPanel };
             }}
             onPointerMove={(e) => {
-              if (dangKeo.current === null) return;
+              if (dragState.current === null) return;
               const latest = Math.min(
-                Math.max(dangKeo.current.wide + (dangKeo.current.start - e.clientX), 360),
+                Math.max(dragState.current.wide + (dragState.current.start - e.clientX), 360),
                 window.innerWidth - 120,
               );
               setRongPanel(latest);
             }}
             onPointerUp={(e) => {
               e.currentTarget.releasePointerCapture(e.pointerId);
-              dangKeo.current = null;
+              dragState.current = null;
               try {
                 localStorage.setItem("bee-chat-width", String(rongPanel));
               } catch {

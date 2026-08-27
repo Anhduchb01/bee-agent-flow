@@ -175,7 +175,7 @@ describe("parseRecentLine", () => {
    */
   it("phân biệt được ba trạng thái: vắng mặt · null · có lỗi", () => {
     const none = parseRecentLine(JSON.stringify(baseDir));
-    const sach = parseRecentLine(
+    const cleaned = parseRecentLine(
       JSON.stringify({ ...baseDir, stop_reason: "end_turn", api_error_status: null }),
     );
     const quotaExhausted = parseRecentLine(
@@ -184,7 +184,7 @@ describe("parseRecentLine", () => {
 
     // Không gọi agent — khác hẳn "có gọi mà không lỗi".
     expect(none).not.toHaveProperty("api_error_status");
-    expect(sach?.api_error_status).toBeNull();
+    expect(cleaned?.api_error_status).toBeNull();
     expect(quotaExhausted?.api_error_status).toBe(429);
   });
 });

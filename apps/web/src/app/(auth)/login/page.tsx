@@ -85,7 +85,7 @@ export default async function LoginPage({
     await signIn("github", { redirectTo: target });
   }
 
-  async function raNgoai() {
+  async function signOutAction() {
     "use server";
     await signOut({ redirectTo: "/login" });
   }
@@ -116,7 +116,7 @@ export default async function LoginPage({
               You are still signed in as <code>{session.login}</code>, but GitHub no longer
               accepts the token for that session. Sign out and back in to get a new one.
             </p>
-            <form action={raNgoai}>
+            <form action={signOutAction}>
               <Button type="submit" className="w-full">
                 Sign out
               </Button>

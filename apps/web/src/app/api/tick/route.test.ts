@@ -19,7 +19,7 @@ vi.mock("@/lib/bee", () => ({ getBee: () => ({ listSessions: async () => [] }) }
 
 const TOKEN = "a".repeat(32);
 
-function goi(token?: string): Promise<Response> {
+function call(token?: string): Promise<Response> {
   return POST(
     new Request("http://127.0.0.1:3210/api/tick", {
       method: "POST",
@@ -39,30 +39,30 @@ describe("POST /api/tick — the timer's only way in", () => {
   });
 
   it("refreshes the account quota when the token matches", async () => {
-    const res = await goi(TOKEN);
+    const res = await call(TOKEN);
     expect(res.status).toBe(200);
     expect(vi.mocked(fetchClaudeAccountUsage)).toHaveBeenCalled();
     expect(vi.mocked(harvestClaudeUsage)).toHaveBeenCalled();
   });
 
   it("no token on the request → 401, and nothing runs", async () => {
-    const res = await goi();
+    const res = await call();
     expect(res.status).toBe(401);
     expect(vi.mocked(fetchClaudeAccountUsage)).not.toHaveBeenCalled();
   });
 
   it("wrong token → 401", async () => {
-    expect((await goi("b".repeat(32))).status).toBe(401);
+    expect((await call("b".repeat(32))).status).toBe(401);
     expect(vi.mocked(fetchClaudeAccountUsage)).not.toHaveBeenCalled();
   });
 
   it("a token of the wrong LENGTH is refused too (no early-exit leak)", async () => {
-    expect((await goi("a")).status).toBe(401);
+    expect((await call("a")).status).toBe(401);
   });
 
   it("BEE_TICK_TOKEN unset → 503, never runs open to anyone", async () => {
     delete process.env.BEE_TICK_TOKEN;
-    const res = await goi(TOKEN);
+    const res = await call(TOKEN);
     expect(res.status).toBe(503);
     expect(vi.mocked(fetchClaudeAccountUsage)).not.toHaveBeenCalled();
   });
@@ -72,7 +72,7 @@ describe("POST /api/tick — the timer's only way in", () => {
       ok: false,
       message: "usage endpoint 401",
     });
-    const res = await goi(TOKEN);
+    const res = await call(TOKEN);
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toMatchObject({
       quota: { ok: false, message: expect.stringContaining("401") },
@@ -89,7 +89,7 @@ describe("POST /api/tick — nhịp hàng đợi", () => {
   });
 
   it("hàng rỗng: trả lý do đọc được, không đụng gì thêm", async () => {
-    const res = await goi(TOKEN);
+    const res = await call(TOKEN);
     await expect(res.json()).resolves.toMatchObject({
       queue: { opened: null, reason: expect.stringMatching(/queue is empty/) },
     });
@@ -107,7 +107,7 @@ describe("POST /api/tick — nhịp hàng đợi", () => {
       return { items: [], paused: false };
     });
 
-    await goi(TOKEN);
+    await call(TOKEN);
     expect(order).toEqual(["quota", "queue"]);
   });
 });

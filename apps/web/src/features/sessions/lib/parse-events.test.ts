@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { gopSuKien, parseLine } from "./parse-events";
+import { mergeEvents, parseLine } from "./parse-events";
 
 // Fixture là stream-json THẬT ghi lại từ rig S0 (apps/runner/rig/FINDINGS.md),
 // không phải bịa — hình dạng stream đổi theo phiên bản CLI, và bộ này là hợp
@@ -22,13 +22,13 @@ describe("parseLine", () => {
   });
 
   it("bee_lifecycle thành sự kiện vòng đời đọc được", () => {
-    const ket = parseLine('{"type":"bee_lifecycle","msg":"Đang dựng worktree…","ts":"2026-08-17T10:00:00Z"}');
-    expect(ket).toEqual([{ loai: "lifecycle", text: "Đang dựng worktree…", ts: "2026-08-17T10:00:00Z" }]);
+    const outcome = parseLine('{"type":"bee_lifecycle","msg":"Đang dựng worktree…","ts":"2026-08-17T10:00:00Z"}');
+    expect(outcome).toEqual([{ loai: "lifecycle", text: "Đang dựng worktree…", ts: "2026-08-17T10:00:00Z" }]);
   });
 
   it("bee_user_say thành lời của người — CLI không echo input nên đây là nguồn duy nhất", () => {
-    const ket = parseLine('{"type":"bee_user_say","text":"làm gọn thôi","ts":"2026-08-17T10:01:00Z"}');
-    expect(ket).toEqual([{ loai: "nguoi-noi", text: "làm gọn thôi", ts: "2026-08-17T10:01:00Z" }]);
+    const outcome = parseLine('{"type":"bee_user_say","text":"làm gọn thôi","ts":"2026-08-17T10:01:00Z"}');
+    expect(outcome).toEqual([{ loai: "nguoi-noi", text: "làm gọn thôi", ts: "2026-08-17T10:01:00Z" }]);
   });
 
   it("bee_replayed nói rõ đã bỏ qua bao nhiêu", () => {
@@ -36,10 +36,10 @@ describe("parseLine", () => {
   });
 
   it("bee_artifact hợp lệ thành node liệu — kind và url qua allowlist, mang cả title", () => {
-    const ket = parseLine(
+    const outcome = parseLine(
       '{"type":"bee_artifact","kind":"pr","url":"https://github.com/you/myapp/pull/123","number":123,"ts":"2026-08-17T12:00:00Z","title":"Extract layout"}',
     );
-    expect(ket).toEqual([
+    expect(outcome).toEqual([
       {
         loai: "artifact",
         kind: "pr",
@@ -73,8 +73,8 @@ describe("parseLine", () => {
         ],
       },
     });
-    const ket = parseLine(line);
-    expect(ket).toEqual([
+    const outcome = parseLine(line);
+    expect(outcome).toEqual([
       expect.objectContaining({
         loai: "tool",
         name: "Edit",
@@ -91,10 +91,10 @@ describe("parseLine", () => {
   });
 });
 
-describe("gopSuKien trên fixture thật", () => {
+describe("mergeEvents trên fixture thật", () => {
   it("fixture gõ-chen: thấy tool Bash, kết quả tool, và câu trả lời có mã hiệu", () => {
-    const { events, dongRac } = gopSuKien(readFixture("fixture-interject.jsonl"));
-    expect(dongRac).toBe(0);
+    const { events, junkLines } = mergeEvents(readFixture("fixture-interject.jsonl"));
+    expect(junkLines).toBe(0);
 
     const tool = events.filter((s) => s.loai === "tool");
     expect(tool.some((t) => t.loai === "tool" && t.name === "Bash")).toBe(true);
@@ -104,13 +104,13 @@ describe("gopSuKien trên fixture thật", () => {
   });
 
   it("fixture gõ-chen: có delta chữ để màn hình chạy mượt", () => {
-    const { events } = gopSuKien(readFixture("fixture-interject.jsonl"));
+    const { events } = mergeEvents(readFixture("fixture-interject.jsonl"));
     expect(events.some((s) => s.loai === "delta")).toBe(true);
   });
 
   it("fixture phiên trọn vẹn: có tool Write và một kết-quả không lỗi", () => {
-    const { events, dongRac } = gopSuKien(readFixture("fixture-resume-work.jsonl"));
-    expect(dongRac).toBe(0);
+    const { events, junkLines } = mergeEvents(readFixture("fixture-resume-work.jsonl"));
+    expect(junkLines).toBe(0);
     expect(events.some((s) => s.loai === "tool" && s.name === "Write")).toBe(true);
     expect(events.filter((s) => s.loai === "ket-qua")).toEqual([
       // nguCanh 4%: real modelUsage from the recorded stream — the number
@@ -138,7 +138,7 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
         input: { command: "cat /proc/sys/kernel/random/uuid" },
       },
     });
-    const { events } = gopSuKien([line]);
+    const { events } = mergeEvents([line]);
     expect(events).toEqual([
       {
         loai: "xin-quyen",
@@ -153,7 +153,7 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
       request_id: "x",
       request: { subtype: "initialize" },
     });
-    expect(gopSuKien([init]).events).toEqual([]);
+    expect(mergeEvents([init]).events).toEqual([]);
   });
 
   it("bee_approval (web-written ledger line) becomes the answered event", () => {
@@ -163,7 +163,7 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
       behavior: "deny",
       ts: "t",
     });
-    expect(gopSuKien([line]).events).toEqual([
+    expect(mergeEvents([line]).events).toEqual([
       { loai: "quyen-da-tra-loi", requestId: "abc-1", allow: false },
     ]);
   });

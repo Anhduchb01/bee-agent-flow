@@ -11,17 +11,17 @@ const ID = "aa110000-0000-4000-8000-000000000001";
 let dir = "";
 
 async function seedSession(previewLine: string | null) {
-  const sdir = path.join(dir, "sessions", ID);
-  await fs.mkdir(sdir, { recursive: true });
+  const sessionDir = path.join(dir, "sessions", ID);
+  await fs.mkdir(sessionDir, { recursive: true });
   await fs.writeFile(
-    path.join(sdir, "session.json"),
+    path.join(sessionDir, "session.json"),
     JSON.stringify({ id: ID, slug: "myapp", num: 5, repo: "you/myapp", worktree: true }),
   );
   const line = [
     JSON.stringify({ type: "bee_lifecycle", text: "started" }),
     ...(previewLine === null ? [] : [previewLine]),
   ];
-  await fs.writeFile(path.join(sdir, "run.jsonl"), line.join("\n"));
+  await fs.writeFile(path.join(sessionDir, "run.jsonl"), line.join("\n"));
 }
 
 const PREVIEW_LINE = JSON.stringify({
@@ -66,27 +66,27 @@ describe("listPreviews", () => {
   it("keeps only previews whose unit is still active", async () => {
     await seedSession(PREVIEW_LINE);
     const song = vi.fn(async () => ({ stdout: "active" }));
-    const ket = await listPreviews({ runCtl: song });
-    expect(ket).toHaveLength(1);
-    expect(ket[0]).toMatchObject({ slug: "myapp", unit: "bee-preview-myapp-5", port: 3405 });
+    const outcome = await listPreviews({ runCtl: song });
+    expect(outcome).toHaveLength(1);
+    expect(outcome[0]).toMatchObject({ slug: "myapp", unit: "bee-preview-myapp-5", port: 3405 });
     expect(song).toHaveBeenCalledWith("systemctl", [
       "--user",
       "is-active",
       "bee-preview-myapp-5.service",
     ]);
 
-    const chet = vi.fn(async () => {
+    const throws = vi.fn(async () => {
       throw new Error("inactive");
     });
-    expect(await listPreviews({ runCtl: chet })).toEqual([]);
+    expect(await listPreviews({ runCtl: throws })).toEqual([]);
   });
 });
 
 describe("stopPreview", () => {
   it("stops the unit and releases the tailscale serve port", async () => {
     const runCtl = vi.fn(async () => ({ stdout: "" }));
-    const ket = await stopPreview("bee-preview-myapp-5", 3405, { runCtl });
-    expect(ket.ok).toBe(true);
+    const outcome = await stopPreview("bee-preview-myapp-5", 3405, { runCtl });
+    expect(outcome.ok).toBe(true);
     expect(runCtl.mock.calls).toEqual([
       ["systemctl", ["--user", "stop", "bee-preview-myapp-5.service"]],
       ["tailscale", ["serve", "--https=3405", "off"]],

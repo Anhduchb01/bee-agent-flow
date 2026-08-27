@@ -59,11 +59,11 @@ export function DigestView({ digest }: { digest: Digest }) {
         </section>
       )}
 
-      {digest.ket.length > 0 && (
+      {digest.outcome.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-foreground">Stuck ({digest.ket.length})</h2>
+          <h2 className="text-sm font-semibold text-foreground">Stuck ({digest.outcome.length})</h2>
           <ul className="flex flex-col gap-2">
-            {digest.ket.map((m) => (
+            {digest.outcome.map((m) => (
               <li key={m.session.id} className="flex flex-col gap-1 rounded-card border border-border bg-card p-3">
                 <span className="flex items-center gap-2">
                   <StatusDot tone={m.session.needs_human ? "down" : "warn"} />

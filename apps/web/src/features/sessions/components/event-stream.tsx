@@ -19,7 +19,7 @@ import type { StreamEvent } from "../lib/parse-events";
  * React elements và mặc định BỎ HTML thô trong nội dung — giữ nguyên bài
  * chống HTML injection của bản plain text.
  */
-function ChuAgent({ text }: { text: string }) {
+function AgentProse({ text }: { text: string }) {
   return (
     <div
       className="space-y-2 text-[0.9375rem] leading-6 text-body
@@ -51,7 +51,7 @@ const NHIP_TU = [
   "Percolating",
 ];
 
-function NhipChay() {
+function RunningPulse() {
   const [i, setI] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setI((x) => (x + 1) % NHIP_TU.length), 2500);
@@ -102,17 +102,17 @@ export function EventStream({
       )}
       {typing !== "" && (
         <div aria-label="Agent is typing">
-          <ChuAgent text={typing} />
+          <AgentProse text={typing} />
           <span className="animate-pulse">▍</span>
         </div>
       )}
-      {waiting && <NhipChay />}
+      {waiting && <RunningPulse />}
     </div>
   );
 }
 
 /** Bash's `command` reads better than raw JSON; other tools show the JSON. */
-function tomTatThamSo(name: string, thamSo: string): string {
+function summariseArgs(name: string, thamSo: string): string {
   try {
     const o = JSON.parse(thamSo) as Record<string, unknown>;
     if (name === "Bash" && typeof o.command === "string") return o.command;
@@ -127,7 +127,7 @@ function tomTatThamSo(name: string, thamSo: string): string {
  * Manual-mode approval card (V2.5b): the agent stops until the owner
  * answers. Deny sends a reason the model can read and adapt to.
  */
-function TheXinQuyen({
+function PermissionCard({
   m,
   onAnswer,
 }: {
@@ -150,7 +150,7 @@ function TheXinQuyen({
         )}
       </p>
       <pre className="overflow-x-auto rounded-control border border-border bg-muted/40 p-2 font-mono text-xs">
-        {tomTatThamSo(m.name, m.thamSo)}
+        {summariseArgs(m.name, m.thamSo)}
       </pre>
       {m.answer === null && onAnswer !== undefined && (
         <div className="mt-2 flex gap-2">
@@ -183,7 +183,7 @@ function OneCard({
 }) {
   switch (m.loai) {
     case "xin-quyen":
-      return <TheXinQuyen m={m} onAnswer={onAnswerPermission} />;
+      return <PermissionCard m={m} onAnswer={onAnswerPermission} />;
     case "lifecycle":
       return <p className="font-mono text-xs text-muted-foreground">· {m.text}</p>;
     case "nguoi-noi":
@@ -194,7 +194,7 @@ function OneCard({
         </div>
       );
     case "agent-noi":
-      return <ChuAgent text={m.text} />;
+      return <AgentProse text={m.text} />;
     case "nghi":
       return (
         <details className="group">
@@ -263,7 +263,7 @@ function TheTool({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
   return (
     <details className="group" open={m.status === "loi"}>
       <summary className="flex cursor-pointer list-none items-baseline gap-2">
-        <ChamTrangThai status={m.status} />
+        <StatusPip status={m.status} />
         <span className="text-sm font-semibold text-body">{m.name}</span>
         <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
           {tomTat}
@@ -284,8 +284,8 @@ function ThanThe({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
   if (m.cu !== undefined || m.latest !== undefined) {
     return (
       <div className="overflow-hidden rounded-control border border-border font-mono text-xs leading-5">
-        {m.cu !== undefined && <KhoiDiff head="-" text={m.cu} />}
-        {m.latest !== undefined && <KhoiDiff head="+" text={m.latest} />}
+        {m.cu !== undefined && <DiffBlock head="-" text={m.cu} />}
+        {m.latest !== undefined && <DiffBlock head="+" text={m.latest} />}
       </div>
     );
   }
@@ -293,8 +293,8 @@ function ThanThe({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
   if (m.lenh !== undefined) {
     return (
       <div className="overflow-hidden rounded-control border border-border font-mono text-xs leading-5">
-        <DongGutter label="IN" text={m.lenh} />
-        {m.result !== null && <DongGutter label="OUT" text={m.result} />}
+        <GutterLine label="IN" text={m.lenh} />
+        {m.result !== null && <GutterLine label="OUT" text={m.result} />}
       </div>
     );
   }
@@ -316,7 +316,7 @@ function ThanThe({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
 }
 
 /** Khối diff một phía: từng dòng mang dấu +/− và nền màu như VSCode dark. */
-function KhoiDiff({ head, text }: { head: "+" | "-"; text: string }) {
+function DiffBlock({ head, text }: { head: "+" | "-"; text: string }) {
   const mau =
     head === "+"
       ? "bg-green-950/50 text-green-200"
@@ -333,7 +333,7 @@ function KhoiDiff({ head, text }: { head: "+" | "-"; text: string }) {
   );
 }
 
-function DongGutter({ label, text }: { label: "IN" | "OUT"; text: string }) {
+function GutterLine({ label, text }: { label: "IN" | "OUT"; text: string }) {
   return (
     <div className="flex bg-input/30">
       <span className="w-9 shrink-0 select-none pt-1.5 pl-1.5 text-[0.625rem] tracking-wide text-muted-foreground">
@@ -354,7 +354,7 @@ function countLines(m: Extract<Card, { loai: "tool-card" }>): string | null {
   return part.join(" ");
 }
 
-function ChamTrangThai({ status }: { status: "dang-chay" | "xong" | "loi" }) {
+function StatusPip({ status }: { status: "dang-chay" | "xong" | "loi" }) {
   if (status === "dang-chay") {
     return (
       <span className="animate-pulse text-amber-500" aria-label="running">

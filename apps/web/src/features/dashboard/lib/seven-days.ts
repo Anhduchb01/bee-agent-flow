@@ -60,19 +60,19 @@ export function lastSevenDays(runs: BeeRecentRun[], now: Date = new Date()): Run
 
 /** Câu tóm tắt dưới biểu đồ. `null` khi bảy ngày không có lần chạy nào. */
 export function tomTatBayNgay(days: RunDay[]): string | null {
-  const homNay = days.at(-1);
+  const todayRow = days.at(-1);
   const prev = days.slice(0, -1);
-  const tongTruoc = prev.reduce((n, d) => n + d.tong, 0);
+  const prevTotal = prev.reduce((n, d) => n + d.tong, 0);
   const prevError = prev.reduce((n, d) => n + d.err, 0);
 
-  if (!homNay || (homNay.tong === 0 && tongTruoc === 0)) return null;
-  if (homNay.tong === 0) return "No runs today yet.";
+  if (!todayRow || (todayRow.tong === 0 && prevTotal === 0)) return null;
+  if (todayRow.tong === 0) return "No runs today yet.";
 
-  const tiLeHomNay = homNay.err / homNay.tong;
-  const tiLeTruoc = tongTruoc === 0 ? 0 : prevError / tongTruoc;
+  const rateToday = todayRow.err / todayRow.tong;
+  const ratePrev = prevTotal === 0 ? 0 : prevError / prevTotal;
 
-  if (homNay.err > 0 && tiLeHomNay > tiLeTruoc * 2) {
-    return `${homNay.err} of ${homNay.tong} runs failed today — sharply higher than the six days before.`;
+  if (todayRow.err > 0 && rateToday > ratePrev * 2) {
+    return `${todayRow.err} of ${todayRow.tong} runs failed today — sharply higher than the six days before.`;
   }
-  return `${homNay.finished} of ${homNay.tong} runs finished today.`;
+  return `${todayRow.finished} of ${todayRow.tong} runs finished today.`;
 }

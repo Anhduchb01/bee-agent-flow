@@ -28,35 +28,35 @@ const STUB = `#!/usr/bin/env node
 // Raw mode, like ink: without it the pty's line discipline turns the CR we
 // are testing for into an LF and the distinction disappears.
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
-const cot = process.stdout.columns ?? 80;
-const ve = (s) => {
+const width = process.stdout.columns ?? 80;
+const emitLine = (s) => {
   // Wrap like ink does: hard break at the pty width.
-  for (let i = 0; i < s.length; i += cot) process.stdout.write(s.slice(i, i + cot) + "\\r\\n");
+  for (let i = 0; i < s.length; i += width) process.stdout.write(s.slice(i, i + width) + "\\r\\n");
 };
-ve("Browser didn't open? Use the url below to sign in");
-ve("https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=" + "s".repeat(60));
+emitLine("Browser didn't open? Use the url below to sign in");
+emitLine("https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=" + "s".repeat(60));
 process.stdout.write("Paste code here if prompted > ");
 let buf = "";
-let cum = 0, luc = 0;
+let burst = 0, lastAt = 0;
 process.stdin.on("data", (d) => {
   // Paste detection the way the real thing does it: by BURST, not by chunk.
   // A pty splits a big write into several reads, so "is this chunk large?"
   // measures nothing. What counts is how much arrived back-to-back — and a
   // CR riding at the end of a big burst is pasted text, not a keypress.
   const now = Date.now();
-  if (now - luc > 150) cum = 0;
-  luc = now;
+  if (now - lastAt > 150) burst = 0;
+  lastAt = now;
   let s = d.toString();
-  cum += s.length;
-  if (cum > 56) s = s.replace(/\\r/g, "");
+  burst += s.length;
+  if (burst > 56) s = s.replace(/\\r/g, "");
   buf += s;
   const i = buf.indexOf("\\r");           // CR only — LF is not Enter
   if (i === -1) return;
   const code = buf.slice(0, i);
   buf = buf.slice(i + 1);
-  if (code.startsWith("MASAI")) { ve("OAuth error: Request failed with status code 400"); ve("Press Enter to retry."); return; }
-  ve("\\u2713 Long-lived authentication token created successfully!");
-  ve("${TOKEN}");
+  if (code.startsWith("MASAI")) { emitLine("OAuth error: Request failed with status code 400"); emitLine("Press Enter to retry."); return; }
+  emitLine("\\u2713 Long-lived authentication token created successfully!");
+  emitLine("${TOKEN}");
   process.exit(0);
 });
 `;
@@ -118,11 +118,11 @@ describe("claude setup-token, driven through a pty", () => {
     // Whole and single: an 80-column pty would have sliced this in two.
     expect(link.url).toMatch(/^https:\/\/claude\.com\/cai\/oauth\/authorize\?code=true&client_id=9d1c250a&state=s+$/);
 
-    const ket = await submitClaudeCode(MA_THAT);
-    expect(ket.ok).toBe(true);
-    const daLuu = await fs.readFile(path.join(tmpDir, "claude.env"), "utf8");
+    const outcome = await submitClaudeCode(MA_THAT);
+    expect(outcome.ok).toBe(true);
+    const saved = await fs.readFile(path.join(tmpDir, "claude.env"), "utf8");
     // The whole token, not the first 80 characters of it.
-    expect(daLuu.trim()).toBe(`CLAUDE_CODE_OAUTH_TOKEN=${TOKEN}`);
+    expect(saved.trim()).toBe(`CLAUDE_CODE_OAUTH_TOKEN=${TOKEN}`);
   }, 30_000);
 
   it("a code the server refuses comes back as the flow's own words, fast", async () => {
@@ -130,15 +130,15 @@ describe("claude setup-token, driven through a pty", () => {
     const { startClaudeSetup, submitClaudeCode } = await import("./machine-ctl");
 
     expect((await startClaudeSetup()).ok).toBe(true);
-    const ket = await submitClaudeCode(`MASAI${MA_THAT}`);
-    expect(ket.ok).toBe(false);
-    if (!ket.ok) expect(ket.message).toMatch(/OAuth error: Request failed with status code 400/);
+    const outcome = await submitClaudeCode(`MASAI${MA_THAT}`);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.message).toMatch(/OAuth error: Request failed with status code 400/);
   }, 30_000);
 
   it("no flow started → says so instead of hanging", async () => {
     const { submitClaudeCode } = await import("./machine-ctl");
-    const ket = await submitClaudeCode("ABC123");
-    expect(ket.ok).toBe(false);
-    if (!ket.ok) expect(ket.message).toMatch(/No login flow is waiting/);
+    const outcome = await submitClaudeCode("ABC123");
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.message).toMatch(/No login flow is waiting/);
   });
 });

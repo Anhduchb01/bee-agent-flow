@@ -56,8 +56,8 @@ export function checkQuota(
         ? { name: "7-day", pct: bay, w: usage.seven_day }
         : null;
 
-  const tuoiGio = (at.getTime() - new Date(usage.fetched_at).getTime()) / 3_600_000;
-  const cu = Number.isFinite(tuoiGio) && tuoiGio > CU_SAU_GIO;
+  const ageHours = (at.getTime() - new Date(usage.fetched_at).getTime()) / 3_600_000;
+  const cu = Number.isFinite(ageHours) && ageHours > CU_SAU_GIO;
 
   if (past !== null) {
     return {
@@ -68,7 +68,7 @@ export function checkQuota(
   if (cu) {
     return {
       moDuoc: true,
-      reason: `quota numbers are ${Math.round(tuoiGio)}h old — is tick running? Opening, but the brake cannot be trusted`,
+      reason: `quota numbers are ${Math.round(ageHours)}h old — is tick running? Opening, but the brake cannot be trusted`,
     };
   }
   return { moDuoc: true, reason: `quota 5h ${five}% · 7-day ${bay}%` };

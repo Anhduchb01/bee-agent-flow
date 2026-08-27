@@ -247,13 +247,13 @@ export async function submitClaudeCode(code: string): Promise<Result> {
     if (flow.done) break;
     await new Promise((r) => setTimeout(r, 250));
   }
-  const daXong = flow.done;
+  const isDone = flow.done;
   const swapWith = lastScreen(flow.out);
   killSetupFlow();
   return {
     ok: false,
     message:
-      (daXong
+      (isDone
         ? "The code was rejected — get a new link and try again."
         : "Timed out waiting for the token — get a new link and try again.") +
       (swapWith === null ? "" : ` Last thing the flow printed: “${swapWith}”`),
@@ -436,12 +436,12 @@ export async function harvestClaudeUsage(): Promise<Result> {
   const rows: string[] = [];
 
   for (const id of ids) {
-    const sdir = path.join(sessionsDir, id);
+    const sessionDir = path.join(sessionsDir, id);
 
     // Last rate_limit_event of the most recently active session wins.
     try {
-      const st = await fs.stat(path.join(sdir, "run.jsonl"));
-      const text = await fs.readFile(path.join(sdir, "run.jsonl"), "utf8");
+      const st = await fs.stat(path.join(sessionDir, "run.jsonl"));
+      const text = await fs.readFile(path.join(sessionDir, "run.jsonl"), "utf8");
       for (const line of text.split("\n")) {
         if (!line.includes('"rate_limit_event"')) continue;
         try {
@@ -462,9 +462,9 @@ export async function harvestClaudeUsage(): Promise<Result> {
 
     // usage.json (the session's final result line) → one recent.jsonl row.
     try {
-      const usage = JSON.parse(await fs.readFile(path.join(sdir, "usage.json"), "utf8")) as Record<string, unknown>;
-      const meta = JSON.parse(await fs.readFile(path.join(sdir, "meta.json"), "utf8")) as Record<string, unknown>;
-      const sess = JSON.parse(await fs.readFile(path.join(sdir, "session.json"), "utf8")) as Record<string, unknown>;
+      const usage = JSON.parse(await fs.readFile(path.join(sessionDir, "usage.json"), "utf8")) as Record<string, unknown>;
+      const meta = JSON.parse(await fs.readFile(path.join(sessionDir, "meta.json"), "utf8")) as Record<string, unknown>;
+      const sess = JSON.parse(await fs.readFile(path.join(sessionDir, "session.json"), "utf8")) as Record<string, unknown>;
 
       let tin = 0, tout = 0, tcr = 0, tcw = 0, cost = 0;
       const mu = usage.modelUsage;
@@ -556,7 +556,7 @@ export async function listEnvFiles(slug: string): Promise<BeeEnvFile[]> {
   const dir = envDirOf(slug);
   if (dir === null || isFixture()) return [];
   const ra: BeeEnvFile[] = [];
-  async function quet(dir: string, baseDir: string): Promise<void> {
+  async function walk(dir: string, baseDir: string): Promise<void> {
     let row: string[] = [];
     try {
       row = await fs.readdir(dir);
@@ -567,11 +567,11 @@ export async function listEnvFiles(slug: string): Promise<BeeEnvFile[]> {
       const full = path.join(dir, m);
       const st = await fs.stat(full).catch(() => null);
       if (st === null) continue;
-      if (st.isDirectory()) await quet(full, baseDir);
+      if (st.isDirectory()) await walk(full, baseDir);
       else ra.push({ path: path.relative(baseDir, full), content: await fs.readFile(full, "utf8") });
     }
   }
-  await quet(dir, dir);
+  await walk(dir, dir);
   return ra.sort((a, b) => a.path.localeCompare(b.path));
 }
 

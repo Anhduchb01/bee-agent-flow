@@ -22,9 +22,9 @@ vi.mock("next/navigation", () => ({
 
 // jsdom has no matchMedia; the sidebar's mobile hook needs a stub. `dienThoai`
 // flips it so the same component can be rendered at phone width.
-let dienThoai = false;
+let isPhone = false;
 window.matchMedia = ((query: string) => ({
-  matches: dienThoai && query.includes("max-width"),
+  matches: isPhone && query.includes("max-width"),
   media: query,
   addEventListener: () => {},
   removeEventListener: () => {},
@@ -34,7 +34,7 @@ window.matchMedia = ((query: string) => ({
   dispatchEvent: () => false,
 })) as typeof window.matchMedia;
 
-function renderSidebar(duAn: { slug: string; running: number; tone: "ok" | "agent" }[]) {
+function renderSidebar(sidebarProjects: { slug: string; running: number; tone: "ok" | "agent" }[]) {
   return render(
     <TooltipProvider>
       <SidebarProvider>
@@ -45,7 +45,7 @@ function renderSidebar(duAn: { slug: string; running: number; tone: "ok" | "agen
           nutTaoDuAn={<SidebarNewProjectTrigger />}
           displayName="Đức"
           login="Anhduchb01"
-          duAn={duAn}
+          sidebarProjects={sidebarProjects}
           sucKhoe={{ tone: "ok", headline: "System is running", detail: null }}
           signingOut={vi.fn()}
         />
@@ -88,11 +88,11 @@ describe("AppSidebar — Projects section speaks the session model", () => {
 
 describe("on a phone the sidebar is a sheet — it must get out of the way", () => {
   afterEach(() => {
-    dienThoai = false;
+    isPhone = false;
   });
 
   async function openSheet() {
-    dienThoai = true;
+    isPhone = true;
     const user = userEvent.setup();
     renderSidebar([{ slug: "lifebook-assessment", running: 0, tone: "ok" }]);
     await user.click(screen.getByRole("button", { name: /toggle sidebar/i }));
@@ -101,10 +101,10 @@ describe("on a phone the sidebar is a sheet — it must get out of the way", () 
 
   it("tapping a project closes the sheet instead of navigating behind it", async () => {
     const user = await openSheet();
-    const duAn = await screen.findByRole("link", { name: /lifebook-assessment/ });
+    const sidebarProjects = await screen.findByRole("link", { name: /lifebook-assessment/ });
 
-    await user.click(duAn);
-    await waitFor(() => expect(duAn).not.toBeInTheDocument());
+    await user.click(sidebarProjects);
+    await waitFor(() => expect(sidebarProjects).not.toBeInTheDocument());
   });
 
   /**

@@ -37,15 +37,15 @@ const TRANG_THAI: readonly SessionStatus[] = ["starting", "running", "done", "st
 
 export async function readSessionIn(root: string, id: string): Promise<BeeSession | null> {
   if (!isSessionId(id)) return null;
-  const sdir = path.join(root, "sessions", id);
+  const sessionDir = path.join(root, "sessions", id);
 
-  const s = await readJson(path.join(sdir, "session.json"));
+  const s = await readJson(path.join(sessionDir, "session.json"));
   if (!isObject(s)) return null;
   if (typeof s.slug !== "string" || typeof s.repo !== "string") return null;
 
   // meta.json chưa tồn tại = runner chưa mở sổ = "starting". Đây là trạng
   // thái thật ngay sau khi bấm nút, không phải lỗi đọc.
-  const m = await readJson(path.join(sdir, "meta.json"));
+  const m = await readJson(path.join(sessionDir, "meta.json"));
   const meta = isObject(m) ? m : {};
 
   const statusTho = typeof meta.status === "string" ? meta.status : "starting";
@@ -122,7 +122,7 @@ export async function listSessionsIn(root: string): Promise<BeeSession[]> {
     .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
 }
 
-export function duongDanRunTrong(root: string, id: string): string | null {
+export function runPathIn(root: string, id: string): string | null {
   if (!isSessionId(id)) return null;
   return path.join(root, "sessions", id, "run.jsonl");
 }
@@ -134,7 +134,7 @@ export function duongDanRunTrong(root: string, id: string): string | null {
  * run.jsonl có trần theo byte (spec session-first §11) thì đây cũng có trần.
  */
 export async function readArtifactsIn(root: string, id: string): Promise<BeeArtifact[]> {
-  const file = duongDanRunTrong(root, id);
+  const file = runPathIn(root, id);
   if (!file) return [];
   let text: string;
   try {
@@ -172,7 +172,7 @@ export async function readArtifactsIn(root: string, id: string): Promise<BeeArti
  * chỉ để lấy một câu.
  */
 export async function readLastLineIn(root: string, id: string): Promise<string | null> {
-  const file = duongDanRunTrong(root, id);
+  const file = runPathIn(root, id);
   if (!file) return null;
   let text: string;
   try {
@@ -202,7 +202,7 @@ export async function readLastLineIn(root: string, id: string): Promise<string |
   return null;
 }
 
-function loaiTep(name: string): BeeEvidenceFile["loai"] {
+function fileKind(name: string): BeeEvidenceFile["loai"] {
   if (/\.(png|jpe?g|gif|webp)$/i.test(name)) return "image";
   if (/\.(webm|mp4)$/i.test(name)) return "video";
   return "khac";
@@ -220,7 +220,7 @@ export async function readEvidenceIn(root: string, id: string): Promise<BeeEvide
   return names.sort().map((n) => ({
     name: n,
     url: `/api/evidence/session/${id}/${encodeURIComponent(n)}`,
-    loai: loaiTep(n),
+    loai: fileKind(n),
   }));
 }
 
@@ -237,13 +237,13 @@ export async function findEvidenceForArtifact(
 ): Promise<{ sessionId: string; files: BeeEvidenceFile[] } | null> {
   for (const session of await listSessionsIn(root)) {
     const arts = await readArtifactsIn(root, session.id);
-    const trung = arts.some(
+    const same = arts.some(
       (a) =>
         a.kind === kind &&
         a.number === number &&
         a.url.startsWith(`https://github.com/${repo}/`),
     );
-    if (!trung) continue;
+    if (!same) continue;
     return { sessionId: session.id, files: await readEvidenceIn(root, session.id) };
   }
   return null;
@@ -259,7 +259,7 @@ export interface BeePreviewRecord {
 }
 
 export async function readPreviewIn(root: string, id: string): Promise<BeePreviewRecord | null> {
-  const file = duongDanRunTrong(root, id);
+  const file = runPathIn(root, id);
   if (!file) return null;
   let text: string;
   try {

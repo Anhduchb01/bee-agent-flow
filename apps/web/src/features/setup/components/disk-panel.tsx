@@ -32,8 +32,8 @@ export function DiskPanel({ gc }: { gc: BeeGc | null }) {
   function cleanup() {
     if (busy) return;
     start(async () => {
-      const ket = await runGcAction();
-      setErr(ket.ok ? "" : ket.message);
+      const outcome = await runGcAction();
+      setErr(outcome.ok ? "" : outcome.message);
       router.refresh();
     });
   }

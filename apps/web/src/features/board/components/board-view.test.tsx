@@ -113,7 +113,7 @@ describe("BoardToolbar — filter and view live in the URL", () => {
     expect(boardHref("blog", "table")).toBe("/projects?p=blog");
     expect(boardHref("blog", "kanban")).toBe("/projects?p=blog&view=kanban");
 
-    render(<BoardToolbar repos={REPOS} duAn="blog" view="kanban" queuedCount={2} />);
+    render(<BoardToolbar repos={REPOS} sidebarProjects="blog" view="kanban" queuedCount={2} />);
     expect(screen.getByRole("link", { name: "blog" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Kanban" })).toHaveAttribute("aria-current", "page");
     // Switching view keeps the project filter, and vice versa.
@@ -128,7 +128,7 @@ describe("BoardToolbar — filter and view live in the URL", () => {
   });
 
   it("empty queue disables Run now — do not promise what cannot run", () => {
-    render(<BoardToolbar repos={REPOS} duAn={null} view="table" queuedCount={0} />);
+    render(<BoardToolbar repos={REPOS} sidebarProjects={null} view="table" queuedCount={0} />);
     expect(screen.getByRole("button", { name: "Run now" })).toBeDisabled();
   });
 });

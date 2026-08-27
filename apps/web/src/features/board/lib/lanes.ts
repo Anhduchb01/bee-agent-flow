@@ -95,8 +95,8 @@ export function laneOf(
  */
 export function isDropAllowed(since: Lane, den: Lane): { ok: boolean; reason: string } {
   if (since === den) return { ok: true, reason: "" };
-  const duoc = new Set<Lane>(["backlog", "autopilot"]);
-  if (duoc.has(since) && duoc.has(den)) return { ok: true, reason: "" };
+  const allowed = new Set<Lane>(["backlog", "autopilot"]);
+  if (allowed.has(since) && allowed.has(den)) return { ok: true, reason: "" };
   const vi: Record<Lane, string> = {
     backlog: "",
     autopilot: "",

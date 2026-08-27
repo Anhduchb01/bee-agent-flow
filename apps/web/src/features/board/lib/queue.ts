@@ -31,12 +31,12 @@ export interface NewItem {
 }
 
 /** Khoá của một việc là (repo, issue) — cùng số issue ở hai repo là hai việc. */
-function trung(a: { repo: string; issue: number }, repo: string, issue: number): boolean {
+function same(a: { repo: string; issue: number }, repo: string, issue: number): boolean {
   return a.repo === repo && a.issue === issue;
 }
 
 export function addQueueItem(q: Queue, v: NewItem, at = new Date()): Queue {
-  if (q.items.some((i) => trung(i, v.repo, v.issue))) return q;
+  if (q.items.some((i) => same(i, v.repo, v.issue))) return q;
   return {
     ...q,
     items: [
@@ -57,12 +57,12 @@ export function addQueueItem(q: Queue, v: NewItem, at = new Date()): Queue {
 }
 
 export function removeQueueItem(q: Queue, repo: string, issue: number): Queue {
-  return { ...q, items: q.items.filter((i) => !trung(i, repo, issue)) };
+  return { ...q, items: q.items.filter((i) => !same(i, repo, issue)) };
 }
 
 /** Đổi thứ tự một bậc. Ở đầu/cuối rồi thì không đi đâu cả — không quay vòng. */
 export function reorderQueueItem(q: Queue, repo: string, issue: number, buoc: -1 | 1): Queue {
-  const i = q.items.findIndex((x) => trung(x, repo, issue));
+  const i = q.items.findIndex((x) => same(x, repo, issue));
   if (i === -1) return q;
   const j = i + buoc;
   if (j < 0 || j >= q.items.length) return q;

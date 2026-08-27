@@ -11,7 +11,7 @@ import type { UsageWindow, Quota, ToolCard } from "./types";
 
 const NGAY = 24 * 60 * 60 * 1000;
 
-function tokenCua(r: BeeRecentRun): number {
+function tokensOf(r: BeeRecentRun): number {
   return (
     (r.tokens_in ?? 0) +
     (r.tokens_out ?? 0) +
@@ -37,7 +37,7 @@ function quotaExhausted(r: BeeRecentRun): boolean {
 }
 
 /** Cùng một ngày theo giờ máy chạy dashboard — "hôm nay" là hôm nay của người xem. */
-function cungNgay(a: Date, b: Date): boolean {
+function sameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
@@ -50,8 +50,8 @@ export function aggregateUsage(runs: BeeRecentRun[], now: Date = new Date()): To
   let errorCount = 0;
   let token = 0;
   let cacheRead = 0;
-  let chiPhiHomNay = 0;
-  let chiPhiBayNgay = 0;
+  let costToday = 0;
+  let costSevenDays = 0;
   let stoppedOnQuota = 0;
 
   for (const r of runs) {
@@ -60,15 +60,15 @@ export function aggregateUsage(runs: BeeRecentRun[], now: Date = new Date()): To
     // không vào "hôm nay" sẽ cho ra hai con số không cộng lại được với nhau.
     if (Number.isNaN(at.getTime())) continue;
 
-    const tuoi = now.getTime() - at.getTime();
-    if (tuoi <= 7 * NGAY) chiPhiBayNgay += r.cost_usd ?? 0;
-    if (!cungNgay(at, now)) continue;
+    const age = now.getTime() - at.getTime();
+    if (age <= 7 * NGAY) costSevenDays += r.cost_usd ?? 0;
+    if (!sameDay(at, now)) continue;
 
     runCount += 1;
     if (r.result !== "ok") errorCount += 1;
-    token += tokenCua(r);
+    token += tokensOf(r);
     cacheRead += r.tokens_cache_read ?? 0;
-    chiPhiHomNay += r.cost_usd ?? 0;
+    costToday += r.cost_usd ?? 0;
     if (quotaExhausted(r)) stoppedOnQuota += 1;
   }
 
@@ -77,8 +77,8 @@ export function aggregateUsage(runs: BeeRecentRun[], now: Date = new Date()): To
     errorCount,
     token,
     tiLeCache: token > 0 ? cacheRead / token : 0,
-    chiPhiHomNay,
-    chiPhiBayNgay,
+    costToday,
+    costSevenDays,
     stoppedOnQuota,
   };
 }
@@ -121,7 +121,7 @@ export function quotaFrom(rl: BeeClaudeRateLimit | null): Quota[] {
  * rate_limit_event this covers the whole account, other machines included.
  */
 export function accountQuota(acc: BeeClaudeAccountUsage): Quota[] {
-  const mot = (usageWindow: UsageWindow, w: BeeClaudeWindow | null): Quota[] => {
+  const windowQuotas = (usageWindow: UsageWindow, w: BeeClaudeWindow | null): Quota[] => {
     if (w === null) return [];
     const status: Quota["status"] =
       w.percent >= 100 ? "exceeded" : w.percent >= 80 ? "warning" : "allowed";
@@ -135,5 +135,5 @@ export function accountQuota(acc: BeeClaudeAccountUsage): Quota[] {
       },
     ];
   };
-  return [...mot("five_hour", acc.five_hour), ...mot("weekly", acc.seven_day)];
+  return [...windowQuotas("five_hour", acc.five_hour), ...windowQuotas("weekly", acc.seven_day)];
 }

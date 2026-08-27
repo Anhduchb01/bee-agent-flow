@@ -11,10 +11,10 @@ const ID = "cd000000-0000-4000-8000-000000000001";
 let dir = "";
 
 async function writeSession(extra: Record<string, unknown> = {}) {
-  const sdir = path.join(dir, "sessions", ID);
-  await fs.mkdir(sdir, { recursive: true });
+  const sessionDir = path.join(dir, "sessions", ID);
+  await fs.mkdir(sessionDir, { recursive: true });
   await fs.writeFile(
-    path.join(sdir, "session.json"),
+    path.join(sessionDir, "session.json"),
     JSON.stringify({ id: ID, slug: "myapp", num: 1, repo: "you/myapp", worktree: true, ...extra }),
   );
 }
@@ -38,8 +38,8 @@ describe("changeSessionMode — V2.5a mode switch", () => {
 
   it("writes the new mode into session.json (unit not running → no restart, still ok)", async () => {
     await writeSession();
-    const ket = await changeSessionMode(ID, "plan");
-    expect(ket.ok).toBe(true);
+    const outcome = await changeSessionMode(ID, "plan");
+    expect(outcome.ok).toBe(true);
     expect(await readMode()).toBe("plan");
   });
 
@@ -52,15 +52,15 @@ describe("changeSessionMode — V2.5a mode switch", () => {
   it("dirty id and unknown mode are refused before touching the filesystem", async () => {
     expect((await changeSessionMode("../../etc", "plan")).ok).toBe(false);
     await writeSession();
-    const ket = await changeSessionMode(ID, "yolo" as BeeSessionMode);
-    expect(ket.ok).toBe(false);
+    const outcome = await changeSessionMode(ID, "yolo" as BeeSessionMode);
+    expect(outcome.ok).toBe(false);
     expect(await readMode()).toBeUndefined();
   });
 
   it("chat sessions have no tools — mode switch is refused with a reason", async () => {
     await writeSession({ worktree: false });
-    const ket = await changeSessionMode(ID, "plan");
-    expect(ket.ok).toBe(false);
-    if (!ket.ok) expect(ket.message).toContain("no tools");
+    const outcome = await changeSessionMode(ID, "plan");
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.message).toContain("no tools");
   });
 });

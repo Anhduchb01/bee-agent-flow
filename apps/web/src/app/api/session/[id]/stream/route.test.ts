@@ -24,7 +24,7 @@ function mockBee(input: { file?: string | null; status?: string }) {
   } as unknown as ReturnType<typeof getBee>);
 }
 
-function goi(id: string, lastEventId?: string): Promise<Response> {
+function call(id: string, lastEventId?: string): Promise<Response> {
   const req = new Request(`http://x/api/session/${id}/stream`, {
     headers: lastEventId === undefined ? {} : { "last-event-id": lastEventId },
   });
@@ -59,10 +59,10 @@ async function readFrames(
       buf += decoder.decode(chunk.value, { stream: true });
       let cat = buf.indexOf("\n\n");
       while (cat >= 0) {
-        const khoi = buf.slice(0, cat);
+        const block = buf.slice(0, cat);
         buf = buf.slice(cat + 2);
-        const id = Number(/^id: (\d+)$/m.exec(khoi)?.[1] ?? "-1");
-        const data = /^data: (.*)$/m.exec(khoi)?.[1] ?? "";
+        const id = Number(/^id: (\d+)$/m.exec(block)?.[1] ?? "-1");
+        const data = /^data: (.*)$/m.exec(block)?.[1] ?? "";
         frames.push({ id, data });
         cat = buf.indexOf("\n\n");
       }
@@ -87,21 +87,21 @@ describe("GET /api/session/[id]/stream", () => {
 
   it("401 without an actor — the stream is private", async () => {
     vi.mocked(getActor).mockResolvedValue(null);
-    expect((await goi(ID)).status).toBe(401);
+    expect((await call(ID)).status).toBe(401);
   });
 
   it("400 on a dirty id — never near a path or unit name", async () => {
-    expect((await goi("../../etc")).status).toBe(400);
+    expect((await call("../../etc")).status).toBe(400);
   });
 
   it("404 when the session does not exist", async () => {
     mockBee({ file: null });
-    expect((await goi(ID)).status).toBe(404);
+    expect((await call(ID)).status).toBe(404);
   });
 
   it("replays existing lines as SSE frames; id = byte offset AFTER the line", async () => {
     await fs.writeFile(runFile, '{"n":1}\n{"n":2}\n');
-    const res = await goi(ID);
+    const res = await call(ID);
 
     expect(res.headers.get("content-type")).toContain("text/event-stream");
     expect(res.headers.get("cache-control")).toBe("no-store");
@@ -115,7 +115,7 @@ describe("GET /api/session/[id]/stream", () => {
   it("long history: bee_replayed says how many lines were skipped, then the tail", async () => {
     const line = Array.from({ length: 205 }, (_, i) => `{"n":${i}}`);
     await fs.writeFile(runFile, line.join("\n") + "\n");
-    const res = await goi(ID);
+    const res = await call(ID);
 
     const frames = await readFrames(res, (f) => f.length >= 201);
     expect(JSON.parse(frames[0]!.data)).toEqual({ type: "bee_replayed", skipped: 5 });
@@ -127,7 +127,7 @@ describe("GET /api/session/[id]/stream", () => {
   it("Last-Event-ID resumes from that byte offset — no duplicates after reconnect", async () => {
     const head = '{"n":1}\n';
     await fs.writeFile(runFile, head + '{"n":2}\n');
-    const res = await goi(ID, String(Buffer.byteLength(head)));
+    const res = await call(ID, String(Buffer.byteLength(head)));
 
     const frames = await readFrames(res, (f) => f.length >= 1);
     expect(frames.map((f) => f.data)).toEqual(['{"n":2}']);
@@ -136,7 +136,7 @@ describe("GET /api/session/[id]/stream", () => {
   it("session no longer running → flushes the rest, sends bee_done, CLOSES", async () => {
     await fs.writeFile(runFile, '{"n":1}\n');
     mockBee({ status: "done" });
-    const res = await goi(ID);
+    const res = await call(ID);
 
     // The meta check runs every 8 ticks × 250ms ≈ 2s — wait it out for real.
     const frames = await readFrames(res, (f) => f.some((x) => x.data.includes("bee_done")));

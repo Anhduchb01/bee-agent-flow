@@ -47,7 +47,7 @@ function stopBody(body: unknown) {
   });
 }
 
-async function nguon() {
+async function source() {
   const { createLiveGithubSource } = await import("./live");
   return createLiveGithubSource();
 }
@@ -169,23 +169,23 @@ describe("số lời gọi mạng", () => {
   it("một màn hình = MỘT lời gọi cho mỗi repo, bất kể bao nhiêu PR", async () => {
     const f = stubFetch(that);
     vi.stubGlobal("fetch", f);
-    await (await nguon()).listTasks();
+    await (await source()).listTasks();
     expect(f).toHaveBeenCalledTimes(1);
     expect(String(f.mock.calls[0]?.[0] ?? "")).toContain("/graphql");
   });
 
   it("issues của GraphQL không lẫn PR, nên không cần lọc", async () => {
     vi.stubGlobal("fetch", stubFetch(that));
-    const ds = await (await nguon()).listTasks();
+    const entries = await (await source()).listTasks();
     const issueNo = ISSUES.length;
     // Task = mọi issue, cộng PR mồ côi không tham chiếu issue nào.
-    expect(ds.length).toBeGreaterThanOrEqual(issueNo);
-    expect(new Set(ds.map((t) => t.number)).size).toBe(ds.length);
+    expect(entries.length).toBeGreaterThanOrEqual(issueNo);
+    expect(new Set(entries.map((t) => t.number)).size).toBe(entries.length);
   });
 
   it("repo không đọc được thì rỗng, không ném", async () => {
     vi.stubGlobal("fetch", stubFetch({ repository: null }));
-    expect(await (await nguon()).listTasks()).toEqual([]);
+    expect(await (await source()).listTasks()).toEqual([]);
   });
 
   /*
@@ -199,7 +199,7 @@ describe("số lời gọi mạng", () => {
       login: "x", name: "x", avatar_url: "", role: "pm", token: undefined,
     });
     vi.stubGlobal("fetch", stubFetch(that));
-    await expect((await nguon()).listTasks()).rejects.toThrow(/token/i);
+    await expect((await source()).listTasks()).rejects.toThrow(/token/i);
   });
 
   /*
@@ -211,6 +211,6 @@ describe("số lời gọi mạng", () => {
       "fetch",
       stopBody({ errors: [{ message: "Could not resolve to a Repository", type: "NOT_FOUND" }] }),
     );
-    await expect((await nguon()).listTasks()).rejects.toThrow(/NOT_FOUND|resolve/i);
+    await expect((await source()).listTasks()).rejects.toThrow(/NOT_FOUND|resolve/i);
   });
 });

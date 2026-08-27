@@ -22,25 +22,25 @@ describe("machine-ctl file operations (disk mode)", () => {
 
   describe("registerRepo", () => {
     it("writes repos.d/<slug>.env with the slug derived from the repo name", async () => {
-      const ket = await registerRepo("You/My-App");
-      expect(ket).toEqual({ ok: true, slug: "my-app" });
+      const outcome = await registerRepo("You/My-App");
+      expect(outcome).toEqual({ ok: true, slug: "my-app" });
       const content = await fs.readFile(path.join(dir, "repos.d", "my-app.env"), "utf8");
       expect(content).toBe("REPO=You/My-App\n");
     });
 
     it("rejects anything that is not owner/name — the allowlist regex is the door", async () => {
-      for (const xau of ["", "no-slash", "a/b/c", "owner/", "/name", "own er/name", "owner/na me"]) {
-        const ket = await registerRepo(xau);
-        expect(ket.ok, xau).toBe(false);
+      for (const bad of ["", "no-slash", "a/b/c", "owner/", "/name", "own er/name", "owner/na me"]) {
+        const outcome = await registerRepo(bad);
+        expect(outcome.ok, bad).toBe(false);
       }
     });
 
     it("same repo again is idempotent; a DIFFERENT repo with a colliding slug is refused", async () => {
       await registerRepo("you/myapp");
       expect((await registerRepo("you/myapp")).ok).toBe(true);
-      const ket = await registerRepo("someone-else/myapp");
-      expect(ket.ok).toBe(false);
-      if (!ket.ok) expect(ket.message).toContain("myapp");
+      const outcome = await registerRepo("someone-else/myapp");
+      expect(outcome.ok).toBe(false);
+      if (!outcome.ok) expect(outcome.message).toContain("myapp");
     });
   });
 

@@ -7,7 +7,7 @@ import { getActorWithToken } from "@/lib/auth/token";
 
 import { ghGet, ghGraphQL, GithubError, ghSend } from "./api";
 import {
-  issueCuaPr,
+  issueOfPr,
   mapComment,
   mapGqlPull,
   mapGqlTask,
@@ -37,7 +37,7 @@ import type { Actor, GhComment, GhLabel, GhRepo, GhTask, GithubSource, NewTaskIn
 /** Số issue/PR đọc về mỗi repo. Quá số này thì phân trang, xem `cacDuAn`. */
 const MOI_TRANG = 100;
 
-async function tokenCuaNguoiXem(): Promise<string | undefined> {
+async function viewerToken(): Promise<string | undefined> {
   return (await getActorWithToken())?.token;
 }
 
@@ -60,19 +60,19 @@ async function tokenCuaNguoiXem(): Promise<string | undefined> {
  * này thì KHÔNG chuyển hướng ngược lại (phiên cũ vẫn còn nên nó sẽ lặp) mà hiện
  * nút đăng xuất — thứ duy nhất xoá được cookie hỏng.
  */
-function neuTokenHong(e: unknown): never {
+function onBadToken(e: unknown): never {
   if (e instanceof GithubError && e.status === 401) redirect("/login?expired=1");
   throw e;
 }
 
 const readAll = cache(async (): Promise<GhTask[]> => {
   try {
-    const token = await tokenCuaNguoiXem();
+    const token = await viewerToken();
     const repos = await readRepos();
-    const theoRepo = await Promise.all(repos.map((r) => readRepo(token, r)));
-    return theoRepo.flat();
+    const byRepo = await Promise.all(repos.map((r) => readRepo(token, r)));
+    return byRepo.flat();
   } catch (e) {
-    neuTokenHong(e);
+    onBadToken(e);
   }
 });
 
@@ -135,22 +135,22 @@ async function readRepo(token: string | undefined, repo: GhRepo): Promise<GhTask
   // PR ↔ issue qua từ khoá đóng trong body. Một PR không tham chiếu issue nào
   // vẫn là việc đang diễn ra, nên nó được giữ lại như một task riêng — bỏ nó đi
   // là giấu mất công việc thật.
-  const theoIssue = new Map<number, GqlPull>();
-  const roiRac: GqlPull[] = [];
+  const byIssue = new Map<number, GqlPull>();
+  const loose: GqlPull[] = [];
   for (const p of data.repository.pullRequests.nodes) {
-    const n = issueCuaPr(p.body);
-    if (n !== null && !theoIssue.has(n)) theoIssue.set(n, p);
-    else if (n === null) roiRac.push(p);
+    const n = issueOfPr(p.body);
+    if (n !== null && !byIssue.has(n)) byIssue.set(n, p);
+    else if (n === null) loose.push(p);
   }
 
   // `issues` của GraphQL KHÔNG lẫn pull request — khác hẳn `GET /issues` của
   // REST, nơi mỗi PR hiện thêm một lần như một task riêng. Không cần lọc.
   const tasks = data.repository.issues.nodes.map((i) => {
-    const p = theoIssue.get(typeof i.number === "number" ? i.number : -1);
+    const p = byIssue.get(typeof i.number === "number" ? i.number : -1);
     return mapGqlTask(repo.slug, i, p ? mapGqlPull(p) : null);
   });
 
-  const addTo = roiRac.map((p) =>
+  const addTo = loose.map((p) =>
     mapGqlTask(
       repo.slug,
       { number: p.number, title: p.title, body: p.body, url: p.url, state: "OPEN" },
@@ -166,7 +166,7 @@ async function readRepo(token: string | undefined, repo: GhRepo): Promise<GhTask
  * vì cấu hình sai trông y hệt một hộp thư trống vì không có việc, mà hai chuyện
  * đó cách nhau rất xa.
  */
-function repoCua(repos: GhRepo[], slug: string): GhRepo {
+function repoBySlug(repos: GhRepo[], slug: string): GhRepo {
   const r = repos.find((x) => x.slug === slug);
   if (!r) throw new Error(`Project ${slug} is not on this dashboard. Add it first.`);
   return r;
@@ -186,7 +186,7 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async addRepo(full: string, actor: Actor): Promise<GhRepo> {
-      const { full: sach, slug } = normalise(full);
+      const { full: cleaned, slug } = normalise(full);
       const repos = await readRepos();
       if (repos.some((r) => r.slug === slug)) {
         throw new Error(`A project named ${slug} already exists.`);
@@ -195,9 +195,9 @@ export function createLiveGithubSource(): GithubSource {
       // Kiểm bằng token của NGƯỜI BẤM trước khi ghi vào danh sách. Thêm được
       // một repo mình không đọc nổi thì thẻ dự án sẽ mãi mãi báo lỗi, và không
       // ai đoán được là vì quyền.
-      await ghGet<unknown>(actor.token, `/repos/${sach}`);
+      await ghGet<unknown>(actor.token, `/repos/${cleaned}`);
 
-      const repo: GhRepo = { slug, full: sach };
+      const repo: GhRepo = { slug, full: cleaned };
       await writeRepos([...repos, repo].sort((a, b) => a.slug.localeCompare(b.slug)));
       return repo;
     },
@@ -209,8 +209,8 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async listTimeline(slug, num): Promise<GhComment[]> {
-      const token = await tokenCuaNguoiXem();
-      const repo = repoCua(await readRepos(), slug);
+      const token = await viewerToken();
+      const repo = repoBySlug(await readRepos(), slug);
       const task = await this.getTask(slug, num);
 
       const [issueCmts, reviewCmts] = await Promise.all([
@@ -232,7 +232,7 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async createTask(input: NewTaskInput, actor: Actor): Promise<GhTask> {
-      const repo = repoCua(await readRepos(), input.slug);
+      const repo = repoBySlug(await readRepos(), input.slug);
       const body = [
         "### Goal",
         "",
@@ -266,7 +266,7 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async addComment(slug, num, body, actor): Promise<GhComment> {
-      const repo = repoCua(await readRepos(), slug);
+      const repo = repoBySlug(await readRepos(), slug);
       const c = await ghSend<ApiComment>(
         actor.token,
         "POST",
@@ -277,7 +277,7 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async addLabel(slug, num, label: GhLabel, actor): Promise<GhTask> {
-      const repo = repoCua(await readRepos(), slug);
+      const repo = repoBySlug(await readRepos(), slug);
       await ghSend<unknown>(actor.token, "POST", `/repos/${repo.full}/issues/${num}/labels`, {
         labels: [label],
       });
@@ -285,7 +285,7 @@ export function createLiveGithubSource(): GithubSource {
     },
 
     async removeLabel(slug, num, label: GhLabel, actor): Promise<GhTask> {
-      const repo = repoCua(await readRepos(), slug);
+      const repo = repoBySlug(await readRepos(), slug);
       try {
         await ghSend<unknown>(
           actor.token,
@@ -303,7 +303,7 @@ export function createLiveGithubSource(): GithubSource {
 
     /** Approve PR. **Không có merge** — merge chỉ xảy ra trên GitHub, do người làm. */
     async approve(slug, num, actor): Promise<GhTask> {
-      const repo = repoCua(await readRepos(), slug);
+      const repo = repoBySlug(await readRepos(), slug);
       const task = await this.getTask(slug, num);
       if (!task?.pull) throw new Error(`${slug}#${num} has no PR to approve.`);
 

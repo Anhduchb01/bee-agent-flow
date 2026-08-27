@@ -50,15 +50,15 @@ describe("ctl — cửa lệnh ngoài", () => {
   });
 
   it("mọi đường mở/nối/dừng phiên đều dừng ở cửa, không đường nào đi vòng", async () => {
-    const kqMo = await openSession({
+    const openResult = await openSession({
       slug: "myapp",
       num: 1,
       repo: "you/myapp",
       title: null,
       worktree: false,
     });
-    expect(kqMo.ok).toBe(false);
-    if (!kqMo.ok) expect(kqMo.message).toMatch(/BEE_CTL=none/);
+    expect(openResult.ok).toBe(false);
+    if (!openResult.ok) expect(openResult.message).toMatch(/BEE_CTL=none/);
 
     const id = "cc000000-0000-4000-8000-000000000001";
     await fs.mkdir(path.join(dir, "sessions", id), { recursive: true });

@@ -53,13 +53,13 @@ export function NewProjectDialog({ trigger }: { trigger: React.ReactElement }) {
   function added() {
     if (busy || repo.trim() === "") return;
     start(async () => {
-      const ket = await registerRepoAction(repo.trim());
-      if (ket.ok && ket.slug !== undefined) {
-        setSlug(ket.slug);
+      const outcome = await registerRepoAction(repo.trim());
+      if (outcome.ok && outcome.slug !== undefined) {
+        setSlug(outcome.slug);
         setErr("");
         router.refresh();
       } else {
-        setErr(ket.message);
+        setErr(outcome.message);
       }
     });
   }

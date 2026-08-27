@@ -2,7 +2,7 @@ import "server-only";
 
 import fs from "node:fs/promises";
 
-export interface KhucMoi {
+export interface TailChunk {
   line: string[];
   offset: number;
   /** Khúc đuôi CHƯA có `\n` — giữ lại, ghép với lần đọc sau. */
@@ -21,7 +21,7 @@ export interface KhucMoi {
  * người gọi quyết định đóng stream dựa trên meta.json, không phải dựa trên
  * ENOENT tình cờ.
  */
-export async function readMore(file: string, offset: number, rest: string): Promise<KhucMoi> {
+export async function readMore(file: string, offset: number, rest: string): Promise<TailChunk> {
   let fh: fs.FileHandle;
   try {
     fh = await fs.open(file, "r");

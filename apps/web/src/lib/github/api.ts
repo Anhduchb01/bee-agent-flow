@@ -111,9 +111,9 @@ export async function ghSend<T>(
  * của dự án này một buổi chiều ở P1.1, khi PAT thiếu quyền "Commit statuses".
  */
 async function describeError(res: Response, path: string): Promise<string> {
-  let chiTiet = "";
+  let detail = "";
   try {
-    chiTiet = ((await res.json()) as { message?: string }).message ?? "";
+    detail = ((await res.json()) as { message?: string }).message ?? "";
   } catch {
     /* thân không phải JSON — không sao, đã có mã trạng thái */
   }
@@ -127,10 +127,10 @@ async function describeError(res: Response, path: string): Promise<string> {
     return `GitHub rate limit exhausted, resets at ${at}. [${path}]`;
   }
   if (res.status === 403) {
-    return `Your GitHub account cannot do this (403): ${chiTiet}. Check that you have write access to the repository. [${path}]`;
+    return `Your GitHub account cannot do this (403): ${detail}. Check that you have write access to the repository. [${path}]`;
   }
   if (res.status === 404) {
     return `Not found, or your account cannot see it (404) — GitHub answers 404 instead of 403 for repositories you cannot read. [${path}]`;
   }
-  return `GitHub returned ${res.status}: ${chiTiet} [${path}]`;
+  return `GitHub returned ${res.status}: ${detail} [${path}]`;
 }

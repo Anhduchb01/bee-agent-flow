@@ -59,9 +59,9 @@ describe("lastSevenDays", () => {
   });
 
   it("mốc thời gian rác không làm sập gì cả", () => {
-    const xau = [{ ...runIt(0, "ok")[0], at: "hôm qua" }];
-    expect(() => lastSevenDays(xau, NOW)).not.toThrow();
-    expect(lastSevenDays(xau, NOW).at(-1)?.tong).toBe(0);
+    const bad = [{ ...runIt(0, "ok")[0], at: "hôm qua" }];
+    expect(() => lastSevenDays(bad, NOW)).not.toThrow();
+    expect(lastSevenDays(bad, NOW).at(-1)?.tong).toBe(0);
   });
 
   it("nhãn thứ đúng theo lịch", () => {

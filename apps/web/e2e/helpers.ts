@@ -5,8 +5,8 @@ import { expect, type Page } from "@playwright/test";
  * so no screen knows it is looking at a fixture and it is inert on a real
  * machine. Domain-based (no URL) so it works on any E2E_PORT.
  */
-export async function datCanh(page: Page, canh: string): Promise<void> {
-  await page.context().addCookies([{ name: "bee-scene", value: canh, domain: "127.0.0.1", path: "/" }]);
+export async function setScene(page: Page, activeScene: string): Promise<void> {
+  await page.context().addCookies([{ name: "bee-scene", value: activeScene, domain: "127.0.0.1", path: "/" }]);
 }
 
 /**

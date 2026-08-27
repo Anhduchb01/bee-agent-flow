@@ -14,7 +14,7 @@ const PHIEN = {
 const BASE: Digest = {
   loai: "co-viec", since: "t", den: "t",
   ran: [{ session: PHIEN, pr: null, issue: null }],
-  toReview: [], ket: [], stillQueued: [],
+  toReview: [], outcome: [], stillQueued: [],
 };
 
 describe("DigestView — sáng dậy cầm điện thoại là đọc được", () => {
@@ -24,7 +24,7 @@ describe("DigestView — sáng dậy cầm điện thoại là đọc được",
   });
 
   it("việc kẹt mang MỘT CÂU vì sao, không phải mã lỗi", () => {
-    render(<DigestView digest={{ ...BASE, ket: [{ session: PHIEN, why: "vượt trần chi $5 USD" }] }} />);
+    render(<DigestView digest={{ ...BASE, outcome: [{ session: PHIEN, why: "vượt trần chi $5 USD" }] }} />);
     expect(screen.getByText("vượt trần chi $5 USD")).toBeInTheDocument();
   });
 

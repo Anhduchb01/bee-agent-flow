@@ -101,8 +101,8 @@ describe("saveClaudeToken (disk mode)", () => {
   });
 
   it("writes claude.env for the runner, readable by owner only", async () => {
-    const ket = await saveClaudeToken("sk-ant-oat01-AbC123");
-    expect(ket.ok).toBe(true);
+    const outcome = await saveClaudeToken("sk-ant-oat01-AbC123");
+    expect(outcome.ok).toBe(true);
 
     const file = path.join(dir, "claude.env");
     expect(await fs.readFile(file, "utf8")).toBe("CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-AbC123\n");
@@ -111,8 +111,8 @@ describe("saveClaudeToken (disk mode)", () => {
   });
 
   it("rejects anything that is not a setup-token token — nothing gets written", async () => {
-    const ket = await saveClaudeToken("sk-ant-api03-realapikey");
-    expect(ket.ok).toBe(false);
+    const outcome = await saveClaudeToken("sk-ant-api03-realapikey");
+    expect(outcome.ok).toBe(false);
     await expect(fs.access(path.join(dir, "claude.env"))).rejects.toThrow();
   });
 });

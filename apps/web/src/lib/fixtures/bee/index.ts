@@ -77,9 +77,9 @@ export function recentRunsJson(now: Date = new Date()): string[] {
   let n = 0;
 
   MAU_NGAY.forEach((ngay, i) => {
-    const luiNgay = MAU_NGAY.length - 1 - i;
+    const daysBack = MAU_NGAY.length - 1 - i;
     for (let k = 0; k < ngay.finished + ngay.err; k++) {
-      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() - luiNgay, 9 + (k % 9), (k * 7) % 60);
+      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack, 9 + (k % 9), (k * 7) % 60);
       // Không vượt quá "bây giờ" — một lần chạy ở tương lai là dấu hiệu dữ liệu hỏng.
       if (at.getTime() > now.getTime()) at.setTime(now.getTime() - (k + 1) * 60_000);
       const repo = REPO[n % REPO.length];

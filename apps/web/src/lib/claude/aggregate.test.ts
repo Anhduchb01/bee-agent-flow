@@ -27,8 +27,8 @@ describe("aggregateUsage", () => {
       errorCount: 0,
       token: 0,
       tiLeCache: 0,
-      chiPhiHomNay: 0,
-      chiPhiBayNgay: 0,
+      costToday: 0,
+      costSevenDays: 0,
       stoppedOnQuota: 0,
     });
   });
@@ -51,7 +51,7 @@ describe("aggregateUsage", () => {
     expect(m.runCount).toBe(2);
     expect(m.token).toBe(10_010);
     expect(m.tiLeCache).toBeCloseTo(7_000 / 10_010);
-    expect(m.chiPhiHomNay).toBe(0.75);
+    expect(m.costToday).toBe(0.75);
   });
 
   /*
@@ -86,13 +86,13 @@ describe("aggregateUsage", () => {
       BAY_GIO,
     );
     expect(m.runCount).toBe(1);
-    expect(m.chiPhiHomNay).toBe(1);
-    expect(m.chiPhiBayNgay).toBe(4);
+    expect(m.costToday).toBe(1);
+    expect(m.costSevenDays).toBe(4);
   });
 
   it("quá bảy ngày thì rơi khỏi cả hai", () => {
     const m = aggregateUsage([runIt({ at: "2026-08-01T10:00:00Z", cost_usd: 9 })], BAY_GIO);
-    expect(m.chiPhiBayNgay).toBe(0);
+    expect(m.costSevenDays).toBe(0);
   });
 
   /*
@@ -119,7 +119,7 @@ describe("aggregateUsage", () => {
       BAY_GIO,
     );
     expect(m.runCount).toBe(1);
-    expect(m.chiPhiBayNgay).toBe(0);
+    expect(m.costSevenDays).toBe(0);
   });
 });
 

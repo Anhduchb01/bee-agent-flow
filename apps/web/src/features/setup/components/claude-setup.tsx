@@ -33,13 +33,13 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
   function getLink() {
     if (busy) return;
     start(async () => {
-      const ket = await startClaudeSetupAction();
-      if (ket.ok) {
-        setUrl(ket.url);
+      const outcome = await startClaudeSetupAction();
+      if (outcome.ok) {
+        setUrl(outcome.url);
         setErr("");
         setXong(false);
       } else {
-        setErr(ket.message);
+        setErr(outcome.message);
       }
     });
   }
@@ -47,14 +47,14 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
   function sendCode() {
     if (busy || code.trim() === "") return;
     start(async () => {
-      const ket = await submitClaudeCodeAction(code);
-      if (ket.ok) {
+      const outcome = await submitClaudeCodeAction(code);
+      if (outcome.ok) {
         setUrl("");
         setCode("");
         setErr("");
         setXong(true);
       } else {
-        setErr(ket.message);
+        setErr(outcome.message);
       }
       router.refresh();
     });

@@ -52,13 +52,13 @@ export function SidebarNewProjectTrigger(props: React.ComponentProps<"button">) 
   );
 }
 
-export interface DuAnTrongSidebar {
+export interface SidebarProject {
   slug: string;
   running: number;
   tone: Tone;
 }
 
-export interface SucKhoeTomTat {
+export interface HealthSummary {
   tone: Tone;
   headline: string;
   detail: string | null;
@@ -77,15 +77,15 @@ export interface SucKhoeTomTat {
 export function AppSidebar({
   displayName,
   login,
-  duAn,
+  sidebarProjects,
   sucKhoe,
   signingOut,
   nutTaoDuAn,
 }: {
   displayName: string;
   login: string;
-  duAn: DuAnTrongSidebar[];
-  sucKhoe: SucKhoeTomTat;
+  sidebarProjects: SidebarProject[];
+  sucKhoe: HealthSummary;
   signingOut: () => Promise<void>;
   /** The "+" — composed by the server layout, see below. */
   nutTaoDuAn?: React.ReactNode;
@@ -100,7 +100,7 @@ export function AppSidebar({
    * Every link in here closes it on the way out. Desktop is untouched —
    * there the sidebar is not covering anything.
    */
-  function dongTrenDienThoai() {
+  function closeOnPhone() {
     if (isMobile) setOpenMobile(false);
   }
 
@@ -140,7 +140,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname === "/"}
                   tooltip="Overview"
-                  onClick={dongTrenDienThoai}
+                  onClick={closeOnPhone}
                   render={<Link href="/" />}
                 >
                   <CircleGaugeIcon />
@@ -151,7 +151,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname.startsWith("/sessions")}
                   tooltip="Sessions"
-                  onClick={dongTrenDienThoai}
+                  onClick={closeOnPhone}
                   render={<Link href="/sessions" />}
                 >
                   <TerminalIcon />
@@ -162,7 +162,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname.startsWith("/projects")}
                   tooltip="Projects"
-                  onClick={dongTrenDienThoai}
+                  onClick={closeOnPhone}
                   render={<Link href="/projects" />}
                 >
                   <KanbanIcon />
@@ -173,7 +173,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname.startsWith("/brief")}
                   tooltip="Activity"
-                  onClick={dongTrenDienThoai}
+                  onClick={closeOnPhone}
                   render={<Link href="/brief" />}
                 >
                   <SunriseIcon />
@@ -184,7 +184,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname.startsWith("/canvas")}
                   tooltip="Canvas"
-                  onClick={dongTrenDienThoai}
+                  onClick={closeOnPhone}
                   render={<Link href="/canvas" />}
                 >
                   <WaypointsIcon />
@@ -195,7 +195,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname.startsWith("/setup")}
                   tooltip="Setup"
-                  onClick={dongTrenDienThoai}
+                  onClick={closeOnPhone}
                   render={<Link href="/setup" />}
                 >
                   <WrenchIcon />
@@ -216,11 +216,11 @@ export function AppSidebar({
           {nutTaoDuAn}
           <SidebarGroupContent>
             <SidebarMenu>
-              {duAn.map((d) => (
+              {sidebarProjects.map((d) => (
                 <SidebarMenuItem key={d.slug}>
                   <SidebarMenuButton
                     tooltip={d.slug}
-                    onClick={dongTrenDienThoai}
+                    onClick={closeOnPhone}
                     // Tapping a project opens the board FILTERED to it —
                     // it used to send every project to the same unfiltered
                     // /sessions page, which made the list decorative.

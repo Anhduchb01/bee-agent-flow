@@ -35,12 +35,12 @@ describe("account usage — fetch from the oauth endpoint, read back narrowed", 
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const ket = await fetchClaudeAccountUsage();
-    expect(ket.ok).toBe(true);
+    const outcome = await fetchClaudeAccountUsage();
+    expect(outcome.ok).toBe(true);
 
-    const goi = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(goi[0]).toContain("api.anthropic.com/api/oauth/usage");
-    expect((goi[1].headers as Record<string, string>).Authorization).toBe(
+    const call = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(call[0]).toContain("api.anthropic.com/api/oauth/usage");
+    expect((call[1].headers as Record<string, string>).Authorization).toBe(
       "Bearer sk-ant-oat01-abc",
     );
 
@@ -59,9 +59,9 @@ describe("account usage — fetch from the oauth endpoint, read back narrowed", 
     }));
     vi.stubGlobal("fetch", vi.fn(async () => new Response("rate limited", { status: 429 })));
 
-    const ket = await fetchClaudeAccountUsage();
-    expect(ket.ok).toBe(false);
-    if (!ket.ok) expect(ket.message).toContain("429");
+    const outcome = await fetchClaudeAccountUsage();
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.message).toContain("429");
     expect((await readClaudeUsageFrom(dir))!.five_hour!.percent).toBe(5);
   });
 
@@ -69,8 +69,8 @@ describe("account usage — fetch from the oauth endpoint, read back narrowed", 
     await fs.rm(path.join(dir, "claude.env"));
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    const ket = await fetchClaudeAccountUsage({ credentialsFile: path.join(dir, "nope.json") });
-    expect(ket.ok).toBe(false);
+    const outcome = await fetchClaudeAccountUsage({ credentialsFile: path.join(dir, "nope.json") });
+    expect(outcome.ok).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -80,21 +80,21 @@ describe("account usage — fetch from the oauth endpoint, read back narrowed", 
     // đang đứng — sai file, và không ai biết. (Cũng chính là chỗ Turbopack
     // cảnh báo "dynamic filesystem access" rồi kéo cả project vào standalone.)
     await fs.rm(path.join(dir, "claude.env"));
-    const gia = path.join(dir, "cwd-gia");
-    await fs.mkdir(path.join(gia, ".claude"), { recursive: true });
+    const fakeCwd = path.join(dir, "cwd-fake");
+    await fs.mkdir(path.join(fakeCwd, ".claude"), { recursive: true });
     await fs.writeFile(
-      path.join(gia, ".claude", ".credentials.json"),
+      path.join(fakeCwd, ".claude", ".credentials.json"),
       JSON.stringify({ claudeAiOauth: { accessToken: "khong-duoc-dung-token-nay" } }),
     );
     const cwdCu = process.cwd();
     const homeCu = process.env.HOME;
-    process.chdir(gia);
+    process.chdir(fakeCwd);
     delete process.env.HOME;
     try {
       const fetchMock = vi.fn();
       vi.stubGlobal("fetch", fetchMock);
-      const ket = await fetchClaudeAccountUsage();
-      expect(ket.ok).toBe(false);
+      const outcome = await fetchClaudeAccountUsage();
+      expect(outcome.ok).toBe(false);
       expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       process.chdir(cwdCu);
