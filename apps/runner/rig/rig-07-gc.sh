@@ -29,7 +29,7 @@ XUA=$(date -u -d '48 hours ago' +%Y-%m-%dT%H:%M:%SZ)
 NAY=$(date -u -d '1 hour ago'  +%Y-%m-%dT%H:%M:%SZ)
 
 # phien <id> <num> <status> <ended_at> <needs_human>
-phien() {
+make_session_dir() {
   local id="$1" num="$2" st="$3" end="$4" nh="${5:-false}"
   local sd="$BEE_ROOT/sessions/$id"
   mkdir -p "$sd/evidence"
@@ -41,31 +41,31 @@ phien() {
   echo "ảnh chụp" > "$sd/evidence/shot.png"
   git --git-dir="$BARE" worktree add -q -b "bee/myapp-$num" "$BEE_ROOT/work/$id" main
 }
-commit_trong() { git -C "$1" config user.email r@b; git -C "$1" config user.name r
+commit_in() { git -C "$1" config user.email r@b; git -C "$1" config user.name r
                  echo x > "$1/new-$RANDOM"; git -C "$1" add -A; git -C "$1" commit -qm "việc"; }
 
-ID_CHAY=aaaaaaaa-0000-4000-8000-000000000001   # 1 · đang chạy
-ID_XONG=aaaaaaaa-0000-4000-8000-000000000002   # 2 · xong + đã push
-ID_NGUOI=aaaaaaaa-0000-4000-8000-000000000003  # 3 · needs_human
-ID_MOI=aaaaaaaa-0000-4000-8000-000000000004    # 4 · vừa dừng
-ID_CHUA=aaaaaaaa-0000-4000-8000-000000000005   # 5 · còn commit chưa push
+ID_RUNNING=aaaaaaaa-0000-4000-8000-000000000001   # 1 · đang chạy
+ID_DONE=aaaaaaaa-0000-4000-8000-000000000002   # 2 · xong + đã push
+ID_NEEDS_HUMAN=aaaaaaaa-0000-4000-8000-000000000003  # 3 · needs_human
+ID_RECENT=aaaaaaaa-0000-4000-8000-000000000004    # 4 · vừa dừng
+ID_UNPUSHED=aaaaaaaa-0000-4000-8000-000000000005   # 5 · còn commit chưa push
 ID_MERGE=aaaaaaaa-0000-4000-8000-000000000006  # 6 · đã merge vào main
 ID_MU=aaaaaaaa-0000-4000-8000-000000000007     # 7 · origin không đọc được
 ID_BAN=aaaaaaaa-0000-4000-8000-000000000008    # 8 · đã push NHƯNG worktree còn bẩn
 
-phien "$ID_CHAY"  1 running "" false
-phien "$ID_XONG"  2 done    "$XUA" false
-phien "$ID_NGUOI" 3 failed  "$XUA" true
-phien "$ID_MOI"   4 stopped "$NAY" false
-phien "$ID_CHUA"  5 done    "$XUA" false
-phien "$ID_MERGE" 6 done    "$XUA" false
-phien "$ID_MU"    7 done    "$XUA" false
-phien "$ID_BAN"   8 done    "$XUA" false
+make_session_dir "$ID_RUNNING"  1 running "" false
+make_session_dir "$ID_DONE"  2 done    "$XUA" false
+make_session_dir "$ID_NEEDS_HUMAN" 3 failed  "$XUA" true
+make_session_dir "$ID_RECENT"   4 stopped "$NAY" false
+make_session_dir "$ID_UNPUSHED"  5 done    "$XUA" false
+make_session_dir "$ID_MERGE" 6 done    "$XUA" false
+make_session_dir "$ID_MU"    7 done    "$XUA" false
+make_session_dir "$ID_BAN"   8 done    "$XUA" false
 
-commit_trong "$BEE_ROOT/work/$ID_XONG"
-git -C "$BEE_ROOT/work/$ID_XONG" push -q "$ORIGIN" "bee/myapp-2:bee/myapp-2"   # đã push
-commit_trong "$BEE_ROOT/work/$ID_CHUA"                                        # KHÔNG push
-commit_trong "$BEE_ROOT/work/$ID_MERGE"
+commit_in "$BEE_ROOT/work/$ID_DONE"
+git -C "$BEE_ROOT/work/$ID_DONE" push -q "$ORIGIN" "bee/myapp-2:bee/myapp-2"   # đã push
+commit_in "$BEE_ROOT/work/$ID_UNPUSHED"                                        # KHÔNG push
+commit_in "$BEE_ROOT/work/$ID_MERGE"
 git -C "$BEE_ROOT/work/$ID_MERGE" push -q "$ORIGIN" "HEAD:main"               # vào main
 git --git-dir="$BARE" fetch -q origin "+refs/heads/main:refs/heads/main"
 
@@ -91,12 +91,12 @@ GC_AGE_H=24 bash "$DAY/../bin/gc.sh" >/dev/null 2>&1 || kq no "gc.sh chạy lỗ
 con() { [[ -d "$BEE_ROOT/work/$1" ]]; }
 ly_do() { jq -r --arg i "$1" '.items[] | select(.id==$i) | .reason' "$BEE_ROOT/gc.json" 2>/dev/null; }
 
-con "$ID_CHAY"  && kq ok "phiên đang chạy: không đụng"            || kq no "phiên đang chạy BỊ XOÁ"
-con "$ID_NGUOI" && kq ok "needs_human: không đụng ($(ly_do "$ID_NGUOI"))" || kq no "needs_human BỊ XOÁ"
-con "$ID_MOI"   && kq ok "vừa dừng < 24h: không đụng"             || kq no "phiên còn mới BỊ XOÁ"
-con "$ID_CHUA"  && kq ok "còn commit chưa push: giữ ($(ly_do "$ID_CHUA"))" || kq no "MẤT VIỆC: xoá worktree còn commit chưa push"
+con "$ID_RUNNING"  && kq ok "phiên đang chạy: không đụng"            || kq no "phiên đang chạy BỊ XOÁ"
+con "$ID_NEEDS_HUMAN" && kq ok "needs_human: không đụng ($(ly_do "$ID_NEEDS_HUMAN"))" || kq no "needs_human BỊ XOÁ"
+con "$ID_RECENT"   && kq ok "vừa dừng < 24h: không đụng"             || kq no "phiên còn mới BỊ XOÁ"
+con "$ID_UNPUSHED"  && kq ok "còn commit chưa push: giữ ($(ly_do "$ID_UNPUSHED"))" || kq no "MẤT VIỆC: xoá worktree còn commit chưa push"
 
-con "$ID_XONG"  && kq no "đã push + quá hạn: lẽ ra phải thu hồi"  || kq ok "đã push + quá hạn: đã thu hồi"
+con "$ID_DONE"  && kq no "đã push + quá hạn: lẽ ra phải thu hồi"  || kq ok "đã push + quá hạn: đã thu hồi"
 con "$ID_MERGE" && kq no "đã merge vào main: lẽ ra phải thu hồi"  || kq ok "đã merge vào main: đã thu hồi"
 
 # Không đọc được origin thì GIỮ — và phải nói ĐÚNG lý do, không đoán "mất mạng"
@@ -116,7 +116,7 @@ else
 fi
 
 # Evidence + run.jsonl của phiên ĐÃ THU HỒI phải còn — xem lại được sau khi dọn
-[[ -f "$BEE_ROOT/sessions/$ID_XONG/evidence/shot.png" && -f "$BEE_ROOT/sessions/$ID_XONG/run.jsonl" ]] \
+[[ -f "$BEE_ROOT/sessions/$ID_DONE/evidence/shot.png" && -f "$BEE_ROOT/sessions/$ID_DONE/run.jsonl" ]] \
   && kq ok "evidence + run.jsonl còn nguyên sau khi thu hồi worktree" \
   || kq no "MẤT BẰNG CHỨNG: gc đụng vào sessions/<id>/"
 
@@ -172,8 +172,8 @@ export PATH="$T/bin:$PATH"
 # Sân sạch cho phần 2: dùng lại đúng bare + origin ở trên.
 san2() {   # san2 <id> <num> <status> <needs_human> <có-compose>
   local id="$1" num="$2" st="$3" nh="$4" co="$5"
-  phien "$id" "$num" "$st" "$XUA" "$nh"
-  commit_trong "$BEE_ROOT/work/$id"
+  make_session_dir "$id" "$num" "$st" "$XUA" "$nh"
+  commit_in "$BEE_ROOT/work/$id"
   git -C "$BEE_ROOT/work/$id" push -q "$ORIGIN" "bee/myapp-$num:bee/myapp-$num"
   [[ "$co" == co ]] && printf 'services:\n  db:\n    image: postgres:16\n' \
     > "$BEE_ROOT/work/$id/docker-compose.yml"

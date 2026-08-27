@@ -30,7 +30,7 @@ git --git-dir="$BARE" symbolic-ref HEAD refs/heads/main
 
 BRANCH="bee/rig-1"
 
-lam_viec() {  # commit một file trong worktree, in ra sha
+do_work() {  # commit một file trong worktree, in ra sha
   local wt="$1"
   git -C "$wt" config user.email rig@bee && git -C "$wt" config user.name rig
   echo "việc của phiên" > "$wt/viec.txt"
@@ -46,16 +46,16 @@ else
   kq no "phiên mới: không dựng được worktree/nhánh"
 fi
 
-SHA_VIEC=$(lam_viec "$T/wt1")
+SHA_WORK=$(do_work "$T/wt1")
 
 # --- 2. gc xoá worktree đúng cách → dựng lại KHÔNG được reset nhánh --------
 git --git-dir="$BARE" worktree remove --force "$T/wt1"
 make_worktree "$BARE" "$T/wt2" "$BRANCH" main
-SHA_SAU=$(git --git-dir="$BARE" rev-parse "$BRANCH")
-if [[ "$SHA_SAU" == "$SHA_VIEC" ]]; then
-  kq ok "dựng lại sau gc: nhánh vẫn ở commit của phiên ($( cut -c1-7 <<<"$SHA_VIEC"))"
+SHA_AFTER=$(git --git-dir="$BARE" rev-parse "$BRANCH")
+if [[ "$SHA_AFTER" == "$SHA_WORK" ]]; then
+  kq ok "dựng lại sau gc: nhánh vẫn ở commit của phiên ($( cut -c1-7 <<<"$SHA_WORK"))"
 else
-  kq no "dựng lại sau gc ĐÃ RESET nhánh: $(cut -c1-7 <<<"$SHA_VIEC") → $(cut -c1-7 <<<"$SHA_SAU") — commit chưa push bay mất"
+  kq no "dựng lại sau gc ĐÃ RESET nhánh: $(cut -c1-7 <<<"$SHA_WORK") → $(cut -c1-7 <<<"$SHA_AFTER") — commit chưa push bay mất"
 fi
 [[ -f "$T/wt2/viec.txt" ]] \
   && kq ok "dựng lại sau gc: file của phiên còn nguyên trong worktree" \
@@ -65,7 +65,7 @@ fi
 rm -rf "$T/wt2"
 if make_worktree "$BARE" "$T/wt3" "$BRANCH" main 2>"$T/err3"; then
   SHA3=$(git --git-dir="$BARE" rev-parse "$BRANCH")
-  [[ "$SHA3" == "$SHA_VIEC" ]] \
+  [[ "$SHA3" == "$SHA_WORK" ]] \
     && kq ok "worktree bị rm -rf: dựng lại được, nhánh không đổi" \
     || kq no "worktree bị rm -rf: nhánh đổi $(cut -c1-7 <<<"$SHA3")"
 else
@@ -77,7 +77,7 @@ if make_worktree "$BARE" "$T/wt4" "$BRANCH" main 2>/dev/null; then
   kq no "nhánh đang bị giữ: lẽ ra phải từ chối, nhưng đã dựng hai worktree cùng một nhánh"
 else
   SHA4=$(git --git-dir="$BARE" rev-parse "$BRANCH")
-  [[ "$SHA4" == "$SHA_VIEC" ]] \
+  [[ "$SHA4" == "$SHA_WORK" ]] \
     && kq ok "nhánh đang bị giữ: từ chối tử tế, nhánh không suy suyển" \
     || kq no "nhánh đang bị giữ: từ chối nhưng vẫn kịp phá nhánh"
 fi

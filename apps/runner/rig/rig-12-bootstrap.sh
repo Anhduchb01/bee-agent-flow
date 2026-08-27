@@ -33,7 +33,7 @@ exit 1
 EOF
 chmod +x "$STUB/id" "$STUB/systemctl"
 
-chay() { # chay <HOME> [biến...] → in stdout+stderr, đặt MA=mã thoát
+run_it() { # chay <HOME> [biến...] → in stdout+stderr, đặt MA=mã thoát
   local nha="$1"; shift
   MA=0
   RA=$(env -i HOME="$nha" PATH="$STUB" "$@" bash "$BS" 2>&1) || MA=$?
@@ -47,20 +47,20 @@ grep -q 'set -euo' <<<"$RA" && kq no "--help in lẹm vào code" || kq ok "--hel
 
 # 2 · Ở group docker = mất sạch ranh giới → phải chết, và chỉ cách gỡ
 mkdir -p "$T/h1"
-chay "$T/h1" FAKE_GROUPS="bee docker"
+run_it "$T/h1" FAKE_GROUPS="bee docker"
 [[ $MA == 1 ]] && kq ok "group docker → thoát 1" || kq no "group docker vẫn chạy tiếp (mã $MA)"
 grep -q 'gpasswd -d' <<<"$RA" && kq ok "in đúng lệnh gỡ khỏi group" || kq no "chỉ chửi mà không chỉ cách gỡ"
 
 # 3 · Không nối được systemd --user → nhắc enable-linger, không chạy mù
 mkdir -p "$T/h2"
-chay "$T/h2" FAKE_BUS=0
+run_it "$T/h2" FAKE_BUS=0
 [[ $MA == 1 ]] && kq ok "mất session bus → thoát 1" || kq no "mất bus vẫn chạy tiếp (mã $MA)"
 grep -q 'enable-linger' <<<"$RA" && kq ok "nhắc enable-linger" || kq no "không nhắc enable-linger"
 
 # 4 · Thiếu gói → gọi tên gói APT, không phải tên lệnh
 rm "$STUB/jq"
 mkdir -p "$T/h3"
-chay "$T/h3"
+run_it "$T/h3"
 [[ $MA == 1 ]] && kq ok "thiếu jq → thoát 1" || kq no "thiếu jq vẫn đi tiếp (mã $MA)"
 grep -q 'apt-get install -y .*jq' <<<"$RA" && kq ok "in nguyên lệnh apt dán được" || kq no "không in lệnh apt: $RA"
 printf '#!/bin/sh\nexit 0\n' > "$STUB/jq"; chmod +x "$STUB/jq"
@@ -68,7 +68,7 @@ printf '#!/bin/sh\nexit 0\n' > "$STUB/jq"; chmod +x "$STUB/jq"
 # 5 · ~/.bashrc: ghi một lần, chạy lại không nhân đôi
 mkdir -p "$T/h4"
 rm "$STUB/gh"                     # chết ở bước 1, SAU khi đã ghi .bashrc
-chay "$T/h4"; chay "$T/h4"
+run_it "$T/h4"; run_it "$T/h4"
 for HS in .bashrc .profile; do
   SO=$(grep -c 'bee-bootstrap' "$T/h4/$HS" 2>/dev/null || echo 0)
   [[ "$SO" == 1 ]] && kq ok "chạy hai lần, $HS vẫn một khối" || kq no "$HS có $SO khối bee-bootstrap"
@@ -87,7 +87,7 @@ cat > "$T/h5/.nvm/nvm.sh" <<'EOF'
 nvm() { return 0; }          # giả vờ nvm nào cũng xuôi
 EOF
 printf '#!/bin/sh\necho v22.0.0\n' > "$STUB/node"; chmod +x "$STUB/node"
-chay "$T/h5"
+run_it "$T/h5"
 [[ $MA == 1 ]] && kq ok "node ngoài nvm → thoát 1" || kq no "nhận node của hệ thống làm node của bee (mã $MA)"
 grep -q 'chứ không phải nvm' <<<"$RA" && kq ok "nói rõ node đang đến từ đâu" || kq no "không nói vì sao dừng: $RA"
 

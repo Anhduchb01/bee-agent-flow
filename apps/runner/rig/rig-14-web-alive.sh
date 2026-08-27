@@ -49,7 +49,7 @@ chmod +x "$T/bin/systemctl"
 export PATH="$T/bin:$PATH"
 
 kichban() { printf '%s\n%s\n%s\n%s\n' "$1" "$2" "$3" "${4:-co}" > "$T/kichban"; }
-muc() { jq -r '.checks[] | select(.id=="web") | "\(.ok)|\(.detail)"' "$BEE_ROOT/doctor.json" 2>/dev/null; }
+check_row() { jq -r '.checks[] | select(.id=="web") | "\(.ok)|\(.detail)"' "$BEE_ROOT/doctor.json" 2>/dev/null; }
 kham() { bash "$DAY/../bin/doctor.sh" "$@" >/dev/null 2>&1 || true; }
 
 # ── 1 · port_owner đọc đúng ba trạng thái ────────────────────────────────
@@ -93,15 +93,15 @@ echo "PORT=$CONG" > "$BEE_ROOT/web.env"
 
 kichban active 0 0
 kham
-[[ -n "$(muc)" ]] && kq ok "doctor.json has a web check" || kq no "no web check — exactly the 25/08 hole"
+[[ -n "$(check_row)" ]] && kq ok "doctor.json has a web check" || kq no "no web check — exactly the 25/08 hole"
 
 # 2a · unit không active → đỏ. Đây là cái doctor CHƯA BAO GIỜ hỏi.
 kichban failed 1005 0
 kham
-case "$(muc)" in
+case "$(check_row)" in
   false*1005*) kq ok "bee-web failed after 1005 restarts: red, and says the number";;
   false*)      kq ok "bee-web failed: red (but without the restart count)";;
-  *)           kq no "the web is dead and doctor stayed green: $(muc)";;
+  *)           kq no "the web is dead and doctor stayed green: $(check_row)";;
 esac
 
 # 2b · unit active NHƯNG cổng của người khác → đỏ. Đây là ca 25/08 nguyên bản:
@@ -116,30 +116,30 @@ for _ in $(seq 1 40); do ss -Hltn "sport = :$CONG" 2>/dev/null | grep -q . && br
 printf '#!/bin/sh\necho 200\n' > "$T/bin/curl"; chmod +x "$T/bin/curl"
 kichban active 0 999999
 kham
-case "$(muc)" in
+case "$(check_row)" in
   false*"held by another process"*) kq ok "port held by somebody else: red, even though curl says 200";;
-  true*) kq no "SOMEBODY ELSE OWNS THE PORT AND DOCTOR IS GREEN — the 25/08 hole: $(muc)";;
-  *) kq no "expected red for the wrong port owner: $(muc)";;
+  true*) kq no "SOMEBODY ELSE OWNS THE PORT AND DOCTOR IS GREEN — the 25/08 hole: $(check_row)";;
+  *) kq no "expected red for the wrong port owner: $(check_row)";;
 esac
 kill "$NGHE" 2>/dev/null || true; wait "$NGHE" 2>/dev/null || true
 
 # 2c · Đúng chủ + curl 200 → xanh (không được đỏ oan).
 kichban active 0 0
 kham
-[[ "$(muc)" == true* ]] && kq ok "unit active + port owned by us + 200: green" \
-  || kq no "expected green: $(muc)"
+[[ "$(check_row)" == true* ]] && kq ok "unit active + port owned by us + 200: green" \
+  || kq no "expected green: $(check_row)"
 
 # 2d · Restart nhiều bất thường → đỏ, kể cả khi đang trả lời được.
 kichban active 42 0
 kham
-[[ "$(muc)" == false*42* ]] && kq ok "42 restarts: red even while answering — something keeps kicking it" \
-  || kq no "abnormal restart count but still green: $(muc)"
+[[ "$(check_row)" == false*42* ]] && kq ok "42 restarts: red even while answering — something keeps kicking it" \
+  || kq no "abnormal restart count but still green: $(check_row)"
 
 # 2e · Chưa cài web → đỏ có chỉ dẫn, không phải im lặng.
 kichban inactive 0 0 khong
 kham
-[[ "$(muc)" == false*install* ]] && kq ok "no bee-web.service: red, and says how to install it" \
-  || kq no "missing unit with no way forward: $(muc)"
+[[ "$(check_row)" == false*install* ]] && kq ok "no bee-web.service: red, and says how to install it" \
+  || kq no "missing unit with no way forward: $(check_row)"
 
 # ── 3 · Mã thoát tách khỏi kết quả khám ──────────────────────────────────
 # Trước T19: bee-doctor.service báo "failed" mỗi lần máy có mục đỏ — đọc như
@@ -153,9 +153,9 @@ bash "$DAY/../bin/doctor.sh" --exit-zero >/dev/null 2>&1 && MA=0 || MA=$?
 [[ $MA -eq 0 ]] && kq ok "--exit-zero: finding a fault is not doctor failing -> exit 0" \
   || kq no "--exit-zero still exited $MA — unit sẽ còn báo failed oan"
 
-[[ "$(muc)" == false* ]] \
+[[ "$(check_row)" == false* ]] \
   && kq ok "--exit-zero still records every red finding in doctor.json" \
-  || kq no "--exit-zero swallowed the findings: $(muc)"
+  || kq no "--exit-zero swallowed the findings: $(check_row)"
 
 bash "$DAY/../bin/doctor.sh" --xxx >/dev/null 2>&1 && MA=0 || MA=$?
 [[ $MA -eq 2 ]] && kq ok "unknown argument -> exit 2, not silently ignored" || kq no "unknown argument returned $MA"

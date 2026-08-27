@@ -222,7 +222,7 @@ exit 0
 EOF
 chmod +x "$T/bin/claude"
 
-chay_mode() { # $1=id  $2=num (branch bee/demo-<num> phải chưa tồn tại)  $3=json-mode-field ("" = không có)
+run_mode() { # $1=id  $2=num (branch bee/demo-<num> phải chưa tồn tại)  $3=json-mode-field ("" = không có)
   local id="$1" sd="$BEE_ROOT/sessions/$1"
   mkdir -p "$sd"
   printf '{"id":"%s","slug":"demo","num":%s,"repo":"owner/demo","phase":"work","worktree":true%s}\n' \
@@ -231,21 +231,21 @@ chay_mode() { # $1=id  $2=num (branch bee/demo-<num> phải chưa tồn tại)  
   cat "$sd/claude-args.txt" 2>/dev/null
 }
 
-ARGS7=$(chay_mode "77777777-1111-2222-3333-444444444471" 71 ',"mode":"plan"')
+ARGS7=$(run_mode "77777777-1111-2222-3333-444444444471" 71 ',"mode":"plan"')
 if grep -q -- "--permission-mode plan" <<<"$ARGS7" && ! grep -q -- "--dangerously-skip-permissions" <<<"$ARGS7"; then
   kq ok "mode plan → --permission-mode plan, KHÔNG skip-permissions"
 else
   kq no "mode plan sai cờ: $ARGS7"
 fi
 
-ARGS7B=$(chay_mode "77777777-1111-2222-3333-444444444472" 72 ',"mode":"edits"')
+ARGS7B=$(run_mode "77777777-1111-2222-3333-444444444472" 72 ',"mode":"edits"')
 if grep -q -- "--permission-mode acceptEdits" <<<"$ARGS7B" && grep -q -- "--permission-prompt-tool stdio" <<<"$ARGS7B"; then
   kq ok "mode edits → acceptEdits + prompt-tool stdio (tool ngoài sửa file sẽ hỏi)"
 else
   kq no "mode edits sai cờ: $ARGS7B"
 fi
 
-ARGS7D=$(chay_mode "77777777-1111-2222-3333-444444444474" 74 ',"mode":"manual"')
+ARGS7D=$(run_mode "77777777-1111-2222-3333-444444444474" 74 ',"mode":"manual"')
 if grep -q -- "--permission-mode default" <<<"$ARGS7D" && grep -q -- "--permission-prompt-tool stdio" <<<"$ARGS7D"; then
   kq ok "mode manual → default + prompt-tool stdio (mọi tool hỏi qua stream)"
 else
@@ -253,7 +253,7 @@ else
 fi
 
 # Không có mode (session.json cũ) = auto — hành vi V1 giữ nguyên.
-ARGS7C=$(chay_mode "77777777-1111-2222-3333-444444444473" 73 '')
+ARGS7C=$(run_mode "77777777-1111-2222-3333-444444444473" 73 '')
 grep -q -- "--dangerously-skip-permissions" <<<"$ARGS7C" \
   && kq ok "thiếu mode → auto (skip-permissions) — session.json cũ không đổi hành vi" \
   || kq no "thiếu mode sai cờ: $ARGS7C"

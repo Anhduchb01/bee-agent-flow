@@ -47,14 +47,14 @@ msg "GO CHEN GIUA CHUNG: khi tra loi, bat buoc nhac lai dung ma hieu XOAI-XANH."
 echo "[rig] da go chen luc $(date +%T)"
 
 # Chờ: hoặc mã hiệu xuất hiện trong assistant, hoặc đủ 2 result, hoặc hết giờ
-ket_qua="TIMEOUT"
+verdict="TIMEOUT"
 for _ in $(seq 1 360); do
   if grep '"type":"assistant"' "$OUT" 2>/dev/null | grep -q 'XOAI-XANH'; then
-    ket_qua="XEP-HANG"; break
+    verdict="XEP-HANG"; break
   fi
   n_result=$(grep -c '"type":"result"' "$OUT" 2>/dev/null || true)
-  if [[ "${n_result:-0}" -ge 2 ]]; then ket_qua="BO"; break; fi
-  kill -0 "$PID" 2>/dev/null || { ket_qua="CLAUDE-THOAT"; break; }
+  if [[ "${n_result:-0}" -ge 2 ]]; then verdict="BO"; break; fi
+  kill -0 "$PID" 2>/dev/null || { verdict="CLAUDE-THOAT"; break; }
   sleep 0.5
 done
 
@@ -62,7 +62,7 @@ kill "$PID" 2>/dev/null || true
 exec 3>&-
 
 echo "== KET QUA S0.1 =="
-case "$ket_qua" in
+case "$verdict" in
   XEP-HANG)     echo "CLI XEP HANG: message go chen duoc tiep thu — o go duoc phep hua 'agent se doc'";;
   BO)           echo "CLI BO (hoac xu ly thanh luot rieng ma khong nhac ma hieu) — xem tay run.jsonl truoc khi ket luan";;
   CLAUDE-THOAT) echo "claude thoat truoc khi co ket luan — xem stderr.log va run.jsonl";;

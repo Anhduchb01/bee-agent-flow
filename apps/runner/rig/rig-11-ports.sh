@@ -19,12 +19,12 @@ grep -q "^BEE_PORT_3=54123$" "$WT/.bee/ports.env" && kq ok "cổng lẻ đánh s
 
 # 2 · env.d dùng ${BEE_PORT_n} phải được thay THẬT, không copy nguyên chữ
 ENVD="$T/envd"; mkdir -p "$ENVD"
-printf 'POSTGRES_PORT=${BEE_PORT_1}\nREDIS_PORT=${BEE_PORT_2}\nAPI_KEY=giu-nguyen-$KHONG_PHAI_CONG\n' > "$ENVD/.env"
+printf 'POSTGRES_PORT=${BEE_PORT_1}\nREDIS_PORT=${BEE_PORT_2}\nAPI_KEY=keep-me-$NOT_A_PORT\n' > "$ENVD/.env"
 copy_env_d "$ENVD" "$WT" 54120
 
 grep -q "^POSTGRES_PORT=54121$" "$WT/.env" && kq ok "env.d: \${BEE_PORT_1} → 54121" || kq no "không thay biến cổng: $(grep POSTGRES_PORT "$WT/.env")"
 grep -q "^REDIS_PORT=54122$" "$WT/.env" && kq ok "env.d: \${BEE_PORT_2} → 54122" || kq no "thay sai REDIS_PORT"
-grep -q 'KHONG_PHAI_CONG' "$WT/.env" \
+grep -q 'NOT_A_PORT' "$WT/.env" \
   && kq ok "biến KHÁC giữ nguyên — không nuốt \$VAR của repo" \
   || kq no "đã nuốt mất biến không phải cổng (secret hỏng theo)"
 

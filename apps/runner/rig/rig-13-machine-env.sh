@@ -19,15 +19,15 @@ export BEE_ROOT="$T"
 # Cắt NGUYÊN KHỐI theo đúng thứ tự trong file — lần đầu viết rig này tôi
 # trích hai khối rồi tự ghép lại, nên dù đảo thứ tự trong session-run.sh
 # rig vẫn xanh: nó đang đo bản dựng lại của chính nó, không đo mã thật.
-DOAN=$(awk '/BEE_ROOT\/(machine|claude)\.env" \]\]; then$/ { on=1 }
+SNIPPET=$(awk '/BEE_ROOT\/(machine|claude)\.env" \]\]; then$/ { on=1 }
             /^# ── 1 · / { exit }
             on { print }' "$SR")
-[[ -n "$DOAN" ]] && kq ok "trích được đoạn nạp env từ session-run.sh" \
+[[ -n "$SNIPPET" ]] && kq ok "trích được đoạn nạp env từ session-run.sh" \
                  || { kq no "không tìm thấy đoạn nạp env — session-run.sh đã đổi hình"; exit 1; }
 
 nap() { # nap → in ra giá trị hai biến sau khi nạp
   env -i BEE_ROOT="$BEE_ROOT" PATH="$PATH" bash -c "
-    $DOAN
+    $SNIPPET
     echo \"MIN=\${SLAYER_MINIMAL_PAYLOAD:-}\"
     echo \"TOK=\${CLAUDE_CODE_OAUTH_TOKEN:-}\"
   "

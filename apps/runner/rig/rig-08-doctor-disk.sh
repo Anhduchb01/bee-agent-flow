@@ -33,22 +33,22 @@ san() {  # dựng lại sân sạch: <số worktree> <số worktree mồ côi>
   done
 }
 
-muc() { jq -r '.checks[] | select(.id=="session-disk") | "\(.ok)|\(.detail)"' "$BEE_ROOT/doctor.json" 2>/dev/null; }
+check_row() { jq -r '.checks[] | select(.id=="session-disk") | "\(.ok)|\(.detail)"' "$BEE_ROOT/doctor.json" 2>/dev/null; }
 
 # --- 1. gc chưa chạy lần nào → đỏ, và nói cách bật ------------------------
 san 2
 bash "$DAY/../bin/doctor.sh" >/dev/null 2>&1 || true
-case "$(muc)" in
+case "$(check_row)" in
   false*bee-gc*) kq ok "gc never ran: red, and says how to enable the timer";;
   "")            kq no "doctor.json has no session-disk check";;
-  *)             kq no "gc never ran but the check is not red: $(muc)";;
+  *)             kq no "gc never ran but the check is not red: $(check_row)";;
 esac
 
 # --- 2. gc mới chạy, đĩa nhỏ → xanh, có số thật --------------------------
 san 2 1
 echo '{"ts":"x","removed":0,"freed_bytes":0,"items":[]}' > "$BEE_ROOT/gc.json"
 bash "$DAY/../bin/doctor.sh" >/dev/null 2>&1 || true
-KQ=$(muc)
+KQ=$(check_row)
 [[ "$KQ" == true* ]] && kq ok "gc just ran, disk is small: green" || kq no "expected green: $KQ"
 grep -qE '[0-9]+(\.[0-9]+)?[KMG]' <<<"$KQ" \
   && kq ok "the detail carries a real number, not a vague phrase" \
@@ -59,16 +59,16 @@ grep -q "orphaned" <<<"$KQ" && kq ok "counts orphaned worktrees (a directory wit
 # --- 3. gc im lặng > 48h → đỏ (chết im lặng là chế độ hỏng nguy hiểm nhất) -
 touch -d '72 hours ago' "$BEE_ROOT/gc.json"
 bash "$DAY/../bin/doctor.sh" >/dev/null 2>&1 || true
-case "$(muc)" in
-  false*72h*|false*gc*) kq ok "gc silent for 72h: red ($(muc | cut -d'|' -f2))";;
-  *) kq no "gc died quietly and doctor stayed green: $(muc)";;
+case "$(check_row)" in
+  false*72h*|false*gc*) kq ok "gc silent for 72h: red ($(check_row | cut -d'|' -f2))";;
+  *) kq no "gc died quietly and doctor stayed green: $(check_row)";;
 esac
 
 # --- 4. Vượt ngưỡng dung lượng → đỏ --------------------------------------
 san 2
 echo '{"ts":"x"}' > "$BEE_ROOT/gc.json"
 GC_WARN_GB=0 bash "$DAY/../bin/doctor.sh" >/dev/null 2>&1 || true
-[[ "$(muc)" == false* ]] && kq ok "over GC_WARN_GB: red" || kq no "over the threshold but still green: $(muc)"
+[[ "$(check_row)" == false* ]] && kq ok "over GC_WARN_GB: red" || kq no "over the threshold but still green: $(check_row)"
 
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-08: ALL GREEN"; else echo "RIG-08: RED"; exit 1; fi

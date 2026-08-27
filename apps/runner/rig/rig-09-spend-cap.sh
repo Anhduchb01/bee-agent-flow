@@ -25,7 +25,7 @@ EOF
 chmod +x "$T/bin/systemctl"; export PATH="$T/bin:$PATH"
 
 # phien <id> <status> <cost đã đốt>
-phien() {
+make_session_dir() {
   local id="$1" st="$2" cost="$3" sd="$BEE_ROOT/sessions/$1"
   mkdir -p "$sd"
   jq -cn --arg s "$st" '{status:$s, attempt:0, needs_human:false}' > "$sd/meta.json"
@@ -36,11 +36,11 @@ phien() {
 
 ID_DOT=cccccccc-0000-4000-8000-000000000001   # đang chạy, đốt 6.2 USD
 ID_NHE=cccccccc-0000-4000-8000-000000000002   # đang chạy, đốt 0.3 USD
-ID_XONG=cccccccc-0000-4000-8000-000000000003  # đã xong, đốt 9 USD
+ID_DONE=cccccccc-0000-4000-8000-000000000003  # đã xong, đốt 9 USD
 
-phien "$ID_DOT"  running 6.2
-phien "$ID_NHE"  running 0.3
-phien "$ID_XONG" done    9.0
+make_session_dir "$ID_DOT"  running 6.2
+make_session_dir "$ID_NHE"  running 0.3
+make_session_dir "$ID_DONE" done    9.0
 
 meta() { jq -r "$2" "$BEE_ROOT/sessions/$1/meta.json"; }
 
@@ -60,11 +60,11 @@ grep -q "5" "$BEE_ROOT/sessions/$ID_DOT/run.jsonl" && grep -qi "trần\|usd" "$B
   || kq no "vượt trần: không có dòng lifecycle giải thích"
 
 grep -q "$ID_NHE" "$RIG_STOP_LOG" && kq no "phiên nhẹ BỊ DỪNG oan" || kq ok "phiên dưới trần: không đụng"
-grep -q "$ID_XONG" "$RIG_STOP_LOG" && kq no "phiên đã xong bị dừng lại" || kq ok "phiên đã kết thúc: không đụng"
+grep -q "$ID_DONE" "$RIG_STOP_LOG" && kq no "phiên đã xong bị dừng lại" || kq ok "phiên đã kết thúc: không đụng"
 
 # --- 2. Không cấu hình trần → không bao giờ dừng (hành vi hôm nay) --------
 : > "$RIG_STOP_LOG"
-phien "$ID_DOT" running 99
+make_session_dir "$ID_DOT" running 99
 bash "$DAY/../bin/reaper.sh" >/dev/null 2>&1 || true
 [[ -s "$RIG_STOP_LOG" ]] && kq no "không có trần mà vẫn dừng phiên" || kq ok "không cấu hình trần: không phanh ai (mặc định an toàn)"
 

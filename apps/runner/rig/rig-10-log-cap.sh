@@ -17,13 +17,13 @@ SD="$BEE_ROOT/sessions/$ID"; mkdir -p "$SD"
 for i in $(seq 1 3000); do
   printf '{"type":"assistant","n":%d,"pad":"%s"}\n' "$i" "$(head -c 80 /dev/zero | tr '\0' 'x')"
 done > "$SD/run.jsonl"
-TRUOC=$(stat -c %s "$SD/run.jsonl")
+BEFORE_B=$(stat -c %s "$SD/run.jsonl")
 
 RUN_MAX_KB=100 bash "$DAY/../bin/cat-log.sh" "$ID"
-SAU=$(stat -c %s "$SD/run.jsonl")
+AFTER_B=$(stat -c %s "$SD/run.jsonl")
 
-(( SAU < TRUOC )) && kq ok "vượt trần: đã cắt ($((TRUOC/1024))KB → $((SAU/1024))KB)" || kq no "không cắt gì"
-(( SAU <= 120*1024 )) && kq ok "cắt về dưới trần (+lề)" || kq no "cắt hụt: còn $((SAU/1024))KB"
+(( AFTER_B < BEFORE_B )) && kq ok "vượt trần: đã cắt ($((BEFORE_B/1024))KB → $((AFTER_B/1024))KB)" || kq no "không cắt gì"
+(( AFTER_B <= 120*1024 )) && kq ok "cắt về dưới trần (+lề)" || kq no "cắt hụt: còn $((AFTER_B/1024))KB"
 
 grep -q "bee_truncated" "$SD/run.jsonl" \
   && kq ok "có dòng bee_truncated — UI nói được là bản này đã bị cắt" \
