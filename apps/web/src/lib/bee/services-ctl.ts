@@ -195,6 +195,46 @@ async function holders(): Promise<string[]> {
   return slices.filter((s) => s.items.some((i) => i.in_pool)).map((s) => s.sessionId);
 }
 
+/**
+ * Turn a unit's journal tail into one sentence the owner can act on.
+ *
+ * systemd's own answer — "the control process exited with error code, see
+ * journalctl" — is a receipt, not a reason: it tells the owner to go find out
+ * for themselves, on a machine the whole product exists so they need not open.
+ * The reason is always right there in the journal; this lifts it out.
+ *
+ * Deliberately quotes docker rather than paraphrasing it. "port is already
+ * allocated" naming 55432 is worth more than any sentence written here, and a
+ * paraphrase would go stale the first time docker changes its wording.
+ */
+export function explainUnitFailure(journal: string): string {
+  const lines = journal
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l !== "")
+    // systemd's bookkeeping about its own state — the owner has already seen
+    // that much, and it never says why.
+    .filter((l) => !/^\S*bee-services\.service:|^(Starting|Started|Stopping|Stopped) /.test(l))
+    .filter((l) => !/Main process exited|Failed with result|Scheduled restart|Consumed [0-9]/.test(l));
+
+  const docker = lines.find((l) => /Cannot connect to the Docker daemon|permission denied.*docker\.sock/i.test(l));
+  if (docker !== undefined) {
+    return (
+      `${docker} — rootless docker is not reachable from the unit. ` +
+      "Check `systemctl --user status docker` on the machine."
+    );
+  }
+
+  const loud = lines.filter((l) =>
+    /error|err:|denied|refused|invalid|cannot|no such|already allocated|did not find|yaml|unauthorized/i.test(l),
+  );
+  const pick = (loud.length > 0 ? loud : lines).slice(-2);
+  if (pick.length === 0) {
+    return "The unit failed and its journal said nothing usable — `journalctl --user -xeu bee-services`.";
+  }
+  return pick.join(" · ");
+}
+
 export async function setPoolRunning(on: boolean, opts?: { force?: boolean }): Promise<Result> {
   if (on) {
     const { text } = await readPoolCompose();
@@ -223,8 +263,22 @@ export async function setPoolRunning(on: boolean, opts?: { force?: boolean }): P
     await ctl("systemctl", ["--user", on ? "start" : "stop", UNIT]);
     return { ok: true };
   } catch (e) {
-    return { ok: false, message: `systemctl ${on ? "start" : "stop"} failed: ${(e as Error).message}` };
+    return { ok: false, message: `Could not ${on ? "start" : "stop"} it: ${await whyUnitFailed(e as Error)}` };
   }
+}
+
+/** The unit's own last words, or systemctl's if the journal is unreachable. */
+async function whyUnitFailed(fallback: Error): Promise<string> {
+  try {
+    const { stdout } = await ctl("journalctl", [
+      "--user", "-u", UNIT, "-n", "40", "--no-pager", "-o", "cat",
+    ]);
+    const said = explainUnitFailure(stdout);
+    if (said !== "") return said;
+  } catch {
+    // No journalctl, or the door is closed — fall through to systemctl's text.
+  }
+  return fallback.message.replace(/^Command failed: \S+ /, "");
 }
 
 /** Whether the pool unit is up right now. Unknown is reported, never guessed. */

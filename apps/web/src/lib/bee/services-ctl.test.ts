@@ -4,7 +4,12 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { readPoolCompose, savePoolCompose, setPoolRunning } from "./services-ctl";
+import {
+  explainUnitFailure,
+  readPoolCompose,
+  savePoolCompose,
+  setPoolRunning,
+} from "./services-ctl";
 
 let dir = "";
 
@@ -126,5 +131,48 @@ describe("setPoolRunning — off is the dangerous direction", () => {
     const outcome = await setPoolRunning(true);
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.message).toMatch(/no service/i);
+  });
+});
+
+describe("explainUnitFailure — a failure that names itself", () => {
+  it("docker unreachable is the answer, not 'see journalctl'", () => {
+    const said = explainUnitFailure(
+      "docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock.",
+    );
+    expect(said).toMatch(/docker/i);
+    expect(said).toMatch(/rootless|daemon/i);
+  });
+
+  it("a pulled-image failure says which image", () => {
+    const said = explainUnitFailure(
+      "postgres Pulling\nErr: pull access denied for postgrs, repository does not exist",
+    );
+    expect(said).toMatch(/pull access denied/);
+  });
+
+  it("a port clash is quoted as docker said it", () => {
+    const said = explainUnitFailure(
+      'Error response from daemon: driver failed programming external connectivity: ' +
+        "bind for 127.0.0.1:55432 failed: port is already allocated",
+    );
+    expect(said).toMatch(/55432/);
+    expect(said).toMatch(/already allocated/);
+  });
+
+  it("drops systemd's own noise — it is what the owner already saw", () => {
+    const said = explainUnitFailure(
+      [
+        "Starting bee services...",
+        "bee-services.service: Main process exited, code=exited, status=1/FAILURE",
+        "yaml: line 4: did not find expected key",
+        "bee-services.service: Failed with result 'exit-code'.",
+      ].join("\n"),
+    );
+    expect(said).toContain("did not find expected key");
+    expect(said).not.toMatch(/Failed with result/);
+  });
+
+  it("nothing usable in the journal is said plainly, not invented", () => {
+    expect(explainUnitFailure("")).toMatch(/journalctl/);
   });
 });
