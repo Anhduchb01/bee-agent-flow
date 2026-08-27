@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { parseStatus } from "@/lib/bee/parse";
-import { sceneJson } from "@/lib/fixtures/bee";
+import type { StatusRead } from "@/lib/bee/types";
+import { sceneStatus, type SceneId } from "@/lib/fixtures/bee";
 
 import { deriveHealth } from "./derive";
 
 const NOW = new Date("2026-08-13T10:00:00Z");
-const read = (scene: Parameters<typeof sceneJson>[0]) => parseStatus(sceneJson(scene, NOW));
+const read = (scene: SceneId): StatusRead => ({
+  ok: true,
+  status: sceneStatus(scene, NOW),
+  dropped: 0,
+});
+/** A scene with one field bent, to pin a threshold the scenes do not cover. */
+const bent = (scene: SceneId, patch: Partial<ReturnType<typeof sceneStatus>>): StatusRead => ({
+  ok: true,
+  status: { ...sceneStatus(scene, NOW), ...patch },
+  dropped: 0,
+});
 
 describe("deriveHealth — ba chỗ hỏng im lặng", () => {
   // 1. Chế độ hỏng nguy hiểm nhất: không có gì đỏ để nhìn, chỉ là không có gì
@@ -21,24 +31,19 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
   });
 
   it("heartbeat 30 phút → vẫn là đỏ (ngưỡng 10 phút)", () => {
-    const status = JSON.parse(sceneJson("normal", NOW));
-    status.heartbeat = new Date(NOW.getTime() - 30 * 60_000).toISOString();
+    const at = new Date(NOW.getTime() - 30 * 60_000).toISOString();
 
-    expect(deriveHealth(parseStatus(JSON.stringify(status)), NOW).level).toBe("down");
+    expect(deriveHealth(bent("normal", { heartbeat: at }), NOW).level).toBe("down");
   });
 
   it("heartbeat 9 phút → chưa đỏ", () => {
-    const status = JSON.parse(sceneJson("normal", NOW));
-    status.heartbeat = new Date(NOW.getTime() - 9 * 60_000).toISOString();
+    const at = new Date(NOW.getTime() - 9 * 60_000).toISOString();
 
-    expect(deriveHealth(parseStatus(JSON.stringify(status)), NOW).level).toBe("ok");
+    expect(deriveHealth(bent("normal", { heartbeat: at }), NOW).level).toBe("ok");
   });
 
   it("heartbeat không phải ngày tháng cũng tính là chết, không đoán tốt", () => {
-    const status = JSON.parse(sceneJson("normal", NOW));
-    status.heartbeat = "hôm qua";
-
-    const h = deriveHealth(parseStatus(JSON.stringify(status)), NOW);
+    const h = deriveHealth(bent("normal", { heartbeat: "hôm qua" }), NOW);
     expect(h.level).toBe("down");
     expect(h.heartbeatAgeS).toBeNull();
   });
@@ -54,7 +59,10 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
 
   // 3. JSON hỏng: đang ghi dở, hoặc runner đổi hình dạng.
   it("JSON hỏng → báo đỏ kèm lý do, không crash", () => {
-    const h = deriveHealth(parseStatus("{hỏng"), NOW);
+    const h = deriveHealth(
+      { ok: false, reason: "malformed", detail: "heartbeat.json is not JSON" },
+      NOW,
+    );
 
     expect(h.level).toBe("down");
     expect(h.headline).toContain("Cannot read system status");
@@ -76,16 +84,15 @@ describe("deriveHealth — đếm và cảnh báo", () => {
     expect(h.running).toBe(4);
   });
 
-  it("repo bị dừng thì cảnh báo và gọi tên nó ra", () => {
+  it("kill switch bật dù đã có repo → cảnh báo, không phải xanh", () => {
     const h = deriveHealth(read("something-wrong"), NOW);
 
     expect(h.level).toBe("warn");
-    expect(h.pausedRepos).toEqual(["shop"]);
-    expect(h.detail).toContain("shop");
-    expect(h.detail).toContain(".agent/PAUSE");
+    expect(h.headline).toContain("paused");
+    expect(h.running).toBe(1);
   });
 
-  it("mode paused thắng cả cảnh báo repo", () => {
+  it("máy vừa cài cũng đang paused — cùng một công tắc", () => {
     const h = deriveHealth(read("fresh-install"), NOW);
 
     expect(h.level).toBe("warn");
@@ -93,18 +100,14 @@ describe("deriveHealth — đếm và cảnh báo", () => {
   });
 
   it("chưa có repo nào thì nói bước tiếp theo thay vì hiện số 0", () => {
-    const status = JSON.parse(sceneJson("fresh-install", NOW));
-    status.mode = "running";
-
-    const h = deriveHealth(parseStatus(JSON.stringify(status)), NOW);
+    const h = deriveHealth(bent("fresh-install", { mode: "running" }), NOW);
     expect(h.level).toBe("ok");
     expect(h.detail).toContain("be repo add");
   });
 
-  it("repo hỏng hình dạng bị đếm và hiện ra, không giấu", () => {
-    const status = JSON.parse(sceneJson("normal", NOW));
-    status.repos.push({ slug: "hỏng" });
+  it("repo đọc không được bị đếm và hiện ra, không giấu", () => {
+    const h = deriveHealth({ ...read("normal"), dropped: 1 } as StatusRead, NOW);
 
-    expect(deriveHealth(parseStatus(JSON.stringify(status)), NOW).dropped).toBe(1);
+    expect(h.dropped).toBe(1);
   });
 });

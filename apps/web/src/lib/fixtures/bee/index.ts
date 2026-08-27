@@ -12,6 +12,8 @@ import underLoad from "./under-load.json";
 import reconcilerDead from "./reconciler-dead.json";
 import freshInstall from "./fresh-install.json";
 
+import type { BeeStatus } from "@/lib/bee/types";
+
 export const SCENE_IDS = [
   "normal",
   "under-load",
@@ -44,11 +46,21 @@ export function isSceneId(value: string | undefined): value is SceneId {
 
 const AGO = /"__AGO_(\d+)__"/g;
 
-/** Trả về đúng phần văn bản mà `disk.ts` sẽ đọc được từ `status.json`. */
-export function sceneJson(id: SceneId, now: Date = new Date()): string {
-  return JSON.stringify(SCENES[id]).replace(AGO, (_m, sec: string) =>
+/**
+ * The scene's system status, with `__AGO_n__` resolved against `now`.
+ *
+ * Returns the OBJECT, not text. Until 27/08 this handed back a JSON string
+ * for `parseStatus` to validate, because the real file was written by another
+ * program and could be any shape. The runner-native reader builds the status
+ * from `heartbeat.json` itself, so there is no foreign text to validate here
+ * — and a fixture that round-trips through a parser it no longer shares with
+ * production is testing the fixture, not the product.
+ */
+export function sceneStatus(id: SceneId, now: Date = new Date()): BeeStatus {
+  const text = JSON.stringify(SCENES[id]).replace(AGO, (_m, sec: string) =>
     JSON.stringify(new Date(now.getTime() - Number(sec) * 1000).toISOString()),
   );
+  return JSON.parse(text) as BeeStatus;
 }
 
 /**

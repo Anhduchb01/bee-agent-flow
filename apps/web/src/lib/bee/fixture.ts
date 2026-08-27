@@ -2,11 +2,11 @@ import "server-only";
 
 import path from "node:path";
 
-import { isSceneId, recentRunsJson, sceneJson, type SceneId } from "@/lib/fixtures/bee";
+import { isSceneId, recentRunsJson, sceneStatus, type SceneId } from "@/lib/fixtures/bee";
 import { neverRan, currentScene } from "@/lib/fixtures/scene";
 
 import { readEvidenceFileIn } from "./evidence-fs";
-import { parseRecentLine, parseStatus } from "./parse";
+import { parseRecentLine } from "./parse";
 import type {
   BeeArtifact,
   BeeClaudeRateLimit,
@@ -33,12 +33,12 @@ export function createFixtureBeeSource(): BeeSource {
       // lo phần "chưa có repo nào", còn đây là phần "chưa có status.json nào" —
       // hai chuyện khác nhau, và cả hai đều xảy ra thật ngay sau install.sh.
       if (want === "no-file") {
-        return { ok: false, reason: "missing", detail: "status.json does not exist" };
+        return { ok: false, reason: "missing", detail: "heartbeat.json does not exist" };
       }
       if (want === "bad-json") {
-        return parseStatus('{"heartbeat": "2026-08-1');
+        return { ok: false, reason: "malformed", detail: "heartbeat.json is not JSON" };
       }
-      return parseStatus(sceneJson(sceneId(want)));
+      return { ok: true, status: sceneStatus(sceneId(want)), dropped: 0 };
     },
 
     async readRecent(limit = 20): Promise<BeeRecentRun[]> {

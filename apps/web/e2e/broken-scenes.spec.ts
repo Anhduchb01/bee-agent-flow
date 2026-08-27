@@ -59,12 +59,15 @@ test("vừa cài xong → nói bước tiếp theo, không hiện trang trống"
   );
 });
 
-test("có sự cố → gọi tên repo đang bị dừng", async ({ page }) => {
+// Was "one repo has .agent/PAUSE" — a reconciler idea, gone with it (27/08).
+// The runner has ONE kill switch, and the worrying shape is having it on
+// while projects are registered and a session is running.
+test("kill switch bật trong lúc có việc chạy → cảnh báo, không phải xanh", async ({ page }) => {
   await signIn(page, "pm-linh");
   await setScene(page, "something-wrong");
   await page.goto("/");
 
   const health = page.getByRole("region", { name: "System health" });
-  await expect(health).toContainText("1 project(s) paused");
-  await expect(health).toContainText(".agent/PAUSE");
+  await expect(health).toContainText("paused");
+  await expect(health).toContainText("hands out no work");
 });

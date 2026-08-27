@@ -10,10 +10,9 @@ export interface Health {
   level: HealthLevel;
   headline: string;
   detail: string;
-  /** `null` khi không đọc được `status.json` hoặc heartbeat không phải ngày tháng. */
+  /** `null` khi không đọc được `heartbeat.json` hoặc heartbeat không phải ngày tháng. */
   heartbeatAgeS: number | null;
   running: number;
-  pausedRepos: string[];
   /** Số repo bị bỏ vì hình dạng hỏng — hiện ra chứ không giấu. */
   dropped: number;
 }
@@ -22,12 +21,11 @@ export interface Health {
 const NOTHING: Omit<Health, "level" | "headline" | "detail"> = {
   heartbeatAgeS: null,
   running: 0,
-  pausedRepos: [],
   dropped: 0,
 };
 
 /**
- * Biến kết quả đọc `status.json` thành một câu nói được ra màn hình.
+ * Biến kết quả đọc `heartbeat.json` thành một câu nói được ra màn hình.
  *
  * Ba trong bốn kết cục ở đây **không phải lỗi lập trình**: file chưa có (vừa
  * cài), file hỏng (đang ghi dở), file cũ (runner chết). Cái thứ ba là chế độ
@@ -42,25 +40,23 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
         level: "warn",
         headline: "No data from the runner yet",
         detail:
-          "status.json not found. Normal right after install, before the runner has run a tick.",
+          "heartbeat.json not found. Normal right after install, before the reaper has ticked once.",
       };
     }
     return {
       ...NOTHING,
       level: "down",
       headline: "Cannot read system status",
-      detail: `${read.reason === "malformed" ? "status.json is malformed" : "cannot open status.json"} · ${read.detail}`,
+      detail: `${read.reason === "malformed" ? "heartbeat.json is malformed" : "cannot open heartbeat.json"} · ${read.detail}`,
     };
   }
 
   const { status, dropped } = read;
   const ageS = heartbeatAge(status.heartbeat, now);
-  const pausedRepos = status.repos.filter((r) => r.paused).map((r) => r.slug);
 
   const shared = {
     heartbeatAgeS: ageS,
-    running: status.running.length,
-    pausedRepos,
+    running: status.running,
     dropped,
   };
 
@@ -85,14 +81,6 @@ export function deriveHealth(read: StatusRead, now: Date = new Date()): Health {
     };
   }
 
-  if (pausedRepos.length > 0) {
-    return {
-      ...shared,
-      level: "warn",
-      headline: `${pausedRepos.length} project(s) paused`,
-      detail: `${pausedRepos.join(", ")} — .agent/PAUSE is present on the default branch.`,
-    };
-  }
 
   return {
     ...shared,

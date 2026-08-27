@@ -127,12 +127,25 @@ export interface BeeRepo {
   recent: BeeRecentRun[];
 }
 
+/**
+ * What the health banner needs to say something true, and nothing more.
+ *
+ * Narrowed 27/08 when the reconciler went away. The old shape carried
+ * `slots` (build/evidence pools), per-repo `queue`/`recent`/`wip`/`enabled`
+ * and a `rule` per running item — the reconciler's rule-world model. The
+ * runner is session-first: it has no rules and no pools, and not one of those
+ * fields was read by any screen. Carrying them would have meant inventing
+ * numbers to fill them.
+ */
 export interface BeeStatus {
+  /** ISO of the reaper's last tick, from `heartbeat.json`. */
   heartbeat: string;
+  /** The machine-wide kill switch: the `PAUSE` file's existence. */
   mode: BeeMode;
-  slots: BeeSlots;
-  running: BeeRunning[];
-  repos: BeeRepo[];
+  /** How many sessions were running at that tick — a count, not a list. */
+  running: number;
+  /** Registered repos, from `repos.d` — the same list doctor checks. */
+  repos: { slug: string; repo: string }[];
 }
 
 /**
