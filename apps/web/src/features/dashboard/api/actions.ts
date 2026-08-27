@@ -20,7 +20,11 @@ export async function refreshUsageAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: "You are not allowed to do this." };
 
-  const [account, local] = await Promise.all([fetchClaudeAccountUsage(), harvestClaudeUsage()]);
+  // A person pressed a button: never hand them a cached answer.
+  const [account, local] = await Promise.all([
+    fetchClaudeAccountUsage({ force: true }),
+    harvestClaudeUsage(),
+  ]);
   revalidatePath("/");
   const err = [account, local].filter((k) => !k.ok).map((k) => (k.ok ? "" : k.message));
   return err.length === 0 ? { ok: true, message: "" } : { ok: false, message: err.join(" · ") };

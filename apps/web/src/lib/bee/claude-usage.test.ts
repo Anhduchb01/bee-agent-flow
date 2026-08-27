@@ -22,6 +22,61 @@ describe("account usage — fetch from the oauth endpoint, read back narrowed", 
     await fs.rm(dir, { recursive: true, force: true });
   });
 
+  /**
+   * The endpoint is rate-limited per ACCOUNT, and two callers share it: the
+   * 30-minute tick and the refresh button. When they land in the same minute
+   * the second one earns a 429 that neither of them needed — the answer was
+   * already on disk, seconds old. That 429 is self-inflicted, so it is the
+   * one this code can actually prevent.
+   */
+  it("a snapshot seconds old is reused instead of asking again", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ five_hour: { utilization: 9, resets_at: null }, seven_day: null }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect((await fetchClaudeAccountUsage()).ok).toBe(true);
+    expect((await fetchClaudeAccountUsage()).ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("but a stale snapshot does not block a real refresh", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ five_hour: { utilization: 9, resets_at: null }, seven_day: null }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await fetchClaudeAccountUsage();
+
+    // Age the snapshot past the reuse window.
+    const file = path.join(dir, "state", "claude-usage.json");
+    const old = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, unknown>;
+    old.fetched_at = new Date(Date.now() - 10 * 60_000).toISOString();
+    await fs.writeFile(file, JSON.stringify(old));
+
+    expect((await fetchClaudeAccountUsage()).ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("force skips the reuse window — the button must always mean something", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ five_hour: { utilization: 9, resets_at: null }, seven_day: null }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchClaudeAccountUsage();
+    expect((await fetchClaudeAccountUsage({ force: true })).ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("fetches with the machine token and writes state/claude-usage.json", async () => {
     const fetchMock = vi.fn(async () =>
       new Response(

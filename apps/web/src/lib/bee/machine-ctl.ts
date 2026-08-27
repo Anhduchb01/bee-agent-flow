@@ -320,10 +320,31 @@ export async function unregisterRepo(slug: string): Promise<Result> {
  * Token: the pasted setup-token first, else the machine's interactive
  * credentials. A failed fetch leaves the previous snapshot untouched.
  */
+/** How long an answer stays good enough to hand back without asking again. */
+const USAGE_REUSE_MS = 60_000;
+
 export async function fetchClaudeAccountUsage(opts?: {
   credentialsFile?: string;
+  /** Skip the reuse window. The refresh button must always mean something. */
+  force?: boolean;
 }): Promise<Result> {
   if (isFixture()) return { ok: true };
+
+  // The endpoint is rate-limited per ACCOUNT and has two callers: the
+  // 30-minute tick and the refresh button. Landing in the same minute earns
+  // a 429 that neither needed, because the answer was already on disk seconds
+  // old. Anthropic's limit is not ours to change; this collision is.
+  if (opts?.force !== true) {
+    try {
+      const prev = JSON.parse(
+        await fs.readFile(path.join(root(), "state", "claude-usage.json"), "utf8"),
+      ) as Record<string, unknown>;
+      const at = typeof prev.fetched_at === "string" ? Date.parse(prev.fetched_at) : NaN;
+      if (Number.isFinite(at) && Date.now() - at < USAGE_REUSE_MS) return { ok: true };
+    } catch {
+      // No snapshot yet, or unreadable — ask for real.
+    }
+  }
 
   let token = "";
   try {
