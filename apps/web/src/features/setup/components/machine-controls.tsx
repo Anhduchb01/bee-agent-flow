@@ -75,7 +75,7 @@ export function PatForm({ done }: { done: boolean | null }) {
   const router = useRouter();
   const [token, setToken] = useState("");
   const [err, setErr] = useState("");
-  const [finished, setXong] = useState(false);
+  const [finished, setFinished] = useState(false);
   const [busy, start] = useTransition();
 
   function stored() {
@@ -89,7 +89,7 @@ export function PatForm({ done }: { done: boolean | null }) {
       if (outcome.ok) {
         setToken("");
         setErr("");
-        setXong(true);
+        setFinished(true);
       } else {
         setErr(outcome.message);
       }
@@ -140,7 +140,7 @@ export function ClaudeTokenForm({ done }: { done: boolean | null }) {
   const router = useRouter();
   const [token, setToken] = useState("");
   const [err, setErr] = useState("");
-  const [finished, setXong] = useState(false);
+  const [finished, setFinished] = useState(false);
   const [busy, start] = useTransition();
 
   function stored() {
@@ -154,7 +154,7 @@ export function ClaudeTokenForm({ done }: { done: boolean | null }) {
       if (outcome.ok) {
         setToken("");
         setErr("");
-        setXong(true);
+        setFinished(true);
       } else {
         setErr(outcome.message);
       }

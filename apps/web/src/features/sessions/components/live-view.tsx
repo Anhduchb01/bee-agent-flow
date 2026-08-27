@@ -250,15 +250,15 @@ export function LiveView({
   const { events, typing, idle, status, ended, skipped } = useSessionStream(session.id);
   const [input, setInput] = useState("");
   const [err, setErr] = useState("");
-  const [sending, batDauGui] = useTransition();
+  const [sending, startSend] = useTransition();
   // Optimistic — the prop only refreshes on a server re-render.
   const [mode, setMode] = useState<BeeSessionMode>(session.mode ?? "auto");
-  const [changingMode, batDauDoiMode] = useTransition();
+  const [changingMode, startModeChange] = useTransition();
   const [model, setModel] = useState<BeeSessionModel>(session.model ?? "default");
 
   function switchMode(latest: BeeSessionMode) {
     if (changingMode || latest === mode) return;
-    batDauDoiMode(async () => {
+    startModeChange(async () => {
       const prev = mode;
       setMode(latest);
       const outcome = await changeModeAction(session.id, latest);
@@ -272,7 +272,7 @@ export function LiveView({
   /** Model switch: optimistic like the mode one, and it restarts the unit too. */
   function switchModel(latest: BeeSessionModel) {
     if (changingMode || latest === model) return;
-    batDauDoiMode(async () => {
+    startModeChange(async () => {
       const prev = model;
       setModel(latest);
       const outcome = await changeModelAction(session.id, latest);
@@ -311,7 +311,7 @@ export function LiveView({
   function send() {
     const text = input.trim();
     if (text === "" || sending) return;
-    batDauGui(async () => {
+    startSend(async () => {
       const outcome = await sendToSessionAction(session.id, text);
       if (outcome.ok) {
         setInput("");
@@ -343,7 +343,7 @@ export function LiveView({
   /** Send a line straight to the session — palette actions like /compact. */
   function sendDirect(text: string) {
     if (sending) return;
-    batDauGui(async () => {
+    startSend(async () => {
       const outcome = await sendToSessionAction(session.id, text);
       setErr(outcome.ok ? "" : outcome.message);
     });
@@ -351,7 +351,7 @@ export function LiveView({
 
   /** "+" upload: the file lands in the worktree, its path lands in the draft. */
   function handleUpload(f: File) {
-    batDauGui(async () => {
+    startSend(async () => {
       const fd = new FormData();
       fd.append("file", f);
       const outcome = await uploadFileAction(session.id, fd);
@@ -377,7 +377,7 @@ export function LiveView({
     hint: c.hint,
     chen: `/${c.name} `,
   }));
-  const goiLenh =
+  const commandToSend =
     session.worktree && input.startsWith("/") && !input.includes(" ")
       ? allCommands.filter((l) => l.name.startsWith(input)).slice(0, 12)
       : [];
@@ -451,7 +451,7 @@ export function LiveView({
             // waits for the OWNER, showing it would be a lie.
             waiting={busy && typing === "" && idle === "" && !awaitingPermission}
             onAnswerPermission={(requestId, allow, inputJson) =>
-              batDauGui(async () => {
+              startSend(async () => {
                 const outcome = await answerPermissionAction(session.id, requestId, allow, inputJson);
                 if (!outcome.ok) setErr(outcome.message);
               })
@@ -499,13 +499,13 @@ export function LiveView({
               send();
             }}
           >
-            {goiLenh.length > 0 && (
+            {commandToSend.length > 0 && (
               <ul
                 role="listbox"
                 aria-label="Commands"
                 className="absolute bottom-full left-0 mb-1 max-h-72 w-full overflow-y-auto rounded-card border border-border bg-popover p-1 shadow-md"
               >
-                {goiLenh.map((l) => (
+                {commandToSend.map((l) => (
                   <li key={l.name} role="option" aria-selected={false}>
                     <button
                       type="button"
@@ -603,7 +603,7 @@ export function LiveView({
               variant="outline"
               disabled={sending}
               onClick={() =>
-                batDauGui(async () => {
+                startSend(async () => {
                   const outcome = await continueAction(session.id);
                   if (outcome.ok) {
                     // Full reload: the SSE stream closed on bee_done — a

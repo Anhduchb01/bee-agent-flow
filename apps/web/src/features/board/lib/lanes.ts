@@ -75,7 +75,7 @@ export function laneOf(
   issue: BeeIssue,
   session: IssueSession[],
   pr: BeeArtifact[],
-  daXepHang = false,
+  alreadyQueued = false,
 ): Lane {
   if (issue.state === "CLOSED") return "done";
   if (session.some((p) => p.status === "running" || p.status === "starting")) return "working";
@@ -83,7 +83,7 @@ export function laneOf(
   // Xếp hàng là một TRẠNG THÁI (D4), nhưng đứng SAU mọi sự thật: một issue
   // vừa nằm trong hàng vừa có phiên đang chạy thì nó đang chạy, không phải
   // đang chờ. Ý định không được che sự thật.
-  if (daXepHang) return "autopilot";
+  if (alreadyQueued) return "autopilot";
   return "backlog";
 }
 

@@ -16,11 +16,11 @@ import { runDoctorAction } from "../api/actions";
 export function DoctorChecklist({ doctor }: { doctor: BeeDoctor | null }) {
   const router = useRouter();
   const [err, setErr] = useState("");
-  const [running, batDauChay] = useTransition();
+  const [running, startRun] = useTransition();
 
   function rerun() {
     if (running) return;
-    batDauChay(async () => {
+    startRun(async () => {
       const outcome = await runDoctorAction();
       setErr(outcome.ok ? "" : outcome.message);
       router.refresh();

@@ -22,8 +22,8 @@ describe("parseStatus", () => {
   });
 
   it("giữ nguyên mọi trường của một mục đang chạy", () => {
-    const read = parseStatus(sceneJson("binh-thuong"));
-    if (!read.ok) throw new Error("cảnh binh-thuong phải parse được");
+    const read = parseStatus(sceneJson("normal"));
+    if (!read.ok) throw new Error("cảnh normal phải parse được");
 
     expect(read.status.running[0]).toEqual({
       id: "myapp-42",
@@ -37,8 +37,8 @@ describe("parseStatus", () => {
   });
 
   it("giữ nguyên mọi trường của một repo", () => {
-    const read = parseStatus(sceneJson("day-tai"));
-    if (!read.ok) throw new Error("cảnh day-tai phải parse được");
+    const read = parseStatus(sceneJson("under-load"));
+    if (!read.ok) throw new Error("cảnh under-load phải parse được");
 
     const myapp = read.status.repos.find((r) => r.slug === "myapp");
     expect(myapp).toBeDefined();
@@ -75,14 +75,14 @@ describe("parseStatus", () => {
   });
 
   it("báo malformed khi một trường sai kiểu", () => {
-    const good = JSON.parse(sceneJson("binh-thuong"));
+    const good = JSON.parse(sceneJson("normal"));
     good.slots.build.used = "một";
 
     expect(parseStatus(JSON.stringify(good))).toMatchObject({ ok: false });
   });
 
   it("bỏ qua mục lạ trong repos thay vì sập cả trang", () => {
-    const good = JSON.parse(sceneJson("binh-thuong"));
+    const good = JSON.parse(sceneJson("normal"));
     good.repos.push({ slug: "hỏng" });
 
     const read = parseStatus(JSON.stringify(good));

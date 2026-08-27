@@ -27,7 +27,7 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
   const [url, setUrl] = useState("");
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
-  const [finished, setXong] = useState(false);
+  const [finished, setFinished] = useState(false);
   const [busy, start] = useTransition();
 
   function getLink() {
@@ -37,7 +37,7 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
       if (outcome.ok) {
         setUrl(outcome.url);
         setErr("");
-        setXong(false);
+        setFinished(false);
       } else {
         setErr(outcome.message);
       }
@@ -52,7 +52,7 @@ export function ClaudeSetup({ auth }: { auth: BeeClaudeAuth }) {
         setUrl("");
         setCode("");
         setErr("");
-        setXong(true);
+        setFinished(true);
       } else {
         setErr(outcome.message);
       }

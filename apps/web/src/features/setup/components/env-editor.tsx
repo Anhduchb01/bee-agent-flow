@@ -17,7 +17,7 @@ interface EnvFile {
 /** One existing file: editable content, save/delete. */
 function EnvFileCard({ slug, file }: { slug: string; file: EnvFile }) {
   const router = useRouter();
-  const [content, setNoiDung] = useState(file.content);
+  const [content, setContent] = useState(file.content);
   const [err, setErr] = useState("");
   const [busy, start] = useTransition();
 
@@ -58,7 +58,7 @@ function EnvFileCard({ slug, file }: { slug: string; file: EnvFile }) {
       {/* text-base on phones — under 16px iOS Safari zooms in on focus. */}
       <Textarea
         value={content}
-        onChange={(e) => setNoiDung(e.target.value)}
+        onChange={(e) => setContent(e.target.value)}
         aria-label={`Content of ${file.path}`}
         rows={3}
         className="font-mono text-base sm:text-xs"
@@ -89,8 +89,8 @@ export function EnvEditor({
   moSan?: boolean;
 }) {
   const router = useRouter();
-  const [path, setDuongDan] = useState("");
-  const [content, setNoiDung] = useState("");
+  const [path, setPath] = useState("");
+  const [content, setContent] = useState("");
   const [err, setErr] = useState("");
   const [busy, start] = useTransition();
 
@@ -99,8 +99,8 @@ export function EnvEditor({
     start(async () => {
       const outcome = await saveEnvFileAction(slug, path.trim(), content);
       if (outcome.ok) {
-        setDuongDan("");
-        setNoiDung("");
+        setPath("");
+        setContent("");
         setErr("");
       } else {
         setErr(outcome.message);
@@ -121,14 +121,14 @@ export function EnvEditor({
         <div className="flex flex-col gap-1.5 rounded-control border border-dashed border-border p-2.5">
           <Input
             value={path}
-            onChange={(e) => setDuongDan(e.target.value)}
+            onChange={(e) => setPath(e.target.value)}
             placeholder=".env or apps/web/.env.local — path inside the repo"
             aria-label={`New env file path for ${slug}`}
             className="font-mono text-base sm:text-xs"
           />
           <Textarea
             value={content}
-            onChange={(e) => setNoiDung(e.target.value)}
+            onChange={(e) => setContent(e.target.value)}
             placeholder={"API_KEY=…\nDB_URL=…"}
             aria-label={`New env file content for ${slug}`}
             rows={3}

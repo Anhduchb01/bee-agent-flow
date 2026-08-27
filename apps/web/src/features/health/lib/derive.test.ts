@@ -12,7 +12,7 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
   // 1. Chế độ hỏng nguy hiểm nhất: không có gì đỏ để nhìn, chỉ là không có gì
   //    xảy ra. Nếu app không nói ra thì không ai biết.
   it("heartbeat cũ 35 phút → báo đỏ và nói rõ các con số là cũ", () => {
-    const h = deriveHealth(read("reconciler-chet"), NOW);
+    const h = deriveHealth(read("reconciler-dead"), NOW);
 
     expect(h.level).toBe("down");
     expect(h.headline).toContain("may be dead");
@@ -21,21 +21,21 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
   });
 
   it("heartbeat 30 phút → vẫn là đỏ (ngưỡng 10 phút)", () => {
-    const status = JSON.parse(sceneJson("binh-thuong", NOW));
+    const status = JSON.parse(sceneJson("normal", NOW));
     status.heartbeat = new Date(NOW.getTime() - 30 * 60_000).toISOString();
 
     expect(deriveHealth(parseStatus(JSON.stringify(status)), NOW).level).toBe("down");
   });
 
   it("heartbeat 9 phút → chưa đỏ", () => {
-    const status = JSON.parse(sceneJson("binh-thuong", NOW));
+    const status = JSON.parse(sceneJson("normal", NOW));
     status.heartbeat = new Date(NOW.getTime() - 9 * 60_000).toISOString();
 
     expect(deriveHealth(parseStatus(JSON.stringify(status)), NOW).level).toBe("ok");
   });
 
   it("heartbeat không phải ngày tháng cũng tính là chết, không đoán tốt", () => {
-    const status = JSON.parse(sceneJson("binh-thuong", NOW));
+    const status = JSON.parse(sceneJson("normal", NOW));
     status.heartbeat = "hôm qua";
 
     const h = deriveHealth(parseStatus(JSON.stringify(status)), NOW);
@@ -64,20 +64,20 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
 
 describe("deriveHealth — đếm và cảnh báo", () => {
   it("đếm đúng ở cảnh bình thường", () => {
-    const h = deriveHealth(read("binh-thuong"), NOW);
+    const h = deriveHealth(read("normal"), NOW);
 
     expect(h.level).toBe("ok");
     expect(h.running).toBe(1);
   });
 
   it("đếm đúng khi máy đầy tải", () => {
-    const h = deriveHealth(read("day-tai"), NOW);
+    const h = deriveHealth(read("under-load"), NOW);
 
     expect(h.running).toBe(4);
   });
 
   it("repo bị dừng thì cảnh báo và gọi tên nó ra", () => {
-    const h = deriveHealth(read("co-su-co"), NOW);
+    const h = deriveHealth(read("something-wrong"), NOW);
 
     expect(h.level).toBe("warn");
     expect(h.pausedRepos).toEqual(["shop"]);
@@ -86,14 +86,14 @@ describe("deriveHealth — đếm và cảnh báo", () => {
   });
 
   it("mode paused thắng cả cảnh báo repo", () => {
-    const h = deriveHealth(read("vua-cai"), NOW);
+    const h = deriveHealth(read("fresh-install"), NOW);
 
     expect(h.level).toBe("warn");
     expect(h.headline).toContain("paused");
   });
 
   it("chưa có repo nào thì nói bước tiếp theo thay vì hiện số 0", () => {
-    const status = JSON.parse(sceneJson("vua-cai", NOW));
+    const status = JSON.parse(sceneJson("fresh-install", NOW));
     status.mode = "running";
 
     const h = deriveHealth(parseStatus(JSON.stringify(status)), NOW);
@@ -102,7 +102,7 @@ describe("deriveHealth — đếm và cảnh báo", () => {
   });
 
   it("repo hỏng hình dạng bị đếm và hiện ra, không giấu", () => {
-    const status = JSON.parse(sceneJson("binh-thuong", NOW));
+    const status = JSON.parse(sceneJson("normal", NOW));
     status.repos.push({ slug: "hỏng" });
 
     expect(deriveHealth(parseStatus(JSON.stringify(status)), NOW).dropped).toBe(1);

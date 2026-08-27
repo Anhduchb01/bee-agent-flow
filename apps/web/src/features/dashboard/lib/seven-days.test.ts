@@ -78,7 +78,7 @@ describe("lastSevenDays", () => {
   });
 });
 
-describe("tomTatBayNgay", () => {
+describe("sevenDaySummary", () => {
   it("gọi tên khi hôm nay tệ hơn hẳn", () => {
     const days = lastSevenDays([...runIt(0, "ok", 7), ...runIt(0, "fail", 6), ...runIt(3, "ok", 12)], NOW);
 

@@ -20,9 +20,9 @@ export async function refreshUsageAction(): Promise<Result> {
   const actor = await getActor();
   if (!actor) return { ok: false, message: "You are not allowed to do this." };
 
-  const [taiKhoan, local] = await Promise.all([fetchClaudeAccountUsage(), harvestClaudeUsage()]);
+  const [account, local] = await Promise.all([fetchClaudeAccountUsage(), harvestClaudeUsage()]);
   revalidatePath("/");
-  const err = [taiKhoan, local].filter((k) => !k.ok).map((k) => (k.ok ? "" : k.message));
+  const err = [account, local].filter((k) => !k.ok).map((k) => (k.ok ? "" : k.message));
   return err.length === 0 ? { ok: true, message: "" } : { ok: false, message: err.join(" · ") };
 }
 

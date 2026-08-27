@@ -25,7 +25,7 @@ import type { BeeRegisteredRepo, BeeSession, SessionStatus } from "@/lib/bee/typ
 import { humanDuration } from "@/lib/duration";
 
 import { loadArtifactDetailAction } from "../api/actions";
-import { unwrapArtifactUrl, artifactColour, type ArtifactSong } from "../lib/artifact-live";
+import { unwrapArtifactUrl, artifactColour, type ArtifactLive } from "../lib/artifact-live";
 import { type NodeKind } from "../lib/build-graph";
 import type {
   EdgeCanvas,
@@ -108,7 +108,7 @@ function SessionNode({ data }: NodeProps<SessionFlow>) {
 function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
   // Click mở panel chi tiết NGAY TRÊN canvas (onNodeClick); ↗ là lối tắt
   // sang GitHub — stopPropagation để hai đường không giẫm nhau.
-  const live = (data as { live?: ArtifactSong | null }).live ?? null;
+  const live = (data as { live?: ArtifactLive | null }).live ?? null;
   const checks = live?.checks != null ? CHECKS_GLYPH[live.checks] : null;
   return (
     <div className="w-56 cursor-pointer rounded-control border border-border bg-secondary px-3 py-2">
@@ -130,8 +130,8 @@ function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
           </span>
         )}
         {checks !== null && (
-          <span className={`font-mono text-[0.625rem] ${checks.mau}`} title={`checks ${live?.checks}`}>
-            {checks.ky}
+          <span className={`font-mono text-[0.625rem] ${checks.colour}`} title={`checks ${live?.checks}`}>
+            {checks.glyph}
           </span>
         )}
         <span className="flex-1" />
@@ -156,10 +156,10 @@ function ArtifactNode({ data }: NodeProps<FlowArtifact>) {
   );
 }
 
-const CHECKS_GLYPH: Record<string, { ky: string; mau: string }> = {
-  pass: { ky: "✓", mau: "text-green-500" },
-  fail: { ky: "✗", mau: "text-red-400" },
-  pending: { ky: "●", mau: "text-amber-500" },
+const CHECKS_GLYPH: Record<string, { glyph: string; colour: string }> = {
+  pass: { glyph: "✓", colour: "text-green-500" },
+  fail: { glyph: "✗", colour: "text-red-400" },
+  pending: { glyph: "●", colour: "text-amber-500" },
 };
 
 type FlowDemo = Node<NodeDemo["data"] & Record<string, unknown>, "demo">;
@@ -249,15 +249,15 @@ export function CanvasView({
   commands?: { name: string; hint: string }[];
 }) {
   const router = useRouter();
-  const [chosen, setChon] = useState<BeeSession | null>(null);
-  const [xemArtifact, setXemArtifact] = useState<{
+  const [chosen, setChosen] = useState<BeeSession | null>(null);
+  const [viewArtifact, setViewArtifact] = useState<{
     repo: string;
     kind: "issue" | "pr";
     number: number;
     url: string;
     title: string | null;
   } | null>(null);
-  const [xemVideo, setXemVideo] = useState<{ name: string; url: string } | null>(null);
+  const [viewVideo, setViewVideo] = useState<{ name: string; url: string } | null>(null);
 
   // Controlled nodes + a 5s server refresh = the canvas updates LIVE: new
   // sessions and freshly created issue/PR nodes appear without a reload.
@@ -288,7 +288,7 @@ export function CanvasView({
   // V2.2 — live artifact state. One fetch per visible artifact node (cap
   // 12), re-run when the graph changes and every 60s (matches the server
   // cache TTL). Doubles as PREFETCH: the detail panel opens warm.
-  const [songTheo, setSongTheo] = useState<Record<string, ArtifactSong>>({});
+  const [liveByKey, setLiveByKey] = useState<Record<string, ArtifactLive>>({});
   useEffect(() => {
     let song = true;
     async function load() {
@@ -310,7 +310,7 @@ export function CanvasView({
         }),
       );
       if (song) {
-        setSongTheo(Object.fromEntries(granted.filter((c): c is NonNullable<typeof c> => c !== null)));
+        setLiveByKey(Object.fromEntries(granted.filter((c): c is NonNullable<typeof c> => c !== null)));
       }
     }
     void load();
@@ -327,15 +327,15 @@ export function CanvasView({
     setFlowNodes((ns) =>
       ns.map((n) =>
         n.type === "artifact"
-          ? { ...n, data: { ...n.data, live: songTheo[(n.data as { url: string }).url] ?? null } }
+          ? { ...n, data: { ...n.data, live: liveByKey[(n.data as { url: string }).url] ?? null } }
           : n,
       ),
     );
-  }, [songTheo, setFlowNodes]);
+  }, [liveByKey, setFlowNodes]);
 
   // Chat panel width — restored from the last drag, VSCode-style. Lazy
   // init is safe: the Sheet only mounts when opened, all client-side.
-  const [rongPanel, setRongPanel] = useState(() => {
+  const [panelWidth, setPanelWidth] = useState(() => {
     if (typeof window === "undefined") return 1152;
     try {
       const stored = Number(localStorage.getItem("bee-chat-width"));
@@ -360,16 +360,16 @@ export function CanvasView({
         nodesConnectable={false}
         deleteKeyCode={null}
         onNodeClick={(_, node) => {
-          if (node.type === "session") setChon(session.find((p) => p.id === node.id) ?? null);
+          if (node.type === "session") setChosen(session.find((p) => p.id === node.id) ?? null);
           if (node.type === "demo") {
             const d = node.data as NodeDemo["data"];
-            setXemVideo({ name: d.name, url: d.url });
+            setViewVideo({ name: d.name, url: d.url });
           }
           if (node.type === "artifact") {
             const d = node.data as FlowArtifact["data"];
             const unwrapped = unwrapArtifactUrl(d.url);
             if (unwrapped !== null) {
-              setXemArtifact({ ...unwrapped, url: d.url, title: (d.title as string | null) ?? null });
+              setViewArtifact({ ...unwrapped, url: d.url, title: (d.title as string | null) ?? null });
             } else {
               // URL lạ (không phải github.com issues/pull) — mở thẳng tab mới.
               window.open(d.url, "_blank", "noopener,noreferrer");
@@ -382,7 +382,7 @@ export function CanvasView({
         {/* Tạo phiên ngay trên canvas — xong là panel chat mở tại chỗ,
             node mới hiện sau router.refresh, không rời đồ thị */}
         <Panel position="top-left" className="w-[26rem] max-w-[calc(100vw-2rem)]">
-          <NewSessionForm repos={repos} onCreated={(p) => setChon(p)} />
+          <NewSessionForm repos={repos} onCreated={(p) => setChosen(p)} />
         </Panel>
         {/* Kéo tay xong rối mắt? Một nút quay về auto-layout — vị trí không
             được lưu (spec canvas §2), nên đây chỉ là rebuild từ props. */}
@@ -402,7 +402,7 @@ export function CanvasView({
 
       {/* Panel chat tại chỗ — cùng LiveView với trang riêng, một nguồn sự thật.
           Width is draggable like a VSCode side panel; remembered per browser. */}
-      <Sheet open={chosen !== null} onOpenChange={(opener) => !opener && setChon(null)}>
+      <Sheet open={chosen !== null} onOpenChange={(opener) => !opener && setChosen(null)}>
         <SheetContent
           side="right"
           className="flex flex-col gap-0 p-0"
@@ -410,7 +410,7 @@ export function CanvasView({
           // the panel at 384px, which also made dragging look dead. 100vw cap:
           // the remembered desktop width (default 1152) must never overflow a
           // phone screen.
-          style={{ width: rongPanel, maxWidth: "100vw" }}
+          style={{ width: panelWidth, maxWidth: "100vw" }}
         >
           {/* Pointer CAPTURE, not window listeners: Radix's modal layer eats
               window events, which is why the first version never dragged. */}
@@ -422,7 +422,7 @@ export function CanvasView({
             onPointerDown={(e) => {
               e.preventDefault();
               e.currentTarget.setPointerCapture(e.pointerId);
-              dragState.current = { start: e.clientX, wide: rongPanel };
+              dragState.current = { start: e.clientX, wide: panelWidth };
             }}
             onPointerMove={(e) => {
               if (dragState.current === null) return;
@@ -430,13 +430,13 @@ export function CanvasView({
                 Math.max(dragState.current.wide + (dragState.current.start - e.clientX), 360),
                 window.innerWidth - 120,
               );
-              setRongPanel(latest);
+              setPanelWidth(latest);
             }}
             onPointerUp={(e) => {
               e.currentTarget.releasePointerCapture(e.pointerId);
               dragState.current = null;
               try {
-                localStorage.setItem("bee-chat-width", String(rongPanel));
+                localStorage.setItem("bee-chat-width", String(panelWidth));
               } catch {
                 // Private mode — width just won't persist.
               }
@@ -454,27 +454,27 @@ export function CanvasView({
       </Sheet>
 
       {/* 🎬 preview video demo ngay trên canvas — không rời đồ thị */}
-      <Sheet open={xemVideo !== null} onOpenChange={(opener) => !opener && setXemVideo(null)}>
+      <Sheet open={viewVideo !== null} onOpenChange={(opener) => !opener && setViewVideo(null)}>
         <SheetContent
           side="right"
           className="flex flex-col gap-0 p-0"
           style={{ width: "min(760px, 100vw)", maxWidth: "100vw" }}
         >
-          {xemVideo !== null && (
+          {viewVideo !== null && (
             <>
               <SheetTitle className="border-b border-border px-4 py-3 pr-10 font-mono text-sm">
-                🎬 {xemVideo.name}
+                🎬 {viewVideo.name}
               </SheetTitle>
               <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
                 <video
-                  src={xemVideo.url}
+                  src={viewVideo.url}
                   controls
                   autoPlay
                   playsInline
                   className="w-full rounded-control border border-border"
                 />
                 <a
-                  href={xemVideo.url}
+                  href={viewVideo.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="self-start font-mono text-xs text-muted-foreground underline-offset-2 hover:underline"
@@ -488,29 +488,29 @@ export function CanvasView({
       </Sheet>
 
       {/* Panel chi tiết issue/PR — đọc từ gh của máy, nút ↗ cho phần còn lại */}
-      <Sheet open={xemArtifact !== null} onOpenChange={(opener) => !opener && setXemArtifact(null)}>
+      <Sheet open={viewArtifact !== null} onOpenChange={(opener) => !opener && setViewArtifact(null)}>
         <SheetContent
           side="right"
           className="flex flex-col gap-0 p-0"
           style={{ width: "min(560px, 100vw)", maxWidth: "100vw" }}
         >
-          {xemArtifact !== null && (
+          {viewArtifact !== null && (
             <>
               <SheetTitle className="border-b border-border px-4 py-3 pr-10 text-sm">
                 <span className="font-mono text-muted-foreground">
-                  {xemArtifact.kind === "pr" ? "PR" : "Issue"} #{xemArtifact.number} ·{" "}
-                  {xemArtifact.repo}
+                  {viewArtifact.kind === "pr" ? "PR" : "Issue"} #{viewArtifact.number} ·{" "}
+                  {viewArtifact.repo}
                 </span>
-                {xemArtifact.title !== null && (
-                  <span className="mt-0.5 block truncate">{xemArtifact.title}</span>
+                {viewArtifact.title !== null && (
+                  <span className="mt-0.5 block truncate">{viewArtifact.title}</span>
                 )}
               </SheetTitle>
               <ArtifactPanel
-                key={`${xemArtifact.repo}#${xemArtifact.kind}#${xemArtifact.number}`}
-                repo={xemArtifact.repo}
-                kind={xemArtifact.kind}
-                number={xemArtifact.number}
-                url={xemArtifact.url}
+                key={`${viewArtifact.repo}#${viewArtifact.kind}#${viewArtifact.number}`}
+                repo={viewArtifact.repo}
+                kind={viewArtifact.kind}
+                number={viewArtifact.number}
+                url={viewArtifact.url}
               />
             </>
           )}

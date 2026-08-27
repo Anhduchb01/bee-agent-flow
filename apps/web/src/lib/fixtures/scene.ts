@@ -24,10 +24,10 @@ export async function currentScene(): Promise<string> {
   } catch {
     // Ngoài ngữ cảnh request (test, script) thì không có cookie — dùng env.
   }
-  return process.env.BEE_FIXTURE_SCENE ?? "binh-thuong";
+  return process.env.BEE_FIXTURE_SCENE ?? "normal";
 }
 
 /** Cảnh mô tả một máy chưa từng chạy rule nào: chưa có repo, hoặc chưa có file. */
 export function neverRan(activeScene: string): boolean {
-  return activeScene === "vua-cai" || activeScene === "chua-co-file";
+  return activeScene === "fresh-install" || activeScene === "no-file";
 }

@@ -12,11 +12,11 @@ import { signIn } from "./helpers";
  * đăng nhập; nếu tách ra config riêng thì bản build được chụp và bản build được
  * test có thể khác nhau, và ảnh sẽ nói về một sản phẩm không ai đang chạy.
  *
- * Mặc định BỎ QUA. Bật bằng `CHUP_ANH=<thư mục>` — ảnh không rơi vào repo, vì
+ * Mặc định BỎ QUA. Bật bằng `SHOTS_DIR=<thư mục>` — ảnh không rơi vào repo, vì
  * hai mươi mấy tấm JPEG lẫn vào lịch sử git là cái giá phải trả mãi mãi cho một
  * lần duyệt.
  */
-const OUT_DIR = process.env.CHUP_ANH;
+const OUT_DIR = process.env.SHOTS_DIR;
 
 /** Ảnh chụp phải tất định: giờ đồng hồ đổi thì mọi tấm đều "khác" lần trước. */
 const ACTOR = "pm-linh";
@@ -41,19 +41,19 @@ const ONCE_SCREENS: Screen[] = [
 ];
 
 const SCENES = [
-  "binh-thuong",
-  "day-tai",
-  "co-su-co",
-  "reconciler-chet",
-  "vua-cai",
+  "normal",
+  "under-load",
+  "something-wrong",
+  "reconciler-dead",
+  "fresh-install",
   // Hai cảnh hỏng: không nằm trong "năm cảnh" của W12 nhưng là chỗ giao diện dễ
   // vỡ nhất, và xem ảnh rẻ hơn nhiều so với gặp nó trên máy thật.
   //
   // Tên phải khớp ĐÚNG chuỗi `fixture.ts` kiểm tra. Gõ sai thì `sceneId()` rơi
-  // êm về "binh-thuong" và ta được một tấm ảnh dán nhãn "hỏng" nhưng chụp một
+  // êm về "normal" và ta được một tấm ảnh dán nhãn "hỏng" nhưng chụp một
   // dashboard khoẻ mạnh — sai lầm tệ hơn cả không chụp.
-  "chua-co-file",
-  "json-hong",
+  "no-file",
+  "bad-json",
 ] as const;
 
 async function setScene(page: Page, scene: string) {
@@ -72,7 +72,7 @@ async function shoot(page: Page, name: string) {
 }
 
 test.describe("UI review screenshots", () => {
-  test.skip(!OUT_DIR, "set CHUP_ANH=<dir> to enable");
+  test.skip(!OUT_DIR, "set SHOTS_DIR=<dir> to enable");
   test.use({ viewport: { width: 1440, height: 900 } });
 
   for (const scene of SCENES) {
@@ -90,7 +90,7 @@ test.describe("UI review screenshots", () => {
 
   test("screens that do not depend on the scene", async ({ page }) => {
     await signIn(page, ACTOR);
-    await setScene(page, "binh-thuong");
+    await setScene(page, "normal");
 
     for (const screen of ONCE_SCREENS) {
       await page.goto(screen.url);
@@ -103,7 +103,7 @@ test.describe("UI review screenshots", () => {
   test("phone", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signIn(page, ACTOR);
-    await setScene(page, "binh-thuong");
+    await setScene(page, "normal");
 
     for (const screen of SCENE_SCREENS) {
       await page.goto(screen.url);

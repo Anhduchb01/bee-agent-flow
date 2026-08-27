@@ -20,7 +20,7 @@ export function BoardKanban({ row }: { row: BoardRow[] }) {
   const byLane = groupByLane(row);
   const router = useRouter();
   const [dragging, setKeo] = useState<BoardRow | null>(null);
-  const [refused, setTuChoi] = useState("");
+  const [refused, setRefused] = useState("");
   const [, start] = useTransition();
 
   /**
@@ -36,10 +36,10 @@ export function BoardKanban({ row }: { row: BoardRow[] }) {
       if (m === null) return;
       const verify = isDropAllowed(m.lane, until);
       if (!verify.ok) {
-        setTuChoi(verify.reason);
+        setRefused(verify.reason);
         return;
       }
-      setTuChoi("");
+      setRefused("");
       if (m.lane === until) return;
       start(async () => {
         if (until === "autopilot") {

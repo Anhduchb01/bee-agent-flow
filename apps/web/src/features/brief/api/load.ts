@@ -16,8 +16,8 @@ import { buildDigest, type Digest } from "../lib/digest";
  * "chưa chạy gì" trong khi ba phiên vừa xong lúc 2 giờ. Trang này tồn tại để
  * nói ra chuyện gì đã xảy ra, nên nó không được có điểm mù nào theo giờ.
  */
-export function recentWindow(at = new Date(), soGio = 24): { since: Date; until: Date } {
-  return { since: new Date(at.getTime() - soGio * 3_600_000), until: at };
+export function recentWindow(at = new Date(), hours = 24): { since: Date; until: Date } {
+  return { since: new Date(at.getTime() - hours * 3_600_000), until: at };
 }
 
 export async function loadDigest(at = new Date()): Promise<Digest> {

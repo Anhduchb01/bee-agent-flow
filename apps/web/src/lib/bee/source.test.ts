@@ -25,7 +25,7 @@ describe("getBee — fixture", () => {
   });
 
   it("đổi cảnh bằng biến môi trường, không bằng tham số của UI", async () => {
-    process.env.BEE_FIXTURE_SCENE = "vua-cai";
+    process.env.BEE_FIXTURE_SCENE = "fresh-install";
     resetBeeSource();
 
     const read = await getBee().readStatus();
@@ -35,8 +35,8 @@ describe("getBee — fixture", () => {
     expect(read.status.mode).toBe("paused");
   });
 
-  it("cảnh reconciler-chet cho heartbeat luôn cũ, bất kể chạy ngày nào", async () => {
-    process.env.BEE_FIXTURE_SCENE = "reconciler-chet";
+  it("cảnh reconciler-dead cho heartbeat luôn cũ, bất kể chạy ngày nào", async () => {
+    process.env.BEE_FIXTURE_SCENE = "reconciler-dead";
     resetBeeSource();
 
     const read = await getBee().readStatus();
@@ -47,11 +47,11 @@ describe("getBee — fixture", () => {
   });
 
   it("dựng được cả hai kết cục hỏng của việc đọc file", async () => {
-    process.env.BEE_FIXTURE_SCENE = "chua-co-file";
+    process.env.BEE_FIXTURE_SCENE = "no-file";
     resetBeeSource();
     expect(await getBee().readStatus()).toMatchObject({ ok: false, reason: "missing" });
 
-    process.env.BEE_FIXTURE_SCENE = "json-hong";
+    process.env.BEE_FIXTURE_SCENE = "bad-json";
     resetBeeSource();
     expect(await getBee().readStatus()).toMatchObject({ ok: false, reason: "malformed" });
   });
@@ -64,11 +64,11 @@ describe("getBee — fixture", () => {
     expect(times).toEqual([...times].sort((a, b) => b - a));
   });
 
-  it.each(["vua-cai", "chua-co-file"])(
+  it.each(["fresh-install", "no-file"])(
     "cảnh %s chưa từng chạy gì nên lịch sử phải rỗng",
     async (activeScene) => {
       /*
-       * `vua-cai` chưa đăng ký repo nào và `chua-co-file` thì `status.json` còn
+       * `fresh-install` chưa đăng ký repo nào và `no-file` thì `status.json` còn
        * chưa tồn tại — cả hai đều là máy chưa chạy lần nào. Trả về bảy ngày
        * lịch sử ở đó là dựng một cảnh tự mâu thuẫn: người duyệt giao diện nhìn
        * "0 dự án" ngay cạnh "13 lần chạy hôm nay" và không tin được màn nào nữa.

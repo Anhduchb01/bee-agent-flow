@@ -5,11 +5,11 @@ import { signIn, setScene } from "./helpers";
 /**
  * Onboarding screen: everything but install.sh and the interactive claude
  * login is done HERE — buttons and forms, verified by the machine's own
- * doctor.json. The co-su-co scene mixes green and red on purpose.
+ * doctor.json. The something-wrong scene mixes green and red on purpose.
  */
 test("setup page: interactive steps + live doctor checks", async ({ page }) => {
   await signIn(page, "pm-linh");
-  await setScene(page, "co-su-co");
+  await setScene(page, "something-wrong");
   await page.goto("/setup");
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Setup");
@@ -80,7 +80,7 @@ test("setup page: interactive steps + live doctor checks", async ({ page }) => {
 
 test("machine ready: go-live button is armed", async ({ page }) => {
   await signIn(page, "pm-linh");
-  // binh-thuong scene: doctor all green but... paused=false → shows live state.
+  // normal scene: doctor all green but... paused=false → shows live state.
   await page.goto("/setup");
   await expect(page.getByText(/machine is live/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /pause machine/i })).toBeEnabled();
@@ -92,7 +92,7 @@ test("machine ready: go-live button is armed", async ({ page }) => {
  * machine lands on Overview — that path is covered by smoke.spec.
  */
 test("fresh machine: login lands on /setup", async ({ page }) => {
-  await setScene(page, "vua-cai");
+  await setScene(page, "fresh-install");
   await signIn(page, "pm-linh");
 
   await expect(page).toHaveURL(/\/setup/);
@@ -100,7 +100,7 @@ test("fresh machine: login lands on /setup", async ({ page }) => {
 });
 
 test("failing checks: login lands on /setup too", async ({ page }) => {
-  await setScene(page, "co-su-co");
+  await setScene(page, "something-wrong");
   await signIn(page, "pm-linh");
 
   await expect(page).toHaveURL(/\/setup/);

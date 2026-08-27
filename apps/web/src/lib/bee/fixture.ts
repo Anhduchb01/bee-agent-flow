@@ -19,7 +19,7 @@ import type {
 const EVIDENCE_ROOT = path.join(process.cwd(), "src", "lib", "fixtures", "evidence");
 
 function sceneId(want: string): SceneId {
-  return isSceneId(want) ? want : "binh-thuong";
+  return isSceneId(want) ? want : "normal";
 }
 
 /** Một lần chạy mẫu. Số liệu khớp với dòng tương ứng trong `recentRunsJson()`. */
@@ -29,13 +29,13 @@ export function createFixtureBeeSource(): BeeSource {
     async readStatus(): Promise<StatusRead> {
       const want = await currentScene();
 
-      // Hai cảnh đặc biệt: file chưa tồn tại và file đang ghi dở. `vua-cai` đã
+      // Hai cảnh đặc biệt: file chưa tồn tại và file đang ghi dở. `fresh-install` đã
       // lo phần "chưa có repo nào", còn đây là phần "chưa có status.json nào" —
       // hai chuyện khác nhau, và cả hai đều xảy ra thật ngay sau install.sh.
-      if (want === "chua-co-file") {
+      if (want === "no-file") {
         return { ok: false, reason: "missing", detail: "status.json does not exist" };
       }
-      if (want === "json-hong") {
+      if (want === "bad-json") {
         return parseStatus('{"heartbeat": "2026-08-1');
       }
       return parseStatus(sceneJson(sceneId(want)));
@@ -44,8 +44,8 @@ export function createFixtureBeeSource(): BeeSource {
     async readRecent(limit = 20): Promise<BeeRecentRun[]> {
       const want = await currentScene();
 
-      // Máy chưa đăng ký repo nào (`vua-cai`) hoặc còn chưa có `status.json`
-      // (`chua-co-file`) thì cũng chưa chạy lần nào. Cứ trả lịch sử ra ở đó là
+      // Máy chưa đăng ký repo nào (`fresh-install`) hoặc còn chưa có `status.json`
+      // (`no-file`) thì cũng chưa chạy lần nào. Cứ trả lịch sử ra ở đó là
       // dựng một cảnh tự mâu thuẫn — và một cảnh tự mâu thuẫn thì không duyệt
       // được, vì không biết phần nào mới là phần đang sai.
       if (neverRan(want)) return [];
@@ -62,7 +62,7 @@ export function createFixtureBeeSource(): BeeSource {
     async readClaudeRateLimit(): Promise<BeeClaudeRateLimit | null> {
       // Chưa chạy lần nào thì chưa có `rate_limit_event` nào — cùng một cảnh
       // với `percentOf: null` ở `lib/claude/fixture.ts`, và phải khớp nhau, nếu
-      // không thì cảnh `vua-cai` lại tự mâu thuẫn một lần nữa.
+      // không thì cảnh `fresh-install` lại tự mâu thuẫn một lần nữa.
       if (neverRan(await currentScene())) return null;
       return {
         status: "allowed",
@@ -141,14 +141,14 @@ export function createFixtureBeeSource(): BeeSource {
     /** Cùng câu chuyện với readDoctor: cảnh xanh đã có token, cảnh khác chưa. */
     async readClaudeAuth() {
       const activeScene = await currentScene();
-      if (neverRan(activeScene) || activeScene === "co-su-co") return "none";
+      if (neverRan(activeScene) || activeScene === "something-wrong") return "none";
       return "token";
     },
 
     async readDoctor() {
       const activeScene = await currentScene();
       if (neverRan(activeScene)) return null;
-      if (activeScene === "co-su-co") {
+      if (activeScene === "something-wrong") {
         return {
           checked_at: "2026-08-18T09:30:00Z",
           ok: false,

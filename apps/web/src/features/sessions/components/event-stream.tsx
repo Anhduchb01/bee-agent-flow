@@ -317,12 +317,12 @@ function ThanThe({ m }: { m: Extract<Card, { kind: "tool-card" }> }) {
 
 /** Khối diff một phía: từng dòng mang dấu +/− và nền màu như VSCode dark. */
 function DiffBlock({ head, text }: { head: "+" | "-"; text: string }) {
-  const mau =
+  const colour =
     head === "+"
       ? "bg-green-950/50 text-green-200"
       : "bg-red-950/50 text-red-300";
   return (
-    <div className={mau}>
+    <div className={colour}>
       {text.split("\n").map((line, i) => (
         <div key={i} className="flex">
           <span className="w-6 shrink-0 select-none pl-1.5 opacity-60">{head}</span>

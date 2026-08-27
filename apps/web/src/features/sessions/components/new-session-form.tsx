@@ -38,16 +38,16 @@ export function NewSessionForm({
   onCreated?: (session: BeeSession) => void;
 }) {
   const router = useRouter();
-  const [chosen, setChon] = useState(repos[0]?.slug ?? CHAT_OPTION);
+  const [chosen, setChosen] = useState(repos[0]?.slug ?? CHAT_OPTION);
   const [mode, setMode] = useState<BeeSessionMode>("auto");
   const [err, setErr] = useState("");
-  const [isOpen, batDauMo] = useTransition();
+  const [isOpen, startOpen] = useTransition();
 
   const isChat = chosen === CHAT_OPTION;
 
   function opener() {
     if (isOpen) return;
-    batDauMo(async () => {
+    startOpen(async () => {
       const outcome = await startSessionAction({ repoSlug: isChat ? null : chosen, mode });
       if (!outcome.ok) {
         setErr(outcome.message);
@@ -74,7 +74,7 @@ export function NewSessionForm({
       {/* min-w-0: without it the flex child's min-width is the FULL repo
           name, which shoves the button past the card edge on canvas. */}
       <div className="min-w-0 flex-1">
-        <RepoCombobox repos={repos} value={chosen} onChange={setChon} />
+        <RepoCombobox repos={repos} value={chosen} onChange={setChosen} />
       </div>
       {/* Mode như menu VSCode — phiên chat không tool nên không có mode. */}
       {!isChat && (

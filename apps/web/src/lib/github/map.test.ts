@@ -117,7 +117,7 @@ describe("payload thật", () => {
   });
 });
 
-describe("issueCuaPr", () => {
+describe("issueOfPr", () => {
   // Câu bee luôn viết khi mở PR — xem `worktree_push_and_report`.
   it("đọc được `Closes #4` của bee", () => {
     expect(issueOfPr("Closes #4\n\n<!-- evidence:start -->")).toBe(4);

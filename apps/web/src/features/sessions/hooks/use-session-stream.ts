@@ -27,10 +27,10 @@ export interface SessionStream {
  */
 export function useSessionStream(id: string): SessionStream {
   const [events, setSuKien] = useState<StreamEvent[]>([]);
-  const [typing, setDangGo] = useState("");
-  const [idle, setDangNghi] = useState("");
+  const [typing, setTyping] = useState("");
+  const [idle, setIdle] = useState("");
   const [status, setState] = useState<ConnectionState>("connecting");
-  const [ended, setKetThuc] = useState<string | null>(null);
+  const [ended, setEnded] = useState<string | null>(null);
   const [skipped, setBoQua] = useState(0);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export function useSessionStream(id: string): SessionStream {
       try {
         const raw = JSON.parse(e.data) as { type?: unknown; status?: unknown };
         if (raw.type === "bee_done") {
-          setKetThuc(typeof raw.status === "string" ? raw.status : "done");
+          setEnded(typeof raw.status === "string" ? raw.status : "done");
           setState("done");
           es.close();
           return;
@@ -55,13 +55,13 @@ export function useSessionStream(id: string): SessionStream {
       if (outcome === null) return;
       for (const sk of outcome) {
         if (sk.kind === "delta") {
-          setDangGo((d) => d + sk.text);
+          setTyping((d) => d + sk.text);
         } else if (sk.kind === "thinking-delta") {
-          setDangNghi((d) => d + sk.text);
+          setIdle((d) => d + sk.text);
         } else if (sk.kind === "agent-said" || sk.kind === "thinking") {
           // Message trọn vẹn thay thế các delta đã gom — không hiện đúp.
-          setDangGo("");
-          setDangNghi("");
+          setTyping("");
+          setIdle("");
           setSuKien((s) => [...s, sk]);
         } else if (sk.kind === "replay") {
           setBoQua(sk.skipped);

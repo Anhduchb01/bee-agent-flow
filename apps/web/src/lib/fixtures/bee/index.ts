@@ -3,39 +3,39 @@
  * cùng bộ cảnh mà mockup dashboard đã qua một vòng người xem.
  *
  * Mốc thời gian ghi dạng `__AGO_n__` (n giây trước) thay vì một ISO cố định.
- * Cảnh "reconciler-chet" chỉ có nghĩa khi heartbeat *luôn* cũ 34 phút; một mốc
+ * Cảnh "reconciler-dead" chỉ có nghĩa khi heartbeat *luôn* cũ 34 phút; một mốc
  * cứng sẽ đúng hôm nay và sai vào ngày mai — mà đó lại là cảnh quan trọng nhất.
  */
-import binhThuong from "./binh-thuong.json";
-import coSuCo from "./co-su-co.json";
-import heavyLoad from "./day-tai.json";
-import reconcilerChet from "./reconciler-chet.json";
-import vuaCai from "./vua-cai.json";
+import normal from "./normal.json";
+import somethingWrong from "./something-wrong.json";
+import underLoad from "./under-load.json";
+import reconcilerDead from "./reconciler-dead.json";
+import freshInstall from "./fresh-install.json";
 
 export const SCENE_IDS = [
-  "binh-thuong",
-  "day-tai",
-  "co-su-co",
-  "reconciler-chet",
-  "vua-cai",
+  "normal",
+  "under-load",
+  "something-wrong",
+  "reconciler-dead",
+  "fresh-install",
 ] as const;
 
 export type SceneId = (typeof SCENE_IDS)[number];
 
 export const SCENE_LABELS: Record<SceneId, string> = {
-  "binh-thuong": "Normal",
-  "day-tai": "Under load",
-  "co-su-co": "Something wrong",
-  "reconciler-chet": "Reconciler dead",
-  "vua-cai": "Freshly installed",
+  normal: "Normal",
+  "under-load": "Under load",
+  "something-wrong": "Something wrong",
+  "reconciler-dead": "Reconciler dead",
+  "fresh-install": "Freshly installed",
 };
 
 const SCENES: Record<SceneId, unknown> = {
-  "binh-thuong": binhThuong,
-  "day-tai": heavyLoad,
-  "co-su-co": coSuCo,
-  "reconciler-chet": reconcilerChet,
-  "vua-cai": vuaCai,
+  normal: normal,
+  "under-load": underLoad,
+  "something-wrong": somethingWrong,
+  "reconciler-dead": reconcilerDead,
+  "fresh-install": freshInstall,
 };
 
 export function isSceneId(value: string | undefined): value is SceneId {
@@ -69,7 +69,13 @@ const MAU_NGAY: { finished: number; err: number }[] = [
   { finished: 7, err: 6 }, // hôm nay
 ];
 
-const RULE = ["07-build", "04-evidence", "03-run-ci", "08-spec", "02-review-feedback"];
+const RULE = [
+  "07-build",
+  "04-evidence",
+  "03-run-ci",
+  "08-spec",
+  "02-review-feedback",
+];
 const REPO = ["myapp", "shop", "blog"];
 
 export function recentRunsJson(now: Date = new Date()): string[] {
@@ -79,9 +85,16 @@ export function recentRunsJson(now: Date = new Date()): string[] {
   MAU_NGAY.forEach((day, i) => {
     const daysBack = MAU_NGAY.length - 1 - i;
     for (let k = 0; k < day.finished + day.err; k++) {
-      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack, 9 + (k % 9), (k * 7) % 60);
+      const at = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - daysBack,
+        9 + (k % 9),
+        (k * 7) % 60,
+      );
       // Không vượt quá "bây giờ" — một lần chạy ở tương lai là dấu hiệu dữ liệu hỏng.
-      if (at.getTime() > now.getTime()) at.setTime(now.getTime() - (k + 1) * 60_000);
+      if (at.getTime() > now.getTime())
+        at.setTime(now.getTime() - (k + 1) * 60_000);
       const repo = REPO[n % REPO.length];
       out.push(
         JSON.stringify({
