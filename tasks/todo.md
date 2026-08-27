@@ -677,7 +677,7 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       (`moPhien`, `docTiep`, `ghepThe`, `dungBanTin`, `HangDoi`…). Đổi ồ ạt là
       một quyết định riêng, chạm gần như mọi file.
 
-- [~] 🤖 **T31** Đổi identifier tiếng Việt sang tiếng Anh — **CHƯA XONG** —
+- [x] 🤖 **T31** ~~Đổi identifier tiếng Việt sang tiếng Anh~~ **XONG 27/08 (phía web)** —
       hai đợt. Đợt đầu (120 file) chỉ đổi tên xuất; đợt sau đóng nốt phần cục
       bộ và **phải viết một bộ thay thế hiểu cú pháp** vì regex thô hỏng theo
       hai chiều ngược nhau:
@@ -700,6 +700,43 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       **~110 tên khai báo** thật sự tiếng Việt (`TONE_PHIEN`, `CUA_SO`,
       `TRANG_THAI`, `NHAN`, `KHONG_QUYEN`, `CAU_HINH`, `ChoChayNode`,
       `nguCanh`, `tomTatBayNgay`, `ky`/`mau`…). Việc còn dở, không phải xong.
+- [x] 🤖 **T34** ~~Đổi tên bằng SYMBOL, không bằng regex~~ **XONG 27/08** —
+      năm đợt, 430+ symbol, mỗi đợt một commit và bốn cổng riêng. Công cụ là
+      language service của TypeScript (`findRenameLocations` với
+      `findInStrings=false`, `findInComments=false`) — nó đổi **một symbol**,
+      nên về nguyên tắc không chạm được vào chuỗi hay comment.
+      **Hai chốt chạy TRƯỚC khi ghi:**
+      · *sinh đôi chuỗi* — tên nào cũng xuất hiện dưới dạng chuỗi trong TS thì
+        giữ lại soi tay. Đó chính là hình dạng đã làm trắng canvas (T33).
+      · *che biến* — rename của TS **không** kiểm tên mới đã bị chiếm chưa.
+        Trùng thì typecheck đỏ, nhưng **che thì im lặng**. Đổi tên đích cho tới
+        khi báo cáo trống (`result`→`outcome`, `projects`→`sidebarProjects`…).
+      **Bốn chỗ language service không nhìn thấy — cả bốn đều do TEST bắt:**
+      · object literal **không có kiểu** (`toEqual({ chiPhiHomNay: 0 })`);
+      · `& Record<string, unknown>` của React Flow — index signature nuốt mất
+        thuộc tính nên `data.cauCuoi` không phải cùng một symbol;
+      · barrel re-export: rename giữ tên public bằng alias, để lại
+        `export { mergeEvents as gopSuKien }`;
+      · code nằm trong template literal (stub pty) — một chữ `ten` sống sót
+        sau khai báo của nó và làm sập cả tiến trình.
+      **Va chạm thật:** `Card`/`StreamEvent` đã có sẵn `kind` cạnh `loai`;
+      `raw.kind` phải giữ vì đó là khoá của JSONL do runner ghi.
+      **Ranh giới không typecheck:** id cảnh fixture đi qua cookie và
+      `BEE_FIXTURE_SCENE` dưới dạng `string`, và còn là **tên file**. Nghiệm
+      thu bằng cách CHẠY cả bảy cảnh (bộ screenshot vốn bị skip, bật lên
+      riêng), không phải bằng đọc.
+      **Một bug tự tạo, tự bắt:** `bee-fixture-khong-bi-mat` nằm ở HAI file
+      (index.ts ký, token.ts xác minh) — đợt trước chỉ đổi một. Không test nào
+      đỏ vì đường đó hiện không với tới nhau. Giờ là một hằng `FIXTURE_SECRET`.
+      **Còn lại (cố ý giữ):** `du-an` trong search-filter.test là *đối tượng*
+      của bài test bỏ dấu — đổi nó là xoá bài test; `xong` là lời agent trong
+      fixture; `Thu` là Thursday.
+      Quét cuối bằng AST: **0/2511 identifier** còn tiếng Việt.
+- [ ] 🤖 **T35** Bash còn 25 tên tiếng Việt trong `apps/runner/*.sh`
+      (`buoc`, `phien`, `tuoi`, `ket_qua`, `trang_thai`…). **Chưa làm** — rủi
+      ro khác hẳn phía web: bash không có typechecker, lưới duy nhất là 14 rig,
+      và một số biến ở sát chỗ ghi JSON mà TS đọc. Cần quyết riêng.
+
 - [x] 🤖 **T33** ~~Canvas trắng bốc sau khi đổi tên~~ **XONG 26/08** — loại
       lỗi y hệt `dataKey="nhan"`, chỉ khác nó nằm ở **khoá object không nháy
       nháy**. `nodeTypes` đăng ký `phien: SessionNode` — khoá trông như
