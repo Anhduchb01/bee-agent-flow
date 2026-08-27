@@ -26,7 +26,7 @@ describe("aggregateUsage", () => {
       runCount: 0,
       errorCount: 0,
       token: 0,
-      tiLeCache: 0,
+      cacheRate: 0,
       costToday: 0,
       costSevenDays: 0,
       stoppedOnQuota: 0,
@@ -50,7 +50,7 @@ describe("aggregateUsage", () => {
     );
     expect(m.runCount).toBe(2);
     expect(m.token).toBe(10_010);
-    expect(m.tiLeCache).toBeCloseTo(7_000 / 10_010);
+    expect(m.cacheRate).toBeCloseTo(7_000 / 10_010);
     expect(m.costToday).toBe(0.75);
   });
 
@@ -70,7 +70,7 @@ describe("aggregateUsage", () => {
     );
     expect(m.runCount).toBe(2);
     expect(m.token).toBe(200);
-    expect(m.tiLeCache).toBe(0.5);
+    expect(m.cacheRate).toBe(0.5);
   });
 
   /*

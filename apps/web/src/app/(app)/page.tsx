@@ -66,7 +66,7 @@ export default async function OverviewPage() {
           </section>
         </div>
 
-        <SevenDaysChart days={view.bayNgay} tomTat={view.tomTatBayNgay} />
+        <SevenDaysChart days={view.sevenDay} tomTat={view.sevenDaySummary} />
       </div>
     </>
   );

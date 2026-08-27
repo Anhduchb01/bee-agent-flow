@@ -76,7 +76,7 @@ export function ArtifactPanel({
     });
     // Evidence loads in parallel — the panel must not wait for a disk scan.
     void loadArtifactEvidenceAction(repo, kind, number).then((outcome) => {
-      if (song && outcome !== null) setEvidence(outcome.files.filter((f) => f.loai !== "khac"));
+      if (song && outcome !== null) setEvidence(outcome.files.filter((f) => f.kind !== "khac"));
     });
     return () => {
       song = false;
@@ -166,7 +166,7 @@ export function ArtifactPanel({
                 </p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {evidence.map((f) =>
-                    f.loai === "video" ? (
+                    f.kind === "video" ? (
                       <video
                         key={f.name}
                         src={f.url}

@@ -6,8 +6,8 @@ import { describe, expect, it } from "vitest";
 import { pairToolCards, type Card } from "./pair-tool-cards";
 import { mergeEvents } from "./parse-events";
 
-function isToolCard(m: Card): m is Extract<Card, { loai: "tool-card" }> {
-  return m.loai === "tool-card";
+function isToolCard(m: Card): m is Extract<Card, { kind: "tool-card" }> {
+  return m.kind === "tool-card";
 }
 
 function readFixture(name: string): string[] {
@@ -27,12 +27,12 @@ describe("pairToolCards", () => {
     expect(the[0].id).toMatch(/^toolu_/);
     expect(the[0].status).toBe("xong");
     expect(the[0].result).toContain("xong");
-    expect(the[0].lenh).toContain("sleep 8");
+    expect(the[0].command).toContain("sleep 8");
   });
 
   it("tool chưa có kết quả giữ trạng thái đang chạy — spinner có thật để quay", () => {
     const the = pairToolCards([
-      { loai: "tool", name: "Bash", thamSo: "{}", id: "toolu_1", lenh: "pnpm test" },
+      { kind: "tool", name: "Bash", args: "{}", id: "toolu_1", command: "pnpm test" },
     ]).filter(isToolCard);
     expect(the[0].status).toBe("dang-chay");
     expect(the[0].result).toBeNull();
@@ -40,10 +40,10 @@ describe("pairToolCards", () => {
 
   it("is_error đánh dấu thẻ lỗi, và kết quả vào ĐÚNG thẻ theo id dù xen kẽ", () => {
     const the = pairToolCards([
-      { loai: "tool", name: "Bash", thamSo: "{}", id: "toolu_a" },
-      { loai: "tool", name: "Write", thamSo: "{}", id: "toolu_b", file: "a.ts" },
-      { loai: "tool-xong", text: "boom", id: "toolu_b", err: true },
-      { loai: "tool-xong", text: "ok", id: "toolu_a", err: false },
+      { kind: "tool", name: "Bash", args: "{}", id: "toolu_a" },
+      { kind: "tool", name: "Write", args: "{}", id: "toolu_b", file: "a.ts" },
+      { kind: "tool-xong", text: "boom", id: "toolu_b", err: true },
+      { kind: "tool-xong", text: "ok", id: "toolu_a", err: false },
     ]).filter(isToolCard);
 
     expect(the.map((t) => [t.name, t.status, t.result])).toEqual([
@@ -54,19 +54,19 @@ describe("pairToolCards", () => {
 
   it("sự kiện cũ không có id rơi về FIFO — stream ghi trước bản này vẫn đọc được", () => {
     const the = pairToolCards([
-      { loai: "tool", name: "Read", thamSo: "{}" },
-      { loai: "tool-xong", text: "nội dung file" },
+      { kind: "tool", name: "Read", args: "{}" },
+      { kind: "tool-xong", text: "nội dung file" },
     ]).filter(isToolCard);
     expect(the[0].status).toBe("xong");
   });
 
   it("thẻ nằm ở vị trí tool BẮT ĐẦU trong dòng thời gian, không nhảy xuống lúc xong", () => {
     const row = pairToolCards([
-      { loai: "tool", name: "Bash", thamSo: "{}", id: "toolu_1" },
-      { loai: "agent-noi", text: "đang chờ lệnh chạy…" },
-      { loai: "tool-xong", text: "ok", id: "toolu_1" },
+      { kind: "tool", name: "Bash", args: "{}", id: "toolu_1" },
+      { kind: "agent-noi", text: "đang chờ lệnh chạy…" },
+      { kind: "tool-xong", text: "ok", id: "toolu_1" },
     ]);
-    expect(row.map((m) => m.loai)).toEqual(["tool-card", "agent-noi"]);
+    expect(row.map((m) => m.kind)).toEqual(["tool-card", "agent-noi"]);
     expect(row[0]).toMatchObject({ status: "xong" });
   });
 });
@@ -74,12 +74,12 @@ describe("pairToolCards", () => {
 describe("thẻ xin-quyền (V2.5b)", () => {
   it("bee_approval ghép ngược vào đúng thẻ theo requestId — không thêm dòng", () => {
     const row = pairToolCards([
-      { loai: "xin-quyen", requestId: "r1", name: "Bash", thamSo: '{"command":"ls"}' },
-      { loai: "xin-quyen", requestId: "r2", name: "Write", thamSo: "{}" },
-      { loai: "quyen-da-tra-loi", requestId: "r1", allow: true },
+      { kind: "xin-quyen", requestId: "r1", name: "Bash", args: '{"command":"ls"}' },
+      { kind: "xin-quyen", requestId: "r2", name: "Write", args: "{}" },
+      { kind: "quyen-da-tra-loi", requestId: "r1", allow: true },
     ]);
     expect(row).toHaveLength(2);
-    expect(row[0]).toMatchObject({ loai: "xin-quyen", requestId: "r1", answer: "allow" });
-    expect(row[1]).toMatchObject({ loai: "xin-quyen", requestId: "r2", answer: null });
+    expect(row[0]).toMatchObject({ kind: "xin-quyen", requestId: "r1", answer: "allow" });
+    expect(row[1]).toMatchObject({ kind: "xin-quyen", requestId: "r2", answer: null });
   });
 });

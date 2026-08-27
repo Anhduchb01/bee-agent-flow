@@ -20,12 +20,12 @@ export interface NodeSession {
   extent?: "parent";
   data: {
     title: string;
-    nhanh: string;
+    branch: string;
     status: BeeSession["status"];
     needsHuman: boolean;
     href: string;
     /** Câu cuối agent nói — preview một dòng, node kể được chuyện đang tới đâu. */
-    cauCuoi: string | null;
+    lastLine: string | null;
     createdAt: string | null;
   };
 }
@@ -158,11 +158,11 @@ export function buildGraph(
         data: {
           title: p.title ?? `${p.slug}-${p.num}`,
           // Phiên chat không có branch — node nói thật điều đó thay vì bịa tên nhánh.
-          nhanh: p.worktree ? `bee/${p.slug}-${p.num}` : "chat",
+          branch: p.worktree ? `bee/${p.slug}-${p.num}` : "chat",
           status: p.status,
           needsHuman: p.needs_human,
           href: `/sessions/${p.id}`,
-          cauCuoi: previewOf[p.id] ?? null,
+          lastLine: previewOf[p.id] ?? null,
           createdAt: p.created_at,
         },
       });

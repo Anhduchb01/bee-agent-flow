@@ -57,12 +57,12 @@ export async function dequeueAction(repo: string, issue: number): Promise<Result
 export async function reorderAction(
   repo: string,
   issue: number,
-  buoc: -1 | 1,
+  step: -1 | 1,
 ): Promise<Result> {
   if (!(await getActor())) return KHONG_QUYEN;
-  if (buoc !== -1 && buoc !== 1) return { ok: false, message: "Invalid step." };
+  if (step !== -1 && step !== 1) return { ok: false, message: "Invalid step." };
   const baseDir = root();
-  await writeQueue(baseDir, reorderQueueItem(await readQueue(baseDir), repo, issue, buoc));
+  await writeQueue(baseDir, reorderQueueItem(await readQueue(baseDir), repo, issue, step));
   return finished();
 }
 

@@ -70,8 +70,8 @@ describe("ArtifactPanel", () => {
     vi.mocked(loadArtifactEvidenceAction).mockResolvedValueOnce({
       sessionId: "s1",
       files: [
-        { name: "shot.png", url: "/api/evidence/session/s1/shot.png", loai: "image" },
-        { name: "demo.webm", url: "/api/evidence/session/s1/demo.webm", loai: "video" },
+        { name: "shot.png", url: "/api/evidence/session/s1/shot.png", kind: "image" },
+        { name: "demo.webm", url: "/api/evidence/session/s1/demo.webm", kind: "video" },
       ],
     });
     render(<ArtifactPanel repo="you/myapp" kind="pr" number={12} url={DETAIL.url} />);

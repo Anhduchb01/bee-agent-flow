@@ -67,7 +67,7 @@ export default async function LoginPage({
 }) {
   const session = await auth();
   const thieu = thieuGi();
-  const { next, expired: hetHan } = await searchParams;
+  const { next, expired: expired } = await searchParams;
   // Fresh or failing machine → login drops you on /setup, not an empty
   // Overview. An explicit ?next= destination still wins.
   const target = postLoginTarget(
@@ -78,7 +78,7 @@ export default async function LoginPage({
   // `expired` nghĩa là GitHub đã từ chối token của phiên này. Phiên vẫn giải mã
   // được, nên KHÔNG được chuyển hướng vào trong: cookie hỏng còn nguyên đó và
   // trang trong lại ném ngược ra đây, lặp mãi. Chỉ có đăng xuất mới xoá được nó.
-  if (session?.login && !hetHan) redirect(target);
+  if (session?.login && !expired) redirect(target);
 
   async function signInWithGithub() {
     "use server";
@@ -109,7 +109,7 @@ export default async function LoginPage({
           </p>
         </div>
 
-        {hetHan && session?.login ? (
+        {expired && session?.login ? (
           <div className="flex flex-col gap-3 rounded-card border border-border bg-card p-5">
             <p className="eyebrow text-destructive">GitHub session expired</p>
             <p className="text-sm text-body">

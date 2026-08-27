@@ -23,16 +23,16 @@ describe("parseLine", () => {
 
   it("bee_lifecycle thành sự kiện vòng đời đọc được", () => {
     const outcome = parseLine('{"type":"bee_lifecycle","msg":"Đang dựng worktree…","ts":"2026-08-17T10:00:00Z"}');
-    expect(outcome).toEqual([{ loai: "lifecycle", text: "Đang dựng worktree…", ts: "2026-08-17T10:00:00Z" }]);
+    expect(outcome).toEqual([{ kind: "lifecycle", text: "Đang dựng worktree…", ts: "2026-08-17T10:00:00Z" }]);
   });
 
   it("bee_user_say thành lời của người — CLI không echo input nên đây là nguồn duy nhất", () => {
     const outcome = parseLine('{"type":"bee_user_say","text":"làm gọn thôi","ts":"2026-08-17T10:01:00Z"}');
-    expect(outcome).toEqual([{ loai: "nguoi-noi", text: "làm gọn thôi", ts: "2026-08-17T10:01:00Z" }]);
+    expect(outcome).toEqual([{ kind: "nguoi-noi", text: "làm gọn thôi", ts: "2026-08-17T10:01:00Z" }]);
   });
 
   it("bee_replayed nói rõ đã bỏ qua bao nhiêu", () => {
-    expect(parseLine('{"type":"bee_replayed","skipped":120}')).toEqual([{ loai: "replay", skipped: 120 }]);
+    expect(parseLine('{"type":"bee_replayed","skipped":120}')).toEqual([{ kind: "replay", skipped: 120 }]);
   });
 
   it("bee_artifact hợp lệ thành node liệu — kind và url qua allowlist, mang cả title", () => {
@@ -41,8 +41,8 @@ describe("parseLine", () => {
     );
     expect(outcome).toEqual([
       {
-        loai: "artifact",
-        kind: "pr",
+        kind: "artifact",
+        artifactKind: "pr",
         url: "https://github.com/you/myapp/pull/123",
         number: 123,
         title: "Extract layout",
@@ -76,7 +76,7 @@ describe("parseLine", () => {
     const outcome = parseLine(line);
     expect(outcome).toEqual([
       expect.objectContaining({
-        loai: "tool",
+        kind: "tool",
         name: "Edit",
         file: "src/a.ts",
         cu: "cũ 1\ncũ 2",
@@ -96,32 +96,32 @@ describe("mergeEvents trên fixture thật", () => {
     const { events, junkLines } = mergeEvents(readFixture("fixture-interject.jsonl"));
     expect(junkLines).toBe(0);
 
-    const tool = events.filter((s) => s.loai === "tool");
-    expect(tool.some((t) => t.loai === "tool" && t.name === "Bash")).toBe(true);
+    const tool = events.filter((s) => s.kind === "tool");
+    expect(tool.some((t) => t.kind === "tool" && t.name === "Bash")).toBe(true);
 
-    expect(events.some((s) => s.loai === "tool-xong" && s.text.includes("xong"))).toBe(true);
-    expect(events.some((s) => s.loai === "agent-noi" && s.text.includes("XOAI-XANH"))).toBe(true);
+    expect(events.some((s) => s.kind === "tool-xong" && s.text.includes("xong"))).toBe(true);
+    expect(events.some((s) => s.kind === "agent-noi" && s.text.includes("XOAI-XANH"))).toBe(true);
   });
 
   it("fixture gõ-chen: có delta chữ để màn hình chạy mượt", () => {
     const { events } = mergeEvents(readFixture("fixture-interject.jsonl"));
-    expect(events.some((s) => s.loai === "delta")).toBe(true);
+    expect(events.some((s) => s.kind === "delta")).toBe(true);
   });
 
   it("fixture phiên trọn vẹn: có tool Write và một kết-quả không lỗi", () => {
     const { events, junkLines } = mergeEvents(readFixture("fixture-resume-work.jsonl"));
     expect(junkLines).toBe(0);
-    expect(events.some((s) => s.loai === "tool" && s.name === "Write")).toBe(true);
-    expect(events.filter((s) => s.loai === "ket-qua")).toEqual([
+    expect(events.some((s) => s.kind === "tool" && s.name === "Write")).toBe(true);
+    expect(events.filter((s) => s.kind === "ket-qua")).toEqual([
       // nguCanh 4%: real modelUsage from the recorded stream — the number
       // behind the context ring, plus the raw tokens it derives from.
       {
-        loai: "ket-qua",
+        kind: "ket-qua",
         err: false,
-        luot: 2,
-        nguCanh: 4,
+        turns: 2,
+        contextTokens: 4,
         validToken: 41752,
-        cuaSoToken: 1_000_000,
+        tokenWindow: 1_000_000,
       },
     ]);
   });
@@ -141,10 +141,10 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
     const { events } = mergeEvents([line]);
     expect(events).toEqual([
       {
-        loai: "xin-quyen",
+        kind: "xin-quyen",
         requestId: "d72b0535-401f-4f41-92e3-78a8bfe6ceac",
         name: "Bash",
-        thamSo: JSON.stringify({ command: "cat /proc/sys/kernel/random/uuid" }),
+        args: JSON.stringify({ command: "cat /proc/sys/kernel/random/uuid" }),
       },
     ]);
 
@@ -164,7 +164,7 @@ describe("manual-mode approvals (V2.5b, shapes from rig-05)", () => {
       ts: "t",
     });
     expect(mergeEvents([line]).events).toEqual([
-      { loai: "quyen-da-tra-loi", requestId: "abc-1", allow: false },
+      { kind: "quyen-da-tra-loi", requestId: "abc-1", allow: false },
     ]);
   });
 });
@@ -177,20 +177,20 @@ describe("system/compact_boundary — the CLI compacted the conversation", () =>
       compact_metadata: { trigger: "auto", pre_tokens: 165_000 },
     });
     expect(parseLine(line)).toEqual([
-      { loai: "compact", trigger: "auto", preTokens: 165_000 },
+      { kind: "compact", trigger: "auto", preTokens: 165_000 },
     ]);
   });
 
   it("manual trigger survives; missing metadata degrades, not crashes", () => {
     const line = JSON.stringify({ type: "system", subtype: "compact_boundary" });
-    expect(parseLine(line)).toEqual([{ loai: "compact", trigger: "auto", preTokens: null }]);
+    expect(parseLine(line)).toEqual([{ kind: "compact", trigger: "auto", preTokens: null }]);
     const manual = JSON.stringify({
       type: "system",
       subtype: "compact_boundary",
       compact_metadata: { trigger: "manual", pre_tokens: 90_000 },
     });
     expect(parseLine(manual)).toEqual([
-      { loai: "compact", trigger: "manual", preTokens: 90_000 },
+      { kind: "compact", trigger: "manual", preTokens: 90_000 },
     ]);
   });
 
@@ -203,13 +203,13 @@ describe("system/compact_boundary — the CLI compacted the conversation", () =>
 describe("bee_truncated — log bị cắt là chuyện KHÁC replay", () => {
   it("thành sự kiện riêng, mang số dòng đã mất", () => {
     expect(parseLine('{"type":"bee_truncated","skipped":1200,"ts":"t"}')).toEqual([
-      { loai: "da-cat", skipped: 1200 },
+      { kind: "da-cat", skipped: 1200 },
     ]);
   });
 
   it("không bị nhầm thành replay — một cái là mất dữ liệu, một cái chỉ là vào muộn", () => {
     expect(parseLine('{"type":"bee_replayed","skipped":5}')).toEqual([
-      { loai: "replay", skipped: 5 },
+      { kind: "replay", skipped: 5 },
     ]);
   });
 });

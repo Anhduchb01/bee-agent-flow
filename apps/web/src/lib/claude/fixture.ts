@@ -43,7 +43,7 @@ export function createFixtureClaudeSource(): ClaudeSource {
               runCount: 0,
               errorCount: 0,
               token: 0,
-              tiLeCache: 0,
+              cacheRate: 0,
               costToday: 0,
               costSevenDays: 0,
               stoppedOnQuota: 0,
@@ -52,15 +52,15 @@ export function createFixtureClaudeSource(): ClaudeSource {
               runCount: 13,
               errorCount: 6,
               token: 1_240_000,
-              tiLeCache: 0.89,
+              cacheRate: 0.89,
               costToday: 2.41,
               costSevenDays: 14.8,
               stoppedOnQuota: 3,
             },
-        dichVu: {
+        service: {
           indicator: "none",
           hint: "All Systems Operational",
-          kiemLuc: new Date(now - 40_000).toISOString(),
+          checkedAt: new Date(now - 40_000).toISOString(),
         },
       };
     },

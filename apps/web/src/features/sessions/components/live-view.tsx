@@ -72,12 +72,12 @@ const VSCODE_SKIN = {
  * renders when its command actually exists on the machine (~/.claude/commands).
  */
 const CHIP_FLOW = [
-  { lenh: "issue", label: "Issue" },
-  { lenh: "build", label: "Build" },
-  { lenh: "review", label: "Review" },
-  { lenh: "pr", label: "PR" },
-  { lenh: "demo", label: "Demo" },
-  { lenh: "preview", label: "Preview" },
+  { command: "issue", label: "Issue" },
+  { command: "build", label: "Build" },
+  { command: "review", label: "Review" },
+  { command: "pr", label: "PR" },
+  { command: "demo", label: "Demo" },
+  { command: "preview", label: "Preview" },
 ];
 
 /**
@@ -289,21 +289,21 @@ export function LiveView({
   // last result, or text/thinking is streaming right now.
   const last = { speak: -1, result: -1 };
   events.forEach((s, i) => {
-    if (s.loai === "nguoi-noi") last.speak = i;
-    if (s.loai === "ket-qua") last.result = i;
+    if (s.kind === "nguoi-noi") last.speak = i;
+    if (s.kind === "ket-qua") last.result = i;
   });
   const busy = running && (last.speak > last.result || typing !== "" || idle !== "");
 
   // Latest context fill — from the newest result that carried numbers.
-  let nguCanh: number | null = null;
+  let contextTokens: number | null = null;
   let contextUsed: number | null = null;
   let contextOf: number | null = null;
   for (let i = events.length - 1; i >= 0; i--) {
     const s = events[i]!;
-    if (s.loai === "ket-qua" && typeof s.nguCanh === "number") {
-      nguCanh = s.nguCanh;
+    if (s.kind === "ket-qua" && typeof s.contextTokens === "number") {
+      contextTokens = s.contextTokens;
       contextUsed = typeof s.validToken === "number" ? s.validToken : null;
-      contextOf = typeof s.cuaSoToken === "number" ? s.cuaSoToken : null;
+      contextOf = typeof s.tokenWindow === "number" ? s.tokenWindow : null;
       break;
     }
   }
@@ -384,22 +384,22 @@ export function LiveView({
 
   // Flow chips: only the ones whose command the machine actually has.
   const knownCommands = new Set(commands.map((c) => c.name));
-  const chips = session.worktree ? CHIP_FLOW.filter((c) => knownCommands.has(c.lenh)) : [];
+  const chips = session.worktree ? CHIP_FLOW.filter((c) => knownCommands.has(c.command)) : [];
 
   // V2.4 — the flow's next step glows: no issue yet → Issue; issue but no
   // PR → Build; PR open → Preview. Read from the artifact events the
   // session itself logged (replay-truncated history may miss old ones —
   // a wrong glow is a nudge, not a gate).
-  const coIssue = events.some((s) => s.loai === "artifact" && s.kind === "issue");
-  const coPR = events.some((s) => s.loai === "artifact" && s.kind === "pr");
+  const coIssue = events.some((s) => s.kind === "artifact" && s.artifactKind === "issue");
+  const coPR = events.some((s) => s.kind === "artifact" && s.artifactKind === "pr");
   const suggestion = !coIssue ? "issue" : !coPR ? "build" : "preview";
 
   // An approval card without an answer = the ball is in the OWNER's court.
   const answered = new Set(
-    events.filter((s) => s.loai === "quyen-da-tra-loi").map((s) => s.requestId),
+    events.filter((s) => s.kind === "quyen-da-tra-loi").map((s) => s.requestId),
   );
   const awaitingPermission = events.some(
-    (s) => s.loai === "xin-quyen" && !answered.has(s.requestId),
+    (s) => s.kind === "xin-quyen" && !answered.has(s.requestId),
   );
 
   return (
@@ -472,16 +472,16 @@ export function LiveView({
           >
             {chips.map((c) => (
               <button
-                key={c.lenh}
+                key={c.command}
                 type="button"
-                aria-label={`Use /${c.lenh}`}
-                aria-pressed={c.lenh === pickedCommand}
-                data-suggested={c.lenh === suggestion || undefined}
-                onClick={() => pickCommand(c.lenh)}
+                aria-label={`Use /${c.command}`}
+                aria-pressed={c.command === pickedCommand}
+                data-suggested={c.command === suggestion || undefined}
+                onClick={() => pickCommand(c.command)}
                 className={`shrink-0 rounded-full border px-3 py-1 text-xs hover:bg-accent ${
-                  c.lenh === pickedCommand
+                  c.command === pickedCommand
                     ? "border-[#C15F3C] bg-[#C15F3C]/25 text-body"
-                    : c.lenh === suggestion
+                    : c.command === suggestion
                       ? "border-[#C15F3C]/70 bg-[#C15F3C]/10 text-body"
                       : "border-border bg-secondary text-body"
                 }`}
@@ -557,10 +557,10 @@ export function LiveView({
                   {MODEL_OPTIONS.find((m) => m.value === model)?.label}
                 </span>
               )}
-              {nguCanh !== null && (
-                <ContextRing percentOf={nguCanh} stopIt={contextUsed} owner={contextOf} />
+              {contextTokens !== null && (
+                <ContextRing percentOf={contextTokens} stopIt={contextUsed} owner={contextOf} />
               )}
-              {nguCanh !== null && nguCanh >= 90 && (
+              {contextTokens !== null && contextTokens >= 90 && (
                 <span className="text-xs text-destructive">
                   almost full — auto-compact soon, or send /compact
                 </span>

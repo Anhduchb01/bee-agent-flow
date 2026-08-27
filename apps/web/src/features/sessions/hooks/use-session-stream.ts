@@ -54,16 +54,16 @@ export function useSessionStream(id: string): SessionStream {
       const outcome = parseLine(e.data);
       if (outcome === null) return;
       for (const sk of outcome) {
-        if (sk.loai === "delta") {
+        if (sk.kind === "delta") {
           setDangGo((d) => d + sk.text);
-        } else if (sk.loai === "nghi-delta") {
+        } else if (sk.kind === "nghi-delta") {
           setDangNghi((d) => d + sk.text);
-        } else if (sk.loai === "agent-noi" || sk.loai === "nghi") {
+        } else if (sk.kind === "agent-noi" || sk.kind === "nghi") {
           // Message trọn vẹn thay thế các delta đã gom — không hiện đúp.
           setDangGo("");
           setDangNghi("");
           setSuKien((s) => [...s, sk]);
-        } else if (sk.loai === "replay") {
+        } else if (sk.kind === "replay") {
           setBoQua(sk.skipped);
         } else {
           setSuKien((s) => [...s, sk]);

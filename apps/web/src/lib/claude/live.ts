@@ -81,7 +81,7 @@ async function readServices(): Promise<ServiceStatus> {
       // sẽ hiện ra màu xanh.
       indicator: isIndicator(status?.indicator) ? status.indicator : "unknown",
       hint: typeof status?.description === "string" ? status.description : "Unknown status",
-      kiemLuc: new Date().toISOString(),
+      checkedAt: new Date().toISOString(),
     };
   } catch (e) {
     // Nêu ĐÍCH DANH host đang hỏi, lấy từ chính `STATUS_URL`. Câu cũ ghi cứng
@@ -96,7 +96,7 @@ async function readServices(): Promise<ServiceStatus> {
     fakeCwd = {
       indicator: "unknown",
       hint: `Could not reach ${host}: ${e instanceof Error ? e.message : String(e)}`,
-      kiemLuc: new Date().toISOString(),
+      checkedAt: new Date().toISOString(),
     };
   }
 
@@ -108,7 +108,7 @@ export function createLiveClaudeSource(): ClaudeSource {
   return {
     async read(): Promise<ClaudeSnapshot> {
       const bee = getBee();
-      const [runs, rateLimit, accountUsage, dichVu] = await Promise.all([
+      const [runs, rateLimit, accountUsage, service] = await Promise.all([
         bee.readRecent(DU_SO_DONG),
         bee.readClaudeRateLimit(),
         bee.readClaudeUsage(),
@@ -121,7 +121,7 @@ export function createLiveClaudeSource(): ClaudeSource {
         // rate_limit_event stays as fallback: status only, no percent.
         quota: accountUsage !== null ? accountQuota(accountUsage) : quotaFrom(rateLimit),
         toolUse: aggregateUsage(runs),
-        dichVu,
+        service,
       };
     },
   };

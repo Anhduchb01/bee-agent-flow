@@ -81,7 +81,7 @@ describe("buildGraph", () => {
     const chat = { ...session(A, "myapp", 3, "you/myapp"), worktree: false };
     const { nodes } = buildGraph([{ repo: "you/myapp", session: [chat] }], {});
     const node = nodes.find((n) => n.id === A);
-    expect(node?.type === "session" && node.data.nhanh).toBe("chat");
+    expect(node?.type === "session" && node.data.branch).toBe("chat");
   });
 });
 

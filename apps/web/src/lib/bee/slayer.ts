@@ -14,7 +14,7 @@ export interface BeeToolUse {
   /** Phần trăm đã dùng, 0–100. */
   percentOf: number;
   /** Lúc cửa sổ này reset, epoch giây; null = không biết. */
-  resetLuc: number | null;
+  resetAt: number | null;
 }
 
 export interface BeeSlotClaude {
@@ -25,10 +25,10 @@ export interface BeeSlotClaude {
   /** Chuỗi trạng thái slayer trả về: active · idle · reauth… */
   state: string;
   enabled: boolean;
-  namGio: BeeToolUse | null;
-  bayNgay: BeeToolUse | null;
+  fiveHour: BeeToolUse | null;
+  sevenDay: BeeToolUse | null;
   /** Token của slot đã hết hạn — slot còn đó nhưng đăng nhập lại mới dùng được. */
-  hetHan: boolean;
+  expired: boolean;
 }
 
 export interface BeeClaudePool {
@@ -52,7 +52,7 @@ function toolUse(v: unknown): BeeToolUse | null {
   if (pt === null) return null;
   // Kẹp lại: thanh 130% vẽ ra khỏi khung, và một con số vô lý đọc như lỗi
   // hiển thị chứ không như cảnh báo.
-  return { percentOf: Math.max(0, Math.min(100, pt)), resetLuc: count(o.resets_at) };
+  return { percentOf: Math.max(0, Math.min(100, pt)), resetAt: count(o.resets_at) };
 }
 
 /**
@@ -89,9 +89,9 @@ export function readSlayerPool(json: string): BeeClaudePool | null {
       email: str(a.email),
       state: str(a.state) ?? "unknown",
       enabled: a.active === true,
-      namGio: toolUse(usage.five_hour),
-      bayNgay: toolUse(usage.seven_day),
-      hetHan: usage.token_expired === true,
+      fiveHour: toolUse(usage.five_hour),
+      sevenDay: toolUse(usage.seven_day),
+      expired: usage.token_expired === true,
     });
   }
   return { enabled: str(o.active), slots };

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BeeRecentRun } from "@/lib/bee/types";
 
-import { lastSevenDays, tomTatBayNgay } from "./seven-days";
+import { lastSevenDays, sevenDaySummary } from "./seven-days";
 
 const NOW = new Date(2026, 7, 13, 15, 0, 0); // Thứ 5, 13/8/2026
 
@@ -27,22 +27,22 @@ describe("lastSevenDays", () => {
     const days = lastSevenDays([], NOW);
 
     expect(days).toHaveLength(7);
-    expect(days.every((d) => d.tong === 0)).toBe(true);
+    expect(days.every((d) => d.total === 0)).toBe(true);
   });
 
   it("ngày cuối là hôm nay, và được gọi tên", () => {
     const days = lastSevenDays([], NOW);
 
     expect(days.at(-1)?.label).toBe("Today");
-    expect(days.at(-1)?.ngay).toBe("2026-08-13");
-    expect(days[0].ngay).toBe("2026-08-07");
+    expect(days.at(-1)?.day).toBe("2026-08-13");
+    expect(days[0].day).toBe("2026-08-07");
   });
 
   it("đếm đúng xong và lỗi theo ngày", () => {
     const days = lastSevenDays([...runIt(0, "ok", 7), ...runIt(0, "fail", 6), ...runIt(2, "ok", 3)], NOW);
 
-    expect(days.at(-1)).toMatchObject({ finished: 7, err: 6, tong: 13 });
-    expect(days.at(-3)).toMatchObject({ finished: 3, err: 0, tong: 3 });
+    expect(days.at(-1)).toMatchObject({ finished: 7, err: 6, total: 13 });
+    expect(days.at(-3)).toMatchObject({ finished: 3, err: 0, total: 3 });
   });
 
   // `result` do từng rule tự đặt và không phải tập đóng.
@@ -55,13 +55,13 @@ describe("lastSevenDays", () => {
   it("bỏ qua lần chạy ngoài cửa sổ bảy ngày", () => {
     const days = lastSevenDays(runIt(30, "ok", 5), NOW);
 
-    expect(days.reduce((n, d) => n + d.tong, 0)).toBe(0);
+    expect(days.reduce((n, d) => n + d.total, 0)).toBe(0);
   });
 
   it("mốc thời gian rác không làm sập gì cả", () => {
     const bad = [{ ...runIt(0, "ok")[0], at: "hôm qua" }];
     expect(() => lastSevenDays(bad, NOW)).not.toThrow();
-    expect(lastSevenDays(bad, NOW).at(-1)?.tong).toBe(0);
+    expect(lastSevenDays(bad, NOW).at(-1)?.total).toBe(0);
   });
 
   it("nhãn thứ đúng theo lịch", () => {
@@ -82,8 +82,8 @@ describe("tomTatBayNgay", () => {
   it("gọi tên khi hôm nay tệ hơn hẳn", () => {
     const days = lastSevenDays([...runIt(0, "ok", 7), ...runIt(0, "fail", 6), ...runIt(3, "ok", 12)], NOW);
 
-    expect(tomTatBayNgay(days)).toContain("6 of 13 runs failed today");
-    expect(tomTatBayNgay(days)).toContain("sharply higher");
+    expect(sevenDaySummary(days)).toContain("6 of 13 runs failed today");
+    expect(sevenDaySummary(days)).toContain("sharply higher");
   });
 
   it("không kêu khi tỉ lệ lỗi hôm nay giống mọi hôm", () => {
@@ -92,14 +92,14 @@ describe("tomTatBayNgay", () => {
       NOW,
     );
 
-    expect(tomTatBayNgay(days)).toBe("9 of 10 runs finished today.");
+    expect(sevenDaySummary(days)).toBe("9 of 10 runs finished today.");
   });
 
   it("nói rõ khi hôm nay chưa chạy gì", () => {
-    expect(tomTatBayNgay(lastSevenDays(runIt(2, "ok", 4), NOW))).toBe("No runs today yet.");
+    expect(sevenDaySummary(lastSevenDays(runIt(2, "ok", 4), NOW))).toBe("No runs today yet.");
   });
 
   it("bảy ngày không có gì thì không có câu nào để nói", () => {
-    expect(tomTatBayNgay(lastSevenDays([], NOW))).toBeNull();
+    expect(sevenDaySummary(lastSevenDays([], NOW))).toBeNull();
   });
 });

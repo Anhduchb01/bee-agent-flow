@@ -31,9 +31,9 @@ export interface WaitingItem {
 }
 
 export interface Digest {
-  loai: DigestKind;
+  kind: DigestKind;
   since: string;
-  den: string;
+  until: string;
   ran: RanItem[];
   toReview: RanItem[];
   outcome: StuckItem[];
@@ -50,11 +50,11 @@ function whyStuck(p: BeeSession): string {
   return "no reason recorded — open the session and read its event stream";
 }
 
-function inWindow(p: BeeSession, since: Date, den: Date): boolean {
+function inWindow(p: BeeSession, since: Date, until: Date): boolean {
   const stamp = p.ended_at ?? p.started_at ?? p.created_at;
   if (stamp === null) return false;
   const t = new Date(stamp).getTime();
-  return Number.isFinite(t) && t >= since.getTime() && t <= den.getTime();
+  return Number.isFinite(t) && t >= since.getTime() && t <= until.getTime();
 }
 
 export function buildDigest(input: {
@@ -62,9 +62,9 @@ export function buildDigest(input: {
   artifacts: Record<string, BeeArtifact[]>;
   queue: Queue;
   since: Date;
-  den: Date;
+  until: Date;
 }): Digest {
-  const within = input.session.filter((p) => inWindow(p, input.since, input.den));
+  const within = input.session.filter((p) => inWindow(p, input.since, input.until));
 
   const ran: RanItem[] = within.map((p) => {
     const owner = input.artifacts[p.id] ?? [];
@@ -90,7 +90,7 @@ export function buildDigest(input: {
       why: v.reason ?? "not its turn yet",
     }));
 
-  const loai: DigestKind =
+  const kind: DigestKind =
     within.length > 0
       ? "co-viec"
       : input.queue.items.length > 0
@@ -98,9 +98,9 @@ export function buildDigest(input: {
         : "khong-xep-viec";
 
   return {
-    loai,
+    kind,
     since: input.since.toISOString(),
-    den: input.den.toISOString(),
+    until: input.until.toISOString(),
     ran,
     toReview,
     outcome,

@@ -14,7 +14,7 @@ import type { BeeClaudeAccountUsage, BeeClaudeWindow } from "./types";
  */
 
 export interface BrakeResult {
-  moDuoc: boolean;
+  allowed: boolean;
   /** Câu nói cho người: cửa sổ nào, bao nhiêu %, chờ tới bao giờ. */
   reason: string;
 }
@@ -38,21 +38,21 @@ function describeReset(w: BeeClaudeWindow | null, at: Date): string {
 
 export function checkQuota(
   usage: BeeClaudeAccountUsage | null,
-  opts: { nguong: number; at?: Date },
+  opts: { threshold: number; at?: Date },
 ): BrakeResult {
   const at = opts.at ?? new Date();
   // Ngưỡng 0 = tắt phanh. Cửa thoát phải tường minh, không phải tác dụng phụ.
-  if (opts.nguong <= 0) return { moDuoc: true, reason: "the brake is off (threshold 0)" };
+  if (opts.threshold <= 0) return { allowed: true, reason: "the brake is off (threshold 0)" };
   if (usage === null) {
-    return { moDuoc: true, reason: "quota has never been measured — opening, but flying blind" };
+    return { allowed: true, reason: "quota has never been measured — opening, but flying blind" };
   }
 
   const five = percentOf(usage.five_hour);
   const bay = percentOf(usage.seven_day);
   const past =
-    five > opts.nguong
+    five > opts.threshold
       ? { name: "5h", pct: five, w: usage.five_hour }
-      : bay > opts.nguong
+      : bay > opts.threshold
         ? { name: "7-day", pct: bay, w: usage.seven_day }
         : null;
 
@@ -61,15 +61,15 @@ export function checkQuota(
 
   if (past !== null) {
     return {
-      moDuoc: false,
-      reason: `${past.name} quota is at ${past.pct}% (threshold ${opts.nguong}%)${describeReset(past.w, at)}`,
+      allowed: false,
+      reason: `${past.name} quota is at ${past.pct}% (threshold ${opts.threshold}%)${describeReset(past.w, at)}`,
     };
   }
   if (cu) {
     return {
-      moDuoc: true,
+      allowed: true,
       reason: `quota numbers are ${Math.round(ageHours)}h old — is tick running? Opening, but the brake cannot be trusted`,
     };
   }
-  return { moDuoc: true, reason: `quota 5h ${five}% · 7-day ${bay}%` };
+  return { allowed: true, reason: `quota 5h ${five}% · 7-day ${bay}%` };
 }

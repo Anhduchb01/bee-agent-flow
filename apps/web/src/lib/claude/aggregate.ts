@@ -76,7 +76,7 @@ export function aggregateUsage(runs: BeeRecentRun[], now: Date = new Date()): To
     runCount,
     errorCount,
     token,
-    tiLeCache: token > 0 ? cacheRead / token : 0,
+    cacheRate: token > 0 ? cacheRead / token : 0,
     costToday,
     costSevenDays,
     stoppedOnQuota,

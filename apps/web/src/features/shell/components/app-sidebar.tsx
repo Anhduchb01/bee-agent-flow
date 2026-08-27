@@ -78,17 +78,17 @@ export function AppSidebar({
   displayName,
   login,
   sidebarProjects,
-  sucKhoe,
+  health,
   signingOut,
-  nutTaoDuAn,
+  newProjectButton,
 }: {
   displayName: string;
   login: string;
   sidebarProjects: SidebarProject[];
-  sucKhoe: HealthSummary;
+  health: HealthSummary;
   signingOut: () => Promise<void>;
   /** The "+" — composed by the server layout, see below. */
-  nutTaoDuAn?: React.ReactNode;
+  newProjectButton?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -213,7 +213,7 @@ export function AppSidebar({
               server-only loaders that a "use client" file may not pull in
               (the cross-feature lint rule forbids reaching past a barrel,
               so composition upstairs is the only honest way). */}
-          {nutTaoDuAn}
+          {newProjectButton}
           <SidebarGroupContent>
             <SidebarMenu>
               {sidebarProjects.map((d) => (
@@ -243,11 +243,11 @@ export function AppSidebar({
       <SidebarFooter>
         <div className="flex flex-col gap-1 px-2 py-1 group-data-[collapsible=icon]:hidden">
           <span className="flex items-center gap-2 text-xs text-body">
-            <StatusDot tone={sucKhoe.tone} />
-            {sucKhoe.headline}
+            <StatusDot tone={health.tone} />
+            {health.headline}
           </span>
-          {sucKhoe.detail ? (
-            <span className="font-mono text-xs text-muted-foreground">{sucKhoe.detail}</span>
+          {health.detail ? (
+            <span className="font-mono text-xs text-muted-foreground">{health.detail}</span>
           ) : null}
         </div>
 

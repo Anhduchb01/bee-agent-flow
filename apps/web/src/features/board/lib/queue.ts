@@ -61,10 +61,10 @@ export function removeQueueItem(q: Queue, repo: string, issue: number): Queue {
 }
 
 /** Đổi thứ tự một bậc. Ở đầu/cuối rồi thì không đi đâu cả — không quay vòng. */
-export function reorderQueueItem(q: Queue, repo: string, issue: number, buoc: -1 | 1): Queue {
+export function reorderQueueItem(q: Queue, repo: string, issue: number, step: -1 | 1): Queue {
   const i = q.items.findIndex((x) => same(x, repo, issue));
   if (i === -1) return q;
-  const j = i + buoc;
+  const j = i + step;
   if (j < 0 || j >= q.items.length) return q;
   const items = [...q.items];
   [items[i], items[j]] = [items[j]!, items[i]!];

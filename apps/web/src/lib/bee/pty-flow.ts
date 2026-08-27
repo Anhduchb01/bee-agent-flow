@@ -30,8 +30,8 @@ const ANSI_RE = /\x1b\[[0-9;?]*[A-Za-z]/g;
 const OSC_RE = /\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)?/g;
 
 /** Mở luồng. `song` = số phút giữ tiến trình trước khi tự dọn. */
-export function openFlow(lenh: string, song = 10): PtyFlow {
-  const p = ctlSpawn("script", ["-qec", `stty cols 400 rows 100; ${lenh}`, "/dev/null"], {
+export function openFlow(command: string, song = 10): PtyFlow {
+  const p = ctlSpawn("script", ["-qec", `stty cols 400 rows 100; ${command}`, "/dev/null"], {
     stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, TERM: "xterm-256color" },
   });

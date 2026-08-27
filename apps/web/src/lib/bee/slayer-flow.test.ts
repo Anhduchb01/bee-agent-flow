@@ -17,28 +17,28 @@ const MA_THAT = "VikBPU6KBmIOvEbPdfsA4rVU9bhcRuz539o0bdOOnnxgtki6#-4zpz5xQwErTyU
 
 const STUB = `#!/usr/bin/env node
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
-const [, , lenh, ten, co] = process.argv;
-if (lenh !== "add" || co !== "--login") { console.log("stub: " + process.argv.slice(2).join(" ")); process.exit(0); }
-const cot = process.stdout.columns ?? 80;
-const ve = (s) => { for (let i = 0; i < s.length; i += cot) process.stdout.write(s.slice(i, i + cot) + "\\r\\n"); };
-ve("Open this URL to authorize:");
-ve("https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=" + "s".repeat(60));
+const [, , cmd, name, flag] = process.argv;
+if (cmd !== "add" || flag !== "--login") { console.log("stub: " + process.argv.slice(2).join(" ")); process.exit(0); }
+const width = process.stdout.columns ?? 80;
+const emitLine = (s) => { for (let i = 0; i < s.length; i += width) process.stdout.write(s.slice(i, i + width) + "\\r\\n"); };
+emitLine("Open this URL to authorize:");
+emitLine("https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a&state=" + "s".repeat(60));
 process.stdout.write("Paste the code: ");
-let buf = "", cum = 0, luc = 0;
+let buf = "", burst = 0, lastAt = 0;
 process.stdin.on("data", (d) => {
   const now = Date.now();
-  if (now - luc > 150) cum = 0;
-  luc = now;
+  if (now - lastAt > 150) burst = 0;
+  lastAt = now;
   let s = d.toString();
-  cum += s.length;
-  if (cum > 56) s = s.replace(/\\r/g, "");   // dán: CR là chữ, không phải phím
+  burst += s.length;
+  if (burst > 56) s = s.replace(/\\r/g, "");   // dán: CR là chữ, không phải phím
   buf += s;
   const i = buf.indexOf("\\r");
   if (i === -1) return;
   const code = buf.slice(0, i);
   buf = buf.slice(i + 1);
-  if (code.startsWith("MASAI")) { ve("OAuth error: Request failed with status code 400"); return; }
-  ve("Added slot " + ten);
+  if (code.startsWith("MASAI")) { emitLine("OAuth error: Request failed with status code 400"); return; }
+  emitLine("Added slot " + name);
   process.exit(0);
 });
 `;

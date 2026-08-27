@@ -93,10 +93,10 @@ export function laneOf(
  * thả vào "Done" không đóng issue trên GitHub. Cho kéo vào đó là dạy người
  * dùng một lời nói dối, nên thả sai bị từ chối kèm lý do.
  */
-export function isDropAllowed(since: Lane, den: Lane): { ok: boolean; reason: string } {
-  if (since === den) return { ok: true, reason: "" };
+export function isDropAllowed(since: Lane, until: Lane): { ok: boolean; reason: string } {
+  if (since === until) return { ok: true, reason: "" };
   const allowed = new Set<Lane>(["backlog", "autopilot"]);
-  if (allowed.has(since) && allowed.has(den)) return { ok: true, reason: "" };
+  if (allowed.has(since) && allowed.has(until)) return { ok: true, reason: "" };
   const vi: Record<Lane, string> = {
     backlog: "",
     autopilot: "",
@@ -104,7 +104,7 @@ export function isDropAllowed(since: Lane, den: Lane): { ok: boolean; reason: st
     review: "this lane is decided by the PR, not by dragging",
     done: "an issue reaches Done by being closed on GitHub",
   };
-  return { ok: false, reason: vi[den] !== "" ? vi[den] : vi[since] };
+  return { ok: false, reason: vi[until] !== "" ? vi[until] : vi[since] };
 }
 
 /**

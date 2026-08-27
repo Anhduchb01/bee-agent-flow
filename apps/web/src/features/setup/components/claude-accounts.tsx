@@ -61,14 +61,14 @@ function Hang({
           in use
         </span>
       )}
-      {slot.hetHan && (
+      {slot.expired && (
         <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-2xs font-medium text-amber-500">
           expired — sign in again
         </span>
       )}
       <span className="flex-1" />
-      <Thanh label="5h" row={slot.namGio} />
-      <Thanh label="7d" row={slot.bayNgay} />
+      <Thanh label="5h" row={slot.fiveHour} />
+      <Thanh label="7d" row={slot.sevenDay} />
       {!slot.enabled && (
         <Button size="sm" variant="outline" disabled={busy} onClick={() => swap(slot.name)}>
           Use this one
@@ -136,9 +136,9 @@ export function ClaudeAccounts({ status }: { status: SlayerStatus }) {
           className="min-w-48 flex-1 font-mono"
         />
         <Button type="submit" disabled={busy || tokenSlayer.trim() === ""}>
-          {busy ? "Installing…" : status.daCai ? "Reinstall / change token" : "Install"}
+          {busy ? "Installing…" : status.installed ? "Reinstall / change token" : "Install"}
         </Button>
-        {status.daCai && (
+        {status.installed && (
           <Button
             type="button"
             variant="outline"
@@ -164,7 +164,7 @@ export function ClaudeAccounts({ status }: { status: SlayerStatus }) {
     </div>
   );
 
-  if (!status.daCai) {
+  if (!status.installed) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-body">
@@ -181,7 +181,7 @@ export function ClaudeAccounts({ status }: { status: SlayerStatus }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {status.tokenGhim && (
+      {status.pinnedToken && (
         <div className="flex flex-wrap items-center gap-2 rounded-control border border-amber-500/40 bg-amber-500/10 p-3">
           <span className="flex-1 text-xs text-body">
             <span className="font-mono">claude.env</span> pins a token — sessions run on that token,

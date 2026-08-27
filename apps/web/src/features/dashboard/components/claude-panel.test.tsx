@@ -37,12 +37,12 @@ function snapshot(percentOf: [number | null, number | null]): ClaudeSnapshot {
       runCount: 13,
       errorCount: 6,
       token: 1_240_000,
-      tiLeCache: 0.89,
+      cacheRate: 0.89,
       costToday: 2.41,
       costSevenDays: 14.8,
       stoppedOnQuota: 3,
     },
-    dichVu: { indicator: "none", hint: "All Systems Operational", kiemLuc: "" },
+    service: { indicator: "none", hint: "All Systems Operational", checkedAt: "" },
   };
 }
 

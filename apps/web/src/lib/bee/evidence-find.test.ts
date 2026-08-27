@@ -46,12 +46,12 @@ describe("findEvidenceForArtifact — the review panel's evidence lookup", () =>
       {
         name: "demo-export.webm",
         url: `/api/evidence/session/${ID}/demo-export.webm`,
-        loai: "video",
+        kind: "video",
       },
       {
         name: "shot-mobile.png",
         url: `/api/evidence/session/${ID}/shot-mobile.png`,
-        loai: "image",
+        kind: "image",
       },
     ]);
   });

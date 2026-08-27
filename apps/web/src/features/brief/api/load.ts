@@ -16,13 +16,13 @@ import { buildDigest, type Digest } from "../lib/digest";
  * "chưa chạy gì" trong khi ba phiên vừa xong lúc 2 giờ. Trang này tồn tại để
  * nói ra chuyện gì đã xảy ra, nên nó không được có điểm mù nào theo giờ.
  */
-export function recentWindow(at = new Date(), soGio = 24): { since: Date; den: Date } {
-  return { since: new Date(at.getTime() - soGio * 3_600_000), den: at };
+export function recentWindow(at = new Date(), soGio = 24): { since: Date; until: Date } {
+  return { since: new Date(at.getTime() - soGio * 3_600_000), until: at };
 }
 
 export async function loadDigest(at = new Date()): Promise<Digest> {
   const bee = getBee();
-  const { since, den } = recentWindow(at);
+  const { since, until } = recentWindow(at);
   const [session, queue] = await Promise.all([
     bee.listSessions(),
     readQueue(process.env.BEE_SRV ?? "/srv/bee"),
@@ -38,5 +38,5 @@ export async function loadDigest(at = new Date()): Promise<Digest> {
     await Promise.all(within.map(async (p) => [p.id, await bee.sessionArtifacts(p.id)] as const)),
   );
 
-  return buildDigest({ session, artifacts, queue, since, den });
+  return buildDigest({ session, artifacts, queue, since, until });
 }

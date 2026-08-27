@@ -93,8 +93,8 @@ function QuotaBar({ quota, now }: { quota: Quota; now: number }) {
  * không có gì chạy — nên chúng phải đọc được trong một lượt mắt.
  */
 export function ClaudePanel({ snapshot, now }: { snapshot: ClaudeSnapshot; now: number }) {
-  const { quota, toolUse, dichVu } = snapshot;
-  const serviceTone: Tone = dichVu.indicator === "none" ? "ok" : "down";
+  const { quota, toolUse, service } = snapshot;
+  const serviceTone: Tone = service.indicator === "none" ? "ok" : "down";
 
   return (
     <Card className="gap-0 py-0">
@@ -107,7 +107,7 @@ export function ClaudePanel({ snapshot, now }: { snapshot: ClaudeSnapshot; now: 
         </CardTitle>
         <CardDescription className="flex items-center gap-1.5">
           <StatusDot tone={serviceTone} />
-          {dichVu.hint}
+          {service.hint}
         </CardDescription>
       </CardHeader>
 
@@ -128,7 +128,7 @@ export function ClaudePanel({ snapshot, now }: { snapshot: ClaudeSnapshot; now: 
             <span className="text-sm"> M</span>
           </span>
           <span className="text-xs text-muted-foreground">
-            {Math.round(toolUse.tiLeCache * 100)}% read from cache · {toolUse.runCount} runs
+            {Math.round(toolUse.cacheRate * 100)}% read from cache · {toolUse.runCount} runs
           </span>
         </O>
 

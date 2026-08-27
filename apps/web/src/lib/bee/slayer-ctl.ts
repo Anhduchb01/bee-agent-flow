@@ -64,9 +64,9 @@ const POOL_DEMO: BeeClaudePool = {
       email: "you@company.com",
       state: "active",
       enabled: true,
-      namGio: { percentOf: 29, resetLuc: null },
-      bayNgay: { percentOf: 36, resetLuc: null },
-      hetHan: false,
+      fiveHour: { percentOf: 29, resetAt: null },
+      sevenDay: { percentOf: 36, resetAt: null },
+      expired: false,
     },
     {
       index: 2,
@@ -75,16 +75,16 @@ const POOL_DEMO: BeeClaudePool = {
       email: "you@gmail.com",
       state: "idle",
       enabled: false,
-      namGio: { percentOf: 4, resetLuc: null },
-      bayNgay: { percentOf: 11, resetLuc: null },
-      hetHan: false,
+      fiveHour: { percentOf: 4, resetAt: null },
+      sevenDay: { percentOf: 11, resetAt: null },
+      expired: false,
     },
   ],
 };
 
 export interface SlayerStatus {
   /** `tok` có trên máy không. Chưa có thì UI hiện ô dán token để cài. */
-  daCai: boolean;
+  installed: boolean;
   /**
    * Máy có login tương tác (`~/.claude/.credentials.json`) để mà CHỤP hay
    * không. Không có thì `tok add <tên>` (không `--login`) chắc chắn trượt —
@@ -94,7 +94,7 @@ export interface SlayerStatus {
   coLoginMay: boolean;
   pool: BeeClaudePool | null;
   /** claude.env đang ghim một token, đè lên slot đang chọn. */
-  tokenGhim: boolean;
+  pinnedToken: boolean;
   /** Vì sao không đọc được pool, khi `tok` có mà vẫn hỏng. */
   message: string | null;
 }
@@ -111,7 +111,7 @@ async function hasPinnedToken(): Promise<boolean> {
 /** Bảng tài khoản cho /setup. Không ném: hỏng chỗ nào thì nói chỗ đó. */
 export async function readSlayerStatus(): Promise<SlayerStatus> {
   if (isFixture()) {
-    return { daCai: true, pool: POOL_DEMO, tokenGhim: false, message: null, coLoginMay: true };
+    return { installed: true, pool: POOL_DEMO, pinnedToken: false, message: null, coLoginMay: true };
   }
   const pinned = await hasPinnedToken();
   const coLogin = await fs
@@ -124,21 +124,21 @@ export async function readSlayerStatus(): Promise<SlayerStatus> {
   } catch (e) {
     const err = e as NodeJS.ErrnoException & { stderr?: string };
     if (err.code === "ENOENT") {
-      return { daCai: false, pool: null, tokenGhim: pinned, message: null, coLoginMay: coLogin };
+      return { installed: false, pool: null, pinnedToken: pinned, message: null, coLoginMay: coLogin };
     }
     return {
-      daCai: true,
+      installed: true,
       pool: null,
-      tokenGhim: pinned,
+      pinnedToken: pinned,
       coLoginMay: coLogin,
       message: (err.stderr ?? err.message).slice(0, 200),
     };
   }
   const pool = readSlayerPool(ra.stdout);
   return {
-    daCai: true,
+    installed: true,
     pool,
-    tokenGhim: pinned,
+    pinnedToken: pinned,
     coLoginMay: coLogin,
     message: pool === null ? "`tok list --json` trả về thứ không đọc được." : null,
   };

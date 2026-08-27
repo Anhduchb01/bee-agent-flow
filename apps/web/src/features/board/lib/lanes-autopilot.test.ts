@@ -51,8 +51,8 @@ describe("isDropAllowed — chỉ Backlog ↔ Autopilot, ba lane kia là hệ qu
   });
 
   it("từ chối thả vào working/review/done, kèm lý do đọc được", () => {
-    for (const den of ["working", "review", "done"] as const) {
-      const k = isDropAllowed("backlog", den);
+    for (const until of ["working", "review", "done"] as const) {
+      const k = isDropAllowed("backlog", until);
       expect(k.ok).toBe(false);
       expect(k.reason).not.toBe("");
     }

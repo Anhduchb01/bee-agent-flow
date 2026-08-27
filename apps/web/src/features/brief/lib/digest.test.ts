@@ -24,7 +24,7 @@ describe("buildDigest — sáng dậy đọc một trang là biết đêm qua ra
   it("chỉ tính phiên trong khoảng đêm, bỏ phiên ban ngày hôm trước", () => {
     const b = buildDigest({
       session: [session({}), session({ id: "cu", ended_at: "2026-08-20T10:00:00Z" })],
-      artifacts: {}, queue: HANG_RONG, since: TU, den: DEN,
+      artifacts: {}, queue: HANG_RONG, since: TU, until: DEN,
     });
     expect(b.ran).toHaveLength(1);
   });
@@ -32,14 +32,14 @@ describe("buildDigest — sáng dậy đọc một trang là biết đêm qua ra
   it("xong + có PR → xếp vào 'chờ bạn duyệt', kèm link PR", () => {
     const pr: BeeArtifact = { kind: "pr", url: "https://github.com/you/myapp/pull/12", number: 12, ts: null, title: "CSV export" };
     const b = buildDigest({
-      session: [session({})], artifacts: { s1: [pr] }, queue: HANG_RONG, since: TU, den: DEN,
+      session: [session({})], artifacts: { s1: [pr] }, queue: HANG_RONG, since: TU, until: DEN,
     });
     expect(b.toReview).toHaveLength(1);
     expect(b.toReview[0]?.pr?.number).toBe(12);
   });
 
   it("xong mà KHÔNG có PR là chuyện khác — không được trộn vào 'chờ duyệt'", () => {
-    const b = buildDigest({ session: [session({})], artifacts: {}, queue: HANG_RONG, since: TU, den: DEN });
+    const b = buildDigest({ session: [session({})], artifacts: {}, queue: HANG_RONG, since: TU, until: DEN });
     expect(b.toReview).toHaveLength(0);
     expect(b.ran).toHaveLength(1);
   });
@@ -50,7 +50,7 @@ describe("buildDigest — sáng dậy đọc một trang là biết đêm qua ra
         session({ id: "s2", status: "failed", needs_human: true, reason: "vượt trần chi $5 USD" } as Partial<BeeSession>),
         session({ id: "s3", status: "failed" }),
       ],
-      artifacts: {}, queue: HANG_RONG, since: TU, den: DEN,
+      artifacts: {}, queue: HANG_RONG, since: TU, until: DEN,
     });
     expect(b.outcome).toHaveLength(2);
     expect(b.outcome[0]?.why).toMatch(/trần chi/);
@@ -67,26 +67,26 @@ describe("buildDigest — sáng dậy đọc một trang là biết đêm qua ra
         reason: "Not opening a new session: 5h quota is at 91%", added_at: "t",
       }],
     };
-    const b = buildDigest({ session: [], artifacts: {}, queue: hang, since: TU, den: DEN });
+    const b = buildDigest({ session: [], artifacts: {}, queue: hang, since: TU, until: DEN });
     expect(b.stillQueued[0]?.why).toMatch(/91%/);
   });
 
   it("KHÔNG XẾP VIỆC khác hẳn CÓ XẾP MÀ KHÔNG CHẠY — PRD §4.1", () => {
-    const within = buildDigest({ session: [], artifacts: {}, queue: HANG_RONG, since: TU, den: DEN });
-    expect(within.loai).toBe("khong-xep-viec");
+    const within = buildDigest({ session: [], artifacts: {}, queue: HANG_RONG, since: TU, until: DEN });
+    expect(within.kind).toBe("khong-xep-viec");
 
     const digestQueued = buildDigest({
       session: [],
       artifacts: {},
       queue: { paused: false, items: [{ slug: "myapp", repo: "you/myapp", issue: 41, mode: "auto", model: "default", status: "waiting", sessionId: null, reason: null, added_at: "t" }] },
-      since: TU, den: DEN,
+      since: TU, until: DEN,
     });
-    expect(digestQueued.loai).toBe("xep-ma-khong-chay");
+    expect(digestQueued.kind).toBe("xep-ma-khong-chay");
   });
 
   it("có chạy → loại 'có việc', và đếm đúng", () => {
-    const b = buildDigest({ session: [session({})], artifacts: {}, queue: HANG_RONG, since: TU, den: DEN });
-    expect(b.loai).toBe("co-viec");
+    const b = buildDigest({ session: [session({})], artifacts: {}, queue: HANG_RONG, since: TU, until: DEN });
+    expect(b.kind).toBe("co-viec");
   });
 });
 
@@ -96,8 +96,8 @@ describe("recentWindow — cửa sổ 24h trượt, không phải mốc 18:00", 
     // chạy trong ngày — trong khi Autopilot chạy suốt ngày. Đó là điểm mù
     // theo giờ trên chính cái trang sinh ra để nói "chuyện gì đã xảy ra".
     const now = new Date("2026-08-26T15:00:00Z");
-    const { since, den } = recentWindow(now);
-    expect(den).toEqual(now);
+    const { since, until } = recentWindow(now);
+    expect(until).toEqual(now);
     expect(new Date("2026-08-26T14:00:00Z").getTime()).toBeGreaterThan(since.getTime());
     // Và vẫn phủ trọn đêm hôm trước — không đánh đổi ca dùng cũ lấy ca mới.
     expect(new Date("2026-08-26T02:00:00Z").getTime()).toBeGreaterThan(since.getTime());

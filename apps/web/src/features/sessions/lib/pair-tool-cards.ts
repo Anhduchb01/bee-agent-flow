@@ -10,30 +10,30 @@ import type { StreamEvent } from "./parse-events";
  */
 
 export type Card =
-  | { loai: "lifecycle"; text: string }
-  | { loai: "nguoi-noi"; text: string }
-  | { loai: "agent-noi"; text: string }
-  | { loai: "nghi"; text: string }
-  | { loai: "artifact"; kind: "issue" | "pr"; url: string; number: number | null; title: string | null }
-  | { loai: "ket-qua"; err: boolean; luot: number | null }
-  | { loai: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
-  | { loai: "da-cat"; skipped: number }
+  | { kind: "lifecycle"; text: string }
+  | { kind: "nguoi-noi"; text: string }
+  | { kind: "agent-noi"; text: string }
+  | { kind: "nghi"; text: string }
+  | { kind: "artifact"; artifactKind: "issue" | "pr"; url: string; number: number | null; title: string | null }
+  | { kind: "ket-qua"; err: boolean; turns: number | null }
+  | { kind: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
+  | { kind: "da-cat"; skipped: number }
   /** Manual-mode approval card; answer được ghép từ bee_approval theo requestId. */
-  | { loai: "xin-quyen"; requestId: string; name: string; thamSo: string; answer: "allow" | "deny" | null }
+  | { kind: "xin-quyen"; requestId: string; name: string; args: string; answer: "allow" | "deny" | null }
   | {
-      loai: "tool-card";
+      kind: "tool-card";
       name: string;
       id: string | null;
       file?: string;
-      lenh?: string;
+      command?: string;
       cu?: string;
       latest?: string;
-      thamSo: string;
+      args: string;
       status: "dang-chay" | "xong" | "loi";
       result: string | null;
     };
 
-type TheTool = Extract<Card, { loai: "tool-card" }>;
+type TheTool = Extract<Card, { kind: "tool-card" }>;
 
 export function pairToolCards(events: StreamEvent[]): Card[] {
   const row: Card[] = [];
@@ -41,17 +41,17 @@ export function pairToolCards(events: StreamEvent[]): Card[] {
   const fifo: TheTool[] = []; // thẻ không id, theo thứ tự
 
   for (const sk of events) {
-    switch (sk.loai) {
+    switch (sk.kind) {
       case "tool": {
         const the: TheTool = {
-          loai: "tool-card",
+          kind: "tool-card",
           name: sk.name,
           id: sk.id ?? null,
           ...(sk.file !== undefined ? { file: sk.file } : {}),
-          ...(sk.lenh !== undefined ? { lenh: sk.lenh } : {}),
+          ...(sk.command !== undefined ? { command: sk.command } : {}),
           ...(sk.cu !== undefined ? { cu: sk.cu } : {}),
           ...(sk.latest !== undefined ? { latest: sk.latest } : {}),
-          thamSo: sk.thamSo,
+          args: sk.args,
           status: "dang-chay",
           result: null,
         };
@@ -72,10 +72,10 @@ export function pairToolCards(events: StreamEvent[]): Card[] {
           // Kết quả mồ côi — tool_use nằm trong khúc bee_replayed đã cắt.
           // Vẫn phải hiện: mất kết quả tệ hơn mất tiêu đề.
           row.push({
-            loai: "tool-card",
+            kind: "tool-card",
             name: "tool",
             id: sk.id ?? null,
-            thamSo: "",
+            args: "",
             status: sk.err === true ? "loi" : "xong",
             result: sk.text,
           });
@@ -83,26 +83,26 @@ export function pairToolCards(events: StreamEvent[]): Card[] {
         break;
       }
       case "lifecycle":
-        row.push({ loai: "lifecycle", text: sk.text });
+        row.push({ kind: "lifecycle", text: sk.text });
         break;
       case "nguoi-noi":
-        row.push({ loai: "nguoi-noi", text: sk.text });
+        row.push({ kind: "nguoi-noi", text: sk.text });
         break;
       case "agent-noi":
-        row.push({ loai: "agent-noi", text: sk.text });
+        row.push({ kind: "agent-noi", text: sk.text });
         break;
       case "nghi":
-        row.push({ loai: "nghi", text: sk.text });
+        row.push({ kind: "nghi", text: sk.text });
         break;
       case "artifact":
-        row.push({ loai: "artifact", kind: sk.kind, url: sk.url, number: sk.number, title: sk.title });
+        row.push({ kind: "artifact", artifactKind: sk.artifactKind, url: sk.url, number: sk.number, title: sk.title });
         break;
       case "xin-quyen":
         row.push({
-          loai: "xin-quyen",
+          kind: "xin-quyen",
           requestId: sk.requestId,
           name: sk.name,
-          thamSo: sk.thamSo,
+          args: sk.args,
           answer: null,
         });
         break;
@@ -110,7 +110,7 @@ export function pairToolCards(events: StreamEvent[]): Card[] {
         // Ghép ngược vào thẻ đã hỏi — thẻ đổi trạng thái, không thêm dòng mới.
         for (let i = row.length - 1; i >= 0; i -= 1) {
           const m = row[i]!;
-          if (m.loai === "xin-quyen" && m.requestId === sk.requestId) {
+          if (m.kind === "xin-quyen" && m.requestId === sk.requestId) {
             m.answer = sk.allow ? "allow" : "deny";
             break;
           }
@@ -118,13 +118,13 @@ export function pairToolCards(events: StreamEvent[]): Card[] {
         break;
       }
       case "ket-qua":
-        row.push({ loai: "ket-qua", err: sk.err, luot: sk.luot ?? null });
+        row.push({ kind: "ket-qua", err: sk.err, turns: sk.turns ?? null });
         break;
       case "compact":
-        row.push({ loai: "compact", trigger: sk.trigger, preTokens: sk.preTokens });
+        row.push({ kind: "compact", trigger: sk.trigger, preTokens: sk.preTokens });
         break;
       case "da-cat":
-        row.push({ loai: "da-cat", skipped: sk.skipped });
+        row.push({ kind: "da-cat", skipped: sk.skipped });
         break;
       // delta/nghi-delta gom ở hook, replay hiện thành dải báo — không thành mục
       case "delta":

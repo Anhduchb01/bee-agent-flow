@@ -12,7 +12,7 @@ const PHIEN = {
 } as Digest["ran"][number]["session"];
 
 const BASE: Digest = {
-  loai: "co-viec", since: "t", den: "t",
+  kind: "co-viec", since: "t", until: "t",
   ran: [{ session: PHIEN, pr: null, issue: null }],
   toReview: [], outcome: [], stillQueued: [],
 };
@@ -29,7 +29,7 @@ describe("DigestView — sáng dậy cầm điện thoại là đọc được",
   });
 
   it("không xếp việc: nói thẳng là chưa xếp, và chỉ đường đi xếp", () => {
-    render(<DigestView digest={{ ...BASE, loai: "khong-xep-viec", ran: [] }} />);
+    render(<DigestView digest={{ ...BASE, kind: "khong-xep-viec", ran: [] }} />);
     expect(screen.getByText(/Nothing has been queued/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /project board/ })).toHaveAttribute("href", "/projects?view=kanban");
   });
@@ -37,7 +37,7 @@ describe("DigestView — sáng dậy cầm điện thoại là đọc được",
   it("có xếp mà không chạy được là MỘT CÂU CHUYỆN KHÁC — không gộp với 'chưa xếp'", () => {
     render(
       <DigestView digest={{
-        ...BASE, loai: "xep-ma-khong-chay", ran: [],
+        ...BASE, kind: "xep-ma-khong-chay", ran: [],
         stillQueued: [{ item: { slug: "myapp", repo: "you/myapp", issue: 41, mode: "auto", model: "default", status: "waiting", sessionId: null, reason: "hạn mức 5h đang 91%", added_at: "t" }, why: "hạn mức 5h đang 91%" }],
       }} />,
     );

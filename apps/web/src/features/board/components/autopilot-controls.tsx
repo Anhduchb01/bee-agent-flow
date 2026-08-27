@@ -63,9 +63,9 @@ export function ReorderButtons({ row }: { row: BoardRow }) {
   const [busy, start] = useTransition();
   if (row.queue === null) return null;
 
-  const di = (buoc: -1 | 1) => () =>
+  const di = (step: -1 | 1) => () =>
     start(async () => {
-      await reorderAction(row.repo, row.issue.number, buoc);
+      await reorderAction(row.repo, row.issue.number, step);
       router.refresh();
     });
 

@@ -112,15 +112,15 @@ export function EventStream({
 }
 
 /** Bash's `command` reads better than raw JSON; other tools show the JSON. */
-function summariseArgs(name: string, thamSo: string): string {
+function summariseArgs(name: string, args: string): string {
   try {
-    const o = JSON.parse(thamSo) as Record<string, unknown>;
+    const o = JSON.parse(args) as Record<string, unknown>;
     if (name === "Bash" && typeof o.command === "string") return o.command;
     if (typeof o.file_path === "string") return o.file_path;
   } catch {
     // fall through to raw
   }
-  return thamSo;
+  return args;
 }
 
 /**
@@ -131,7 +131,7 @@ function PermissionCard({
   m,
   onAnswer,
 }: {
-  m: Extract<Card, { loai: "xin-quyen" }>;
+  m: Extract<Card, { kind: "xin-quyen" }>;
   onAnswer?: (requestId: string, allow: boolean, inputJson: string) => void;
 }) {
   return (
@@ -150,20 +150,20 @@ function PermissionCard({
         )}
       </p>
       <pre className="overflow-x-auto rounded-control border border-border bg-muted/40 p-2 font-mono text-xs">
-        {summariseArgs(m.name, m.thamSo)}
+        {summariseArgs(m.name, m.args)}
       </pre>
       {m.answer === null && onAnswer !== undefined && (
         <div className="mt-2 flex gap-2">
           <button
             type="button"
-            onClick={() => onAnswer(m.requestId, true, m.thamSo)}
+            onClick={() => onAnswer(m.requestId, true, m.args)}
             className="rounded-control bg-[#C15F3C] px-3 py-1 text-xs font-medium text-white hover:bg-[#a94f31]"
           >
             Allow
           </button>
           <button
             type="button"
-            onClick={() => onAnswer(m.requestId, false, m.thamSo)}
+            onClick={() => onAnswer(m.requestId, false, m.args)}
             className="rounded-control border border-border px-3 py-1 text-xs text-body hover:bg-accent"
           >
             Deny
@@ -181,7 +181,7 @@ function OneCard({
   m: Card;
   onAnswerPermission?: (requestId: string, allow: boolean, inputJson: string) => void;
 }) {
-  switch (m.loai) {
+  switch (m.kind) {
     case "xin-quyen":
       return <PermissionCard m={m} onAnswer={onAnswerPermission} />;
     case "lifecycle":
@@ -219,7 +219,7 @@ function OneCard({
             rel="noopener noreferrer"
             className="font-semibold text-body underline-offset-2 hover:underline"
           >
-            {m.kind === "pr" ? "Pull request" : "Issue"}
+            {m.artifactKind === "pr" ? "Pull request" : "Issue"}
             {m.number !== null ? ` #${m.number}` : ""}
           </a>
           {m.title !== null && (
@@ -232,7 +232,7 @@ function OneCard({
       return (
         <p className="border-t border-border pt-2 font-mono text-xs text-muted-foreground">
           {m.err ? "turn ended with an error" : "turn finished"}
-          {m.luot !== null ? ` · ${m.luot} turns` : ""}
+          {m.turns !== null ? ` · ${m.turns} turns` : ""}
         </p>
       );
     case "da-cat":
@@ -256,8 +256,8 @@ function OneCard({
 
 /* ── Thẻ tool: ● Tên  tóm-tắt — mở ra panel theo từng loại tool ──────────── */
 
-function TheTool({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
-  const tomTat = m.file ?? m.lenh ?? (m.thamSo === "{}" ? "" : m.thamSo);
+function TheTool({ m }: { m: Extract<Card, { kind: "tool-card" }> }) {
+  const tomTat = m.file ?? m.command ?? (m.args === "{}" ? "" : m.args);
   const lineCount = countLines(m);
 
   return (
@@ -279,7 +279,7 @@ function TheTool({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
   );
 }
 
-function ThanThe({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
+function ThanThe({ m }: { m: Extract<Card, { kind: "tool-card" }> }) {
   // Edit/Write → diff đỏ/xanh; Bash → IN/OUT; còn lại → args + kết quả.
   if (m.cu !== undefined || m.latest !== undefined) {
     return (
@@ -290,10 +290,10 @@ function ThanThe({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
     );
   }
 
-  if (m.lenh !== undefined) {
+  if (m.command !== undefined) {
     return (
       <div className="overflow-hidden rounded-control border border-border font-mono text-xs leading-5">
-        <GutterLine label="IN" text={m.lenh} />
+        <GutterLine label="IN" text={m.command} />
         {m.result !== null && <GutterLine label="OUT" text={m.result} />}
       </div>
     );
@@ -301,9 +301,9 @@ function ThanThe({ m }: { m: Extract<Card, { loai: "tool-card" }> }) {
 
   return (
     <>
-      {m.thamSo !== "" && m.thamSo !== "{}" && (
+      {m.args !== "" && m.args !== "{}" && (
         <pre className="overflow-x-auto rounded-control border border-border p-2 font-mono text-xs text-muted-foreground">
-          {m.thamSo}
+          {m.args}
         </pre>
       )}
       {m.result !== null && (
@@ -344,7 +344,7 @@ function GutterLine({ label, text }: { label: "IN" | "OUT"; text: string }) {
   );
 }
 
-function countLines(m: Extract<Card, { loai: "tool-card" }>): string | null {
+function countLines(m: Extract<Card, { kind: "tool-card" }>): string | null {
   if (m.cu === undefined && m.latest === undefined) return null;
   const added = m.latest === undefined ? 0 : m.latest.split("\n").length;
   const removeIt = m.cu === undefined ? 0 : m.cu.split("\n").length;

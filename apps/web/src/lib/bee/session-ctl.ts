@@ -105,9 +105,9 @@ export async function openSession(input: {
   // đường mà không ai ngồi canh. `Continue` phiên cũ KHÔNG đi qua đây —
   // PRD nói "không mở phiên MỚI", nối lại một hội thoại đang dở thì không.
   const brake = checkQuota(await readAccountUsage(root()), {
-    nguong: Number(process.env.QUOTA_BRAKE_PCT ?? 85),
+    threshold: Number(process.env.QUOTA_BRAKE_PCT ?? 85),
   });
-  if (!brake.moDuoc) {
+  if (!brake.allowed) {
     return { ok: false, message: `Not opening a new session: ${brake.reason}` };
   }
 

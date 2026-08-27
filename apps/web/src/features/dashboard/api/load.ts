@@ -4,13 +4,13 @@ import { getBee } from "@/lib/bee";
 import type { StatusRead } from "@/lib/bee/types";
 import { getClaude, type ClaudeSnapshot } from "@/lib/claude";
 
-import { lastSevenDays, tomTatBayNgay, type RunDay } from "../lib/seven-days";
+import { lastSevenDays, sevenDaySummary, type RunDay } from "../lib/seven-days";
 
 export interface DashboardView {
   statusRead: StatusRead;
   claude: ClaudeSnapshot;
-  bayNgay: RunDay[];
-  tomTatBayNgay: string | null;
+  sevenDay: RunDay[];
+  sevenDaySummary: string | null;
   /** Mốc đọc dữ liệu — đồng hồ đếm ngược tính từ đây, không từ lúc render. */
   readAt: number;
 }
@@ -27,8 +27,8 @@ export async function loadDashboard(): Promise<DashboardView> {
   return {
     statusRead,
     claude,
-    bayNgay: days,
-    tomTatBayNgay: tomTatBayNgay(days),
+    sevenDay: days,
+    sevenDaySummary: sevenDaySummary(days),
     readAt: Date.now(),
   };
 }

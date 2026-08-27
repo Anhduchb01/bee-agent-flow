@@ -28,21 +28,21 @@ export function BoardKanban({ row }: { row: BoardRow[] }) {
    * thật — thả thẻ vào "In session" không làm phiên chạy — nên thả sai bị từ
    * chối kèm lý do, thay vì im lặng bật lại khiến người dùng tưởng tay mình run.
    */
-  function dropInto(den: Lane) {
+  function dropInto(until: Lane) {
     return (e: React.DragEvent) => {
       e.preventDefault();
       const m = dragging;
       setKeo(null);
       if (m === null) return;
-      const verify = isDropAllowed(m.lane, den);
+      const verify = isDropAllowed(m.lane, until);
       if (!verify.ok) {
         setTuChoi(verify.reason);
         return;
       }
       setTuChoi("");
-      if (m.lane === den) return;
+      if (m.lane === until) return;
       start(async () => {
-        if (den === "autopilot") {
+        if (until === "autopilot") {
           await enqueueAction({ slug: m.slug, repo: m.repo, issue: m.issue.number });
         } else {
           await dequeueAction(m.repo, m.issue.number);

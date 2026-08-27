@@ -25,17 +25,17 @@ function inside(port: number): Promise<boolean> {
 
 export async function allocatePortRange(opts: {
   since?: number;
-  den?: number;
+  until?: number;
   count?: number;
   /** Dải các phiên khác đang giữ — đọc từ session.json của chúng. */
   daDung: number[];
 }): Promise<number | null> {
   const since = opts.since ?? 54000;
-  const den = opts.den ?? 54990;
+  const until = opts.until ?? 54990;
   const count = opts.count ?? 10;
   const held = new Set(opts.daDung);
 
-  for (let base = since; base + count - 1 <= den; base += count) {
+  for (let base = since; base + count - 1 <= until; base += count) {
     if (held.has(base)) continue;
     let within = true;
     for (let p = base; p < base + count; p += 1) {

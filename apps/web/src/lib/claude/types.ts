@@ -47,7 +47,7 @@ export interface ToolCard {
   /** Tổng token vào + ra + cache trong ngày. */
   token: number;
   /** Tỉ lệ token đọc từ cache, 0–1. Quyết định phần lớn chi phí của khối việc này. */
-  tiLeCache: number;
+  cacheRate: number;
   costToday: number;
   costSevenDays: number;
   /** Số lần chạy dừng vì hết hạn mức — từ `stop_reason` / `api_error_status`. */
@@ -59,13 +59,13 @@ export interface ServiceStatus {
   indicator: "none" | "minor" | "major" | "critical" | "unknown";
   hint: string;
   /** Lúc kiểm gần nhất, ISO. */
-  kiemLuc: string;
+  checkedAt: string;
 }
 
 export interface ClaudeSnapshot {
   quota: Quota[];
   toolUse: ToolCard;
-  dichVu: ServiceStatus;
+  service: ServiceStatus;
 }
 
 export interface ClaudeSource {

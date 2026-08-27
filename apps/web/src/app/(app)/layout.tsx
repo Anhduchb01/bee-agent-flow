@@ -75,11 +75,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
              setup feature next to the action it calls, and the sidebar
              (a client component) must not import that barrel — it carries
              server-only loaders. */
-          nutTaoDuAn={<NewProjectDialog trigger={<SidebarNewProjectTrigger />} />}
+          newProjectButton={<NewProjectDialog trigger={<SidebarNewProjectTrigger />} />}
           displayName={session.displayName}
           login={session.login}
           sidebarProjects={sidebarProjects}
-          sucKhoe={{
+          health={{
             tone: health.level === "ok" ? "ok" : health.level === "warn" ? "warn" : "down",
             headline: health.headline,
             detail: `${running} sessions running`,

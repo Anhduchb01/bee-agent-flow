@@ -39,10 +39,10 @@ describe("readSlayerPool — đọc bảng tài khoản", () => {
       email: "pdtoan2811@gmail.com",
       enabled: true,
       state: "active",
-      hetHan: false,
+      expired: false,
     });
-    expect(pool?.slots[0].namGio?.percentOf).toBe(29);
-    expect(pool?.slots[0].bayNgay?.resetLuc).toBe(1787900399);
+    expect(pool?.slots[0].fiveHour?.percentOf).toBe(29);
+    expect(pool?.slots[0].sevenDay?.resetAt).toBe(1787900399);
   });
 
   it("máy chưa có slot nào → pool rỗng, không phải lỗi", () => {
@@ -54,7 +54,7 @@ describe("readSlayerPool — đọc bảng tài khoản", () => {
     const pool = readSlayerPool(
       JSON.stringify({ schema: "accounts@1", accounts: [{ index: 1, name: "work" }] }),
     );
-    expect(pool?.slots[0]).toMatchObject({ name: "work", namGio: null, bayNgay: null });
+    expect(pool?.slots[0]).toMatchObject({ name: "work", fiveHour: null, sevenDay: null });
   });
 
   it("phần trăm vô lý bị kẹp — thanh 130% đọc như lỗi hiển thị", () => {
@@ -64,7 +64,7 @@ describe("readSlayerPool — đọc bảng tài khoản", () => {
         accounts: [{ index: 1, name: "w", usage: { five_hour: { utilization: 130 } } }],
       }),
     );
-    expect(pool?.slots[0].namGio?.percentOf).toBe(100);
+    expect(pool?.slots[0].fiveHour?.percentOf).toBe(100);
   });
 
   it("token hết hạn là một trường riêng, không suy từ state", () => {
@@ -74,7 +74,7 @@ describe("readSlayerPool — đọc bảng tài khoản", () => {
         accounts: [{ index: 1, name: "w", state: "reauth", usage: { token_expired: true } }],
       }),
     );
-    expect(pool?.slots[0]).toMatchObject({ state: "reauth", hetHan: true });
+    expect(pool?.slots[0]).toMatchObject({ state: "reauth", expired: true });
   });
 
   it("tài liệu lạ → null, không đoán", () => {

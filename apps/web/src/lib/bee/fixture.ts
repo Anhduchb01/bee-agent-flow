@@ -224,12 +224,12 @@ export function createFixtureBeeSource(): BeeSource {
           {
             name: "loc-don-theo-trang-thai-1.png",
             url: `${baseDir}/shots/loc-don-theo-trang-thai-1.png`,
-            loai: "image",
+            kind: "image",
           },
           {
             name: "giu-bo-loc-khi-tai-lai.gif",
             url: `${baseDir}/giu-bo-loc-khi-tai-lai.gif`,
-            loai: "image",
+            kind: "image",
           },
         ],
       };

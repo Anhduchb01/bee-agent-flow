@@ -90,11 +90,11 @@ function SessionNode({ data }: NodeProps<SessionFlow>) {
           ↗
         </a>
       </span>
-      {data.cauCuoi !== null && (
-        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground italic">“{data.cauCuoi}”</p>
+      {data.lastLine !== null && (
+        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground italic">“{data.lastLine}”</p>
       )}
       <span className="mt-1.5 flex items-center gap-2 font-mono text-xs text-muted-foreground">
-        <span className="min-w-0 truncate">{data.nhanh}</span>
+        <span className="min-w-0 truncate">{data.branch}</span>
         <span className="flex-1" />
         {age(data.createdAt) !== null && <span>{age(data.createdAt)}</span>}
         <span className={data.needsHuman ? "text-destructive" : ""}>

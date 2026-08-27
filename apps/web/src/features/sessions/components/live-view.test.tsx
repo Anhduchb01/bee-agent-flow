@@ -62,7 +62,7 @@ describe("LiveView — one mode, VSCode-style controls", () => {
 
   it("agent busy + nothing typed → the round button is STOP, not send", () => {
     mockStream({
-      events: [{ loai: "nguoi-noi", text: "do the thing" }],
+      events: [{ kind: "nguoi-noi", text: "do the thing" }],
       typing: "wor",
     });
     render(<LiveView session={PHIEN} />);
@@ -73,7 +73,7 @@ describe("LiveView — one mode, VSCode-style controls", () => {
   it("typing while busy flips the button back to send — the message queues", async () => {
     const user = userEvent.setup();
     mockStream({
-      events: [{ loai: "nguoi-noi", text: "do the thing" }],
+      events: [{ kind: "nguoi-noi", text: "do the thing" }],
       typing: "wor",
     });
     render(<LiveView session={PHIEN} />);
@@ -85,8 +85,8 @@ describe("LiveView — one mode, VSCode-style controls", () => {
   it("turn finished (result after the say) → idle, send button back", () => {
     mockStream({
       events: [
-        { loai: "nguoi-noi", text: "do the thing" },
-        { loai: "ket-qua", err: false, luot: 1, nguCanh: 12 },
+        { kind: "nguoi-noi", text: "do the thing" },
+        { kind: "ket-qua", err: false, turns: 1, contextTokens: 12 },
       ],
     });
     render(<LiveView session={PHIEN} />);
@@ -97,8 +97,8 @@ describe("LiveView — one mode, VSCode-style controls", () => {
   it("context ring shows the latest result's percentage", () => {
     mockStream({
       events: [
-        { loai: "ket-qua", err: false, luot: 1, nguCanh: 7 },
-        { loai: "ket-qua", err: false, luot: 2, nguCanh: 12 },
+        { kind: "ket-qua", err: false, turns: 1, contextTokens: 7 },
+        { kind: "ket-qua", err: false, turns: 2, contextTokens: 12 },
       ],
     });
     render(<LiveView session={PHIEN} />);
@@ -110,12 +110,12 @@ describe("LiveView — one mode, VSCode-style controls", () => {
     mockStream({
       events: [
         {
-          loai: "ket-qua",
+          kind: "ket-qua",
           err: false,
-          luot: 1,
-          nguCanh: 10,
+          turns: 1,
+          contextTokens: 10,
           validToken: 104_635,
-          cuaSoToken: 1_000_000,
+          tokenWindow: 1_000_000,
         },
       ],
     });
@@ -174,14 +174,14 @@ describe("continue a finished session (V2.6)", () => {
 
 describe("working indicator — VSCode-style shimmer while the agent owes an answer", () => {
   it("busy with NOTHING streaming yet → the indicator runs", () => {
-    mockStream({ events: [{ loai: "nguoi-noi", text: "what is this repo?" }] });
+    mockStream({ events: [{ kind: "nguoi-noi", text: "what is this repo?" }] });
     render(<LiveView session={PHIEN} />);
     expect(screen.getByLabelText("Agent is working")).toBeInTheDocument();
   });
 
   it("text or thinking streaming → the indicator yields to the real stream", () => {
     mockStream({
-      events: [{ loai: "nguoi-noi", text: "do it" }],
+      events: [{ kind: "nguoi-noi", text: "do it" }],
       typing: "Answer star",
     });
     render(<LiveView session={PHIEN} />);
@@ -191,8 +191,8 @@ describe("working indicator — VSCode-style shimmer while the agent owes an ans
   it("idle (result landed) → no indicator", () => {
     mockStream({
       events: [
-        { loai: "nguoi-noi", text: "do it" },
-        { loai: "ket-qua", err: false, luot: 1, nguCanh: 5 },
+        { kind: "nguoi-noi", text: "do it" },
+        { kind: "ket-qua", err: false, turns: 1, contextTokens: 5 },
       ],
     });
     render(<LiveView session={PHIEN} />);
@@ -344,7 +344,7 @@ describe("action chips — the phone-first flow buttons", () => {
 
     mockStream({
       events: [
-        { loai: "artifact", kind: "issue", url: "https://github.com/you/myapp/issues/7", number: 7, title: null },
+        { kind: "artifact", artifactKind: "issue", url: "https://github.com/you/myapp/issues/7", number: 7, title: null },
       ],
     });
     const r2 = render(<LiveView session={PHIEN} commands={FLOW_COMMANDS} />);
@@ -353,8 +353,8 @@ describe("action chips — the phone-first flow buttons", () => {
 
     mockStream({
       events: [
-        { loai: "artifact", kind: "issue", url: "https://github.com/you/myapp/issues/7", number: 7, title: null },
-        { loai: "artifact", kind: "pr", url: "https://github.com/you/myapp/pull/8", number: 8, title: null },
+        { kind: "artifact", artifactKind: "issue", url: "https://github.com/you/myapp/issues/7", number: 7, title: null },
+        { kind: "artifact", artifactKind: "pr", url: "https://github.com/you/myapp/pull/8", number: 8, title: null },
       ],
     });
     render(<LiveView session={PHIEN} commands={FLOW_COMMANDS} />);
@@ -375,7 +375,7 @@ describe("context — VSCode-style compaction affordances", () => {
   it("ring at ≥90% shows the almost-full hint", () => {
     mockStream({
       events: [
-        { loai: "ket-qua", err: false, luot: 3, nguCanh: 93, validToken: 186_000, cuaSoToken: 200_000 },
+        { kind: "ket-qua", err: false, turns: 3, contextTokens: 93, validToken: 186_000, tokenWindow: 200_000 },
       ],
     });
     render(<LiveView session={PHIEN} />);
@@ -383,7 +383,7 @@ describe("context — VSCode-style compaction affordances", () => {
   });
 
   it("below the threshold there is no hint", () => {
-    mockStream({ events: [{ loai: "ket-qua", err: false, luot: 3, nguCanh: 42 }] });
+    mockStream({ events: [{ kind: "ket-qua", err: false, turns: 3, contextTokens: 42 }] });
     render(<LiveView session={PHIEN} />);
     expect(screen.queryByText(/almost full/)).not.toBeInTheDocument();
   });

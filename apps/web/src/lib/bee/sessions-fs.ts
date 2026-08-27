@@ -202,7 +202,7 @@ export async function readLastLineIn(root: string, id: string): Promise<string |
   return null;
 }
 
-function fileKind(name: string): BeeEvidenceFile["loai"] {
+function fileKind(name: string): BeeEvidenceFile["kind"] {
   if (/\.(png|jpe?g|gif|webp)$/i.test(name)) return "image";
   if (/\.(webm|mp4)$/i.test(name)) return "video";
   return "khac";
@@ -220,7 +220,7 @@ export async function readEvidenceIn(root: string, id: string): Promise<BeeEvide
   return names.sort().map((n) => ({
     name: n,
     url: `/api/evidence/session/${id}/${encodeURIComponent(n)}`,
-    loai: fileKind(n),
+    kind: fileKind(n),
   }));
 }
 

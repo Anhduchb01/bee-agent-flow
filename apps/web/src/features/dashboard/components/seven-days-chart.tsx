@@ -57,7 +57,7 @@ export function SevenDaysChart({ days, tomTat }: { days: RunDay[]; tomTat: strin
       </CardHeader>
 
       <CardContent className="px-5 py-5">
-        {days.every((d) => d.tong === 0) ? (
+        {days.every((d) => d.total === 0) ? (
           <Empty className="border-0">
             <EmptyHeader>
               <EmptyTitle>No runs yet</EmptyTitle>

@@ -11,61 +11,61 @@
  */
 
 export type StreamEvent =
-  | { loai: "lifecycle"; text: string; ts?: string }
-  | { loai: "nguoi-noi"; text: string; ts?: string }
-  | { loai: "agent-noi"; text: string }
-  | { loai: "delta"; text: string }
+  | { kind: "lifecycle"; text: string; ts?: string }
+  | { kind: "nguoi-noi"; text: string; ts?: string }
+  | { kind: "agent-noi"; text: string }
+  | { kind: "delta"; text: string }
   /** Khối thinking trọn vẹn trong message — UI gập mặc định. */
-  | { loai: "nghi"; text: string }
+  | { kind: "nghi"; text: string }
   /** Thinking đang chảy — hook gom buffer riêng, message trọn vẹn thay thế. */
-  | { loai: "nghi-delta"; text: string }
+  | { kind: "nghi-delta"; text: string }
   /**
    * `id` là tool_use id của CLI — chìa khoá để ghép cặp với `tool-xong` thành
    * MỘT thẻ có trạng thái (spinner → ✓), thay vì hai dòng rời. `file`/`lenh`
    * trích sẵn cho thẻ chuyên biệt (Edit/Write/Bash).
    */
   | {
-      loai: "tool";
+      kind: "tool";
       name: string;
-      thamSo: string;
+      args: string;
       id?: string | null;
       file?: string;
-      lenh?: string;
+      command?: string;
       /** Edit: old_string/new_string — đủ cho khối diff đỏ/xanh kiểu VSCode. */
       cu?: string;
       latest?: string;
     }
-  | { loai: "tool-xong"; text: string; id?: string | null; err?: boolean }
+  | { kind: "tool-xong"; text: string; id?: string | null; err?: boolean }
   | {
-      loai: "ket-qua";
+      kind: "ket-qua";
       err: boolean;
-      luot?: number | null;
-      nguCanh?: number | null;
+      turns?: number | null;
+      contextTokens?: number | null;
       /** Raw numbers behind the ring — the % alone reads as "wrong" when
           the window is 1M and the system prompt already costs 100k. */
       validToken?: number | null;
-      cuaSoToken?: number | null;
+      tokenWindow?: number | null;
     }
-  | { loai: "replay"; skipped: number }
+  | { kind: "replay"; skipped: number }
   /**
    * `bee_truncated` — log ĐÃ BỊ CẮT vĩnh viễn để giữ trần đĩa (spec §11).
    * Khác hẳn `replay` (chỉ là người xem vào muộn): dữ liệu này không còn nữa,
    * và người đọc phải biết trước khi kết luận agent đã làm gì.
    */
-  | { loai: "da-cat"; skipped: number }
+  | { kind: "da-cat"; skipped: number }
   /**
    * system/compact_boundary — the CLI compacted the conversation (auto near
    * the window limit, or a sent /compact). Without a visible seam the ring
    * dropping from 90% to 20% reads as a bug, not a rescue.
    */
-  | { loai: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
+  | { kind: "compact"; trigger: "manual" | "auto"; preTokens: number | null }
   /** Manual mode (V2.5b): the agent asks permission for one tool call. */
-  | { loai: "xin-quyen"; requestId: string; name: string; thamSo: string }
+  | { kind: "xin-quyen"; requestId: string; name: string; args: string }
   /** The owner's recorded answer (bee_approval) — pairs by requestId. */
-  | { loai: "quyen-da-tra-loi"; requestId: string; allow: boolean }
+  | { kind: "quyen-da-tra-loi"; requestId: string; allow: boolean }
   | {
-      loai: "artifact";
-      kind: "issue" | "pr";
+      kind: "artifact";
+      artifactKind: "issue" | "pr";
       url: string;
       number: number | null;
       title: string | null;
@@ -100,10 +100,10 @@ function fromContentBlocks(content: unknown, source: "assistant" | "user"): Stre
   for (const block of content) {
     if (!isObject(block)) continue;
     if (source === "assistant" && block.type === "text" && typeof block.text === "string") {
-      if (block.text.trim() !== "") ra.push({ loai: "agent-noi", text: block.text });
+      if (block.text.trim() !== "") ra.push({ kind: "agent-noi", text: block.text });
     }
     if (source === "assistant" && block.type === "thinking" && typeof block.thinking === "string") {
-      if (block.thinking.trim() !== "") ra.push({ loai: "nghi", text: block.thinking });
+      if (block.thinking.trim() !== "") ra.push({ kind: "nghi", text: block.thinking });
     }
     if (source === "assistant" && block.type === "tool_use") {
       const input = isObject(block.input) ? block.input : {};
@@ -117,19 +117,19 @@ function fromContentBlocks(content: unknown, source: "assistant" | "user"): Stre
             ? input.content
             : undefined;
       ra.push({
-        loai: "tool",
+        kind: "tool",
         name: typeof block.name === "string" ? block.name : "?",
-        thamSo: cat(JSON.stringify(block.input ?? {}), CAT_THAM_SO),
+        args: cat(JSON.stringify(block.input ?? {}), CAT_THAM_SO),
         id: typeof block.id === "string" ? block.id : null,
         ...(typeof input.file_path === "string" ? { file: input.file_path } : {}),
-        ...(typeof input.command === "string" ? { lenh: cat(input.command, CAT_THAM_SO) } : {}),
+        ...(typeof input.command === "string" ? { command: cat(input.command, CAT_THAM_SO) } : {}),
         ...(cu !== undefined ? { cu: cat(cu, CAT_DIFF) } : {}),
         ...(latest !== undefined ? { latest: cat(latest, CAT_DIFF) } : {}),
       });
     }
     if (source === "user" && block.type === "tool_result") {
       ra.push({
-        loai: "tool-xong",
+        kind: "tool-xong",
         text: cat(textOfToolResult(block.content), CAT_KET_QUA),
         id: typeof block.tool_use_id === "string" ? block.tool_use_id : null,
         err: block.is_error === true,
@@ -156,16 +156,16 @@ export function parseLine(line: string): StreamEvent[] | null {
   switch (raw.type) {
     case "bee_lifecycle":
       return typeof raw.msg === "string"
-        ? [{ loai: "lifecycle", text: raw.msg, ...(typeof raw.ts === "string" ? { ts: raw.ts } : {}) }]
+        ? [{ kind: "lifecycle", text: raw.msg, ...(typeof raw.ts === "string" ? { ts: raw.ts } : {}) }]
         : [];
     case "bee_user_say":
       return typeof raw.text === "string"
-        ? [{ loai: "nguoi-noi", text: raw.text, ...(typeof raw.ts === "string" ? { ts: raw.ts } : {}) }]
+        ? [{ kind: "nguoi-noi", text: raw.text, ...(typeof raw.ts === "string" ? { ts: raw.ts } : {}) }]
         : [];
     case "bee_replayed":
-      return [{ loai: "replay", skipped: typeof raw.skipped === "number" ? raw.skipped : 0 }];
+      return [{ kind: "replay", skipped: typeof raw.skipped === "number" ? raw.skipped : 0 }];
     case "bee_truncated":
-      return [{ loai: "da-cat", skipped: typeof raw.skipped === "number" ? raw.skipped : 0 }];
+      return [{ kind: "da-cat", skipped: typeof raw.skipped === "number" ? raw.skipped : 0 }];
     case "system": {
       // Whitelist: only compact_boundary becomes UI; init, api_retry,
       // thinking_tokens… stay silent (see the file header's principle).
@@ -173,7 +173,7 @@ export function parseLine(line: string): StreamEvent[] | null {
       const md = isObject(raw.compact_metadata) ? raw.compact_metadata : {};
       return [
         {
-          loai: "compact",
+          kind: "compact",
           trigger: md.trigger === "manual" ? "manual" : "auto",
           preTokens: typeof md.pre_tokens === "number" ? md.pre_tokens : null,
         },
@@ -185,18 +185,18 @@ export function parseLine(line: string): StreamEvent[] | null {
       const req = raw.request;
       if (!isObject(req) || req.subtype !== "can_use_tool") return [];
       if (typeof raw.request_id !== "string" || typeof req.tool_name !== "string") return [];
-      let thamSo = "{}";
+      let args = "{}";
       try {
-        thamSo = JSON.stringify(req.input ?? {});
+        args = JSON.stringify(req.input ?? {});
       } catch {
-        thamSo = "{}";
+        args = "{}";
       }
       return [
         {
-          loai: "xin-quyen",
+          kind: "xin-quyen",
           requestId: raw.request_id,
           name: req.tool_name,
-          thamSo: cat(thamSo, 64_000),
+          args: cat(args, 64_000),
         },
       ];
     }
@@ -206,7 +206,7 @@ export function parseLine(line: string): StreamEvent[] | null {
       if (typeof raw.request_id !== "string") return [];
       return [
         {
-          loai: "quyen-da-tra-loi",
+          kind: "quyen-da-tra-loi",
           requestId: raw.request_id,
           allow: raw.behavior === "allow",
         },
@@ -219,8 +219,8 @@ export function parseLine(line: string): StreamEvent[] | null {
       if (typeof raw.url !== "string" || !raw.url.startsWith("https://github.com/")) return [];
       return [
         {
-          loai: "artifact",
-          kind: raw.kind,
+          kind: "artifact",
+          artifactKind: raw.kind,
           url: raw.url,
           number: typeof raw.number === "number" ? raw.number : null,
           title: typeof raw.title === "string" ? raw.title.slice(0, 140) : null,
@@ -237,10 +237,10 @@ export function parseLine(line: string): StreamEvent[] | null {
       const ev = raw.event;
       if (isObject(ev) && ev.type === "content_block_delta" && isObject(ev.delta)) {
         if (ev.delta.type === "text_delta" && typeof ev.delta.text === "string") {
-          return [{ loai: "delta", text: ev.delta.text }];
+          return [{ kind: "delta", text: ev.delta.text }];
         }
         if (ev.delta.type === "thinking_delta" && typeof ev.delta.thinking === "string") {
-          if (ev.delta.thinking !== "") return [{ loai: "nghi-delta", text: ev.delta.thinking }];
+          if (ev.delta.thinking !== "") return [{ kind: "nghi-delta", text: ev.delta.thinking }];
         }
       }
       return [];
@@ -250,7 +250,7 @@ export function parseLine(line: string): StreamEvent[] | null {
       // MUST come from `usage` (the LAST turn's tokens = what sits in the
       // window right now), not from modelUsage: that one accumulates cache
       // reads across every turn of the session and hits "100%" in minutes.
-      let nguCanh: number | null = null;
+      let contextTokens: number | null = null;
       let stopIt = 0;
       if (isObject(raw.usage)) {
         for (const k of ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"]) {
@@ -266,15 +266,15 @@ export function parseLine(line: string): StreamEvent[] | null {
           }
         }
       }
-      if (stopIt > 0 && owner > 0) nguCanh = Math.min(100, Math.round((stopIt / owner) * 100));
+      if (stopIt > 0 && owner > 0) contextTokens = Math.min(100, Math.round((stopIt / owner) * 100));
       return [
         {
-          loai: "ket-qua",
+          kind: "ket-qua",
           err: raw.subtype !== "success",
-          luot: typeof raw.num_turns === "number" ? raw.num_turns : null,
-          nguCanh,
+          turns: typeof raw.num_turns === "number" ? raw.num_turns : null,
+          contextTokens,
           validToken: stopIt > 0 ? stopIt : null,
-          cuaSoToken: owner > 0 ? owner : null,
+          tokenWindow: owner > 0 ? owner : null,
         },
       ];
     }

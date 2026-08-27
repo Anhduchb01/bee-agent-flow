@@ -16,16 +16,16 @@ function usage(p: Partial<BeeClaudeAccountUsage> = {}): BeeClaudeAccountUsage {
 
 describe("checkQuota — the brake (FR-3.3)", () => {
   it("well under the threshold: opens, and says nothing alarming", () => {
-    const k = checkQuota(usage(), { nguong: 85, at: LUC });
-    expect(k.moDuoc).toBe(true);
+    const k = checkQuota(usage(), { threshold: 85, at: LUC });
+    expect(k.allowed).toBe(true);
   });
 
   it("over the threshold on the 5h window: refuses, and names the window + reset time", () => {
     const k = checkQuota(usage({ five_hour: { percent: 91, resets_at: "2026-08-24T16:20:00Z" } }), {
-      nguong: 85,
+      threshold: 85,
       at: LUC,
     });
-    expect(k.moDuoc).toBe(false);
+    expect(k.allowed).toBe(false);
     expect(k.reason).toMatch(/5h/);
     expect(k.reason).toMatch(/91%/);
     // Người bị chặn cần biết CHỜ TỚI BAO GIỜ, không chỉ "bị chặn".
@@ -34,29 +34,29 @@ describe("checkQuota — the brake (FR-3.3)", () => {
 
   it("the 7-day window brakes too — it is the one that ruins a week", () => {
     const k = checkQuota(usage({ seven_day: { percent: 96, resets_at: "2026-08-28T07:00:00Z" } }), {
-      nguong: 85,
+      threshold: 85,
       at: LUC,
     });
-    expect(k.moDuoc).toBe(false);
+    expect(k.allowed).toBe(false);
     expect(k.reason).toMatch(/7-day/);
   });
 
   it("exactly at the threshold still opens — the rule is 'over', not 'at'", () => {
-    expect(checkQuota(usage({ five_hour: { percent: 85, resets_at: null } }), { nguong: 85, at: LUC }).moDuoc).toBe(true);
-    expect(checkQuota(usage({ five_hour: { percent: 86, resets_at: null } }), { nguong: 85, at: LUC }).moDuoc).toBe(false);
+    expect(checkQuota(usage({ five_hour: { percent: 85, resets_at: null } }), { threshold: 85, at: LUC }).allowed).toBe(true);
+    expect(checkQuota(usage({ five_hour: { percent: 86, resets_at: null } }), { threshold: 85, at: LUC }).allowed).toBe(false);
   });
 
   it("never measured → opens, and SAYS it is flying blind", () => {
-    const k = checkQuota(null, { nguong: 85, at: LUC });
-    expect(k.moDuoc).toBe(true);
+    const k = checkQuota(null, { threshold: 85, at: LUC });
+    expect(k.allowed).toBe(true);
     expect(k.reason).toMatch(/never been measured/i);
   });
 
   it("stale numbers → still opens, but the reason admits the brake is untrustworthy", () => {
     // Fail-open on purpose: a dead tick must not make the machine unusable.
     // doctor is where a dead tick turns red; here we only refuse to pretend.
-    const k = checkQuota(usage({ fetched_at: "2026-08-24T04:00:00Z" }), { nguong: 85, at: LUC });
-    expect(k.moDuoc).toBe(true);
+    const k = checkQuota(usage({ fetched_at: "2026-08-24T04:00:00Z" }), { threshold: 85, at: LUC });
+    expect(k.allowed).toBe(true);
     expect(k.reason).toMatch(/cũ|11h/i);
   });
 
@@ -65,13 +65,13 @@ describe("checkQuota — the brake (FR-3.3)", () => {
     // that was already past the line.
     const k = checkQuota(
       usage({ fetched_at: "2026-08-24T04:00:00Z", five_hour: { percent: 99, resets_at: null } }),
-      { nguong: 85, at: LUC },
+      { threshold: 85, at: LUC },
     );
-    expect(k.moDuoc).toBe(false);
+    expect(k.allowed).toBe(false);
   });
 
   it("a threshold of 0 disables the brake — an escape hatch that is explicit", () => {
-    const k = checkQuota(usage({ five_hour: { percent: 99, resets_at: null } }), { nguong: 0, at: LUC });
-    expect(k.moDuoc).toBe(true);
+    const k = checkQuota(usage({ five_hour: { percent: 99, resets_at: null } }), { threshold: 0, at: LUC });
+    expect(k.allowed).toBe(true);
   });
 });

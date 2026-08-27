@@ -76,9 +76,9 @@ export function recentRunsJson(now: Date = new Date()): string[] {
   const out: string[] = [];
   let n = 0;
 
-  MAU_NGAY.forEach((ngay, i) => {
+  MAU_NGAY.forEach((day, i) => {
     const daysBack = MAU_NGAY.length - 1 - i;
-    for (let k = 0; k < ngay.finished + ngay.err; k++) {
+    for (let k = 0; k < day.finished + day.err; k++) {
       const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack, 9 + (k % 9), (k * 7) % 60);
       // Không vượt quá "bây giờ" — một lần chạy ở tương lai là dấu hiệu dữ liệu hỏng.
       if (at.getTime() > now.getTime()) at.setTime(now.getTime() - (k + 1) * 60_000);
@@ -89,7 +89,7 @@ export function recentRunsJson(now: Date = new Date()): string[] {
           repo,
           number: 100 + n,
           rule: RULE[n % RULE.length],
-          result: k < ngay.finished ? "ok" : k % 2 === 0 ? "fail" : "gave-up",
+          result: k < day.finished ? "ok" : k % 2 === 0 ? "fail" : "gave-up",
           turns: 3 + (n % 20),
           duration_s: 60 + ((n * 37) % 900),
           at: at.toISOString(),

@@ -40,7 +40,7 @@ describe("allocatePortRange — hai phiên cùng repo không được đụng c�
   });
 
   it("hết dải trong phạm vi → null, không quay vòng đè lên dải của người khác", async () => {
-    const base = await allocatePortRange({ since: 54000, count: 10, den: 54019, daDung: [54000, 54010] });
+    const base = await allocatePortRange({ since: 54000, count: 10, until: 54019, daDung: [54000, 54010] });
     expect(base).toBeNull();
   });
 });

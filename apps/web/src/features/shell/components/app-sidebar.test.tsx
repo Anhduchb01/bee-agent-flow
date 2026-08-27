@@ -42,11 +42,11 @@ function renderSidebar(sidebarProjects: { slug: string; running: number; tone: "
             be opened without it, so the test needs one too. */}
         <SidebarTrigger />
         <AppSidebar
-          nutTaoDuAn={<SidebarNewProjectTrigger />}
+          newProjectButton={<SidebarNewProjectTrigger />}
           displayName="Đức"
           login="Anhduchb01"
           sidebarProjects={sidebarProjects}
-          sucKhoe={{ tone: "ok", headline: "System is running", detail: null }}
+          health={{ tone: "ok", headline: "System is running", detail: null }}
           signingOut={vi.fn()}
         />
       </SidebarProvider>

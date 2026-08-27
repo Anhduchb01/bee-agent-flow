@@ -29,9 +29,9 @@ vi.mock("../api/actions", () => ({
 }));
 
 const HAI_SLOT: SlayerStatus = {
-  daCai: true,
+  installed: true,
   coLoginMay: true,
-  tokenGhim: false,
+  pinnedToken: false,
   message: null,
   pool: {
     enabled: "work",
@@ -43,9 +43,9 @@ const HAI_SLOT: SlayerStatus = {
         email: "you@company.com",
         state: "active",
         enabled: true,
-        namGio: { percentOf: 29, resetLuc: null },
-        bayNgay: { percentOf: 36, resetLuc: null },
-        hetHan: false,
+        fiveHour: { percentOf: 29, resetAt: null },
+        sevenDay: { percentOf: 36, resetAt: null },
+        expired: false,
       },
       {
         index: 2,
@@ -54,9 +54,9 @@ const HAI_SLOT: SlayerStatus = {
         email: "you@gmail.com",
         state: "reauth",
         enabled: false,
-        namGio: null,
-        bayNgay: null,
-        hetHan: true,
+        fiveHour: null,
+        sevenDay: null,
+        expired: true,
       },
     ],
   },
@@ -64,14 +64,14 @@ const HAI_SLOT: SlayerStatus = {
 
 describe("ClaudeAccounts", () => {
   it("chưa cài → chỉ có ô dán token, không có bảng tài khoản rỗng gây hiểu nhầm", () => {
-    render(<ClaudeAccounts status={{ daCai: false, pool: null, tokenGhim: false, message: null, coLoginMay: false }} />);
+    render(<ClaudeAccounts status={{ installed: false, pool: null, pinnedToken: false, message: null, coLoginMay: false }} />);
     expect(screen.getByLabelText("Token token-slayer")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Use this one" })).not.toBeInTheDocument();
   });
 
   it("dán token → gọi trình cài đặt", async () => {
     const user = userEvent.setup();
-    render(<ClaudeAccounts status={{ daCai: false, pool: null, tokenGhim: false, message: null, coLoginMay: false }} />);
+    render(<ClaudeAccounts status={{ installed: false, pool: null, pinnedToken: false, message: null, coLoginMay: false }} />);
     await user.type(screen.getByLabelText("Token token-slayer"), "a".repeat(47));
     await user.click(screen.getByRole("button", { name: "Install" }));
     expect(installSlayerAction).toHaveBeenCalledWith("a".repeat(47));
@@ -110,7 +110,7 @@ describe("ClaudeAccounts", () => {
 
   it("token ghim trong claude.env → cảnh báo kèm nút gỡ, vì bảng này khi đó chỉ là trang trí", async () => {
     const user = userEvent.setup();
-    render(<ClaudeAccounts status={{ ...HAI_SLOT, tokenGhim: true }} />);
+    render(<ClaudeAccounts status={{ ...HAI_SLOT, pinnedToken: true }} />);
     expect(screen.getByText(/pins a token/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Remove the pinned token" }));
     expect(unpinTokenAction).toHaveBeenCalled();
@@ -166,7 +166,7 @@ describe("ClaudeAccounts", () => {
   it("pool rỗng nói rõ là rỗng, không để trống cho người dùng tự đoán", () => {
     render(
       <ClaudeAccounts
-        status={{ daCai: true, pool: { enabled: null, slots: [] }, tokenGhim: false, message: null, coLoginMay: true }}
+        status={{ installed: true, pool: { enabled: null, slots: [] }, pinnedToken: false, message: null, coLoginMay: true }}
       />,
     );
     expect(screen.getByText(/No accounts in the pool yet/)).toBeInTheDocument();

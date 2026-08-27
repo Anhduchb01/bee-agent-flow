@@ -61,7 +61,7 @@ export async function loadCanvas(): Promise<{
         ]);
         // Chỉ video mọc node 🎬 — ảnh đã sống trong panel duyệt PR.
         videos[p.id] = evidence
-          .filter((f) => f.loai === "video")
+          .filter((f) => f.kind === "video")
           .map((f) => ({ name: f.name, url: f.url }));
       }),
     ),
