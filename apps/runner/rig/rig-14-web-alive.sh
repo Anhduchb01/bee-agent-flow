@@ -209,6 +209,30 @@ if [[ -f "$UNIT_FILE" ]]; then
   grep -q "@SESSION_MEM_MAX@" "$UNIT_FILE" \
     && kq no "placeholder left in the installed unit — systemd would refuse it" \
     || kq ok "no @…@ placeholder survives into the installed unit"
+
+  # And doctor must AGREE with the unit it can see. The first version of this
+  # check asked `systemctl show bee-session@.service`, which systemd refuses
+  # for a TEMPLATE name — so it read empty and reported red on a machine whose
+  # cap was perfectly in place. "detail is non-empty" did not catch that; only
+  # asserting the VERDICT does.
+  DR="$IT/srv/doctor.json"
+  HOME="$IT/home" BEE_ROOT="$IT/srv" bash "$DAY/../bin/doctor.sh" --exit-zero >/dev/null 2>&1
+  LIM=$(jq -r '.checks[] | select(.id=="limits") | "\(.ok)|\(.detail)"' "$DR" 2>/dev/null)
+  [[ "${LIM%%|*}" == "true" ]] \
+    && kq ok "doctor sees the cap it was just given (limits green)" \
+    || kq no "doctor red on a capped unit: ${LIM#*|}"
+  grep -q "swap" <<<"$LIM" \
+    && kq ok "and says swap is blocked — the half that makes a cap bite" \
+    || kq no "limits detail does not mention swap: ${LIM#*|}"
+
+  # Take the swap line away and it must go RED: a cap that does not bite is
+  # the failure mode, not a cosmetic gap.
+  sed -i '/^MemorySwapMax=0$/d' "$UNIT_FILE"
+  HOME="$IT/home" BEE_ROOT="$IT/srv" bash "$DAY/../bin/doctor.sh" --exit-zero >/dev/null 2>&1
+  LIM2=$(jq -r '.checks[] | select(.id=="limits") | "\(.ok)|\(.detail)"' "$DR" 2>/dev/null)
+  [[ "${LIM2%%|*}" == "false" ]] \
+    && kq ok "MemoryMax without MemorySwapMax=0 is reported RED" \
+    || kq no "a cap that swaps instead of stopping was called fine"
 else
   kq no "install.sh did not write bee-session@.service"
 fi

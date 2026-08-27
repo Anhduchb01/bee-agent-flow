@@ -238,17 +238,28 @@ fi
 # tầng 2 KHÔNG được thi hành. Đó là hạn chế đã biết, không phải sự cố — nhưng
 # nó phải đọc được, chứ không nằm im trong một file tài liệu.
 DELEGATED=$(cat "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers" 2>/dev/null || echo "")
-SESSION_CAP=$(systemctl --user show "bee-session@.service" -p MemoryMax --value 2>/dev/null || echo "")
+# KHONG dung `systemctl show bee-session@.service`: systemd tu choi mot ten
+# TEMPLATE — "neither a valid invocation ID nor unit name" — nen no tra ve
+# rong, va check nay bao do tren mot may hoan toan lanh (gap that 27/08).
+# Doc chinh unit: `cat` chay duoc voi template va keo theo ca drop-in.
+SESSION_UNIT=$(systemctl --user cat "bee-session@.service" 2>/dev/null || true)
+[[ -n "$SESSION_UNIT" ]] || SESSION_UNIT=$(cat "$HOME/.config/systemd/user/bee-session@.service" 2>/dev/null || true)
+SESSION_CAP=$(sed -n 's/^MemoryMax=\(.*\)$/\1/p' <<<"$SESSION_UNIT" | tail -1)
+SESSION_SWAP=$(sed -n 's/^MemorySwapMax=\(.*\)$/\1/p' <<<"$SESSION_UNIT" | tail -1)
 DOCKER_CG=$(docker info -f '{{.CgroupDriver}}' 2>/dev/null || echo "")
 
 if [[ "$DELEGATED" != *memory* ]]; then
   record "limits" false "cgroup controller 'memory' chua duoc delegate cho user@$(id -u) — moi tran RAM cua phien la trang tri. Can root: /etc/systemd/system/user@.service.d/delegate.conf voi 'Delegate=cpu cpuset io memory pids'"
 elif [[ -z "$SESSION_CAP" || "$SESSION_CAP" == "infinity" ]]; then
   record "limits" false "bee-session@.service khong co MemoryMax — mot phien chay hong keo duoc ca may xuong. Cai lai runner (install.sh tinh tran tu RAM may)"
+elif [[ "$SESSION_SWAP" != "0" ]]; then
+  # Do that 27/08: chi MemoryMax thi tien trinh vuot tran bi day sang swap va
+  # song nhan. Mot cai tran trong nhu da dat ma khong chan gi thi te hon khong.
+  record "limits" false "bee-session@.service co MemoryMax=$SESSION_CAP nhung thieu MemorySwapMax=0 — tien trinh vuot tran se bi day sang swap va SONG, tran khong chan gi"
 else
-  CAP_H=$(numfmt --to=iec "$SESSION_CAP" 2>/dev/null || echo "$SESSION_CAP")
+  CAP_H=$SESSION_CAP
   if [[ "$DOCKER_CG" == "systemd" ]]; then
-    record "limits" true "tran phien $CAP_H (systemd) · container: docker cgroup driver systemd — --memory/--cpus co hieu luc"
+    record "limits" true "tran phien $CAP_H (systemd, swap bi chan) · container: docker cgroup driver systemd — --memory/--cpus co hieu luc"
   else
     record "limits" true "tran phien $CAP_H (systemd, swap bi chan) · CONTAINER thi KHONG: docker cgroup driver = '${DOCKER_CG:-khong hoi duoc}', nen --memory/--cpus mot phien dat cho compose cua no khong ai thi hanh (docs/docker-cho-bee.md §5b)"
   fi
