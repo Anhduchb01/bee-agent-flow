@@ -92,6 +92,15 @@ describe("doctor.sh → readDoctorFrom", () => {
       expect(ids).toContain(id);
     }
   });
+
+  it("reports what resource caps are actually enforced (T17)", async () => {
+    // No button hangs off this one — it exists so the answer to "is a runaway
+    // session capped?" lives on the screen instead of in a doc nobody opens.
+    await runScript("doctor.sh", ["--exit-zero"]);
+    const check = (await readDoctorFrom(dir))!.checks.find((c) => c.id === "limits");
+    expect(check).toBeDefined();
+    expect(check!.detail).not.toBe("");
+  });
 });
 
 describe("gc.sh → readGcIn", () => {

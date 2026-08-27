@@ -86,10 +86,10 @@ services: {}
 #      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-bee}
 #    ports:
 #      - "127.0.0.1:55672:5672"      # AMQP - the only port sessions need
-#      # The management console is for a HUMAN, not for sessions, so it is off
-#      # by default: 15672 is commonly already taken, and one port in use
-#      # fails the whole `compose up`. Uncomment on a port you know is free.
-#      # - "127.0.0.1:55673:15672"
+#      # Management console, for a HUMAN. Offset like the rest: 15672 is
+#      # commonly already taken, and ONE port in use fails the whole
+#      # `compose up` - postgres included.
+#      - "127.0.0.1:55673:15672"
 #    volumes: ["rabbitdata:/var/lib/rabbitmq"]
 #    healthcheck:
 #      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
@@ -121,6 +121,15 @@ if [[ -n "$CLAUDE_BIN" && "$(dirname "$CLAUDE_BIN")" != "$BINPATH" ]]; then
   BINPATH="$BINPATH:$(dirname "$CLAUDE_BIN")"
 fi
 BINPATH="$BINPATH:$HOME/.local/bin:$HOME/bin:/usr/local/bin:/usr/bin:/bin"
+
+# Trần RAM cho MỘT phiên (T17). Tính từ RAM máy chứ không ghim một con số:
+# 60% để còn chỗ cho bee-web, docker và OS — cái phải tránh là một phiên chạy
+# hỏng kéo cả máy xuống, không phải giữ phiên trong một cái hộp chật.
+# Đổi bằng drop-in, không sửa file này:
+#   systemctl --user edit bee-session@.service
+MEM_KB=$(sed -n 's/^MemTotal:[[:space:]]*\([0-9]*\) kB/\1/p' /proc/meminfo)
+SESSION_MEM_MAX="$(( ${MEM_KB:-4194304} * 60 / 100 / 1024 ))M"
+echo "  · trần RAM mỗi phiên: $SESSION_MEM_MAX (60% của $(( ${MEM_KB:-0} / 1024 ))M)"
 echo "  · PATH cho unit: $BINPATH"
 
 echo "== 3 · User units =="
@@ -132,7 +141,7 @@ mkdir -p "$UDIR"
 for f in "$SRC_DIR"/units/*.service "$SRC_DIR"/units/*.timer; do
   # bee-web needs the web build resolved first — handled in step 3b.
   [[ "$(basename "$f")" == "bee-web.service" ]] && continue
-  sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g; s|@BINPATH@|$BINPATH|g" "$f" > "$UDIR/$(basename "$f")"
+  sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g; s|@BINPATH@|$BINPATH|g; s|@SESSION_MEM_MAX@|$SESSION_MEM_MAX|g" "$f" > "$UDIR/$(basename "$f")"
 done
 systemctl --user daemon-reload
 # bee-services is rendered above but deliberately NOT enabled: starting a

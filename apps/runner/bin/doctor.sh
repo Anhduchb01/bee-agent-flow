@@ -230,6 +230,30 @@ else
   fi
 fi
 
+# ── Trần tài nguyên: cái gì THẬT SỰ được thi hành (T17) ───────────────────
+# Hai tầng, và chúng độc lập:
+#   1. tiến trình CỦA phiên  → systemd, qua cgroup được delegate cho user@
+#   2. container phiên dựng  → runc, qua cgroup driver của docker
+# Rootless docker ở đây chạy `cgroupfs` (xem docs/docker-cho-bee.md §5b), nên
+# tầng 2 KHÔNG được thi hành. Đó là hạn chế đã biết, không phải sự cố — nhưng
+# nó phải đọc được, chứ không nằm im trong một file tài liệu.
+DELEGATED=$(cat "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers" 2>/dev/null || echo "")
+SESSION_CAP=$(systemctl --user show "bee-session@.service" -p MemoryMax --value 2>/dev/null || echo "")
+DOCKER_CG=$(docker info -f '{{.CgroupDriver}}' 2>/dev/null || echo "")
+
+if [[ "$DELEGATED" != *memory* ]]; then
+  record "limits" false "cgroup controller 'memory' chua duoc delegate cho user@$(id -u) — moi tran RAM cua phien la trang tri. Can root: /etc/systemd/system/user@.service.d/delegate.conf voi 'Delegate=cpu cpuset io memory pids'"
+elif [[ -z "$SESSION_CAP" || "$SESSION_CAP" == "infinity" ]]; then
+  record "limits" false "bee-session@.service khong co MemoryMax — mot phien chay hong keo duoc ca may xuong. Cai lai runner (install.sh tinh tran tu RAM may)"
+else
+  CAP_H=$(numfmt --to=iec "$SESSION_CAP" 2>/dev/null || echo "$SESSION_CAP")
+  if [[ "$DOCKER_CG" == "systemd" ]]; then
+    record "limits" true "tran phien $CAP_H (systemd) · container: docker cgroup driver systemd — --memory/--cpus co hieu luc"
+  else
+    record "limits" true "tran phien $CAP_H (systemd, swap bi chan) · CONTAINER thi KHONG: docker cgroup driver = '${DOCKER_CG:-khong hoi duoc}', nen --memory/--cpus mot phien dat cho compose cua no khong ai thi hanh (docs/docker-cho-bee.md §5b)"
+  fi
+fi
+
 # ── 5 · Đĩa + PAUSE (thông tin, không phải lỗi) ────────────────────────────
 if [[ -d "$BEE_ROOT" && -w "$BEE_ROOT" ]]; then
   record "disk" true "$BEE_ROOT is writable"

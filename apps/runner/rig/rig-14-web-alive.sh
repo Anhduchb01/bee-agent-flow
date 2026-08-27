@@ -192,5 +192,26 @@ HOME="$IT/home" BEE_PREFIX="$IT/opt" BEE_ROOT="$IT/srv" BEE_WEB="$IT/web" \
 [[ $MA -eq 0 ]] && kq ok "free port: install.sh runs through, no false block" \
   || kq no "install.sh failed on a free port (exit $MA)"
 
+# ── 5 · Trần tài nguyên tới được unit ĐÃ CÀI, không chỉ nằm trong template ──
+# T17. Đo trên máy thật 27/08: chỉ MemoryMax thì tiến trình vượt trần bị đẩy
+# sang swap và sống — 400MB dưới trần 40M. Nên MemorySwapMax=0 mới là thứ làm
+# cái trần có hiệu lực, và cả hai phải cùng có mặt trong unit đã cài.
+UNIT_FILE="$IT/home/.config/systemd/user/bee-session@.service"
+if [[ -f "$UNIT_FILE" ]]; then
+  grep -qE "^MemoryMax=[0-9]+M$" "$UNIT_FILE" \
+    && kq ok "MemoryMax substituted with a real number, not left as @SESSION_MEM_MAX@" \
+    || kq no "MemoryMax wrong: $(grep '^MemoryMax=' "$UNIT_FILE" || echo missing)"
+  grep -qx "MemorySwapMax=0" "$UNIT_FILE" \
+    && kq ok "MemorySwapMax=0 — without it the cap does not bite" \
+    || kq no "no MemorySwapMax=0: a cap that looks set and stops nothing"
+  grep -qx "TasksMax=4096" "$UNIT_FILE" \
+    && kq ok "TasksMax — a fork bomb is cheaper than RAM" || kq no "no TasksMax"
+  grep -q "@SESSION_MEM_MAX@" "$UNIT_FILE" \
+    && kq no "placeholder left in the installed unit — systemd would refuse it" \
+    || kq ok "no @…@ placeholder survives into the installed unit"
+else
+  kq no "install.sh did not write bee-session@.service"
+fi
+
 echo
 if [[ $FAIL == 0 ]]; then echo "RIG-14: ALL GREEN"; else echo "RIG-14: RED"; exit 1; fi

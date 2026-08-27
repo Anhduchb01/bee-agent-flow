@@ -222,6 +222,42 @@ Với bee hôm nay chấp nhận được (lát dịch vụ cho phiên là postg
 nhỏ), nhưng T15 mà muốn đặt trần tài nguyên cho từng phiên thì phải quay lại
 chỗ này.
 
+### Đo lại 27/08 (T17) — hai tầng, và chúng độc lập
+
+Đo trên máy thật, không suy từ tài liệu:
+
+| Tầng | Ai thi hành | Trạng thái |
+|---|---|---|
+| Tiến trình **của** phiên (claude, node, git) | systemd, qua cgroup delegate cho `user@` | **CÓ** — `MemoryMax` trên `bee-session@.service` |
+| Container **phiên tự dựng** (compose của repo) | runc, qua cgroup driver của docker | **KHÔNG** — driver `cgroupfs`/`none` |
+
+`user@1500` (bee) **đã** được delegate `cpu memory pids`:
+
+```bash
+cat /sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers
+# cpu memory pids
+```
+
+Nên tầng 1 làm được ngay, không cần root. **Nhưng một mình `MemoryMax` không
+chặn gì** — đo thật:
+
+```bash
+systemd-run --user --scope -p MemoryMax=40M -- python3 -c 'b=[bytearray(1<<20) for _ in range(400)]'
+# → cấp trọn 400MB, exit 0.   Trần bị vượt, tiến trình bị đẩy sang SWAP.
+
+systemd-run --user --scope -p MemoryMax=40M -p MemorySwapMax=0 -- python3 -c '...'
+# → Killed, exit 137.   Đây mới là thi hành.
+```
+
+Vì thế unit mang **cả hai**, cộng `TasksMax` (fork bomb rẻ hơn RAM nhiều) và
+`CPUWeight=50` thay cho `CPUQuota` — một phiên chạy một mình nên được dùng cả
+máy; cái phải tránh là nó bóp chết web và OS lúc tranh chấp.
+
+Tầng 2 vẫn mở, và **doctor nói ra** thay vì để nó nằm im ở đây: mục `limits`
+in đúng driver hiện tại và hệ quả. Muốn đóng nó thì phải giải quyết cái
+`DBUS_SESSION_BUS_ADDRESS` rơi giữa `dockerd` và `containerd` ở §5b trên —
+chưa dựng lại được trên máy dev (docker ở đó là rootful), nên chưa làm.
+
 ## 6. Dọn: việc của gc, không phải của trí nhớ
 
 Khi gc (V3.T1) thu hồi một worktree, phải dọn cả phần docker của phiên đó —
