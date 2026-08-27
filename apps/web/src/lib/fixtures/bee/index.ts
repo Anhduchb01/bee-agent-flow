@@ -1,15 +1,15 @@
 /**
- * Năm cảnh dữ liệu, lấy nguyên từ `apps/reconciler/public/make-mockup.py` —
- * cùng bộ cảnh mà mockup dashboard đã qua một vòng người xem.
+ * Năm cảnh dữ liệu — cùng bộ cảnh mà mockup dashboard đã qua một vòng
+ * người xem, giữ lại khi reconciler bị gỡ (27/08).
  *
  * Mốc thời gian ghi dạng `__AGO_n__` (n giây trước) thay vì một ISO cố định.
- * Cảnh "reconciler-dead" chỉ có nghĩa khi heartbeat *luôn* cũ 34 phút; một mốc
+ * Cảnh "runner-dead" chỉ có nghĩa khi heartbeat *luôn* cũ 34 phút; một mốc
  * cứng sẽ đúng hôm nay và sai vào ngày mai — mà đó lại là cảnh quan trọng nhất.
  */
 import normal from "./normal.json";
 import somethingWrong from "./something-wrong.json";
 import underLoad from "./under-load.json";
-import reconcilerDead from "./reconciler-dead.json";
+import runnerDead from "./runner-dead.json";
 import freshInstall from "./fresh-install.json";
 
 import type { BeeStatus } from "@/lib/bee/types";
@@ -18,7 +18,7 @@ export const SCENE_IDS = [
   "normal",
   "under-load",
   "something-wrong",
-  "reconciler-dead",
+  "runner-dead",
   "fresh-install",
 ] as const;
 
@@ -28,7 +28,7 @@ export const SCENE_LABELS: Record<SceneId, string> = {
   normal: "Normal",
   "under-load": "Under load",
   "something-wrong": "Something wrong",
-  "reconciler-dead": "Reconciler dead",
+  "runner-dead": "Reconciler dead",
   "fresh-install": "Freshly installed",
 };
 
@@ -36,7 +36,7 @@ const SCENES: Record<SceneId, unknown> = {
   normal: normal,
   "under-load": underLoad,
   "something-wrong": somethingWrong,
-  "reconciler-dead": reconcilerDead,
+  "runner-dead": runnerDead,
   "fresh-install": freshInstall,
 };
 

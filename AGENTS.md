@@ -16,7 +16,6 @@ Three parts, deliberately independent. Know which one you are in before you edit
 | Path | What it is | Stack |
 |---|---|---|
 | `.claude/` | Slash commands + skills. **A distributable artifact** — people copy it into their own repos. It also configures this repo (dogfooding) | Markdown only |
-| `apps/reconciler/` | `bee` — the safe run surface for agent work on one Ubuntu machine. Today it also polls GitHub every 30s and dispatches work | bash + systemd + `gh` + `jq` |
 | `apps/web/` | The control surface — where the owner talks to agents, watches them work, and approves the result | Next.js 16 |
 | `docs/` | Design, specs, the PRD | Markdown + standalone HTML |
 
@@ -52,71 +51,14 @@ the web app in one commit is almost always two changes.
 
 ---
 
-## 3. `apps/reconciler/` — bash
+## 3. `apps/reconciler/` — GỠ RỒI (27/08)
 
-### The boundary that everything else exists to protect
+Mô hình C (hai UID `bee-orch`/`bee-agent`, hàng đợi theo nhãn GitHub, tick 30s)
+đã được thay bằng mô hình A+ session-first trong `apps/runner/`. Thứ duy nhất
+nó còn ghi mà web đọc là `public/status.json`; giờ web tự dựng trạng thái từ
+`heartbeat.json` + `PAUSE` + `repos.d` của runner.
 
-Two OS users, and the separation is enforced by the kernel, not by convention:
-
-| | `bee-orch` | `bee-agent` |
-|---|---|---|
-| `GH_TOKEN` | yes | **no** |
-| group `docker` | yes | **no** |
-| sudo | only to `agent-exec.sh` | **no** |
-| Claude Code login | no | yes |
-
-It must be two UIDs rather than two environment variables: the same UID can read
-`/proc/<pid>/environ` of its parent, so filtering the environment on spawn
-prevents nothing.
-
-**`bee-agent` must never be in group `docker`.** Membership there is
-root-equivalent — `docker run -v /:/host` reads the token and your home directory,
-and the whole design collapses in one command leaving no trace.
-
-### Rules for writing rule files
-
-One file per rule, `rules/NN-name.sh`. **The filename number is the priority**, and
-that order encodes a policy: *unblock a human first, take new work last.*
-
-Every rule file declares:
-
-| Symbol | Meaning |
-|---|---|
-| `RULE_ID` | Display name, e.g. `07-build` |
-| `RULE_POOL` | `build` or `evidence` — which slot pool it draws from |
-| `RULE_AGENT` | `1` if it calls the model, `0` if it is pure bash |
-| `RULE_INLINE` | `1` to run inside the reconciler instead of a worker — only for a rule that is genuinely one API call |
-| `rule_scan <slug>` | Prints candidates, one per line: `<number><TAB><priority 0\|1><TAB><title>` |
-| `rule_run <slug> <num>` | Does the work. Runs inside `bee-task@<slug>-<num>.service`, never in the reconciler |
-
-- **`rule_scan` must be read-only and fast** — it runs every 30 seconds for every
-  repo, 2,880 times a day. Gate expensive API calls behind `scan_changed` on
-  `updatedAt`. All long work belongs in `rule_run`.
-- Candidates with priority `1` (label `priority:high`) sort first. Within the same
-  priority the dispatcher sorts by **how many slots that repo already holds**,
-  then by issue number — that is the whole fairness mechanism between repos.
-- **Anything `orch` executes or interprets must come from `origin/HEAD`**, never
-  from the worktree — use `from_main`. The agent can edit every file in the
-  worktree, and orch has the token and docker. A compose file can declare
-  `privileged: true`; a shell script needs to declare nothing at all.
-- Anything the worker generates inside a worktree (`.env.test`, `test-results/`)
-  must be cleaned up or excluded before `worktree_push_and_report` runs `git add
-  -A`, or it lands in someone's pull request.
-- Every retry path needs a counter and a ceiling. A rule that can match, fail, and
-  match again forever burns model quota overnight with nobody watching. Check
-  which counter you are incrementing — `worktree_push_and_report` resets the
-  shared one.
-- Comment the *why*, not the *what*. The existing files set the bar; match it.
-
-### Verify like this
-
-There is no test suite. Verify by building a rig with stubbed `gh`/`docker`/agent
-and a real local git repo, then running the rule end to end. `bash -n` on every
-script is the floor, not the goal.
-
-Never test against a real repository or a real machine to "see if it works."
-
----
+Lịch sử giữ ở nhánh `feat/bee-m3-and-web-spec`. Đừng thêm code mới cho nó.
 
 ## 4. `apps/web/` — Next.js
 
@@ -150,7 +92,7 @@ no sudo, no token file. A third UID beside `bee-orch` and `bee-agent`. To make t
 machine do something, change state on GitHub and let the reconciler pick it up.
 
 **The reconciler is not modified from here.** If a feature seems to need a change
-in `apps/reconciler/`, stop and raise it — separate change, separate review.
+in `apps/runner/`, stop and raise it — separate change, separate review.
 
 ### Stack
 
@@ -233,7 +175,7 @@ one failure mode with no red job to look at, and the most important thing this a
 can tell anyone. Never render a stale number as if it were live.
 
 Its TypeScript type lives in `lib/bee/types.ts` and is **kept in sync by hand**
-with `apps/reconciler/bin/reconcile.sh`. Change one, change the other in the same
+with `apps/runner/bin/`. Change one, change the other in the same
 commit.
 
 **Server state is fetched on the server.** Pages are Server Components that read

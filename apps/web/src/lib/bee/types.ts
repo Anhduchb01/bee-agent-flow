@@ -1,7 +1,7 @@
 /**
  * Hình dạng của những gì reconciler ghi ra đĩa.
  *
- * ĐỒNG BỘ TAY với `apps/reconciler/`. Đổi một bên thì đổi bên kia trong cùng
+ * ĐỒNG BỘ TAY với `apps/runner/`. Đổi một bên thì đổi bên kia trong cùng
  * commit — không có gì tự kiểm tra giúp hai bên khớp nhau.
  *
  * Đối chiếu ngày 2026-08-13:

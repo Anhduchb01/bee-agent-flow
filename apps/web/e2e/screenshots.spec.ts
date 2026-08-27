@@ -44,7 +44,7 @@ const SCENES = [
   "normal",
   "under-load",
   "something-wrong",
-  "reconciler-dead",
+  "runner-dead",
   "fresh-install",
   // Hai cảnh hỏng: không nằm trong "năm cảnh" của W12 nhưng là chỗ giao diện dễ
   // vỡ nhất, và xem ảnh rẻ hơn nhiều so với gặp nó trên máy thật.

@@ -13,7 +13,7 @@ Gồm các phần dùng được độc lập:
 | **Template cho Claude Code** — [`.claude/`](.claude/) | Bộ slash command và agent skill. Copy vào repo của bạn là dùng được ngay | Dùng được |
 | **`runner` — nền chạy phiên** — [`apps/runner/`](apps/runner/) | Phiên agent là systemd unit: sống qua đóng trình duyệt, tự dọn khi chết, kiểm vệ sinh A+; kèm skill/command flow của bee | **Chạy thật** — cài bằng `install.sh`, rig offline xanh |
 | **`web` — mặt điều khiển** — [`apps/web/`](apps/web/) | Sessions + canvas + chat skin VSCode, action chips, /setup trên web, responsive điện thoại | **Chạy thật** — systemd service sau Tailscale |
-| **`bee` reconciler** — [`apps/reconciler/`](apps/reconciler/) | Mô hình cũ (hai UID, hàng đợi nhãn, tick 30s) | **Đóng băng làm fallback** — nhánh `feat/bee-m3-and-web-spec` |
+| **`bee` reconciler** | Mô hình cũ (hai UID, hàng đợi nhãn, tick 30s) | **Đã gỡ khỏi `main` 27/08** — lịch sử còn ở nhánh `feat/bee-m3-and-web-spec` |
 
 > **Bắt đầu đọc ở đâu:** [`docs/PRD_bee-agent-flow.md`](docs/PRD_bee-agent-flow.md)
 > (3.0 — muốn gì, và vì sao chọn mô hình một UID) ·

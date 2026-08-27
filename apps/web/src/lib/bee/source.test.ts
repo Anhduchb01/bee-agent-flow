@@ -35,8 +35,8 @@ describe("getBee — fixture", () => {
     expect(read.status.mode).toBe("paused");
   });
 
-  it("cảnh reconciler-dead cho heartbeat luôn cũ, bất kể chạy ngày nào", async () => {
-    process.env.BEE_FIXTURE_SCENE = "reconciler-dead";
+  it("cảnh runner-dead cho heartbeat luôn cũ, bất kể chạy ngày nào", async () => {
+    process.env.BEE_FIXTURE_SCENE = "runner-dead";
     resetBeeSource();
 
     const read = await getBee().readStatus();

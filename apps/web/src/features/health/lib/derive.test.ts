@@ -22,7 +22,7 @@ describe("deriveHealth — ba chỗ hỏng im lặng", () => {
   // 1. Chế độ hỏng nguy hiểm nhất: không có gì đỏ để nhìn, chỉ là không có gì
   //    xảy ra. Nếu app không nói ra thì không ai biết.
   it("heartbeat cũ 35 phút → báo đỏ và nói rõ các con số là cũ", () => {
-    const h = deriveHealth(read("reconciler-dead"), NOW);
+    const h = deriveHealth(read("runner-dead"), NOW);
 
     expect(h.level).toBe("down");
     expect(h.headline).toContain("may be dead");

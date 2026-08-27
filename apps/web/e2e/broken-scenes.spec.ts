@@ -15,7 +15,7 @@ async function setScene(page: Page, activeScene: string) {
 
 test("heartbeat cũ 35 phút → báo đỏ, và nói rõ các con số là cũ", async ({ page }) => {
   await signIn(page, "pm-linh");
-  await setScene(page, "reconciler-dead");
+  await setScene(page, "runner-dead");
   await page.goto("/");
 
   const health = page.getByRole("region", { name: "System health" });
