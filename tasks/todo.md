@@ -732,10 +732,35 @@ Checkpoint, nhưng cả ba cùng một họ với T18–T20: **một thứ nói 
       của bài test bỏ dấu — đổi nó là xoá bài test; `xong` là lời agent trong
       fixture; `Thu` là Thursday.
       Quét cuối bằng AST: **0/2511 identifier** còn tiếng Việt.
-- [ ] 🤖 **T35** Bash còn 25 tên tiếng Việt trong `apps/runner/*.sh`
-      (`buoc`, `phien`, `tuoi`, `ket_qua`, `trang_thai`…). **Chưa làm** — rủi
-      ro khác hẳn phía web: bash không có typechecker, lưới duy nhất là 14 rig,
-      và một số biến ở sát chỗ ghi JSON mà TS đọc. Cần quyết riêng.
+- [x] 🤖 **T35** ~~Đổi tên tiếng Việt trong bash~~ **XONG 27/08** — ba đợt,
+      `apps/runner` (bin + lib + 14 rig) và `apps/reconciler`.
+      **Lưới phải dựng TRƯỚC, vì bash không có typechecker:** ảnh chụp những gì
+      mỗi rig IN RA — 191 dòng phán quyết ✓/✗ + 14 exit code, chuẩn hoá đường
+      tmp/SHA/PID/đồng hồ. Đã chứng minh nó **giống hệt nhau qua hai lần chạy
+      trước khi sửa bất cứ gì** — một baseline không ổn định thì không phải lưới.
+      Reconciler có lưới riêng: 4 script test, 94 dòng.
+      **Tool đi theo trạng thái trích dẫn của chính bash:**
+      · nháy đơn và heredoc `'EOF'` không nở gì → không bao giờ sửa
+      · trong nháy kép / heredoc thường / comment → CHỈ `$name`
+      · code không nháy → mới xét cả từ trần
+      Nhờ vậy `err "thiếu gói"` giữ nguyên câu tiếng Việt còn `$tuoi` ngay cạnh
+      thì đổi — đúng chỗ regex không phân biệt được, và là chỗ đã phá repo hai lần.
+      **Test chính cái tool tìm ra ba lỗi trước khi nó chạm code thật:**
+      `${#name}` không được nhận là tham chiếu; `"$(( a + b ))"` giấu từ trần
+      *là* biến (bản đầu coi vùng nháy kép là một khối phẳng); và tệ nhất, nó
+      **xoá mất dòng kết thúc heredoc** vì các span không phủ kín file — giờ có
+      khẳng định từ chối ghi nếu span không lát kín.
+      **Lưới bắt được lỗi thật:** rc=127 ở ba rig — hàm trong `common.sh` đã đổi
+      tên nhưng chỗ gọi trong rig thì chưa.
+      **Bài học đắt nhất — `trap '…'`:** nháy đơn nên tool bỏ qua, và về mặt từ
+      vựng là đúng; nhưng trap trả thân của nó *lại cho shell chạy như code* lúc
+      nổ. `worker.sh` đọc `${RUN_KET:-unknown}` trong khi `state.sh` đã sang
+      `RUN_RESULT` → mọi run sẽ bị ghi sổ là "unknown" vĩnh viễn, không có gì đỏ.
+      **Bốn test reconciler xanh y hệt trước/sau, vì không bài nào làm trap nổ.**
+      Tìm ra bằng cách quét CẢ LỚP (mọi thân nháy đơn của trap/eval/bash -c/sh -c
+      tham chiếu tên vừa đổi) — đúng một chỗ trong toàn repo; hai đợt runner sạch.
+      **Còn lại:** 0 tên tiếng Việt trong `apps/runner`, kể cả systemd unit.
+      `sudoers/bee` không phải bash — tool không đụng tới.
 
 - [x] 🤖 **T33** ~~Canvas trắng bốc sau khi đổi tên~~ **XONG 26/08** — loại
       lỗi y hệt `dataKey="nhan"`, chỉ khác nó nằm ở **khoá object không nháy
