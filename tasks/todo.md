@@ -174,14 +174,34 @@ file** xanh · **35 e2e** · **14 rig** xanh · build hết cảnh báo.
       Runner sinh `.bee/ports.env` + thay `${BEE_PORT_n}` trong env.d **chỉ đúng
       họ biến đó** — envsubst không giới hạn sẽ nuốt `$VAR` trong secret của
       repo. rig-11: 7/7. bee không cần biết tên biến của từng repo.
-- [ ] 🤖 **T17** Lấy lại cgroup driver `systemd` cho rootless docker (S) —
-      *(spec T15 §10 chốt: với thiết kế lát-chung thì CHƯA cần — chỉ thành bắt
-      buộc nếu để mỗi phiên tự dựng stack đầy đủ.)*
-      hôm nay đang chạy `cgroupfs` nên `docker info` báo `Cgroup Driver: none`
-      và `--memory`/`--cpus` không ai thi hành. Gốc: `containerd` không thừa
-      kế `DBUS_SESSION_BUS_ADDRESS` từ `dockerd` nên `runc` đi hỏi systemd hệ
-      thống. Xem [docker-cho-bee.md §5b](../docs/docker-cho-bee.md). Chỉ cần
-      làm khi T15 muốn đặt trần tài nguyên cho từng phiên.
+- [~] 🤖 **T17** Trần tài nguyên cho phiên — **NỬA LÀM ĐƯỢC ĐÃ XONG 27/08,
+      nửa docker vẫn mở.** Hoá ra là **hai tầng độc lập**, đo trên máy chứ
+      không suy từ tài liệu:
+      · *tiến trình CỦA phiên* → systemd, qua cgroup delegate cho `user@` →
+        **XONG**. `user@1500` vốn đã được delegate `cpu memory pids`, không cần
+        root; mà `bee-session@.service` chỉ có `RuntimeMaxSec=6h`, nghĩa là cây
+        tiến trình của phiên **không có trần nào**.
+      · *container phiên tự dựng* → runc, qua cgroup driver của docker → **vẫn
+        KHÔNG**. Cần xử cái `DBUS_SESSION_BUS_ADDRESS` rơi giữa `dockerd` và
+        `containerd` (docs/docker-cho-bee.md §5b), mà máy dev không dựng lại
+        được (docker ở đó là rootful). **Không ship một quy trình chưa ai chạy.**
+      **Điều đáng nhất học được: `MemoryMax` một mình KHÔNG chặn gì.** Đo cả
+      hai chiều:
+      `systemd-run --user --scope -p MemoryMax=40M -- python3 …400MB…` → cấp
+      trọn 400MB, exit 0 (bị đẩy sang **swap**, sống nhăn). Thêm
+      `-p MemorySwapMax=0` → **Killed, exit 137**. Một cái trần trông như đã
+      đặt mà không chặn gì thì **tệ hơn không có trần**, vì người ta tin nó.
+      Nên unit mang cả hai, cộng `TasksMax=4096` (fork bomb rẻ hơn RAM nhiều)
+      và `CPUWeight=50` **thay cho** `CPUQuota` — một phiên chạy một mình thì
+      NÊN được dùng cả máy; thứ phải tránh là nó bóp chết web và OS lúc tranh
+      chấp.
+      Trần tính lúc install từ `/proc/meminfo` (60%, chừa cho bee-web + docker
+      + OS) chứ không ghim một con số sai trên mọi máy trừ một. rig-14 chứng
+      minh nó tới được unit **đã cài** và không còn placeholder `@…@` — systemd
+      sẽ từ chối unit đó, ở phiên kế tiếp, im lặng.
+      **Hạn chế còn lại giờ đọc được:** mục doctor `limits` in đúng driver đang
+      dùng và hệ quả, thay vì để nó nằm im trong một file tài liệu.
+
 - [~] 🤖 **T15** Cấp lát dịch vụ cho phiên — **CODE XONG 26/08, CHƯA NGHIỆM
       THU TRÊN POOL THẬT.** Máy dev không có postgres/rabbitmq/minio và không
       sudo sang `bee` được, nên toàn bộ b+c đo bằng rig với stub docker (đúng
