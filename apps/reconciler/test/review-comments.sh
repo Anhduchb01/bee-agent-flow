@@ -18,10 +18,10 @@ source "$REPO/apps/reconciler/lib/github.sh"
 # shellcheck source=../lib/state.sh
 source "$REPO/apps/reconciler/lib/state.sh"
 
-loi=0
+failed=0
 kiem() { # <nhãn> <được> <mong>
   if [[ "$2" == "$3" ]]; then printf '  ok   %s\n' "$1"
-  else printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$2" "$3"; loi=1; fi
+  else printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$2" "$3"; failed=1; fi
 }
 
 # Ba nguồn, đúng hình dạng mà `gh api --jq` phát ra: mỗi dòng một object.
@@ -81,5 +81,5 @@ claim_clear myapp-7
 kiem "claim_clear không xoá mốc" "$(reviewed_get myapp-7)" "$(gh_claude_fingerprint "$a")"
 
 echo
-[[ $loi == 0 ]] && echo "→ xanh" || echo "→ ĐỎ"
-exit $loi
+[[ $failed == 0 ]] && echo "→ xanh" || echo "→ ĐỎ"
+exit $failed

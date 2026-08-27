@@ -22,13 +22,13 @@ now_iso() { printf '2026-08-13T10:00:00Z'; }
 # shellcheck source=../lib/state.sh
 source "$REPO/apps/reconciler/lib/state.sh"
 
-loi=0
+failed=0
 kiem() { # <nhãn> <jq filter> <mong đợi>
   local got; got=$(jq -r "$2" <<<"$(tail -1 "$BEE_SRV/state/recent.jsonl")")
   if [[ "$got" == "$3" ]]; then
     printf '  ok   %s\n' "$1"
   else
-    printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$got" "$3"; loi=1
+    printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$got" "$3"; failed=1
   fi
 }
 
@@ -79,10 +79,10 @@ kiem "bỏ qua phần hỏng"     '.tokens_in' 'null'
 echo "5· file vẫn là JSONL hợp lệ, mỗi lần chạy đúng một dòng"
 n=$(wc -l < "$BEE_SRV/state/recent.jsonl")
 if [[ "$n" == 4 ]]; then printf '  ok   đúng 4 dòng\n'
-else printf '  ĐỎ   %s dòng, mong 4\n' "$n"; loi=1; fi
+else printf '  ĐỎ   %s dòng, mong 4\n' "$n"; failed=1; fi
 if jq -e . "$BEE_SRV/state/recent.jsonl" >/dev/null; then
   printf '  ok   mọi dòng parse được\n'
-else printf '  ĐỎ   có dòng không parse được\n'; loi=1; fi
+else printf '  ĐỎ   có dòng không parse được\n'; failed=1; fi
 
 echo
 echo "6· session_id được giữ lại — không có nó thì không nối lại phiên được"
@@ -104,17 +104,17 @@ printf '412'        > "$d/duration"
 run_archive myapp-50 myapp 50 07-build ok
 claim_clear myapp-50
 
-luu=$(find "$BEE_SRV/runs/myapp/50" -maxdepth 1 -type d -name 'myapp-50-*' | head -1)
-if [[ -n "$luu" ]]; then printf '  ok   %s\n' "có thư mục lưu"; else printf '  ĐỎ   không lưu được gì\n'; loi=1; fi
+saved_dir=$(find "$BEE_SRV/runs/myapp/50" -maxdepth 1 -type d -name 'myapp-50-*' | head -1)
+if [[ -n "$saved_dir" ]]; then printf '  ok   %s\n' "có thư mục lưu"; else printf '  ĐỎ   không lưu được gì\n'; failed=1; fi
 kiem2() { if [[ "$2" == "$3" ]]; then printf '  ok   %s\n' "$1"
-          else printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$2" "$3"; loi=1; fi; }
-kiem2 "giữ log stream"  "$([[ -f "$luu/run.jsonl" ]] && echo CO)" CO
-kiem2 "giữ báo cáo"     "$(cat "$luu/output.txt" 2>/dev/null)" "đã làm xong"
-kiem2 "meta có phiên"   "$(jq -r '.session_id' "$luu/meta.json")" "sess-xyz"
-kiem2 "meta có kết quả" "$(jq -r '.result'     "$luu/meta.json")" "ok"
-kiem2 "meta có turns"   "$(jq -r '.turns'      "$luu/meta.json")" "7"
+          else printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$2" "$3"; failed=1; fi; }
+kiem2 "giữ log stream"  "$([[ -f "$saved_dir/run.jsonl" ]] && echo CO)" CO
+kiem2 "giữ báo cáo"     "$(cat "$saved_dir/output.txt" 2>/dev/null)" "đã làm xong"
+kiem2 "meta có phiên"   "$(jq -r '.session_id' "$saved_dir/meta.json")" "sess-xyz"
+kiem2 "meta có kết quả" "$(jq -r '.result'     "$saved_dir/meta.json")" "ok"
+kiem2 "meta có turns"   "$(jq -r '.turns'      "$saved_dir/meta.json")" "7"
 # claim_clear xoá thư mục state; bản lưu phải sống sót — đó là toàn bộ mục đích.
-kiem2 "sống sau claim_clear" "$([[ -f "$luu/meta.json" ]] && echo CO)" CO
+kiem2 "sống sau claim_clear" "$([[ -f "$saved_dir/meta.json" ]] && echo CO)" CO
 kiem2 "không sót thư mục dang-ghi" \
       "$(find "$BEE_SRV/runs" -name '*.dang-ghi' | wc -l)" "0"
 
@@ -130,5 +130,5 @@ kiem2 "nói ra đã bỏ bao nhiêu" "$(head -1 "$luu2/run.jsonl" | jq -r '.drop
 kiem2 "giữ ĐUÔI chứ không phải đầu" "$(tail -1 "$luu2/run.jsonl" | jq -r '.n')" "100"
 
 echo
-[[ $loi == 0 ]] && echo "→ xanh" || echo "→ ĐỎ"
-exit $loi
+[[ $failed == 0 ]] && echo "→ xanh" || echo "→ ĐỎ"
+exit $failed

@@ -11,9 +11,9 @@ RULE_ID=05-approvals
 # shellcheck source=../rules/05-approvals.sh
 source "$REPO/apps/reconciler/rules/05-approvals.sh"
 
-loi=0
+failed=0
 kiem() { if [[ "$2" == "$3" ]]; then printf '  ok   %s\n' "$1"
-         else printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$2" "$3"; loi=1; fi; }
+         else printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$2" "$3"; failed=1; fi; }
 
 duyet() { # <login...> → JSON latestReviews
   local out='[]' u
@@ -51,5 +51,5 @@ kiem "COMMENTED" \
   "$(approvals_state_from '[{"state":"COMMENTED","author":{"login":"linh"}}]')" pending
 
 echo
-[[ $loi == 0 ]] && echo "→ xanh" || echo "→ ĐỎ"
-exit $loi
+[[ $failed == 0 ]] && echo "→ xanh" || echo "→ ĐỎ"
+exit $failed

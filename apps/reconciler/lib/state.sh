@@ -133,7 +133,7 @@ record_run() {
   # gì. CỐ Ý không phải `local`: trap chạy sau khi rule_run đã trả về, nên nó
   # cần một biến sống ở shell của worker. Rule nào cũng đi qua đây trước khi
   # thoát, nên đây là chỗ duy nhất biết chắc.
-  RUN_KET="$result"
+  RUN_RESULT="$result"
 
   # `jq -e .` chứ không phải `[[ -s ]]`: file có thể đứt giữa chừng nếu tiến
   # trình chết đúng lúc ghi, và một bản ghi lịch sử hỏng không đáng để làm đổ
@@ -172,7 +172,7 @@ RUN_LOG_MAX_LINES="${RUN_LOG_MAX_LINES:-4000}"
 
 # run_archive <id> <slug> <num> <rule> <result>
 run_archive() {
-  local id="$1" slug="$2" num="$3" rule="$4" ket="$5"
+  local id="$1" slug="$2" num="$3" rule="$4" outcome="$5"
   local d; d=$(state_dir "$id")
   [[ -d "$d" ]] || return 0
 
@@ -196,7 +196,7 @@ run_archive() {
   [[ -f "$d/usage.json"       ]] && cp -- "$d/usage.json"       "$stage/usage.json"
 
   jq -nc --arg id "$id" --arg repo "$slug" --argjson number "$num" \
-         --arg rule "$rule" --arg result "$ket" --arg at "$(now_iso)" \
+         --arg rule "$rule" --arg result "$outcome" --arg at "$(now_iso)" \
          --arg session_id "$sid" \
          --argjson turns "$(cat "$d/turns" 2>/dev/null || echo 0)" \
          --argjson duration_s "$(cat "$d/duration" 2>/dev/null || echo 0)" \

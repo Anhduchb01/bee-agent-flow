@@ -180,13 +180,13 @@ cmd_doctor() {
   # trong một pipeline thì nó treo 3 giây rồi thoát khác 0 với "no stdin data
   # received" — một câu chẳng liên quan gì tới đăng nhập, ở ngay dưới dòng báo
   # token hợp lệ.
-  local thu thu_ok=0
-  thu=$(sudo -u "$AGENT_USER" -H bash -lc '
+  local probe_out probe_ok=0
+  probe_out=$(sudo -u "$AGENT_USER" -H bash -lc '
           command -v claude >/dev/null || exit 127
           set -a; [[ -r /etc/bee/agent.env ]] && . /etc/bee/agent.env; set +a
-          claude -p "ok" --max-turns 1 </dev/null' 2>&1) && thu_ok=1
+          claude -p "ok" --max-turns 1 </dev/null' 2>&1) && probe_ok=1
 
-  if (( thu_ok )); then
+  if (( probe_ok )); then
     if [[ -n "$tok" ]]; then
       ck "claude gọi được dưới $AGENT_USER (bằng token dài hạn)"
     else
@@ -195,7 +195,7 @@ cmd_doctor() {
   elif [[ -n "$tok" ]]; then
     # Có token mà vẫn hỏng là chuyện khác hẳn: token sai, bị thu hồi, hoặc hết
     # hạn mức. Đừng bảo người ta đi `/login` — họ vừa làm xong.
-    cx "có token dài hạn nhưng gọi không được: $(head -c 120 <<<"$thu")
+    cx "có token dài hạn nhưng gọi không được: $(head -c 120 <<<"$probe_out")
        Sinh lại: claude setup-token   rồi   sudo be tk <token>"
   else
     cx "claude chưa sẵn sàng dưới $AGENT_USER
@@ -574,14 +574,14 @@ EOF
 # `be toke` là thiếu một chữ cái, và câu "lệnh không biết: toke (bee --help)"
 # bắt người ta mở trang trợ giúp rồi tự dò lại — cho một thứ máy nhìn ra ngay.
 # Bắt hai kiểu gõ sai hay gặp nhất: gõ thiếu (`toke`) và gõ thừa (`tokens`).
-CAC_LENH="status watch doctor dry-run logs repo token pause resume uninstall help"
+COMMANDS="status watch doctor dry-run logs repo token pause resume uninstall help"
 
 goi_y() {
   local go="$1" l gan="" go_tran
   # So thêm một lượt sau khi bỏ dấu gạch ngang: `dryrun` là một kiểu gõ sai
   # riêng, không phải gõ thiếu, nên so tiền tố không bắt được nó.
   go_tran="${go//-/}"
-  for l in $CAC_LENH; do
+  for l in $COMMANDS; do
     if [[ "$l" == "$go"* || "$go" == "$l"* ]]; then gan="$l"; break; fi
     if [[ "${l//-/}" == "$go_tran" ]]; then gan="$l"; break; fi
   done

@@ -20,15 +20,15 @@ source "$REPO/apps/reconciler/lib/common.sh"
 # shellcheck source=../lib/evidence.sh
 source "$REPO/apps/reconciler/lib/evidence.sh"
 
-loi=0
+failed=0
 ok()  { printf '  ok   %s\n' "$1"; }
 kiem() { # <nhãn> <được> <mong>
   if [[ "$2" == "$3" ]]; then ok "$1"
-  else printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$2" "$3"; loi=1; fi
+  else printf '  ĐỎ   %s: được %q, mong %q\n' "$1" "$2" "$3"; failed=1; fi
 }
 kiem_co() { # <nhãn> <chuỗi> <chứa>
   if [[ "$2" == *"$3"* ]]; then ok "$1"
-  else printf '  ĐỎ   %s: %q không chứa %q\n' "$1" "$2" "$3"; loi=1; fi
+  else printf '  ĐỎ   %s: %q không chứa %q\n' "$1" "$2" "$3"; failed=1; fi
 }
 
 # Kết quả Playwright tối thiểu nhưng ĐÚNG HÌNH DẠNG THẬT: suites lồng nhau,
@@ -111,5 +111,5 @@ kiem "chưa cấu hình thì không có link nào" "$(grep -c '](' <<<"$out")" "
 kiem_co "và nói ra vì sao" "$out" "BEE_WEB_URL"
 
 echo
-[[ $loi == 0 ]] && echo "→ xanh" || echo "→ ĐỎ"
-exit $loi
+[[ $failed == 0 ]] && echo "→ xanh" || echo "→ ĐỎ"
+exit $failed
