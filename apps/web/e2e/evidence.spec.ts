@@ -82,3 +82,31 @@ test("người ngoài allowlist cũng không đọc được", async ({ page }) 
   });
   expect(res.status()).toBe(401);
 });
+
+/**
+ * A re-recorded demo has to reach the BROWSER, not just the disk.
+ *
+ * Reported 27/08: the agent re-recorded a demo after the first take had a
+ * scroll artifact, the bytes on disk were correct, and the owner kept being
+ * shown the first take. The route sent `max-age=3600`, so the browser never
+ * asked again — and nothing anywhere said why.
+ */
+test("evidence carries an etag and asks the browser to revalidate", async ({ page }) => {
+  await signIn(page, "pm-linh");
+
+  const url = `${GOC}/myapp/45/9f3c1ab/giu-bo-loc-khi-tai-lai.gif`;
+  const first = await page.request.get(url);
+  expect(first.status()).toBe(200);
+
+  const etag = first.headers()["etag"];
+  expect(etag, "no etag — a changed file would be indistinguishable").toBeTruthy();
+
+  // The whole bug in one assertion: an hour of max-age means the browser does
+  // not come back, so a re-recorded file cannot win.
+  expect(first.headers()["cache-control"]).not.toMatch(/max-age=[1-9]/);
+  expect(first.headers()["cache-control"]).toContain("no-cache");
+
+  // Unchanged file: revalidation must stay cheap, not re-send the bytes.
+  const again = await page.request.get(url, { headers: { "If-None-Match": etag } });
+  expect(again.status()).toBe(304);
+});

@@ -369,5 +369,5 @@ export interface BeeSource {
   /** `null` khi đường dẫn không hợp lệ hoặc file không tồn tại — cùng một câu trả lời. */
   readEvidenceFile(
     segments: string[],
-  ): Promise<{ bytes: Uint8Array; contentType: string } | null>;
+  ): Promise<{ bytes: Uint8Array; contentType: string; etag: string } | null>;
 }

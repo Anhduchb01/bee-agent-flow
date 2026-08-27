@@ -18,7 +18,7 @@ import { getBee } from "@/lib/bee";
  * biệt hai thứ đó là kể cho người dò biết họ đang dò đúng hướng.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const actor = await getActor();
@@ -28,15 +28,30 @@ export async function GET(
   const file = await getBee().readEvidenceFile(path ?? []);
   if (!file) return new Response("no such file", { status: 404 });
 
+  const common = {
+    // `no-cache` does NOT mean "do not store" — it means revalidate before
+    // use. With the etag, an untouched file costs one 304 and no bytes.
+    //
+    // It used to be `max-age=3600`, on the reasoning that evidence keyed by a
+    // `<sha>/` is immutable. True for that layout, and false for the one
+    // people actually look at: re-recording a demo overwrites
+    // `sessions/<id>/evidence/<name>`, so the owner was shown the first take
+    // for an hour with nothing to say why (27/08).
+    "Cache-Control": "private, no-cache",
+    ETag: file.etag,
+    "Content-Security-Policy": "default-src 'none'; sandbox",
+    "X-Content-Type-Options": "nosniff",
+  };
+
+  if (req.headers.get("if-none-match") === file.etag) {
+    return new Response(null, { status: 304, headers: common });
+  }
+
   return new Response(new Uint8Array(file.bytes), {
     headers: {
+      ...common,
       "Content-Type": file.contentType,
       "Content-Length": String(file.bytes.byteLength),
-      // Bằng chứng gắn với một SHA nên nó bất biến; nhưng nó cũng chỉ dành cho
-      // người đã đăng nhập, nên cache phải là private.
-      "Cache-Control": "private, max-age=3600",
-      "Content-Security-Policy": "default-src 'none'; sandbox",
-      "X-Content-Type-Options": "nosniff",
     },
   });
 }
