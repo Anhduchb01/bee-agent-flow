@@ -91,6 +91,21 @@ describe("PoolControls", () => {
     expect(vi.mocked(setPoolRunningAction)).toHaveBeenLastCalledWith(false, true);
   });
 
+  it("a refused START offers the same second press — a port clash is overridable too", async () => {
+    vi.mocked(setPoolRunningAction).mockResolvedValueOnce({
+      ok: false,
+      message: "Port 15672 already in use on this machine.",
+    });
+    const user = userEvent.setup();
+    render(<PoolControls running={false} compose={COMPOSE} />);
+
+    await user.click(screen.getByRole("button", { name: "Start" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("15672");
+
+    await user.click(screen.getByRole("button", { name: "Start anyway" }));
+    expect(vi.mocked(setPoolRunningAction)).toHaveBeenLastCalledWith(true, true);
+  });
+
   it("a machine with no compose file yet is told saving will create it", () => {
     render(<PoolControls running={false} compose={{ text: "services: {}\n", exists: false }} />);
     expect(screen.getByText(/saving creates it/)).toBeInTheDocument();

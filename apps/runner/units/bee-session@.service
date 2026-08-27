@@ -9,7 +9,6 @@ Description=bee session %i
 # in /usr/local/bin, if anything at all.
 Environment=PATH=@BINPATH@
 Environment=BEE_ROOT=@BEE_ROOT@
-Environment=DOCKER_HOST=unix://%t/docker.sock
 Type=simple
 ExecStart=@PREFIX@/bin/session-run.sh %i
 # Trần cứng cho một phiên — phanh cuối khi mọi thứ khác quên dừng.

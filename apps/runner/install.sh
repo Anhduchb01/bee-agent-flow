@@ -85,8 +85,11 @@ services: {}
 #      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-bee}
 #      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-bee}
 #    ports:
-#      - "127.0.0.1:55672:5672"      # AMQP - the one sessions dial
-#      - "127.0.0.1:15672:15672"     # management UI, for you
+#      - "127.0.0.1:55672:5672"      # AMQP - the only port sessions need
+#      # The management console is for a HUMAN, not for sessions, so it is off
+#      # by default: 15672 is commonly already taken, and one port in use
+#      # fails the whole `compose up`. Uncomment on a port you know is free.
+#      # - "127.0.0.1:55673:15672"
 #    volumes: ["rabbitdata:/var/lib/rabbitmq"]
 #    healthcheck:
 #      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]

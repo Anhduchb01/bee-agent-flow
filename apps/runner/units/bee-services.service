@@ -15,7 +15,6 @@ After=network-online.target
 [Service]
 Environment=PATH=@BINPATH@
 Environment=BEE_ROOT=@BEE_ROOT@
-Environment=DOCKER_HOST=unix://%t/docker.sock
 EnvironmentFile=-@BEE_ROOT@/services/admin.env
 WorkingDirectory=@BEE_ROOT@/services
 Type=oneshot

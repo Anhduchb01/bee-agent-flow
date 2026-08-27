@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  composePorts,
   explainUnitFailure,
   readPoolCompose,
   savePoolCompose,
@@ -172,7 +173,66 @@ describe("explainUnitFailure — a failure that names itself", () => {
     expect(said).not.toMatch(/Failed with result/);
   });
 
+  /**
+   * The real journal from 27/08, trimmed. The pool pulled both images, made
+   * the network and volumes, started postgres — and died on rabbitmq's
+   * MANAGEMENT port, which was already taken on that machine. Everything
+   * before the last line is progress, and progress is what buries a reason.
+   */
+  it("finds the reason under thirty lines of pull progress", () => {
+    const said = explainUnitFailure(
+      [
+        " 5322d81b9b21 Pull complete 0B",
+        " Image rabbitmq:3-management Pulled",
+        " Image postgres:16 Pulled",
+        " Network bee-services_default Created",
+        " Volume bee-services_pgdata Created",
+        " Container bee-services-postgres-1 Started",
+        " Container bee-services-rabbitmq-1 Starting",
+        "Error response from daemon: failed to set up container networking: driver failed" +
+          " programming external connectivity on endpoint bee-services-rabbitmq-1" +
+          " (b93d84b3fb67): error while calling RootlessKit PortManager.AddPort():" +
+          " listen tcp4 127.0.0.1:15672: bind: address already in use",
+        "bee-services.service: Main process exited, code=exited, status=1/FAILURE",
+        "bee-services.service: Failed with result 'exit-code'.",
+      ].join("\n"),
+    );
+
+    expect(said).toContain("15672");
+    expect(said).toContain("address already in use");
+    // Not a word of systemd's bookkeeping, and not one of the 30 Pull lines.
+    expect(said).not.toMatch(/Pull complete|Failed with result|status=1/);
+  });
+
   it("nothing usable in the journal is said plainly, not invented", () => {
     expect(explainUnitFailure("")).toMatch(/journalctl/);
+  });
+});
+
+describe("composePorts — refuse before the half-started mess", () => {
+  it("finds every published host port, whatever the syntax", () => {
+    expect(
+      composePorts(
+        [
+          "services:",
+          "  postgres:",
+          "    ports: [\"127.0.0.1:55432:5432\"]",
+          "  rabbitmq:",
+          "    ports:",
+          "      - \"127.0.0.1:55672:5672\"",
+          "      - 15672:15672",
+          "  quiet:",
+          "    image: redis:7",
+        ].join("\n"),
+      ).sort((a, b) => a - b),
+    ).toEqual([15672, 55432, 55672]);
+  });
+
+  it("a container-only port publishes nothing, so it is not a claim", () => {
+    expect(composePorts('services:\n  a:\n    ports: ["5432"]\n')).toEqual([]);
+  });
+
+  it("the IP is not mistaken for a port — 127.0.0.1 is full of digits", () => {
+    expect(composePorts('services:\n  a:\n    ports: ["127.0.0.1:55432:5432"]\n')).toEqual([55432]);
   });
 });

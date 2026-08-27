@@ -33,7 +33,8 @@ export function PoolControls({
   const [saveErr, setSaveErr] = useState("");
   const [saved, setSaved] = useState(false);
   const [runErr, setRunErr] = useState("");
-  const [refusedStop, setRefusedStop] = useState(false);
+  /** Which direction was refused, so the override says which way it goes. */
+  const [refused, setRefused] = useState<boolean | null>(null);
   const [busy, start] = useTransition();
 
   const dirty = text !== compose.text;
@@ -42,7 +43,9 @@ export function PoolControls({
     start(async () => {
       const outcome = await setPoolRunningAction(on, force);
       setRunErr(outcome.ok ? "" : outcome.message);
-      setRefusedStop(!outcome.ok && !on && !force);
+      // Both directions can be refused for a reason the owner may outrank: a
+      // held slice on the way down, a port already taken on the way up.
+      setRefused(!outcome.ok && !force ? on : null);
       router.refresh();
     });
   }
@@ -72,10 +75,10 @@ export function PoolControls({
         </p>
       )}
 
-      {refusedStop && (
+      {refused !== null && (
         <div>
-          <Button size="sm" variant="ghost" disabled={busy} onClick={() => toggle(false, true)}>
-            Stop anyway
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => toggle(refused, true)}>
+            {refused ? "Start anyway" : "Stop anyway"}
           </Button>
         </div>
       )}

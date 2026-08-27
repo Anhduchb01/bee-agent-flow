@@ -65,8 +65,11 @@ services: {}
 #      RABBITMQ_DEFAULT_USER: \${RABBITMQ_DEFAULT_USER:-bee}
 #      RABBITMQ_DEFAULT_PASS: \${RABBITMQ_DEFAULT_PASS:-bee}
 #    ports:
-#      - "127.0.0.1:55672:5672"      # AMQP - the one sessions dial
-#      - "127.0.0.1:15672:15672"     # management UI, for you
+#      - "127.0.0.1:55672:5672"      # AMQP - the only port sessions need
+#      # The management console is for a HUMAN, not for sessions, so it is off
+#      # by default: 15672 is commonly already taken, and one port in use
+#      # fails the whole \`compose up\`. Uncomment on a port you know is free.
+#      # - "127.0.0.1:55673:15672"
 #    volumes: ["rabbitdata:/var/lib/rabbitmq"]
 #    healthcheck:
 #      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
@@ -207,6 +210,43 @@ async function holders(): Promise<string[]> {
  * allocated" naming 55432 is worth more than any sentence written here, and a
  * paraphrase would go stale the first time docker changes its wording.
  */
+/**
+ * Every host port this compose file claims.
+ *
+ * `docker compose up` is not atomic: on 27/08 postgres came up, rabbitmq hit
+ * a port already in use, and the unit ended failed with half a pool running.
+ * Knowing the ports up front turns that into a refusal naming the port.
+ *
+ * The IP is full of digits, so a spec is split rather than pattern-matched:
+ * "127.0.0.1:55432:5432" would otherwise report a host port of 1.
+ */
+export function composePorts(text: string): number[] {
+  const found: number[] = [];
+  for (const raw of text.split("\n")) {
+    if (!/^\s+(ports:|-)/.test(raw)) continue;
+    for (const spec of raw.replace(/^\s+ports:/, "").split(/[[\],"'\s]+/)) {
+      const part = spec.split(":");
+      // ip:host:container or host:container. A bare port publishes nothing.
+      if (part.length < 2) continue;
+      const host = Number(part[part.length - 2]);
+      if (Number.isInteger(host) && host > 0 && !found.includes(host)) found.push(host);
+    }
+  }
+  return found;
+}
+
+/** Which of these ports something is already listening on. */
+async function portsInUse(ports: number[]): Promise<number[]> {
+  if (ports.length === 0) return [];
+  try {
+    const { stdout } = await ctl("ss", ["-ltn"]);
+    return ports.filter((p) => new RegExp(`[:.]${p}\\s`).test(stdout));
+  } catch {
+    // No `ss`, or the door is closed: cannot answer, so do not block a start.
+    return [];
+  }
+}
+
 export function explainUnitFailure(journal: string): string {
   const lines = journal
     .split("\n")
@@ -243,6 +283,20 @@ export async function setPoolRunning(on: boolean, opts?: { force?: boolean }): P
         ok: false,
         message: "No service declared — bringing the unit up with nothing to run says nothing.",
       };
+    }
+    // Only while it is DOWN: a running pool holds its own ports, and calling
+    // that a clash would refuse every idempotent Start.
+    if (opts?.force !== true && (await poolRunning()) === false) {
+      const taken = await portsInUse(composePorts(text));
+      if (taken.length > 0) {
+        return {
+          ok: false,
+          message:
+            `Port ${taken.join(", ")} already in use on this machine. ` +
+            "`docker compose up` is not atomic — starting now brings up the services " +
+            "before it and leaves the pool half up. Change the port, or start anyway.",
+        };
+      }
     }
   } else if (opts?.force !== true) {
     // A slice IS the session's database. Stopping the pool takes it away from

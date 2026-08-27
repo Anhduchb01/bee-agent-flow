@@ -11,11 +11,12 @@ import { describe, expect, it } from "vitest";
  * cost a real failure on 27/08: `bee-services` would not start, and systemd
  * only said "the control process exited with error code".
  *
- * The reason: systemd user units inherit XDG_RUNTIME_DIR but NOT DOCKER_HOST.
- * bootstrap.sh exports it for the interactive shell, so `docker compose` works
- * the moment a person types it and fails inside a unit, where the CLI falls
- * back to root's /var/run/docker.sock and is denied. Under model A+ the docker
- * that exists is rootless, at %t/docker.sock.
+ * What it does NOT pin: DOCKER_HOST. That was my first theory for the 27/08
+ * failure and it was wrong — the journal showed the unit reaching docker
+ * perfectly well, pulling both images and starting postgres. The real cause
+ * was a published port already in use. A unit inherits enough to find rootless
+ * docker on its own here, so pinning a socket path would only add a way to be
+ * wrong on a machine whose runtime dir differs.
  */
 
 const UNITS = path.join(process.cwd(), "..", "runner", "units");
@@ -24,23 +25,7 @@ async function unit(name: string): Promise<string> {
   return fs.readFile(path.join(UNITS, name), "utf8");
 }
 
-describe("systemd units — the environment a unit cannot inherit", () => {
-  for (const name of ["bee-services.service", "bee-session@.service"]) {
-    it(`${name} points docker at the rootless socket`, async () => {
-      const text = await unit(name);
-      expect(text).toMatch(/^Environment=DOCKER_HOST=unix:\/\/%t\/docker\.sock$/m);
-    });
-  }
-
-  it("the pool unit lets admin.env override it — an escape hatch must win", async () => {
-    const text = await unit("bee-services.service");
-    const docker = text.indexOf("Environment=DOCKER_HOST=");
-    const envFile = text.indexOf("EnvironmentFile=");
-    expect(docker).toBeGreaterThan(-1);
-    // systemd applies these in order, so the file has to come second.
-    expect(envFile).toBeGreaterThan(docker);
-  });
-
+describe("systemd units — invariants nothing else checks", () => {
   it("every unit that runs a binary carries an explicit PATH", async () => {
     for (const name of await fs.readdir(UNITS)) {
       if (!name.endsWith(".service")) continue;
