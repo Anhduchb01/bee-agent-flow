@@ -96,6 +96,6 @@ describe("readSlicesFrom", () => {
   });
 
   it("no sessions dir at all → empty, not an error", async () => {
-    expect(await readSlicesFrom(path.join(dir, "khong-co"))).toEqual([]);
+    expect(await readSlicesFrom(path.join(dir, "no-such"))).toEqual([]);
   });
 });

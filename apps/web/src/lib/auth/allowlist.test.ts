@@ -23,7 +23,7 @@ describe("allowedLogins", () => {
   it("rỗng trên fixture thì hai người dùng mẫu là allowlist", () => {
     expect(allowedLogins(fixture)).toEqual(["pm-linh", "tl-duc"]);
     expect(isAllowed("pm-linh", fixture)).toBe(true);
-    expect(isAllowed("nguoi-la", fixture)).toBe(false);
+    expect(isAllowed("stranger", fixture)).toBe(false);
   });
 
   it("so sánh không phân biệt hoa thường và bỏ khoảng trắng", () => {
@@ -40,7 +40,7 @@ describe("roleOf", () => {
   });
 
   it("mặc định là pm khi không cấu hình gì", () => {
-    expect(roleOf("nguoi-moi", live)).toBe("pm");
+    expect(roleOf("newcomer", live)).toBe("pm");
   });
 
   it("trên fixture thì tl-duc là techlead", () => {

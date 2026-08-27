@@ -1,9 +1,11 @@
 import "server-only";
 
 import { headers } from "next/headers";
+
 import { getToken } from "next-auth/jwt";
 
 import { roleOf } from "./allowlist";
+import { FIXTURE_SECRET } from "./secret";
 import { isAllowed } from "./allowlist";
 import type { Actor } from "@/lib/github/types";
 
@@ -19,7 +21,7 @@ import type { Actor } from "@/lib/github/types";
  * ranh giới đã hỏng.
  */
 export async function getActorWithToken(): Promise<Actor | null> {
-  const secret = process.env.AUTH_SECRET ?? "bee-fixture-khong-bi-mat";
+  const secret = process.env.AUTH_SECRET ?? FIXTURE_SECRET;
   const token = await getToken({
     // `getToken` chỉ cần đọc header cookie. Dựng một req tối thiểu thay vì kéo
     // cả `Request` xuống đây, vì server component không có sẵn một cái nào.

@@ -78,7 +78,7 @@ describe("readSlayerPool — đọc bảng tài khoản", () => {
   });
 
   it("tài liệu lạ → null, không đoán", () => {
-    expect(readSlayerPool("khong-phai-json")).toBeNull();
+    expect(readSlayerPool("not-json")).toBeNull();
     expect(readSlayerPool("null")).toBeNull();
     // Schema khác hẳn: đoán mò cấu trúc của công cụ bên thứ ba là cách êm
     // nhất để hiện SAI tài khoản đang bật.

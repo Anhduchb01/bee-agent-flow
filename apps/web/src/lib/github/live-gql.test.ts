@@ -16,7 +16,7 @@ const REPOS = [{ slug: "cli", full: "cli/cli" }];
 
 vi.mock("@/lib/auth/token", () => ({
   getActorWithToken: vi.fn(async () => ({
-    login: "ai-do", name: "Ai Đó", avatar_url: "", role: "tl" as const, token: "gho_gia",
+    login: "someone", name: "Ai Đó", avatar_url: "", role: "tl" as const, token: "gho_fake",
   })),
 }));
 vi.mock("./repos-store", async (baseDir) => ({

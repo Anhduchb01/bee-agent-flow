@@ -27,11 +27,11 @@ test("techlead vào được", async ({ page }) => {
 // allowlist chưa từng được kiểm.
 test("người ngoài allowlist đăng nhập được nhưng không thấy dữ liệu nào", async ({ page }) => {
   await page.goto("/login");
-  await page.getByLabel("GitHub login").fill("nguoi-la");
+  await page.getByLabel("GitHub login").fill("stranger");
   await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("do not have access");
-  await expect(page.getByText("nguoi-la")).toBeVisible();
+  await expect(page.getByText("stranger")).toBeVisible();
 
   // Không một mảnh dữ liệu nào của hệ thống lọt ra.
   await expect(page.getByRole("link", { name: "Overview" })).toHaveCount(0);

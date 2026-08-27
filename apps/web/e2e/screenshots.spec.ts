@@ -116,6 +116,6 @@ test.describe("UI review screenshots", () => {
     await signIn(page, "khach-la");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await shoot(page, "quyen__09-nguoi-ngoai");
+    await shoot(page, "perm__09-outsider");
   });
 });

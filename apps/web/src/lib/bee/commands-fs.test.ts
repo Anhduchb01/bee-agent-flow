@@ -27,7 +27,7 @@ describe("global slash commands — list for the palette, expand on send", () =>
       { name: "build", hint: "Implement tasks incrementally" },
       { name: "plan", hint: "Break work into tasks" },
     ]);
-    expect(await readCommandsFrom(path.join(dir, "khong-co"))).toEqual([]);
+    expect(await readCommandsFrom(path.join(dir, "no-such"))).toEqual([]);
   });
 
   it("expands /name args like the REPL: frontmatter stripped, $ARGUMENTS filled", async () => {

@@ -10,6 +10,7 @@ import type { Actor } from "@/lib/github/types";
 
 import type { Role } from "./allowlist";
 import { fillSession, fillToken } from "./callbacks";
+import { FIXTURE_SECRET } from "./secret";
 
 /**
  * Token của người dùng nằm trong JWT — tức trong cookie httpOnly đã mã hoá — và
@@ -82,7 +83,7 @@ const devProvider = Credentials({
  * đúng. Khoá mặc định chỉ dành cho fixture, và nó nằm trong mã nguồn công khai
  * nên không có gì để mất: cùng biến đã tắt provider giả cũng chặn nó ở đây.
  */
-const secret = process.env.AUTH_SECRET ?? (isLive ? undefined : "bee-fixture-khong-bi-mat");
+const secret = process.env.AUTH_SECRET ?? (isLive ? undefined : FIXTURE_SECRET);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: isLive ? [ghProvider] : [devProvider],

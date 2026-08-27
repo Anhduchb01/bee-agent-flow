@@ -84,7 +84,7 @@ describe("account usage — fetch from the oauth endpoint, read back narrowed", 
     await fs.mkdir(path.join(fakeCwd, ".claude"), { recursive: true });
     await fs.writeFile(
       path.join(fakeCwd, ".claude", ".credentials.json"),
-      JSON.stringify({ claudeAiOauth: { accessToken: "khong-duoc-dung-token-nay" } }),
+      JSON.stringify({ claudeAiOauth: { accessToken: "do-not-use-this-token" } }),
     );
     const cwdCu = process.cwd();
     const homeCu = process.env.HOME;
@@ -104,7 +104,7 @@ describe("account usage — fetch from the oauth endpoint, read back narrowed", 
   });
 
   it("readClaudeUsageFrom: missing or corrupt file → null", async () => {
-    expect(await readClaudeUsageFrom(path.join(dir, "khong-co"))).toBeNull();
+    expect(await readClaudeUsageFrom(path.join(dir, "no-such"))).toBeNull();
     await fs.mkdir(path.join(dir, "state"), { recursive: true });
     await fs.writeFile(path.join(dir, "state", "claude-usage.json"), "{broken");
     expect(await readClaudeUsageFrom(dir)).toBeNull();

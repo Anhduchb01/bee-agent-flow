@@ -44,7 +44,7 @@ describe("env.d via web — per-repo env files without touching a shell", () => 
     await saveEnvFile("myapp", ".env", "A=1");
     expect((await deleteEnvFile("myapp", ".env")).ok).toBe(true);
     expect(await listEnvFiles("myapp")).toEqual([]);
-    expect(await listEnvFiles("chua-co")).toEqual([]);
+    expect(await listEnvFiles("missing")).toEqual([]);
     expect((await deleteEnvFile("myapp", "../x")).ok).toBe(false);
   });
 

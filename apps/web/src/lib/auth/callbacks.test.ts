@@ -59,9 +59,9 @@ describe("fillSession", () => {
   });
 
   it("người ngoài allowlist vẫn có session, nhưng allowed = false", () => {
-    const s = fillSession({}, { login: "nguoi-la", displayName: "Người Lạ" });
+    const s = fillSession({}, { login: "stranger", displayName: "Người Lạ" });
 
-    expect(s.login).toBe("nguoi-la");
+    expect(s.login).toBe("stranger");
     expect(s.allowed).toBe(false);
   });
 

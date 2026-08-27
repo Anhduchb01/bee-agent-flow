@@ -80,7 +80,7 @@ describe("ctl — cửa lệnh ngoài", () => {
   it("mở cửa thì lệnh chạy thật — cái đóng được phải mở lại được", async () => {
     delete process.env.BEE_CTL;
     expect(ctlEnabled()).toBe(true);
-    const { stdout } = await ctl("printf", ["cua-mo"]);
-    expect(stdout).toBe("cua-mo");
+    const { stdout } = await ctl("printf", ["door-open"]);
+    expect(stdout).toBe("door-open");
   });
 });

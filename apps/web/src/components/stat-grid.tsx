@@ -13,7 +13,7 @@ export interface Stat {
    * dòng và đọc như mã, nên nó dùng chữ sans nhỏ hơn — vẫn là dòng nổi bật
    * nhất của ô, chỉ không giả vờ mình là một con số.
    */
-  kind?: "so" | "chu";
+  kind?: "number" | "text";
 }
 
 /**
@@ -49,7 +49,7 @@ export function StatGrid({ stats, className }: { stats: Stat[]; className?: stri
             <span
               className={cn(
                 "text-foreground",
-                s.kind === "chu"
+                s.kind === "text"
                   ? "text-base leading-tight font-medium tracking-title"
                   : "font-mono text-2xl leading-none tabular-nums tracking-title",
               )}

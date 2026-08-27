@@ -45,7 +45,7 @@ function mockStream(input: Partial<ReturnType<typeof useSessionStream>>) {
     events: [],
     typing: "",
     idle: "",
-    status: "dang-xem",
+    status: "open",
     ended: null,
     skipped: 0,
     ...input,

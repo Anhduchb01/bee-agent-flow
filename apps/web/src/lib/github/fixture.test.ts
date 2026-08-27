@@ -31,7 +31,7 @@ describe("đọc", () => {
 
   it("trả null cho task không có, không ném lỗi", async () => {
     expect(await gh.getTask("myapp", 9999)).toBeNull();
-    expect(await gh.getTask("khong-co-repo", 1)).toBeNull();
+    expect(await gh.getTask("no-such-repo", 1)).toBeNull();
   });
 
   it("dòng thời gian xếp theo thời gian thật, cũ trước", async () => {

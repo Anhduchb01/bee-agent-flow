@@ -133,7 +133,7 @@ describe("filterByProject / groupByLane", () => {
   it("filters to one project, and an unknown slug shows nothing rather than everything", () => {
     expect(filterByProject(row, "blog").map((m) => m.issue.number)).toEqual([7]);
     expect(filterByProject(row, null)).toHaveLength(3);
-    expect(filterByProject(row, "khong-co")).toEqual([]);
+    expect(filterByProject(row, "no-such-project")).toEqual([]);
   });
 
   it("groups into the five lanes with empty ones kept", () => {
