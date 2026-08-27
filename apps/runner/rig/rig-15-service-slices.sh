@@ -315,7 +315,7 @@ WT_ENV="$BEE_ROOT/work/$ID_PG"
 mkdir -p "$WT_ENV/.bee"
 printf 'BEE_DB_URL=postgres://bee_cc000000:pw@127.0.0.1/bee_cc000000
 ' > "$WT_ENV/.bee/services.env"
-chep_env_d "$ENVD" "$WT_ENV" 54000
+copy_env_d "$ENVD" "$WT_ENV" 54000
 
 grep -q "^DATABASE_URL=postgres://bee_cc000000:pw@" "$WT_ENV/.env" \
   && kq ok "\${BEE_DB_URL} reaches the repo's own variable name" \

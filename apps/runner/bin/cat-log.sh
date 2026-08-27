@@ -25,15 +25,15 @@ TRAN=$(( TRAN_KB * 1024 ))
 (( KICH <= TRAN )) && exit 0
 
 # Ước lượng số dòng cần giữ theo tỉ lệ byte, chừa 10% cho dòng đánh dấu.
-TONG_DONG=$(wc -l < "$FILE")
-GIU=$(( TONG_DONG * TRAN / KICH * 9 / 10 ))
-(( GIU < 1 )) && GIU=1
-BO=$(( TONG_DONG - GIU ))
+TOTAL_LINES=$(wc -l < "$FILE")
+KEEP=$(( TOTAL_LINES * TRAN / KICH * 9 / 10 ))
+(( KEEP < 1 )) && KEEP=1
+BO=$(( TOTAL_LINES - KEEP ))
 
 TMP="$FILE.tmp"
 jq -cn --argjson n "$BO" --arg t "$(now_iso)" \
   '{type:"bee_truncated", skipped:$n, ts:$t}' > "$TMP"
-tail -n "$GIU" "$FILE" >> "$TMP"
+tail -n "$KEEP" "$FILE" >> "$TMP"
 mv "$TMP" "$FILE"
 
-log "cắt run.jsonl của $ID: bỏ $BO dòng đầu, giữ $GIU dòng cuối"
+log "cắt run.jsonl của $ID: bỏ $BO dòng đầu, giữ $KEEP dòng cuối"

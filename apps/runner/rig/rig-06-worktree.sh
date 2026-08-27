@@ -39,7 +39,7 @@ lam_viec() {  # commit một file trong worktree, in ra sha
 }
 
 # --- 1. Phiên mới: nhánh chưa tồn tại → tạo từ nhánh mặc định --------------
-dung_worktree "$BARE" "$T/wt1" "$BRANCH" main
+make_worktree "$BARE" "$T/wt1" "$BRANCH" main
 if [[ -f "$T/wt1/main.txt" ]] && git --git-dir="$BARE" show-ref --verify --quiet "refs/heads/$BRANCH"; then
   kq ok "phiên mới: dựng nhánh $BRANCH từ main"
 else
@@ -50,7 +50,7 @@ SHA_VIEC=$(lam_viec "$T/wt1")
 
 # --- 2. gc xoá worktree đúng cách → dựng lại KHÔNG được reset nhánh --------
 git --git-dir="$BARE" worktree remove --force "$T/wt1"
-dung_worktree "$BARE" "$T/wt2" "$BRANCH" main
+make_worktree "$BARE" "$T/wt2" "$BRANCH" main
 SHA_SAU=$(git --git-dir="$BARE" rev-parse "$BRANCH")
 if [[ "$SHA_SAU" == "$SHA_VIEC" ]]; then
   kq ok "dựng lại sau gc: nhánh vẫn ở commit của phiên ($( cut -c1-7 <<<"$SHA_VIEC"))"
@@ -63,7 +63,7 @@ fi
 
 # --- 3. Worktree bị rm -rf (crash, hoặc gc thô) → vẫn dựng lại được -------
 rm -rf "$T/wt2"
-if dung_worktree "$BARE" "$T/wt3" "$BRANCH" main 2>"$T/err3"; then
+if make_worktree "$BARE" "$T/wt3" "$BRANCH" main 2>"$T/err3"; then
   SHA3=$(git --git-dir="$BARE" rev-parse "$BRANCH")
   [[ "$SHA3" == "$SHA_VIEC" ]] \
     && kq ok "worktree bị rm -rf: dựng lại được, nhánh không đổi" \
@@ -73,7 +73,7 @@ else
 fi
 
 # --- 4. Nhánh đang bị worktree KHÁC giữ → từ chối, không phá --------------
-if dung_worktree "$BARE" "$T/wt4" "$BRANCH" main 2>/dev/null; then
+if make_worktree "$BARE" "$T/wt4" "$BRANCH" main 2>/dev/null; then
   kq no "nhánh đang bị giữ: lẽ ra phải từ chối, nhưng đã dựng hai worktree cùng một nhánh"
 else
   SHA4=$(git --git-dir="$BARE" rev-parse "$BRANCH")

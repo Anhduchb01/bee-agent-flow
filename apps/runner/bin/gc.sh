@@ -29,12 +29,12 @@ removed=0
 freed=0
 ITEMS='[]'
 
-ghi() {  # ghi <id> <action> <reason> <bytes>
+record() {  # ghi <id> <action> <reason> <bytes>
   ITEMS=$(jq -c --arg i "$1" --arg a "$2" --arg r "$3" --argjson b "${4:-0}" \
     '. + [{id:$i, action:$a, reason:$r, bytes:$b}]' <<<"$ITEMS")
 }
 
-epoch_cua() {  # ISO → epoch; rỗng/hỏng → 0 (coi như rất cũ, để luật khác quyết)
+epoch_of() {  # ISO → epoch; rỗng/hỏng → 0 (coi như rất cũ, để luật khác quyết)
   [[ -n "$1" ]] && date -u -d "$1" +%s 2>/dev/null || echo 0
 }
 
@@ -110,26 +110,26 @@ for wt in "$BEE_ROOT"/work/*/; do
   # đều KHÔNG phải việc của gc: xoá một worktree mà không biết nó của ai là
   # đúng loại rủi ro tài liệu này tồn tại để tránh.
   if [[ ! -f "$meta" ]]; then
-    ghi "$id" kept "không có meta.json — không biết của phiên nào"
+    record "$id" kept "không có meta.json — không biết của phiên nào"
     continue
   fi
 
   status=$(jq -r '.status // "?"' "$meta")
   case "$status" in
-    running|starting) ghi "$id" kept "phiên đang $status"; continue;;
+    running|starting) record "$id" kept "phiên đang $status"; continue;;
   esac
 
   if [[ "$(jq -r '.needs_human // false' "$meta")" == "true" ]]; then
-    ghi "$id" kept "needs_human — người còn phải xem cái xác này"
+    record "$id" kept "needs_human — người còn phải xem cái xác này"
     continue
   fi
 
-  ended=$(epoch_cua "$(jq -r '.ended_at // empty' "$meta")")
+  ended=$(epoch_of "$(jq -r '.ended_at // empty' "$meta")")
   # Thiếu ended_at thì lấy mtime của meta — vẫn là một mốc thật.
   (( ended == 0 )) && ended=$(stat -c %Y "$meta" 2>/dev/null || echo 0)
-  tuoi=$(( NOW - ended ))
-  if (( tuoi < NGUONG )); then
-    ghi "$id" kept "mới kết thúc $(( tuoi / 60 )) phút trước (< ${GC_AGE_H}h)"
+  age=$(( NOW - ended ))
+  if (( age < NGUONG )); then
+    record "$id" kept "mới kết thúc $(( age / 60 )) phút trước (< ${GC_AGE_H}h)"
     continue
   fi
 
@@ -139,48 +139,48 @@ for wt in "$BEE_ROOT"/work/*/; do
   branch="bee/$slug-$num"
 
   # ── Code đã rời máy chưa? Ba câu trả lời, và chỉ hai câu cho phép xoá ──
-  an_toan=""
-  ly_do=""
+  safe=""
+  reason=""
   if [[ -z "$slug" || ! -d "$bare" ]]; then
-    an_toan=1; ly_do="không còn bare repo — không có nhánh nào để mất"
+    safe=1; reason="không còn bare repo — không có nhánh nào để mất"
   elif ! git --git-dir="$bare" show-ref -q --verify "refs/heads/$branch"; then
-    an_toan=1; ly_do="nhánh $branch không tồn tại"
+    safe=1; reason="nhánh $branch không tồn tại"
   else
     local_sha=$(git --git-dir="$bare" rev-parse "$branch")
     def=$(git --git-dir="$bare" symbolic-ref --short HEAD 2>/dev/null || echo main)
 
     # ls-remote cần mạng. Hỏng thì GIỮ: không biết đã push chưa mà vẫn xoá là
     # đúng cái cách làm mất việc mà rig-07 canh.
-    loi_ls=$(mktemp)
-    if remote_sha=$(timeout "$LS_TIMEOUT" git --git-dir="$bare" ls-remote origin "refs/heads/$branch" 2>"$loi_ls" | cut -f1); then
+    ls_err=$(mktemp)
+    if remote_sha=$(timeout "$LS_TIMEOUT" git --git-dir="$bare" ls-remote origin "refs/heads/$branch" 2>"$ls_err" | cut -f1); then
       if [[ "$remote_sha" == "$local_sha" ]]; then
-        an_toan=1; ly_do="đã push hết lên origin/$branch"
+        safe=1; reason="đã push hết lên origin/$branch"
       elif git --git-dir="$bare" merge-base --is-ancestor "$branch" "$def" 2>/dev/null; then
-        an_toan=1; ly_do="đã merge vào $def"
+        safe=1; reason="đã merge vào $def"
       else
-        ly_do="còn commit chưa push trên $branch"
+        reason="còn commit chưa push trên $branch"
       fi
     else
       # Chép lại lỗi git THẬT thay vì đoán: "mất mạng" và "PAT không đọc được
       # repo" dẫn tới hai hành động sửa khác hẳn nhau, mà người đọc gc.json
       # chỉ có đúng dòng này để phân biệt. (Máy thật 24/08: "Repository not
       # found" — sai tài khoản gh, không phải mạng.)
-      ly_do="không hỏi được origin: $(grep -m1 -E 'fatal|remote:|error' "$loi_ls" 2>/dev/null | cut -c1-120)"
+      reason="không hỏi được origin: $(grep -m1 -E 'fatal|remote:|error' "$ls_err" 2>/dev/null | cut -c1-120)"
     fi
-    rm -f "$loi_ls"
+    rm -f "$ls_err"
   fi
 
   # "Đã push" nói về NHÁNH. Thư mục làm việc là chuyện khác: phiên bị kill giữa
   # chừng có thể để lại sửa đổi chưa commit, và xoá lúc đó là mất việc thật —
   # đúng thứ luật này tồn tại để tránh. `status --porcelain` bỏ qua file đã
   # gitignore, nên node_modules không chặn gc (đó mới là phần nặng cần dọn).
-  if [[ -n "$an_toan" ]] && [[ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]]; then
-    an_toan=""
-    ly_do="còn thay đổi chưa commit trong worktree"
+  if [[ -n "$safe" ]] && [[ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]]; then
+    safe=""
+    reason="còn thay đổi chưa commit trong worktree"
   fi
 
-  if [[ -z "$an_toan" ]]; then
-    ghi "$id" kept "$ly_do"
+  if [[ -z "$safe" ]]; then
+    record "$id" kept "$reason"
     continue
   fi
 
@@ -190,11 +190,11 @@ for wt in "$BEE_ROOT"/work/*/; do
   # somebody notices. rig-07 part 2 watches this order, not just the call.
   docker_result=$(teardown_compose "$id" "$slug" "$num" "$wt")
   if [[ "$docker_result" == keep:* ]]; then
-    ghi "$id" kept "${docker_result#keep:}"
+    record "$id" kept "${docker_result#keep:}"
     continue
   fi
   if [[ "$docker_result" == removed:* ]]; then
-    ly_do="$ly_do; docker: brought down ${docker_result#removed:}"
+    reason="$reason; docker: brought down ${docker_result#removed:}"
   fi
 
   # ── Service slice (T15) ───────────────────────────────────────────────
@@ -205,9 +205,9 @@ for wt in "$BEE_ROOT"/work/*/; do
   slice_sh="$(dirname "$(readlink -f "$0")")/service-slice.sh"
   if [[ -x "$slice_sh" && -f "$sdir/services.json" ]]; then
     if "$slice_sh" reclaim "$id" >/dev/null 2>&1; then
-      ly_do="$ly_do; service slice: given back"
+      reason="$reason; service slice: given back"
     else
-      ghi "$id" kept "could not give the service slice back — keeping the worktree so the next tick can retry"
+      record "$id" kept "could not give the service slice back — keeping the worktree so the next tick can retry"
       continue
     fi
   fi
@@ -226,12 +226,12 @@ for wt in "$BEE_ROOT"/work/*/; do
      && git --git-dir="$bare" merge-base --is-ancestor "$branch" \
           "$(git --git-dir="$bare" symbolic-ref --short HEAD 2>/dev/null || echo main)" 2>/dev/null; then
     git --git-dir="$bare" branch -q -D "$branch" 2>/dev/null || true
-    ly_do="$ly_do; nhánh đã xoá"
+    reason="$reason; nhánh đã xoá"
   fi
 
   removed=$(( removed + 1 ))
   freed=$(( freed + bytes ))
-  ghi "$id" removed "$ly_do" "$bytes"
+  record "$id" removed "$reason" "$bytes"
 done
 
 # LUÔN ghi gc.json, kể cả khi không thu hồi gì — cùng kỷ luật với heartbeat:

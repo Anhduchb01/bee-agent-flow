@@ -81,7 +81,7 @@ CPID=""
 DA_DUNG=""      # set khi nhận SIGTERM (systemctl stop / nút Dừng)
 FIFO="$BEE_RUNTIME/$ID.in"
 
-don_dep() {
+cleanup() {
   local rc=$?
   exec 3>&- 2>/dev/null || true
   if [[ -n "$CPID" ]] && kill -0 "$CPID" 2>/dev/null; then
@@ -97,18 +97,18 @@ don_dep() {
   fi
 
   # Chỉ đóng sổ nếu meta còn đang running — reaper hoặc PAUSE có thể đã ghi trước
-  local hien_tai
-  hien_tai=$(jq -r '.status // empty' "$SDIR/meta.json" 2>/dev/null || true)
-  if [[ "$hien_tai" == "running" ]]; then
-    local ket="failed"
-    [[ -n "$DA_DUNG" ]] && ket="stopped"
-    [[ -z "$DA_DUNG" && $rc -eq 0 ]] && ket="done"
-    meta_merge "$SDIR" "$(jq -cn --arg s "$ket" --arg t "$(now_iso)" \
+  local current
+  current=$(jq -r '.status // empty' "$SDIR/meta.json" 2>/dev/null || true)
+  if [[ "$current" == "running" ]]; then
+    local result="failed"
+    [[ -n "$DA_DUNG" ]] && result="stopped"
+    [[ -z "$DA_DUNG" && $rc -eq 0 ]] && result="done"
+    meta_merge "$SDIR" "$(jq -cn --arg s "$result" --arg t "$(now_iso)" \
       '{status:$s, ended_at:$t}')"
-    lifecycle "$SDIR" "Phiên kết thúc: $ket."
+    lifecycle "$SDIR" "Phiên kết thúc: $result."
   fi
 }
-trap don_dep EXIT
+trap cleanup EXIT
 trap 'DA_DUNG=1; exit 0' TERM INT
 
 # ── 4 · Repo: bare clone + worktree + branch của phiên ─────────────────────
@@ -149,7 +149,7 @@ if [[ "$CO_WORKTREE" == "yes" ]]; then
 
   if [[ ! -d "$WT" ]]; then
     lifecycle "$SDIR" "Đang dựng worktree trên nhánh $BRANCH…"
-    dung_worktree "$BARE" "$WT" "$BRANCH" "$DEF" 2>>"$SDIR/stderr.log" \
+    make_worktree "$BARE" "$WT" "$BRANCH" "$DEF" 2>>"$SDIR/stderr.log" \
       || { lifecycle "$SDIR" "Dựng worktree thất bại — xem stderr.log."; die "worktree fail"; }
     git -C "$WT" config user.name  "bee-agent"
     git -C "$WT" config user.email "bee-agent@localhost"
@@ -163,7 +163,7 @@ if [[ "$CO_WORKTREE" == "yes" ]]; then
   # the keys but can never commit them, even when .gitignore misses them.
   # Dải cổng riêng của phiên (V3.T14) — web cấp lúc mở, ghi trong session.json.
   PORT_BASE=$(jq -r '.port_base // empty' "$SDIR/session.json")
-  ghi_cong "$WT" "$PORT_BASE"
+  write_ports "$WT" "$PORT_BASE"
 
   # Service slice (T15) — BEFORE the env.d overlay, because the templates
   # there substitute ${BEE_DB_URL} and friends, and AFTER the worktree exists,
@@ -181,7 +181,7 @@ if [[ "$CO_WORKTREE" == "yes" ]]; then
     EXCL="$(git -C "$WT" rev-parse --git-path info/exclude)"
     mkdir -p "$(dirname "$EXCL")"
     # chep_env_d thay ${BEE_PORT_n} bằng cổng thật của phiên này.
-    chep_env_d "$ENVD" "$WT" "$PORT_BASE"
+    copy_env_d "$ENVD" "$WT" "$PORT_BASE"
     SO_ENV=0
     while IFS= read -r f; do
       rel="${f#./}"

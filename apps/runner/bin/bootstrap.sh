@@ -17,10 +17,10 @@
 #    vào ~/.bash_history.
 set -euo pipefail
 
-KHONG_DOCKER=0; THAM_SO_DEPLOY=()
+NO_DOCKER=0; THAM_SO_DEPLOY=()
 for a in "$@"; do
   case "$a" in
-    --no-docker) KHONG_DOCKER=1;;
+    --no-docker) NO_DOCKER=1;;
     --fast|--e2e|--web-only) THAM_SO_DEPLOY+=("$a");;
     --khong-deploy) THAM_SO_DEPLOY=(--BO-QUA);;
     -h|--help) sed -n '2,17p' "$0"; exit 0;;
@@ -29,25 +29,25 @@ for a in "$@"; do
 done
 
 REPO="$(cd "$(dirname "$(readlink -f "$0")")/../../.." && pwd)"
-buoc() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
+step() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 ok()   { printf '  ✓ %s\n' "$*"; }
-loi()  { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; }
+err()  { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; }
 
 # ── 0 · Chỗ đứng ──────────────────────────────────────────────────────────
-buoc "0 · Kiểm tra chỗ đứng"
+step "0 · Kiểm tra chỗ đứng"
 
-[[ $EUID -eq 0 ]] && { loi "đừng chạy bằng root. Đăng nhập user bee rồi chạy lại."; exit 1; }
+[[ $EUID -eq 0 ]] && { err "đừng chạy bằng root. Đăng nhập user bee rồi chạy lại."; exit 1; }
 
 # $USER không phải lúc nào cũng có (systemd, `env -i`, cron) và khi thiếu thì
 # `set -u` giết script GIỮA lúc đang in lý do — người đọc chỉ thấy nó chết.
-TOI="$(id -un)"
+ME="$(id -un)"
 
 # Vào group docker là mất sạch ranh giới vừa dựng: docker.sock = quyền root
 # trên host (docs/docker-cho-bee.md §1). Đây là lỗi, không phải cảnh báo.
-for nhom in docker sudo adm; do
-  if id -nG | tr ' ' '\n' | grep -qx "$nhom"; then
-    loi "user $TOI đang ở group '$nhom' — ranh giới A+ vô nghĩa."
-    echo "     sudo gpasswd -d $TOI $nhom   # rồi đăng nhập lại và chạy lại" >&2
+for group in docker sudo adm; do
+  if id -nG | tr ' ' '\n' | grep -qx "$group"; then
+    err "user $ME đang ở group '$group' — ranh giới A+ vô nghĩa."
+    echo "     sudo gpasswd -d $ME $group   # rồi đăng nhập lại và chạy lại" >&2
     exit 1
   fi
 done
@@ -59,8 +59,8 @@ ok "không ở group docker/sudo/adm"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
 if ! systemctl --user show-environment >/dev/null 2>&1; then
-  loi "không nối được systemd --user (XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR)"
-  echo "     sudo loginctl enable-linger $TOI   # rồi chạy lại" >&2
+  err "không nối được systemd --user (XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR)"
+  echo "     sudo loginctl enable-linger $ME   # rồi chạy lại" >&2
   exit 1
 fi
 ok "systemd --user nối được"
@@ -86,18 +86,18 @@ EOF
 done
 
 # ── 1 · Gói hệ thống (phần duy nhất cần root) ─────────────────────────────
-buoc "1 · Gói hệ thống"
+step "1 · Gói hệ thống"
 # envsubst=gettext-base (chep_env_d), jq (doctor/gc), uidmap+dbus-user-session
 # (docker rootless). Thiếu cái nào thì hỏng ở tận đâu đó phía sau, nên chặn
 # ngay ở đây.
-declare -A GOI=( [git]=git [curl]=curl [jq]=jq [envsubst]=gettext-base
+declare -A PKGS=( [git]=git [curl]=curl [jq]=jq [envsubst]=gettext-base
                  [gh]=gh [newuidmap]=uidmap [dbus-daemon]=dbus-user-session )
 THIEU=()
-for lenh in "${!GOI[@]}"; do
-  command -v "$lenh" >/dev/null || THIEU+=("${GOI[$lenh]}")
+for cmd in "${!PKGS[@]}"; do
+  command -v "$cmd" >/dev/null || THIEU+=("${PKGS[$cmd]}")
 done
 if [[ ${#THIEU[@]} -gt 0 ]]; then
-  loi "thiếu gói: ${THIEU[*]}"
+  err "thiếu gói: ${THIEU[*]}"
   echo "     Nhờ người có sudo chạy MỘT lệnh này rồi chạy lại bootstrap:" >&2
   echo "     sudo apt-get update && sudo apt-get install -y ${THIEU[*]}" >&2
   exit 1
@@ -105,7 +105,7 @@ fi
 ok "git · curl · jq · envsubst · gh · uidmap · dbus-user-session"
 
 # ── 2 · node + pnpm (per-user, không đụng hệ thống) ───────────────────────
-buoc "2 · node + pnpm"
+step "2 · node + pnpm"
 NVM_DIR="$HOME/.nvm"
 if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
   curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash >/dev/null
@@ -123,19 +123,19 @@ if ! nvm which default >/dev/null 2>&1; then
 fi
 nvm use default >/dev/null
 if [[ "$(command -v node)" != "$NVM_DIR"/* ]]; then
-  loi "node vẫn đến từ $(command -v node) chứ không phải nvm — dừng ở đây"
+  err "node vẫn đến từ $(command -v node) chứ không phải nvm — dừng ở đây"
   echo "     Không có node của riêng mình thì bee không tự cập nhật được gì." >&2
   exit 1
 fi
-corepack enable || { loi "corepack enable trượt — xem lỗi ngay trên"; exit 1; }
-command -v pnpm >/dev/null || { loi "corepack chạy rồi mà vẫn không có pnpm"; exit 1; }
+corepack enable || { err "corepack enable trượt — xem lỗi ngay trên"; exit 1; }
+command -v pnpm >/dev/null || { err "corepack chạy rồi mà vẫn không có pnpm"; exit 1; }
 # corepack sẽ tải đúng bản pnpm repo ghim (packageManager). Không tắt cái
 # hỏi này thì nó ĐỨNG CHỜ Y/n giữa một script không ai ngồi trước màn hình.
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 ok "node $(node -v) · pnpm shim ($(command -v pnpm))"
 
 # ── 3 · Claude CLI ────────────────────────────────────────────────────────
-buoc "3 · Claude CLI"
+step "3 · Claude CLI"
 CLAUDE_BIN="$(command -v claude || true)"
 if [[ -z "$CLAUDE_BIN" || "$CLAUDE_BIN" != "$NVM_DIR"/* ]]; then
   # Có sẵn /usr/bin/claude thì đó là bản của root — dùng chung được nhưng
@@ -147,10 +147,10 @@ echo "  · token: KHÔNG dán ở đây. Chạy 'claude setup-token' ở máy b�
 echo "    dán vào trang /setup — argv và bash_history là chỗ token đi lạc."
 
 # ── 4 · Docker rootless ───────────────────────────────────────────────────
-if [[ $KHONG_DOCKER -eq 1 ]]; then
-  buoc "4 · Docker — BỎ QUA (--no-docker)"
+if [[ $NO_DOCKER -eq 1 ]]; then
+  step "4 · Docker — BỎ QUA (--no-docker)"
 else
-  buoc "4 · Docker rootless"
+  step "4 · Docker rootless"
   if ! command -v dockerd-rootless-setuptool.sh >/dev/null; then
     # Bản rootless của get.docker.com cài vào ~/bin, KHÔNG cần root — khác
     # get.docker.com thường (dựng daemon root + group docker = root).
@@ -162,14 +162,14 @@ else
     # setuptool tự in đoạn AppArmor cần root nếu kernel này đòi — đọc kỹ
     # phần nó in ra, đó là bước duy nhất còn cần người.
     dockerd-rootless-setuptool.sh install || {
-      loi "setuptool dừng — làm đúng cái nó vừa in rồi chạy lại bootstrap"
+      err "setuptool dừng — làm đúng cái nó vừa in rồi chạy lại bootstrap"
       exit 1
     }
   fi
   export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"
   systemctl --user enable --now docker >/dev/null 2>&1 || true
   if ! docker info >/dev/null 2>&1; then
-    loi "docker chưa lên: journalctl --user -u docker -n 30 --no-pager"
+    err "docker chưa lên: journalctl --user -u docker -n 30 --no-pager"
     exit 1
   fi
   ok "docker $(docker version -f '{{.Server.Version}}' 2>/dev/null) · rootless · $DOCKER_HOST"
@@ -180,31 +180,31 @@ else
   # do dockerd sinh ra KHÔNG thừa kế DBUS_SESSION_BUS_ADDRESS, nên runc đi
   # hỏi systemd HỆ THỐNG xin tạo scope, và polkit từ chối. Hỏng kiểu này mà
   # không thử thì tới lúc phiên đầu tiên cần postgres mới lòi ra.
-  LOI_RUN="$(docker run --rm alpine true 2>&1)" || {
-    if grep -q 'Interactive authentication required' <<<"$LOI_RUN"; then
+  RUN_ERR="$(docker run --rm alpine true 2>&1)" || {
+    if grep -q 'Interactive authentication required' <<<"$RUN_ERR"; then
       mkdir -p "$HOME/.config/docker"
       printf '{\n  "exec-opts": ["native.cgroupdriver=cgroupfs"]\n}\n' \
         > "$HOME/.config/docker/daemon.json"
       systemctl --user restart docker
       sleep 4
-      LOI_RUN="$(docker run --rm alpine true 2>&1)" \
+      RUN_ERR="$(docker run --rm alpine true 2>&1)" \
         && ok "chuyển cgroup driver sang cgroupfs (xem docs/docker-cho-bee.md §6)"
     fi
   }
   if docker run --rm alpine true >/dev/null 2>&1; then
     ok "container chạy thật được"
   else
-    loi "daemon sống nhưng không chạy nổi container:"
-    echo "$LOI_RUN" | tail -3 >&2
+    err "daemon sống nhưng không chạy nổi container:"
+    echo "$RUN_ERR" | tail -3 >&2
     exit 1
   fi
 fi
 
 # ── 5 · Bee ───────────────────────────────────────────────────────────────
 if [[ "${THAM_SO_DEPLOY[0]:-}" == "--BO-QUA" ]]; then
-  buoc "5 · Deploy — BỎ QUA (--khong-deploy)"
+  step "5 · Deploy — BỎ QUA (--khong-deploy)"
 else
-  buoc "5 · Cài bee"
+  step "5 · Cài bee"
   ( cd "$REPO/apps/web" && pnpm install --frozen-lockfile >/dev/null )
   ok "pnpm install"
   # Lần đầu chưa có unit nào để deploy.sh dò ra đường dẫn, mà mặc định của nó
@@ -215,7 +215,7 @@ else
 fi
 
 # ── 6 · Còn lại là việc của người ─────────────────────────────────────────
-buoc "Còn lại — việc của người"
+step "Còn lại — việc của người"
 PORT="$(sed -n 's/^PORT=//p' "${BEE_ROOT:-$HOME/.local/srv/bee}/web.env" 2>/dev/null | head -1)"
 cat <<EOF
   1. Mở web (127.0.0.1:${PORT:-3210}) → /setup: dán token Claude · dán PAT

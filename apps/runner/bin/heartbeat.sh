@@ -17,8 +17,8 @@ if [[ ! -f "$HB" ]]; then
   exit 1
 fi
 
-tuoi=$(( $(date +%s) - $(stat -c %Y "$HB") ))
-if (( tuoi > GIOI_HAN )); then
-  log "heartbeat cũ ${tuoi}s (> ${GIOI_HAN}s) — reaper có thể đã chết im lặng"
+age=$(( $(date +%s) - $(stat -c %Y "$HB") ))
+if (( age > GIOI_HAN )); then
+  log "heartbeat cũ ${age}s (> ${GIOI_HAN}s) — reaper có thể đã chết im lặng"
   exit 1
 fi

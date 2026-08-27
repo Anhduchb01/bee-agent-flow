@@ -28,17 +28,17 @@ for a in "$@"; do
   esac
 done
 
-buoc() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
-loi()  { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; }
+step() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
+err()  { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; }
 
 # ── 0 · Máy này đang cài ở đâu ────────────────────────────────────────────
 # Đọc từ CHÍNH unit đang chạy thay vì đoán /opt/bee + /srv/bee: máy này cài
 # vào ~/.local, và một script deploy đoán sai đường dẫn thì tệ hơn không có.
-tu_unit() { systemctl --user cat "$1" 2>/dev/null | sed -n "s|^$2||p" | head -1; }
+from_unit() { systemctl --user cat "$1" 2>/dev/null | sed -n "s|^$2||p" | head -1; }
 
-PREFIX="${BEE_PREFIX:-$(dirname "$(dirname "$(tu_unit bee-session@.service 'ExecStart=')" )")}"
+PREFIX="${BEE_PREFIX:-$(dirname "$(dirname "$(from_unit bee-session@.service 'ExecStart=')" )")}"
 [[ -z "$PREFIX" || "$PREFIX" == "." ]] && PREFIX="/opt/bee"
-BEE_ROOT="${BEE_ROOT:-$(tu_unit bee-web.service 'Environment=BEE_ROOT=')}"
+BEE_ROOT="${BEE_ROOT:-$(from_unit bee-web.service 'Environment=BEE_ROOT=')}"
 [[ -z "$BEE_ROOT" ]] && BEE_ROOT="/srv/bee"
 
 # Sau khi BEE_ROOT đã chốt, KHÔNG sớm hơn: common.sh cũng đặt mặc định cho
@@ -50,48 +50,48 @@ MOC="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo '?')"
 BAN="$(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
 BAN_DO="$(git -C "$REPO" status --porcelain 2>/dev/null | wc -l)"
 
-buoc "0 · Đích"
+step "0 · Đích"
 echo "  repo     $REPO ($BAN @ $MOC$([[ $BAN_DO -gt 0 ]] && echo ", $BAN_DO file chưa commit"))"
 echo "  runner   $PREFIX"
 echo "  dữ liệu  $BEE_ROOT"
 
 # ── 1 · Bốn cổng ──────────────────────────────────────────────────────────
 if [[ $CONG -eq 1 ]]; then
-  buoc "1 · Cổng chất lượng"
+  step "1 · Cổng chất lượng"
   ( cd "$WEB" && pnpm lint && pnpm typecheck && pnpm vitest run )
   ( cd "$RUNNER" && bash -n bin/*.sh lib/*.sh 2>/dev/null || bash -n bin/*.sh )
   echo "  ✓ lint · typecheck · unit test · cú pháp bash"
 else
-  buoc "1 · Cổng chất lượng — BỎ QUA (--fast)"
+  step "1 · Cổng chất lượng — BỎ QUA (--fast)"
 fi
 
 if [[ $E2E -eq 1 ]]; then
-  buoc "1b · E2E"
+  step "1b · E2E"
   ( cd "$WEB" && npx playwright test )
 fi
 
 # ── 2 · Build web ─────────────────────────────────────────────────────────
 # `pnpm build` tự chép .next/static + public vào standalone (bài học 19/08:
 # một bản build thiếu bước chép đã đẩy web lên mạng không CSS).
-buoc "2 · Build web"
+step "2 · Build web"
 # pnpm ở đây là shim của corepack: lần đầu nó tải bản repo ghim, và nếu
 # còn cái hỏi Y/n thì deploy đứng im giữa chừng.
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 ( cd "$WEB" && pnpm build >/dev/null )
 SERVER="$WEB/.next/standalone/apps/web/server.js"
-[[ -f "$SERVER" ]] || { loi "không thấy $SERVER — build hỏng?"; exit 1; }
+[[ -f "$SERVER" ]] || { err "không thấy $SERVER — build hỏng?"; exit 1; }
 echo "  ✓ $SERVER"
 
 # ── 3 · Cài runner + unit ─────────────────────────────────────────────────
 if [[ $CHI_WEB -eq 0 ]]; then
-  buoc "3 · Cài runner + unit"
+  step "3 · Cài runner + unit"
   BEE_PREFIX="$PREFIX" BEE_ROOT="$BEE_ROOT" BEE_WEB="$WEB" bash "$RUNNER/install.sh"
 else
-  buoc "3 · Runner — BỎ QUA (--web-only)"
+  step "3 · Runner — BỎ QUA (--web-only)"
 fi
 
 # ── 4 · Restart web + chờ nó thật sự trả lời ──────────────────────────────
-buoc "4 · Restart bee-web"
+step "4 · Restart bee-web"
 PORT="$(sed -n 's/^PORT=//p' "$BEE_ROOT/web.env" 2>/dev/null | head -1)"
 PORT="${PORT:-3210}"
 
@@ -99,10 +99,10 @@ PORT="${PORT:-3210}"
 # bee-web crash-loop EADDRINUSE 1005 lần — mà vòng chờ bên dưới vẫn báo ✓ vì
 # curl nhận được 307... từ web của người kia. "Cổng trả lời" không bao giờ là
 # bằng chứng "web CỦA TA đang chạy".
-CHU="$(port_owner "$PORT")"
-if [[ "$CHU" == other* ]]; then
-  read -r _ P_PID P_USER <<<"$CHU"
-  loi "Cổng $PORT do tiến trình khác giữ: pid ${P_PID:-?}${P_USER:+ (user $P_USER)} — không phải bee-web."
+OWNER="$(port_owner "$PORT")"
+if [[ "$OWNER" == other* ]]; then
+  read -r _ P_PID P_USER <<<"$OWNER"
+  err "Cổng $PORT do tiến trình khác giữ: pid ${P_PID:-?}${P_USER:+ (user $P_USER)} — không phải bee-web."
   echo "     Restart bây giờ chỉ đổi lấy một crash-loop im lặng."
   echo "     Dừng tiến trình kia, hoặc đổi PORT trong $BEE_ROOT/web.env."
   echo "     Ai đang giữ:  ss -ltnp \"sport = :$PORT\""
@@ -113,18 +113,18 @@ systemctl --user restart bee-web.service
 
 for i in $(seq 1 30); do
   MA="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/" || true)"
-  CHU="$(port_owner "$PORT")"
+  OWNER="$(port_owner "$PORT")"
   # 307 = đá về /login: web sống và auth đang gác. Đó là "khoẻ", không phải lỗi.
   # Nhưng chỉ tính là khoẻ khi cổng ĐÚNG LÀ của bee-web (hoặc không hỏi được).
-  if [[ "$MA" == "200" || "$MA" == "307" || "$MA" == "302" ]] && [[ "$CHU" != other* ]]; then
-    echo "  ✓ trả lời $MA sau ${i}s trên 127.0.0.1:$PORT (chủ cổng: $CHU)"
+  if [[ "$MA" == "200" || "$MA" == "307" || "$MA" == "302" ]] && [[ "$OWNER" != other* ]]; then
+    echo "  ✓ trả lời $MA sau ${i}s trên 127.0.0.1:$PORT (chủ cổng: $OWNER)"
     break
   fi
   if [[ $i -eq 30 ]]; then
-    if [[ "$CHU" == other* ]]; then
-      loi "cổng $PORT bị tiến trình khác chiếm trong lúc restart ($CHU) — bee-web đang crash-loop"
+    if [[ "$OWNER" == other* ]]; then
+      err "cổng $PORT bị tiến trình khác chiếm trong lúc restart ($OWNER) — bee-web đang crash-loop"
     else
-      loi "web không trả lời sau 30s (mã cuối: ${MA:-không có})"
+      err "web không trả lời sau 30s (mã cuối: ${MA:-không có})"
     fi
     echo "     journalctl --user -u bee-web -n 50 --no-pager"
     exit 1
@@ -133,7 +133,7 @@ for i in $(seq 1 30); do
 done
 
 # ── 5 · Doctor + tóm tắt ──────────────────────────────────────────────────
-buoc "5 · Doctor"
+step "5 · Doctor"
 systemctl --user start bee-doctor.service 2>/dev/null || true
 if command -v jq >/dev/null && [[ -f "$BEE_ROOT/doctor.json" ]]; then
   jq -r '"  " + (if .ok then "✓ checklist A+ xanh" else "✗ CÓ MỤC ĐỎ" end)
@@ -144,7 +144,7 @@ else
   echo "  (bỏ qua: cần jq + doctor.json)"
 fi
 
-buoc "Xong"
+step "Xong"
 printf '  %s @ %s · runner %s · web 127.0.0.1:%s\n' "$BAN" "$MOC" "$PREFIX" "$PORT"
 systemctl --user is-active bee-web.service bee-reaper.timer bee-heartbeat.timer \
   | paste -sd' ' - | sed 's/^/  units: /'

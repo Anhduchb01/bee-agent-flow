@@ -14,8 +14,8 @@ song=0
 
 for meta in "$BEE_ROOT"/sessions/*/meta.json; do
   [[ -f "$meta" ]] || continue
-  trang_thai=$(jq -r '.status // empty' "$meta")
-  [[ "$trang_thai" == "running" ]] || continue
+  status=$(jq -r '.status // empty' "$meta")
+  [[ "$status" == "running" ]] || continue
 
   sdir=$(dirname "$meta")
   id=$(basename "$sdir")
@@ -57,14 +57,14 @@ for meta in "$BEE_ROOT"/sessions/*/meta.json; do
   esac
 
   # Xác. Đóng sổ trong đúng một tick — không cần ai nhớ hộ chuyện gì đã xảy ra.
-  lan=$(( $(jq -r '.attempt // 0' "$meta") + 1 ))
-  can_nguoi=false
-  (( lan >= 2 )) && can_nguoi=true
+  attempt=$(( $(jq -r '.attempt // 0' "$meta") + 1 ))
+  needs_human_flag=false
+  (( attempt >= 2 )) && needs_human_flag=true
 
   meta_merge "$sdir" "$(jq -cn \
-    --argjson a "$lan" --argjson n "$can_nguoi" --arg t "$(now_iso)" \
+    --argjson a "$attempt" --argjson n "$needs_human_flag" --arg t "$(now_iso)" \
     '{status:"failed", reason:"reaped", attempt:$a, needs_human:$n, ended_at:$t}')"
-  lifecycle "$sdir" "Phiên chết ngoài ý muốn — reaper đóng sổ (lần $lan)."
+  lifecycle "$sdir" "Phiên chết ngoài ý muốn — reaper đóng sổ (lần $attempt)."
   rm -f "$BEE_RUNTIME/$id.in"
   don=$((don + 1))
 done

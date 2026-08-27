@@ -37,7 +37,7 @@ lifecycle() {
 # Dựng worktree cho một phiên. Tách khỏi session-run.sh để rig gọi được ĐÚNG
 # đoạn code chạy thật, không phải một bản chép gần giống.
 #   dung_worktree <bare> <worktree> <branch> <nhánh-mặc-định>
-dung_worktree() {
+make_worktree() {
   local bare="$1" wt="$2" branch="$3" def="$4"
 
   # Worktree bị xoá thô (crash, gc, rm -rf) vẫn còn ĐĂNG KÝ trong bare repo,
@@ -61,7 +61,7 @@ dung_worktree() {
 # compose của repo ghim cổng bằng `${POSTGRES_PORT:-5432}`, nên hai phiên cùng
 # repo sẽ đụng nhau nếu không có dải riêng. bee cấp dải; repo tự chọn ánh xạ
 # cổng nào vào việc gì (bee KHÔNG biết tên biến của từng repo, và không nên biết).
-ghi_cong() {
+write_ports() {
   local wt="$1" base="$2"
   [[ -n "$base" ]] || return 0
   mkdir -p "$wt/.bee"
@@ -78,7 +78,7 @@ ghi_cong() {
 # Chép file env vào worktree, thay `${BEE_PORT_n}` bằng cổng thật. CHỈ thay
 # đúng họ biến đó: `envsubst` không giới hạn sẽ nuốt luôn `$VAR` trong secret
 # của repo và làm hỏng chính thứ nó đang mang.
-chep_env_d() {
+copy_env_d() {
   local envd="$1" wt="$2" base="$3"
   [[ -d "$envd" ]] || return 0
   local ds=""

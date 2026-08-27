@@ -7,17 +7,17 @@
 # in ra ở cuối. Gỡ PAUSE là hành động bật máy có chủ đích.
 set -euo pipefail
 
-NGUON=$(dirname "$(readlink -f "$0")")
+SRC_DIR=$(dirname "$(readlink -f "$0")")
 PREFIX="${BEE_PREFIX:-/opt/bee}"
 BEE_ROOT="${BEE_ROOT:-/srv/bee}"
 # port_owner: cài web lên một cổng người khác đang giữ thì unit crash-loop
 # trong im lặng (25/08, 1005 lần). Hỏi trước khi bật.
-source "$NGUON/lib/common.sh"
+source "$SRC_DIR/lib/common.sh"
 
 echo "== 1 · Copy code vào $PREFIX =="
 if [[ -w "$(dirname "$PREFIX")" || -w "$PREFIX" ]]; then SUDO=""; else SUDO="sudo"; fi
 $SUDO mkdir -p "$PREFIX"
-$SUDO cp -r "$NGUON/bin" "$NGUON/lib" "$PREFIX/"
+$SUDO cp -r "$SRC_DIR/bin" "$SRC_DIR/lib" "$PREFIX/"
 $SUDO chmod +x "$PREFIX"/bin/*.sh
 
 echo "== 2 · Thư mục dữ liệu $BEE_ROOT =="
@@ -31,8 +31,8 @@ if [[ ! -d "$BEE_ROOT" ]]; then
 fi
 # FIRST install pauses the machine; a RE-install must not silently re-pause
 # a machine the owner already flipped live (found the hard way 20/08).
-MOI_CAI=1
-[[ -d "$BEE_ROOT/sessions" ]] && MOI_CAI=0
+FRESH=1
+[[ -d "$BEE_ROOT/sessions" ]] && FRESH=0
 mkdir -p "$BEE_ROOT"/{repos,repos.d,env.d,work,sessions}
 # Env của máy: mọi phiên đều nạp, không bao giờ đè lên auth. Tạo sẵn có chú
 # thích để lần sau cần thì biết chỗ, thay vì đi rải biến vào unit.
@@ -78,7 +78,7 @@ if [[ ! -f "$BEE_ROOT/services/admin.env" ]]; then
   chmod 600 "$BEE_ROOT/services/admin.env"
 fi
 
-[[ $MOI_CAI -eq 1 ]] && touch "$BEE_ROOT/PAUSE"
+[[ $FRESH -eq 1 ]] && touch "$BEE_ROOT/PAUSE"
 
 # PATH cho unit: systemd --user KHÔNG đọc ~/.profile, nên `claude` và `node`
 # của nvm vô hình với mọi unit. Hậu quả gặp thật 25/08: web bắt được bản
@@ -99,7 +99,7 @@ echo "== 3 · User units =="
 # ExecStart silently ignored both.
 UDIR="$HOME/.config/systemd/user"
 mkdir -p "$UDIR"
-for f in "$NGUON"/units/*.service "$NGUON"/units/*.timer; do
+for f in "$SRC_DIR"/units/*.service "$SRC_DIR"/units/*.timer; do
   # bee-web needs the web build resolved first — handled in step 3b.
   [[ "$(basename "$f")" == "bee-web.service" ]] && continue
   sed "s|@PREFIX@|$PREFIX|g; s|@BEE_ROOT@|$BEE_ROOT|g; s|@BINPATH@|$BINPATH|g" "$f" > "$UDIR/$(basename "$f")"
@@ -111,7 +111,7 @@ systemctl --user enable --now bee-reaper.timer bee-heartbeat.timer bee-gc.timer 
 
 echo "== 3b · Web service =="
 # BEE_WEB overrides where the web app lives (default: sibling of runner).
-WEB_DIR="${BEE_WEB:-$(readlink -f "$NGUON/../web")}"
+WEB_DIR="${BEE_WEB:-$(readlink -f "$SRC_DIR/../web")}"
 WEB_SERVER="$WEB_DIR/.next/standalone/apps/web/server.js"
 NODE_BIN="$(command -v node || true)"
 if [[ -f "$WEB_SERVER" && -n "$NODE_BIN" ]]; then
@@ -154,7 +154,7 @@ EOF
   fi
 
   sed "s|@BEE_ROOT@|$BEE_ROOT|g; s|@NODE@|$NODE_BIN|g; s|@WEBSERVER@|$WEB_SERVER|g; s|@BINPATH@|$BINPATH|g" \
-    "$NGUON/units/bee-web.service" > "$UDIR/bee-web.service"
+    "$SRC_DIR/units/bee-web.service" > "$UDIR/bee-web.service"
   systemctl --user daemon-reload
 
   # Cổng đã có chủ khác thì DỪNG ở đây, và nói chủ là ai. Bật đại lên chỉ
@@ -162,9 +162,9 @@ EOF
   # restart mãi, còn cổng vẫn trả 200 vì người kia đang phục vụ).
   WEB_PORT=$(sed -n 's/^PORT=//p' "$BEE_ROOT/web.env" 2>/dev/null | head -1)
   WEB_PORT="${WEB_PORT:-3210}"
-  CHU_CONG=$(port_owner "$WEB_PORT")
-  if [[ "$CHU_CONG" == other* ]]; then
-    read -r _ P_PID P_USER <<<"$CHU_CONG"
+  PORT_OWNER=$(port_owner "$WEB_PORT")
+  if [[ "$PORT_OWNER" == other* ]]; then
+    read -r _ P_PID P_USER <<<"$PORT_OWNER"
     echo >&2
     echo "✗ Cổng $WEB_PORT đã có chủ: pid ${P_PID:-?}${P_USER:+ (user $P_USER)} — KHÔNG phải bee-web." >&2
     echo "  Bật bee-web bây giờ thì nó chỉ crash-loop EADDRINUSE trong im lặng." >&2
@@ -181,13 +181,13 @@ fi
 echo "== 4 · Skill cho agent =="
 SKILL_DIR="$HOME/.claude/skills"
 mkdir -p "$SKILL_DIR"
-cp -r "$NGUON"/skills/* "$SKILL_DIR/"
+cp -r "$SRC_DIR"/skills/* "$SKILL_DIR/"
 
 # Global commands back the chat's action chips (/issue /pr /demo /preview) —
 # a chip only renders when its command exists here.
 CMD_DIR="$HOME/.claude/commands"
 mkdir -p "$CMD_DIR"
-cp "$NGUON"/commands/*.md "$CMD_DIR/"
+cp "$SRC_DIR"/commands/*.md "$CMD_DIR/"
 
 # record-screen (vendored, MIT — see its ATTRIBUTION.md) needs its node
 # deps once. Best-effort: recording is optional, install must not die here.
