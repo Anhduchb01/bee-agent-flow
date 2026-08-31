@@ -5,7 +5,14 @@ import type { BeeSession } from "@/lib/bee/types";
 
 import type { BoardRow, IssueSession } from "../lib/lanes";
 
-/** Shared row pieces — the table and the kanban must speak the same language. */
+/**
+ * Shared row pieces — the table and the kanban must speak the same language.
+ *
+ * Every link here is one line of 13px mono: 17px tall, and on a phone the
+ * rows stack so they sit a few pixels apart. `pointer-coarse:min-h-11`
+ * gives each one a fingertip of its own; the row grows on touch and stays
+ * dense on the desk.
+ */
 
 const TONE_PHIEN: Record<BeeSession["status"], Tone> = {
   running: "agent",
@@ -30,7 +37,7 @@ export function AttachedSession({ session }: { session: IssueSession[] }) {
         <Link
           key={p.id}
           href={`/sessions/${p.id}`}
-          className="flex items-center gap-1.5 font-mono text-xs text-body hover:underline"
+          className="flex items-center gap-1.5 font-mono text-xs text-body hover:underline pointer-coarse:min-h-11"
         >
           <StatusDot tone={p.needs_human ? "down" : TONE_PHIEN[p.status]} />
           {p.branch}
@@ -47,7 +54,7 @@ export function SoIssue({ row }: { row: BoardRow }) {
       href={row.issue.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="font-mono text-xs text-muted-foreground hover:underline"
+      className="inline-flex items-center font-mono text-xs text-muted-foreground hover:underline pointer-coarse:min-h-11"
     >
       #{row.issue.number} ↗
     </a>
@@ -62,7 +69,7 @@ export function LinkPR({ row }: { row: BoardRow }) {
         <Link
           key={pr.url}
           href={pr.number === null ? pr.url : `/pr/${row.slug}/${pr.number}`}
-          className="font-mono text-xs text-body hover:underline"
+          className="inline-flex items-center font-mono text-xs text-body hover:underline pointer-coarse:min-h-11"
         >
           PR #{pr.number ?? "?"}
         </Link>

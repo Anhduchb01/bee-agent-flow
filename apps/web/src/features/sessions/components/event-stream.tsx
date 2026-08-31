@@ -5,6 +5,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { pairToolCards, type Card } from "../lib/pair-tool-cards";
+import { WideTable } from "./markdown-table";
 import type { StreamEvent } from "../lib/parse-events";
 
 /**
@@ -22,7 +23,8 @@ import type { StreamEvent } from "../lib/parse-events";
 function AgentProse({ text }: { text: string }) {
   return (
     <div
-      className="space-y-2 text-[0.9375rem] leading-6 text-body
+      data-prose
+      className="space-y-2 text-[0.9375rem] leading-6 wrap-anywhere text-body
         [&_a]:underline [&_a]:underline-offset-2
         [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground
         [&_code]:rounded [&_code]:bg-muted/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.8125rem]
@@ -30,12 +32,16 @@ function AgentProse({ text }: { text: string }) {
         [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5
         [&_pre]:overflow-x-auto [&_pre]:rounded-control [&_pre]:border [&_pre]:border-border [&_pre]:bg-muted/40 [&_pre]:p-3
         [&_pre_code]:bg-transparent [&_pre_code]:p-0
-        [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1"
+        [&_img]:h-auto [&_img]:max-w-full
+        [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1"
     >
-      <Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
+      <Markdown remarkPlugins={[remarkGfm]} components={{ table: WideTable }}>
+        {text}
+      </Markdown>
     </div>
   );
 }
+
 /**
  * VSCode-style shimmer for the seconds when the agent owes an answer but
  * nothing streams yet ("Pontificating…"). Without it the first message of
@@ -88,14 +94,14 @@ export function EventStream({
   const row = useMemo(() => pairToolCards(events), [events]);
 
   return (
-    <div role="log" aria-label="Session events" className="flex flex-col gap-4">
+    <div role="log" aria-label="Session events" className="flex min-w-0 flex-col gap-4">
       {row.map((m, i) => (
         <OneCard key={i} m={m} onAnswerPermission={onAnswerPermission} />
       ))}
       {idle !== "" && (
         <p
           aria-label="Agent is thinking"
-          className="whitespace-pre-wrap text-sm text-muted-foreground italic"
+          className="wrap-anywhere whitespace-pre-wrap text-sm text-muted-foreground italic"
         >
           {idle}
         </p>
@@ -149,7 +155,7 @@ function PermissionCard({
           </span>
         )}
       </p>
-      <pre className="overflow-x-auto rounded-control border border-border bg-muted/40 p-2 font-mono text-xs">
+      <pre className="wrap-anywhere overflow-x-auto whitespace-pre-wrap rounded-control border border-border bg-muted/40 p-2 font-mono text-xs">
         {summariseArgs(m.name, m.args)}
       </pre>
       {m.answer === null && onAnswer !== undefined && (
@@ -157,14 +163,14 @@ function PermissionCard({
           <button
             type="button"
             onClick={() => onAnswer(m.requestId, true, m.args)}
-            className="rounded-control bg-[#C15F3C] px-3 py-1 text-xs font-medium text-white hover:bg-[#a94f31]"
+            className="rounded-control bg-[#C15F3C] px-3 py-1 text-xs font-medium text-white hover:bg-[#a94f31] pointer-coarse:min-h-11 pointer-coarse:px-5"
           >
             Allow
           </button>
           <button
             type="button"
             onClick={() => onAnswer(m.requestId, false, m.args)}
-            className="rounded-control border border-border px-3 py-1 text-xs text-body hover:bg-accent"
+            className="rounded-control border border-border px-3 py-1 text-xs text-body hover:bg-accent pointer-coarse:min-h-11 pointer-coarse:px-5"
           >
             Deny
           </button>
@@ -190,7 +196,9 @@ function OneCard({
       // Như VSCode: hộp viền full-width, không phải bubble lệch phải.
       return (
         <div className="rounded-card border border-border bg-input/30 px-3.5 py-2.5">
-          <p className="whitespace-pre-wrap text-[0.9375rem] leading-6 text-body">{m.text}</p>
+          <p className="wrap-anywhere whitespace-pre-wrap text-[0.9375rem] leading-6 text-body">
+            {m.text}
+          </p>
         </div>
       );
     case "agent-said":
@@ -198,11 +206,11 @@ function OneCard({
     case "thinking":
       return (
         <details className="group">
-          <summary className="cursor-pointer list-none font-mono text-xs text-muted-foreground">
+          <summary className="flex cursor-pointer list-none items-center py-0.5 font-mono text-xs text-muted-foreground">
             <span className="mr-1 inline-block transition-transform group-open:rotate-90">›</span>
             Thinking
           </summary>
-          <p className="mt-1 whitespace-pre-wrap pl-4 text-sm text-muted-foreground italic">
+          <p className="mt-1 wrap-anywhere whitespace-pre-wrap pl-4 text-sm text-muted-foreground italic">
             {m.text}
           </p>
         </details>
@@ -217,7 +225,7 @@ function OneCard({
             href={m.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-semibold text-body underline-offset-2 hover:underline"
+            className="inline-flex shrink-0 items-center font-semibold text-body underline-offset-2 hover:underline pointer-coarse:min-h-11"
           >
             {m.artifactKind === "pr" ? "Pull request" : "Issue"}
             {m.number !== null ? ` #${m.number}` : ""}
@@ -262,9 +270,9 @@ function TheTool({ m }: { m: Extract<Card, { kind: "tool-card" }> }) {
 
   return (
     <details className="group" open={m.status === "error"}>
-      <summary className="flex cursor-pointer list-none items-baseline gap-2">
+      <summary className="flex cursor-pointer list-none items-baseline gap-2 overflow-hidden py-0.5 pointer-coarse:items-center">
         <StatusPip status={m.status} />
-        <span className="text-sm font-semibold text-body">{m.name}</span>
+        <span className="max-w-[55%] truncate text-sm font-semibold text-body">{m.name}</span>
         <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
           {tomTat}
         </span>
@@ -302,12 +310,12 @@ function ThanThe({ m }: { m: Extract<Card, { kind: "tool-card" }> }) {
   return (
     <>
       {m.args !== "" && m.args !== "{}" && (
-        <pre className="overflow-x-auto rounded-control border border-border p-2 font-mono text-xs text-muted-foreground">
+        <pre className="wrap-anywhere overflow-x-auto whitespace-pre-wrap rounded-control border border-border p-2 font-mono text-xs text-muted-foreground">
           {m.args}
         </pre>
       )}
       {m.result !== null && (
-        <pre className="overflow-x-auto whitespace-pre-wrap rounded-control border border-border p-2 font-mono text-xs">
+        <pre className="wrap-anywhere overflow-x-auto whitespace-pre-wrap rounded-control border border-border p-2 font-mono text-xs">
           {m.result}
         </pre>
       )}
@@ -339,7 +347,9 @@ function GutterLine({ label, text }: { label: "IN" | "OUT"; text: string }) {
       <span className="w-9 shrink-0 select-none pt-1.5 pl-1.5 text-[0.625rem] tracking-wide text-muted-foreground">
         {label}
       </span>
-      <pre className="min-w-0 flex-1 overflow-x-auto whitespace-pre-wrap py-1.5 pr-2">{text}</pre>
+      <pre className="min-w-0 flex-1 wrap-anywhere overflow-x-auto whitespace-pre-wrap py-1.5 pr-2">
+        {text}
+      </pre>
     </div>
   );
 }

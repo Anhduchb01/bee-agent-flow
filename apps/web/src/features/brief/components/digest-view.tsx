@@ -21,7 +21,7 @@ export function DigestView({ digest }: { digest: Digest }) {
               ? "Nothing has been queued"
               : "Work is queued but nothing could run"}
           </EmptyTitle>
-          <EmptyDescription>
+          <EmptyDescription data-prose>
             {digest.kind === "nothing-queued" ? (
               <>Queue an issue into the Autopilot lane on the{" "}<Link href="/projects?view=kanban" className="underline">project board</Link>, then hit Run now — or leave it for the next tick.</>
             ) : (

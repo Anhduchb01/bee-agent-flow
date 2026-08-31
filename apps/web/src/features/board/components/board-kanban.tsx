@@ -58,7 +58,10 @@ export function BoardKanban({ row }: { row: BoardRow[] }) {
           Cannot drop here: {refused}
         </p>
       )}
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
+      <div
+        data-scroll-x
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]"
+      >
       {LANES.map((lane) => (
         <section
           key={lane}

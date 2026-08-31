@@ -33,7 +33,8 @@ function Chip({
       href={href}
       aria-current={selected ? "page" : undefined}
       // min-h-9: a filter you cannot hit with a thumb is not a filter.
-      className={`flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs ${
+      // 44 on touch — 36 was the guess, 44 is Apple's measured number.
+      className={`flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs pointer-coarse:min-h-11 pointer-coarse:px-4 ${
         selected
           ? "border-primary bg-primary/10 text-foreground"
           : "border-border bg-card text-body hover:bg-muted"
@@ -60,6 +61,7 @@ export function BoardToolbar({
     <div className="flex flex-col gap-2">
       <nav
         aria-label="Filter by project"
+        data-scroll-x
         className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <Chip href={boardHref(null, view)} selected={sidebarProjects === null}>

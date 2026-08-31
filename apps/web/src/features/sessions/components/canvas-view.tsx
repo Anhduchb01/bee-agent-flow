@@ -393,7 +393,7 @@ export function CanvasView({
               setFlowNodes(nodes.map((n) => ({ ...n, data: { ...n.data } })));
               setFlowEdges(edges.map((e) => ({ ...e })));
             }}
-            className="rounded-control border border-border bg-card px-3 py-1.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-body"
+            className="rounded-control border border-border bg-card px-3 py-1.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-body pointer-coarse:min-h-11 pointer-coarse:px-4"
           >
             ⌗ Tidy layout
           </button>

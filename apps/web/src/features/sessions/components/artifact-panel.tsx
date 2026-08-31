@@ -8,6 +8,7 @@ import { StatusDot, type Tone } from "@/components/status-dot";
 import { Button } from "@/components/ui/button";
 
 import { loadArtifactDetailAction, loadArtifactEvidenceAction } from "../api/actions";
+import { WideTable } from "./markdown-table";
 import type { BeeArtifactDetail } from "@/lib/bee/artifact-detail";
 import type { BeeEvidenceFile } from "@/lib/bee/types";
 
@@ -27,7 +28,8 @@ const STATE_TONE: Record<string, Tone> = {
 function GithubProse({ text }: { text: string }) {
   return (
     <div
-      className="space-y-2 text-sm leading-6 text-body
+      data-prose
+      className="space-y-2 text-sm leading-6 wrap-anywhere text-body
         [&_a]:underline [&_a]:underline-offset-2
         [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground
         [&_code]:rounded [&_code]:bg-muted/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.8125rem]
@@ -35,9 +37,12 @@ function GithubProse({ text }: { text: string }) {
         [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5
         [&_pre]:overflow-x-auto [&_pre]:rounded-control [&_pre]:border [&_pre]:border-border [&_pre]:bg-muted/40 [&_pre]:p-3
         [&_pre_code]:bg-transparent [&_pre_code]:p-0
-        [&_img]:max-w-full"
+        [&_img]:h-auto [&_img]:max-w-full
+        [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1"
     >
-      <Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
+      <Markdown remarkPlugins={[remarkGfm]} components={{ table: WideTable }}>
+        {text}
+      </Markdown>
     </div>
   );
 }

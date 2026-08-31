@@ -86,7 +86,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           }}
           signingOut={signOutAction}
         />
-        <SidebarInset>{children}</SidebarInset>
+        {/* `min-w-0`: SidebarInset ships with `w-full`, which makes its
+            automatic minimum size 100% of the wrapper — so one wide code
+            block in the chat pushed the whole page 256px past the window
+            and the DESKTOP scrolled sideways too. Set here, not in
+            components/ui/sidebar.tsx, which `shadcn add` overwrites. */}
+        <SidebarInset className="min-w-0">{children}</SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
   );

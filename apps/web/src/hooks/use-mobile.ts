@@ -1,7 +1,19 @@
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
-const QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
+
+/**
+ * "Mobile" is not only a narrow window.
+ *
+ * An iPhone 13 Pro Max on its side is 926px wide — past the breakpoint — so
+ * the app used to hand it the DESKTOP sidebar: 256px of permanent chrome,
+ * a third of the screen, on a device with 428px of height to spend. The
+ * second clause catches that: short AND touch-driven is a phone, whatever
+ * the width says. A desk window is never `pointer: coarse`, so nothing on a
+ * laptop changes.
+ */
+const QUERY =
+  `(max-width: ${MOBILE_BREAKPOINT - 1}px), (max-height: 500px) and (pointer: coarse)`;
 
 /**
  * Bản CLI sinh ra dùng `useState` + `setState` ngay trong `useEffect`, và

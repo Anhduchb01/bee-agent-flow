@@ -94,7 +94,7 @@ export function RepoRegistry({
                   href={`https://github.com/${r.repo}/settings/branches`}
                   target="_blank"
                   rel="noreferrer"
-                  className="shrink-0 text-muted-foreground underline-offset-2 hover:underline"
+                  className="inline-flex shrink-0 items-center text-muted-foreground underline-offset-2 hover:underline pointer-coarse:min-h-11"
                 >
                   Protect main ↗
                 </a>

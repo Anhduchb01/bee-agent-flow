@@ -92,7 +92,7 @@ export function RepoCombobox({
         aria-haspopup="listbox"
         aria-controls={open ? "repo-combobox-listbox" : undefined}
         onClick={() => (open ? setOpen(false) : openPanel())}
-        className="flex h-9 w-full items-center justify-between gap-2 rounded-control border border-border bg-transparent px-2 font-mono text-sm text-body"
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-control border border-border bg-transparent px-2 font-mono text-sm text-body pointer-coarse:h-11"
       >
         <span className="truncate">{selectedLabel}</span>
         <span aria-hidden className="text-muted-foreground">
