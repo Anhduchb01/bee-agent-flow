@@ -123,7 +123,7 @@ function ModeMenu({
         disabled={disabled}
         onClick={() => setMo((x) => !x)}
         title="Switch permission mode — the agent restarts and resumes this conversation"
-        className="flex h-7 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground hover:bg-accent hover:text-body disabled:opacity-40"
+        className="flex h-7 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground hover:bg-accent hover:text-body disabled:opacity-40 pointer-coarse:h-11 pointer-coarse:px-3"
       >
         <Icon className="size-3.5" />
         {current?.label}
@@ -347,7 +347,7 @@ export function LiveView({
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background text-body" style={VSCODE_SKIN}>
       {/* thanh trạng thái */}
-      <div className="flex items-center gap-3 border-b border-border px-4 py-2 sm:px-6">
+      <div className="flex items-center gap-3 border-b border-border px-4 py-2 sm:px-6 short:py-1">
         <StatusDot tone={ended === null ? "agent" : ended === "done" ? "ok" : "down"} />
         {/* min-w-0 + truncate: repo · branch is the longest string on the
             bar — on a phone it must give way, never push Stop off-screen. */}
@@ -379,7 +379,7 @@ export function LiveView({
       )}
 
       {/* dòng sự kiện */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
         {events.length === 0 && typing === "" && idle === "" ? (
           <p className="text-sm text-muted-foreground">
             {status === "connecting" ? "Connecting…" : "Waiting for the session to speak…"}
@@ -403,14 +403,15 @@ export function LiveView({
       </div>
 
       {/* ô gõ — hộp bo tròn kiểu Claude Code; nút đổi vai theo trạng thái */}
-      <div className="p-3 sm:p-4">
+      <div className="p-3 pb-[max(calc(var(--spacing)*3),env(safe-area-inset-bottom))] sm:p-4 sm:pb-[max(calc(var(--spacing)*4),env(safe-area-inset-bottom))] short:p-2 short:pb-[max(calc(var(--spacing)*2),env(safe-area-inset-bottom))]">
         {/* Action chips: the whole flow tappable — no "/" typing on a phone.
             One scrollable row so six chips never wrap the input area taller. */}
         {running && chips.length > 0 && (
           <div
             role="toolbar"
             aria-label="Session actions"
-            className="mb-2 flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            data-scroll-x
+            className="mb-2 flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden short:mb-1"
           >
             {chips.map((c) => (
               <button
@@ -420,7 +421,7 @@ export function LiveView({
                 aria-pressed={c.command === pickedCommand}
                 data-suggested={c.command === suggestion || undefined}
                 onClick={() => pickCommand(c.command)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs hover:bg-accent ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs hover:bg-accent pointer-coarse:min-h-11 pointer-coarse:px-4 short:pointer-coarse:min-h-9 ${
                   c.command === pickedCommand
                     ? "border-[#C15F3C] bg-[#C15F3C]/25 text-body"
                     : "border-border bg-secondary text-body"

@@ -38,7 +38,7 @@ export function PreviewsCard({ previews }: { previews: BeePreviewLive[] }) {
                 href={p.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                className="inline-flex items-center text-sm font-medium text-foreground underline-offset-4 hover:underline pointer-coarse:min-h-11"
               >
                 {p.slug} <span className="font-mono text-xs text-muted-foreground">:{p.port} ↗</span>
               </a>

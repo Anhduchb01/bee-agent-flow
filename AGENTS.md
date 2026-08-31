@@ -94,6 +94,39 @@ machine do something, change state on GitHub and let the reconciler pick it up.
 **The reconciler is not modified from here.** If a feature seems to need a change
 in `apps/runner/`, stop and raise it — separate change, separate review.
 
+### The phone is the target, not a breakpoint
+
+The PRD's most important screen is the chat **on a phone**. Two rules keep it
+that way, and `apps/web/e2e/mobile-layout.spec.ts` enforces both on an iPhone
+13 Pro Max viewport:
+
+- **Nothing scrolls sideways.** Not the document, and not a panel: a box with
+  `overflow-y-auto` computes `overflow-x` to `auto` as well, so one 260-char
+  path in the chat starts the whole conversation sliding under the thumb while
+  the document stays 428px wide and a desktop review sees nothing. Text that
+  can be long wraps (`wrap-anywhere`); code, output and tables scroll inside
+  their own box, never in the column that holds them.
+- **A container may scroll sideways only if it says so** — `<pre>`, `<table>`,
+  or `data-scroll-x` (the chip rails, the kanban carousel). That attribute is
+  the contract the test reads; anything else that scrolls is a bug.
+
+`/sessions/de300000-0000-4000-8000-0000000000ff` is a fixture session that
+exists only by URL and carries every shape a phone hates. It is where the
+above is proven.
+
+**Every control is 44px on a touch screen** — Apple's minimum, and the same
+spec enforces it. The shared rules live in `globals.css` behind
+`@media (pointer: coarse)`, never in `components/ui/`, which `shadcn add`
+overwrites; a component that sets its own height adds `pointer-coarse:` next
+to it. Two things are exempt and say so in the markup, not in a list that
+rots: `[data-prose]` (a link inside a sentence — typography wins) and
+`.react-flow` (the canvas scales its contents with the zoom).
+
+The `short:` variant is the same idea for landscape, where 428px of HEIGHT is
+the whole budget: header, status bar and composer go dense so the
+conversation keeps its room. Nothing is hidden on rotation — losing a control
+is worse than losing eight pixels of padding.
+
 ### Stack
 
 Next.js 16.3 (App Router) · React 19.2 · TypeScript strict · **Tailwind v4** ·

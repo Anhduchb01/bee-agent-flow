@@ -22,7 +22,7 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-sidebar-border bg-chrome px-4 sm:px-6">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-sidebar-border bg-chrome px-4 sm:px-6 short:h-11">
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-4" />
       {/* Auto-titled sessions can be a whole sentence — truncate on phones. */}

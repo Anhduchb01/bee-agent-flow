@@ -83,7 +83,7 @@ export function NewSessionForm({
           onChange={(e) => setMode(e.target.value as BeeSessionMode)}
           aria-label="Session mode"
           title={MODE_OPTIONS.find((m) => m.value === mode)?.hint}
-          className="h-9 rounded-control border border-border bg-transparent px-2 font-mono text-sm text-body"
+          className="h-9 rounded-control border border-border bg-transparent px-2 font-mono text-sm text-body pointer-coarse:h-11"
         >
           {MODE_OPTIONS.map((m) => (
             <option key={m.value} value={m.value}>

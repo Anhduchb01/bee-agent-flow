@@ -78,7 +78,7 @@ function TabLink({ tab, current, children }: { tab: SetupTab; current: SetupTab;
     <Link
       href={`/setup?tab=${tab}`}
       aria-current={tab === current ? "page" : undefined}
-      className={`flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs ${
+      className={`flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs pointer-coarse:min-h-11 pointer-coarse:px-4 ${
         tab === current
           ? "border-primary bg-primary/10 text-foreground"
           : "border-border bg-card text-body hover:bg-muted"

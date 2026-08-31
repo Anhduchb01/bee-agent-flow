@@ -20,7 +20,8 @@ import type { BoardRow } from "../lib/lanes";
  */
 
 /** Vùng bấm ≥ 44px (sàn của Apple) — nút 24px với padding thì thumb vẫn trượt. */
-const NUT = "flex size-9 items-center justify-center rounded-control border border-border text-xs text-body hover:bg-accent disabled:opacity-40";
+const NUT =
+  "flex size-9 items-center justify-center rounded-control border border-border text-xs text-body hover:bg-accent disabled:opacity-40 pointer-coarse:size-11";
 
 export function QueueButton({ row }: { row: BoardRow }) {
   const router = useRouter();
@@ -108,7 +109,7 @@ export function RunNowButton({ queued }: { queued: number }) {
         type="button"
         onClick={onRunNow}
         disabled={busy || queued === 0}
-        className="flex h-9 items-center rounded-control border border-border px-3 text-xs text-body hover:bg-accent disabled:opacity-40"
+        className="flex h-9 items-center rounded-control border border-border px-3 text-xs text-body hover:bg-accent disabled:opacity-40 pointer-coarse:h-11 pointer-coarse:px-4"
       >
         {busy ? "Running…" : "Run now"}
       </button>

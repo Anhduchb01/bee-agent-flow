@@ -64,7 +64,7 @@ export function PlusMenu({
         aria-expanded={open}
         disabled={disabled}
         onClick={() => setOpen((x) => !x)}
-        className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-body disabled:opacity-40"
+        className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-body disabled:opacity-40 pointer-coarse:size-11"
       >
         <PlusIcon className="size-4" />
       </button>
@@ -163,7 +163,7 @@ export function ActionsPanel({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => (open ? close() : setOpen(true))}
-        className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-body"
+        className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-body pointer-coarse:size-11"
       >
         <SquareSlashIcon className="size-4" />
       </button>

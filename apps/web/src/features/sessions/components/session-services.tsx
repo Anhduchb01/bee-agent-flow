@@ -33,7 +33,7 @@ export function SessionServices({ slice }: { slice: BeeSlice | null }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Services for this session (${slice.items.length})`}
-        className="flex h-8 shrink-0 items-center gap-1.5 rounded-control border border-border px-2.5 font-mono text-xs text-body hover:bg-accent"
+        className="flex h-8 shrink-0 items-center gap-1.5 rounded-control border border-border px-2.5 font-mono text-xs text-body hover:bg-accent pointer-coarse:h-11 pointer-coarse:px-3"
       >
         <span aria-hidden>⛁</span>
         {slice.items.length}

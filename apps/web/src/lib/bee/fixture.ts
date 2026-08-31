@@ -204,6 +204,7 @@ export function createFixtureBeeSource(): BeeSource {
     },
 
     async readSession(id): Promise<BeeSession | null> {
+      if (id === WIDE_SESSION_ID) return demoSessionWide();
       const entries = await this.listSessions();
       return entries.find((p) => p.id === id) ?? null;
     },
@@ -288,8 +289,41 @@ export function createFixtureBeeSource(): BeeSource {
       // Mọi phiên fixture stream cùng một run.jsonl thật ghi từ rig S0 —
       // hình dạng thật, không phải bịa.
       if (!id.startsWith("de3")) return null;
-      return path.join(process.cwd(), "src", "lib", "fixtures", "bee", "session-run-demo.jsonl");
+      const file = id === WIDE_SESSION_ID ? "session-run-wide.jsonl" : "session-run-demo.jsonl";
+      return path.join(process.cwd(), "src", "lib", "fixtures", "bee", file);
     },
+  };
+}
+
+/**
+ * The layout torture session — reachable by URL, deliberately NOT in
+ * `listSessions()`.
+ *
+ * Its stream (`session-run-wide.jsonl`) carries what a real repo session
+ * carries and a phone cannot: 260-character paths, an unbreakable error
+ * token, a six-column markdown table, a shell line that does not wrap. On
+ * a 428px viewport every one of those used to push the chat sideways, so
+ * this session is the only place `e2e/mobile-layout.spec.ts` can prove the
+ * fix. Listing it would put a fake session on the canvas and in every
+ * count; a URL-only session costs nothing and lies to nobody.
+ */
+const WIDE_SESSION_ID = "de300000-0000-4000-8000-0000000000ff";
+
+function demoSessionWide(): BeeSession {
+  return {
+    id: WIDE_SESSION_ID,
+    slug: "myapp",
+    num: 128,
+    repo: "you/myapp",
+    title: "Wide output — every way a phone chat can be pushed sideways",
+    phase: "work",
+    worktree: true,
+    status: "running",
+    created_at: "2026-08-31T09:00:00Z",
+    started_at: "2026-08-31T09:00:04Z",
+    ended_at: null,
+    attempt: 0,
+    needs_human: false,
   };
 }
 
