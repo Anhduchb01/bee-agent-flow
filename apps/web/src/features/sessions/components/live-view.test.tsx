@@ -48,9 +48,57 @@ function mockStream(input: Partial<ReturnType<typeof useSessionStream>>) {
     status: "open",
     ended: null,
     skipped: 0,
+    above: 0,
+    loadOlder: vi.fn(async () => {}),
+    loadingOlder: false,
     ...input,
   } as ReturnType<typeof useSessionStream>);
 }
+
+describe("LiveView — reaching the whole history", () => {
+  /**
+   * The SSE stream replays the last 200 lines and reports how many it skipped.
+   * Before 27/08 that was the end of it: the chat could not be scrolled back
+   * to its first message and offered no way to ask.
+   */
+  it("offers the earlier messages, counted, when the stream skipped some", () => {
+    mockStream({ skipped: 640, above: 640 });
+    render(<LiveView session={PHIEN} />);
+
+    expect(screen.getByRole("button", { name: /Load 640 earlier/ })).toBeInTheDocument();
+  });
+
+  it("asking for them calls the pager", async () => {
+    const loadOlder = vi.fn(async () => {});
+    mockStream({ skipped: 400, above: 400, loadOlder });
+    const user = userEvent.setup();
+    render(<LiveView session={PHIEN} />);
+
+    await user.click(screen.getByRole("button", { name: /Load 400 earlier/ }));
+    expect(loadOlder).toHaveBeenCalled();
+  });
+
+  it("says it is working, and cannot be asked twice at once", () => {
+    mockStream({ skipped: 400, above: 400, loadingOlder: true });
+    render(<LiveView session={PHIEN} />);
+
+    expect(screen.getByRole("button", { name: "Loading…" })).toBeDisabled();
+  });
+
+  it("scrolled back to the first message, the offer is gone", () => {
+    mockStream({ skipped: 400, above: 0 });
+    render(<LiveView session={PHIEN} />);
+
+    expect(screen.queryByRole("button", { name: /earlier/ })).not.toBeInTheDocument();
+  });
+
+  it("a short session never sees the offer at all", () => {
+    mockStream({ skipped: 0, above: 0 });
+    render(<LiveView session={PHIEN} />);
+
+    expect(screen.queryByRole("button", { name: /earlier/ })).not.toBeInTheDocument();
+  });
+});
 
 describe("LiveView — one mode, VSCode-style controls", () => {
   it("no interview gate: no 'OK, do it' anywhere, repo session prompts plainly", () => {

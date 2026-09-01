@@ -46,3 +46,15 @@ test("create from combobox, watch the stream, interject, stop", async ({ page })
   await page.getByRole("button", { name: "Stop" }).click();
   await expect(log).toBeVisible();
 });
+
+/*
+ * Not covered here: opening a chat at the newest message.
+ *
+ * It needs the conversation to overflow the viewport, and no fixture session
+ * does — measured at 390x380, the log renders 149px tall, so every version of
+ * this assertion passed whether the scroll hook existed or not. A test that
+ * cannot fail is worse than no test, so the behaviour is pinned where it can
+ * be driven honestly: use-chat-scroll.test.ts sets scrollHeight/clientHeight
+ * itself and checks all three rules — open at the bottom, follow only from the
+ * bottom, hold your place when history is prepended.
+ */

@@ -8,7 +8,7 @@ import {
   SquarePenIcon,
   ZapIcon,
 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,7 @@ import {
   answerPermissionAction,
   uploadFileAction,
 } from "../api/actions";
+import { useChatScroll } from "../hooks/use-chat-scroll";
 import { useSessionStream } from "../hooks/use-session-stream";
 import { CHIP_FLOW } from "./chip-flow";
 import { EventStream } from "./event-stream";
@@ -186,7 +187,18 @@ export function LiveView({
   /** The service slice this session holds, if any (T15c4). */
   slice?: BeeSlice | null;
 }) {
-  const { events, typing, idle, status, ended, skipped } = useSessionStream(session.id);
+  const { events, typing, idle, status, ended, skipped, above, loadOlder, loadingOlder } =
+    useSessionStream(session.id);
+
+  // Opening a chat lands on the newest message; scrolling to the top asks for
+  // the history the stream's 200-line replay left behind.
+  const scrollBox = useRef<HTMLDivElement | null>(null);
+  useChatScroll(scrollBox, {
+    count: events.length,
+    prependedCount: skipped - above,
+    onReachTop: above > 0 ? loadOlder : undefined,
+    loadingOlder,
+  });
   const [input, setInput] = useState("");
   const [err, setErr] = useState("");
   const [sending, startSend] = useTransition();
@@ -379,7 +391,17 @@ export function LiveView({
       )}
 
       {/* dòng sự kiện */}
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
+      <div
+        ref={scrollBox}
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6"
+      >
+        {above > 0 && (
+          <div className="mb-3 flex items-center justify-center">
+            <Button size="sm" variant="ghost" disabled={loadingOlder} onClick={() => loadOlder()}>
+              {loadingOlder ? "Loading…" : `Load ${above} earlier message(s)`}
+            </Button>
+          </div>
+        )}
         {events.length === 0 && typing === "" && idle === "" ? (
           <p className="text-sm text-muted-foreground">
             {status === "connecting" ? "Connecting…" : "Waiting for the session to speak…"}
