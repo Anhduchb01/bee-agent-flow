@@ -300,6 +300,76 @@
 }
 
 @layer base {
+  /*
+   * Markdown tables from agent output, stacked on a phone.
+   *
+   * A six-column table cannot fit 390px. It used to keep its width and scroll
+   * sideways inside a box — better than squeezing until "Status" reads
+   * "Statu / s", but still a sideways drag on a screen where every other one
+   * is a bug. Here each row becomes a block and each cell shows its column's
+   * name, which `markdown-table.tsx` stamped into `data-label`.
+   *
+   * The DOM stays ONE real <table>: same semantics for a screen reader, no
+   * second copy of the rows, and from `sm` up nothing below applies at all.
+   *
+   * Cells with no `data-label` (a table with no header row) keep their normal
+   * shape rather than being labelled with a guess.
+   */
+  @media (max-width: 639px) {
+    table[data-stacked] {
+      width: 100%;
+      min-width: 0;
+      display: block;
+    }
+    table[data-stacked] thead {
+      /* The header moves INTO each cell, so a visible header row would say
+         everything twice. Kept in the DOM for assistive tech. */
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    table[data-stacked] tbody,
+    table[data-stacked] tr {
+      display: block;
+      width: 100%;
+    }
+    table[data-stacked] tr + tr {
+      margin-top: 0.5rem;
+      border-top: 1px solid var(--border);
+      padding-top: 0.5rem;
+    }
+    table[data-stacked] td {
+      /* Grid, not flex: the value is a bare text node, and as a flex item it
+         refuses to shrink below its min-content — a long file path was simply
+         clipped at the right edge. `minmax(0, 1fr)` lets it, and then
+         overflow-wrap can break it. */
+      display: grid;
+      /* 5.5rem fits the longest label these tables use ("Checks",
+         "Status") and hands the rest back to the value, which is the part
+         that runs out of room — a file path, a branch name. */
+      grid-template-columns: 5.5rem minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: baseline;
+      width: 100%;
+      border: 0;
+      padding: 0.125rem 0;
+      white-space: normal;
+      /* A file path has no spaces to break at, so without this the value is
+         simply clipped at the right edge — measured on apps/web/src/lib/… */
+      overflow-wrap: anywhere;
+      min-width: 0;
+    }
+    table[data-stacked] td[data-label]::before {
+      content: attr(data-label);
+      color: var(--muted-foreground);
+      font-size: 0.75rem;
+      line-height: 1.2;
+    }
+  }
+
   * {
     @apply border-border outline-ring/50;
   }

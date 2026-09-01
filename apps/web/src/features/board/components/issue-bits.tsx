@@ -48,13 +48,17 @@ export function AttachedSession({ session }: { session: IssueSession[] }) {
   );
 }
 
+/**
+ * nowrap + shrink-0: the arrow used to fall to its own line beside a long
+ * title on a phone, costing a whole line and reading as broken markup.
+ */
 export function SoIssue({ row }: { row: BoardRow }) {
   return (
     <a
       href={row.issue.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center font-mono text-xs text-muted-foreground hover:underline pointer-coarse:min-h-11"
+      className="inline-flex shrink-0 items-center whitespace-nowrap font-mono text-xs text-muted-foreground hover:underline pointer-coarse:min-h-11"
     >
       #{row.issue.number} ↗
     </a>
