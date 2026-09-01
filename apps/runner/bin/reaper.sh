@@ -44,6 +44,37 @@ for meta in "$BEE_ROOT"/sessions/*/meta.json; do
     fi
   fi
 
+  # ── IDLE ceiling for ONE session ───────────────────────────────────────
+  # Measured from the LAST thing that happened, not the first. The unit's
+  # RuntimeMaxSec cannot do this job: it counts wall time since the unit went
+  # active and has no way to know whether the two sides are still talking — so
+  # at the old 6h it killed sessions for WAITING. A question asked at midnight
+  # was always dead before anyone woke up.
+  #
+  # run.jsonl is the ledger of BOTH directions: claude's stream, what the
+  # person typed (the `say` server action appends it), and `bee_approval` when
+  # they press allow. No new line in 24h means nobody is here any more. mtime
+  # is the right signal because claude's own lines carry no `ts` to read.
+  #
+  # Only a LIVE unit: a corpse belongs to the reap branch below, and labelling
+  # it "silent too long" would misreport what actually happened.
+  idle_h="${SESSION_IDLE_H:-24}"
+  if [[ "$idle_h" != "0" ]] && [[ -f "$sdir/run.jsonl" ]]; then
+    last_at=$(stat -c %Y "$sdir/run.jsonl" 2>/dev/null || echo 0)
+    silent=$(( $(date -u +%s) - last_at ))
+    if (( last_at > 0 && silent > idle_h * 3600 )) \
+       && systemctl --user is-active --quiet "bee-session@$id" 2>/dev/null; then
+      # Written BEFORE the stop, for the same reason as the spend-cap branch:
+      # the session's trap writes status=stopped right after, and meta_merge
+      # merges rather than overwrites, so neither erases the other.
+      lifecycle "$sdir" "Idle $(( silent / 3600 ))h (idle ceiling ${idle_h}h) — stopped to hand back the worktree, RAM and ports. Continue picks up this same conversation."
+      meta_merge "$sdir" "$(jq -cn --arg r "idle over ${idle_h}h" '{reason:$r}')"
+      systemctl --user stop "bee-session@$id" 2>/dev/null || true
+      don=$((don + 1))
+      continue
+    fi
+  fi
+
   # Transitional states are ALIVE: during `systemctl stop` the unit reads
   # "deactivating" while the trap is still closing the books — reaping at
   # that moment steals a clean stop and mislabels it failed/attempt+1.

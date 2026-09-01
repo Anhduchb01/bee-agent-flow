@@ -11,8 +11,14 @@ Environment=PATH=@BINPATH@
 Environment=BEE_ROOT=@BEE_ROOT@
 Type=simple
 ExecStart=@PREFIX@/bin/session-run.sh %i
-# Trần cứng cho một phiên — phanh cuối khi mọi thứ khác quên dừng.
-RuntimeMaxSec=6h
+# BACKSTOP ONLY — not the session ceiling anyone should hit. RuntimeMaxSec
+# counts WALL time since the unit went active and cannot be told about
+# activity, so at the old 6h it killed sessions for WAITING: a question asked
+# at midnight was dead by morning, having burned its 6h sitting idle at the
+# prompt. The real ceiling is SESSION_IDLE_H in the reaper — 24h since the last
+# thing either side did. This number exists only for the case where the reaper
+# itself is dead, and is set far above any session a human is still in.
+RuntimeMaxSec=7d
 
 # RESOURCE caps (T17). systemd can enforce these because bee's `user@` is
 # already delegated `cpu memory pids` — check with:

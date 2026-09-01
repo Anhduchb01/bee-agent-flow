@@ -90,7 +90,18 @@ bee-session@<id> → session-run.sh
 stream-json hai chiều, mỗi lượt trả lời sinh một `result` rồi CLI chờ input
 tiếp (phiên là hội thoại nhiều lượt). Phiên kết thúc khi: người bấm **Dừng**
 (`systemctl --user stop` → trap ghi `stopped`), claude tự thoát (`done`/`failed`
-theo mã thoát), hoặc chạm trần `RuntimeMaxSec` của unit. Đóng fd FIFO là cách
+theo mã thoát), hoặc reaper dừng nó vì vượt trần chi (`SESSION_MAX_USD`) hay
+vượt trần nghỉ (`SESSION_IDLE_H`, mặc định 24h).
+
+**Trần nghỉ đếm từ LẦN CUỐI, không phải lần đầu.** `RuntimeMaxSec` của unit
+không làm được việc này — nó đếm wall-clock từ lúc unit active và không có
+cách nào biết hai bên còn nói chuyện hay không, nên ở mức 6h nó giết phiên vì
+tội **chờ người**: một câu hỏi đặt lúc nửa đêm luôn chết trước khi người tỉnh
+dậy (gặp thật 01/09). Đồng hồ thật chạy từ dòng cuối trong `run.jsonl` — sổ
+ghi cả hai chiều: stream của claude, câu người gõ, và `bee_approval`. Trên
+unit `RuntimeMaxSec` còn lại **7d, thuần backstop** cho trường hợp chính
+reaper đã chết. Phiên bị dừng vì im lặng bấm **Tiếp tục** là `--resume` nối
+lại đúng hội thoại, nên đây là dừng chứ không phải mất. Đóng fd FIFO là cách
 runner kết thúc *một pha* sạch sẽ (claude nhận EOF, thoát không mất state) —
 dùng khi chuyển chế độ phỏng vấn→làm.
 

@@ -168,6 +168,11 @@ QUOTA_BRAKE_PCT=85
 # Trần chi cho MỘT phiên (FR-3.4): reaper dừng phiên vượt trần và gắn
 # needs_human. 0 = tắt. Đơn vị USD, đọc từ total_cost_usd cộng dồn.
 SESSION_MAX_USD=0
+# IDLE ceiling for ONE session: the reaper stops a session with no activity
+# from either side for this many hours. Counted from the LAST thing that
+# happened, so a session waiting on a person dies only once it is genuinely
+# forgotten. 0 = off. Continue picks the same conversation back up.
+SESSION_IDLE_H=24
 # Trần byte cho run.jsonl (spec §11): reaper cắt phần CŨ, giữ phần mới, và ghi
 # một dòng bee_truncated để UI nói thật là bản này đã bị cắt. 0 = tắt.
 RUN_MAX_KB=20480
