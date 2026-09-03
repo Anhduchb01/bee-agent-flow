@@ -155,6 +155,17 @@ if [[ "$CO_WORKTREE" == "yes" ]]; then
     git -C "$WT" config user.email "bee-agent@localhost"
   fi
 
+  # Permission overlay: without it a session cannot open its own PR, because
+  # an `ask` rule in the repo's .claude/settings.json is a refusal when there
+  # is nobody to ask. Rewritten every start and excluded from git — the file
+  # is bee's, not the repo's. See write_claude_perms for what still guards
+  # the push (the pre-push fence, which is the fence that actually holds).
+  write_claude_perms "$WT"
+  EXCL="$(git -C "$WT" rev-parse --git-path info/exclude)"
+  mkdir -p "$(dirname "$EXCL")"
+  grep -qxF "/.claude/settings.local.json" "$EXCL" 2>/dev/null \
+    || echo "/.claude/settings.local.json" >> "$EXCL"
+
   # Env overlay: keys the code needs but git must never carry. Drop files
   # under $BEE_ROOT/env.d/<slug>/ mirroring the repo layout (.env,
   # apps/web/.env.local, …) — copied over the worktree on EVERY start, so
