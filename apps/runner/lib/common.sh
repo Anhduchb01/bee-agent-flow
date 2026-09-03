@@ -115,6 +115,39 @@ copy_env_d() {
   done < <(cd "$envd" && find . -type f)
 }
 
+# write_claude_perms <worktree> — the permission overlay a session needs to
+# finish its own last step.
+#
+# A session has nobody at a keyboard, so an `ask` rule is not a question, it
+# is a refusal. Repos reasonably put `git push` and `gh pr` behind `ask` for a
+# human; in a session that resolves to `permission_denied` with
+# `decision_reason_type: "rule"`, and `--dangerously-skip-permissions` does
+# NOT override it. Seen for real 03/09: a finished branch with its evidence
+# committed, dead on the one command that would have opened its PR.
+#
+# What guards the push is the pre-push fence installed into the bare clone —
+# every ref that is not bee/* is refused, main included. That fence is a real
+# boundary; the `ask` prompt never was one here, only a wall.
+#
+# Written into the LOCAL layer and rewritten on every start, like the env.d
+# overlay: the file belongs to bee, not to the repo. `deny` still beats
+# `allow`, so a repo's own `git push --force` / `rm -rf` refusals stand.
+write_claude_perms() {
+  local wt="$1"
+  mkdir -p "$wt/.claude"
+  cat > "$wt/.claude/settings.local.json" <<'JSON'
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh repo view:*)"
+    ]
+  }
+}
+JSON
+}
+
 # port_owner <port> [unit] — who is listening on <port>, in exactly one line.
 #
 #   free                 nobody is listening
