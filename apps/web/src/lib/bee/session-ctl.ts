@@ -86,6 +86,13 @@ export async function openSession(input: {
   /** Permission mode (V2.5a) — mặc định "auto". Phiên chat bỏ qua (không tool). */
   mode?: BeeSessionMode;
   systemPrompt?: string;
+  /**
+   * Autopilot flow (V?) — thân từng /lệnh, ĐÃ expand, theo đúng thứ tự sẽ
+   * chạy. Rỗng/absent = phiên chat thường, không ai tự gửi gì (hành vi cũ).
+   * runner gửi phần tử 0 ngay khi mở, rồi một watcher nền gửi tiếp mỗi khi
+   * bước trước xong — xem session-run.sh.
+   */
+  flowSteps?: string[];
 }): Promise<SessionResult> {
   if (!SLUG_RE.test(input.slug)) return { ok: false, message: "Invalid project slug." };
   // Phiên chat không repo: repo rỗng là hợp lệ. Phiên có worktree thì repo
@@ -134,6 +141,7 @@ export async function openSession(input: {
       worktree: input.worktree,
       mode,
       system_prompt: input.systemPrompt ?? "",
+      flow_steps: input.flowSteps ?? [],
       max_turns: 120,
       /** Dải 10 cổng của phiên; `null` = phiên chat, không cần. */
       port_base: cong,

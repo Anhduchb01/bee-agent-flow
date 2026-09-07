@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { getActor } from "@/lib/auth";
+import { writeFlow } from "@/lib/bee/flow-fs";
 import { savePoolCompose, setPoolRunning } from "@/lib/bee/services-ctl";
+import type { FlowStep } from "@/lib/bee/types";
 import { getBee } from "@/lib/bee";
 import {
   startAddSlot,
@@ -35,6 +37,10 @@ export interface Result {
 }
 
 const KHONG_QUYEN: Result = { ok: false, message: "You are not allowed to do this." };
+
+function root(): string {
+  return process.env.BEE_SRV ?? "/srv/bee";
+}
 
 /** Every mutating step ends with a fresh doctor run — the page shows truth, not hope. */
 async function refresh(): Promise<void> {
@@ -255,4 +261,17 @@ export async function unpinTokenAction(): Promise<Result> {
   const outcome = await unpinToken();
   await refresh();
   return outcome.ok ? { ok: true, message: "" } : { ok: false, message: outcome.message };
+}
+
+/**
+ * Autopilot flow — thứ tự /lệnh một phiên Autopilot tự đi qua sau khi mở.
+ * Chỉ đổi phiên MỚI từ giờ trở đi; phiên đang chạy đã snapshot bước của nó
+ * vào session.json lúc mở, không đọc lại flow.json giữa chừng.
+ */
+export async function saveFlowAction(steps: FlowStep[]): Promise<Result> {
+  const actor = await getActor();
+  if (!actor) return KHONG_QUYEN;
+  await writeFlow(root(), { steps });
+  revalidatePath("/setup");
+  return { ok: true, message: "" };
 }

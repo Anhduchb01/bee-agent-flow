@@ -323,6 +323,20 @@ export interface Queue {
   paused: boolean;
 }
 
+/* ── Flow của Autopilot (`flow.json`) ──────────────────────────────────────
+ * Autopilot mở phiên xong không dừng ở đó — nó tự đi qua từng /lệnh này
+ * theo thứ tự, y hệt nội dung các chip Build/Review/PR/Demo/Preview đang gửi
+ * (CHIP_FLOW trong features/sessions/components/chip-flow.ts). Giữ hai danh
+ * sách khớp nhau — cái này là hạ tầng (đĩa), cái kia là màn hình.
+ */
+
+export const KNOWN_FLOW_STEPS = ["issue", "build", "review", "pr", "demo", "preview"] as const;
+export type FlowStep = (typeof KNOWN_FLOW_STEPS)[number];
+
+export interface AutopilotFlow {
+  steps: FlowStep[];
+}
+
 /** Toàn bộ đường ra vào `/srv/bee/`. Không module nào khác được chạm đĩa. */
 export interface BeeSource {
   /** Repo đã đăng ký — nguồn DUY NHẤT của dropdown chọn repo. */

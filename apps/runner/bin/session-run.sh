@@ -78,12 +78,17 @@ meta_merge "$SDIR" "$(jq -cn --arg t "$(now_iso)" \
 
 # ── 3 · Dọn dẹp — một trap cho mọi lối ra ───────────────────────────────────
 CPID=""
+WATCHER_PID=""  # Autopilot flow watcher, nếu phiên này có (xem dưới)
 DA_DUNG=""      # set khi nhận SIGTERM (systemctl stop / nút Dừng)
 FIFO="$BEE_RUNTIME/$ID.in"
 
 cleanup() {
   local rc=$?
   exec 3>&- 2>/dev/null || true
+  if [[ -n "$WATCHER_PID" ]] && kill -0 "$WATCHER_PID" 2>/dev/null; then
+    kill "$WATCHER_PID" 2>/dev/null || true
+    wait "$WATCHER_PID" 2>/dev/null || true
+  fi
   if [[ -n "$CPID" ]] && kill -0 "$CPID" 2>/dev/null; then
     kill "$CPID" 2>/dev/null || true
     wait "$CPID" 2>/dev/null || true
@@ -219,8 +224,13 @@ mkdir -p "$BEE_RUNTIME"
 ARGS=(-p --input-format stream-json --output-format stream-json --verbose
       --include-partial-messages)
 
+# FRESH cũng lái Autopilot flow bên dưới: chỉ phiên CHƯA từng có result nào
+# mới được tự gửi bước 1 + bật watcher — một phiên --resume (bị dừng giữa
+# chừng rồi Continue) không tự đoán lại xem đang ở bước mấy, để người gõ tiếp.
+FRESH="yes"
 if grep -q '"type":"result"' "$SDIR/run.jsonl" 2>/dev/null; then
   ARGS+=(--resume "$ID")
+  FRESH="no"
 else
   ARGS+=(--session-id "$ID")
 fi
@@ -262,7 +272,64 @@ lifecycle "$SDIR" "Phiên đã khởi động."
   <&3 >>"$SDIR/run.jsonl" 2>>"$SDIR/stderr.log" &
 CPID=$!
 
-# claude tự thoát (hết lượt, lỗi, hoặc người dùng kết thúc hội thoại)
+# ── Autopilot flow ──────────────────────────────────────────────────────
+# session.json.flow_steps: thân từng /lệnh ĐÃ expand (đúng nội dung một chip
+# sẽ gửi), tính sẵn bên web lúc mở phiên — script này chỉ lo THỜI ĐIỂM gửi.
+#
+# Bước 1 gửi ngay: đây là chỗ sửa bug "Autopilot mở phiên xong im re" — trước
+# đây không ai gửi gì vào FIFO nên claude ngồi chờ input không bao giờ tới.
+# Từ bước 2, một watcher nền chờ "result" MỚI trong run.jsonl rồi gửi bước kế
+# — cùng kỹ thuật rig-01 đã chứng minh (ghi thẳng vào fd 3 lúc claude sống).
+#
+# Chỉ chạy khi FRESH=yes (xem trên): phiên --resume không tự đoán lại đang ở
+# bước mấy, để người gõ tiếp qua chat là an toàn hơn đoán sai rồi lặp bước.
+if [[ "$FRESH" == "yes" ]]; then
+  N_STEPS=$(jq -r '(.flow_steps // []) | length' "$SDIR/session.json")
+  if (( N_STEPS > 0 )); then
+    send_flow_step() {
+      local i="$1" text
+      text=$(jq -r ".flow_steps[$i]" "$SDIR/session.json")
+      jq -cn --arg t "$text" \
+        '{type:"user",message:{role:"user",content:[{type:"text",text:$t}]}}' >&3
+    }
+    send_flow_step 0
+
+    (
+      seen=0; idx=0
+      while kill -0 "$CPID" 2>/dev/null; do
+        n=$(jq -n -r '[inputs | select(.type=="result")] | length' "$SDIR/run.jsonl" 2>/dev/null || echo 0)
+        if (( n > seen )); then
+          seen=$n
+          last=$(jq -c 'select(.type=="result")' "$SDIR/run.jsonl" 2>/dev/null | tail -1)
+          text=$(jq -r '.result // ""' <<<"$last")
+          is_err=$(jq -r '.is_error // false' <<<"$last")
+          if [[ "$is_err" == "true" || "$text" == *"FLOW_BLOCKED:"* ]]; then
+            reason="bước $((idx + 1))/$N_STEPS báo lỗi"
+            if [[ "$text" == *"FLOW_BLOCKED:"* ]]; then
+              reason="${text#*FLOW_BLOCKED:}"
+              reason="${reason# }"
+            fi
+            lifecycle "$SDIR" "Flow dừng ($reason) — cần người xem."
+            meta_merge "$SDIR" "$(jq -cn --arg r "$reason" '{needs_human:true, reason:$r}')"
+            break
+          fi
+          idx=$((idx + 1))
+          if (( idx < N_STEPS )); then
+            send_flow_step "$idx"
+          else
+            lifecycle "$SDIR" "Flow hoàn tất ($N_STEPS/$N_STEPS bước)."
+            break
+          fi
+        fi
+        sleep 3
+      done
+    ) &
+    WATCHER_PID=$!
+  fi
+fi
+
+# claude tự thoát (hết lượt, lỗi, hoặc người dùng kết thúc hội thoại) —
+# watcher (nếu có) bị cleanup() dọn theo CPID/trap EXIT, không phải ở đây.
 RC=0; wait "$CPID" 2>/dev/null || RC=$?
 CPID=""
 exec 3>&- 2>/dev/null || true

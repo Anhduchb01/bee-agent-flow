@@ -1,9 +1,19 @@
 import "server-only";
 
 import { getBee } from "@/lib/bee";
+import { readFlow } from "@/lib/bee/flow-fs";
 import { listEnvFiles, type BeeEnvFile } from "@/lib/bee/machine-ctl";
 import { readSlayerStatus, type SlayerStatus } from "@/lib/bee/slayer-ctl";
-import type { BeeClaudeAuth, BeeDoctor } from "@/lib/bee/types";
+import type { AutopilotFlow, BeeClaudeAuth, BeeDoctor } from "@/lib/bee/types";
+
+function root(): string {
+  return process.env.BEE_SRV ?? "/srv/bee";
+}
+
+/** Which /commands Autopilot walks through on its own after opening a session. */
+export function loadFlow(): Promise<AutopilotFlow> {
+  return readFlow(root());
+}
 
 /** Latest machine self-check; `null` = doctor has never run. */
 export function loadDoctor(): Promise<BeeDoctor | null> {

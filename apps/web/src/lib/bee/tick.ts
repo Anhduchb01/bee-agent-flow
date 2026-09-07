@@ -3,6 +3,7 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { composeFlowSteps, readFlow } from "./flow-fs";
 import { getBee } from "./index";
 import { readQueue, writeQueue } from "./queue-fs";
 import { runOneTick } from "./queue-run";
@@ -51,6 +52,10 @@ export async function runQueueTick(): Promise<QueueTickResult> {
     maxParallel: Number(process.env.QUEUE_MAX_PARALLEL ?? 1),
     openSession: async (v) => {
       const daCo = session.filter((p) => p.slug === v.slug).length;
+      // flow.json (Setup): thứ tự /lệnh Autopilot tự đi qua sau khi mở phiên —
+      // xem session-run.sh cho phần "gửi bước kế khi bước trước xong".
+      const flow = await readFlow(baseDir);
+      const flowSteps = await composeFlowSteps(flow.steps);
       return openSession({
         slug: v.slug,
         num: daCo + 1,
@@ -59,8 +64,18 @@ export async function runQueueTick(): Promise<QueueTickResult> {
         worktree: true,
         mode: v.mode,
         // Work that may run with nobody watching: tell the agent which issue
-        // it is on instead of making it guess from the session title.
-        systemPrompt: `You are working on issue #${v.issue} of ${v.repo}. Read the issue with gh, follow its acceptance criteria, then open a PR with the bee-push-pr skill.`,
+        // it is on, the flow it will move through on its own, and how to
+        // signal "a human needs to look at this" instead of guessing forever.
+        systemPrompt:
+          `You are working on issue #${v.issue} of ${v.repo}. Read the issue with gh, ` +
+          `follow its acceptance criteria. You will be walked through this flow, one turn ` +
+          `each: ${flow.steps.map((s) => `/${s}`).join(" → ")}. Move to the next step ` +
+          `yourself once you're done with the current one — do not wait for anyone. If at ` +
+          `any point you cannot proceed with confidence (something only a human can decide, ` +
+          `or a check you cannot pass), end your final message for that step with a line ` +
+          `starting exactly with "FLOW_BLOCKED: " followed by a short reason, so a human can ` +
+          `pick up from there.`,
+        flowSteps,
       });
     },
     writer: (latest) => writeQueue(baseDir, latest),

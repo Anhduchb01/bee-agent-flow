@@ -4,11 +4,13 @@ import {
   ClaudeSetup,
   DiskPanel,
   DoctorChecklist,
+  FlowControls,
   LingerButton,
   loadClaudeAuth,
   loadSlayer,
   loadEnvFiles,
   loadDoctor,
+  loadFlow,
   loadGc,
   PatForm,
   PauseToggle,
@@ -97,12 +99,13 @@ export default async function SetupPage({
   const actor = await getActor();
   if (!actor) return null;
 
-  const [doctor, repos, claudeAuth, slayer, gc] = await Promise.all([
+  const [doctor, repos, claudeAuth, slayer, gc, flow] = await Promise.all([
     loadDoctor(),
     loadRepos(),
     loadClaudeAuth(),
     loadSlayer(),
     loadGc(),
+    loadFlow(),
   ]);
   const envFiles = await loadEnvFiles(repos.map((r) => r.slug));
   const [pool, slices, running, compose] = await Promise.all([
@@ -176,7 +179,11 @@ export default async function SetupPage({
               </Card>
             </Step>
 
-            <Step num={5} title="Take new work, or stop taking it">
+            <Step num={5} title="Autopilot flow">
+              <FlowControls steps={flow.steps} />
+            </Step>
+
+            <Step num={6} title="Take new work, or stop taking it">
               <Card>
                 <PauseToggle paused={doctor?.paused ?? true} ready={doctor?.ok === true} />
               </Card>
